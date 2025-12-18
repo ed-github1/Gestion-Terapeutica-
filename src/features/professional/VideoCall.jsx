@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import Video from 'twilio-video'
 import { motion } from 'motion/react'
+import { useAuth } from '../auth'
 
 const VideoCallRoom = ({ token, roomName, onLeave }) => {
   const [room, setRoom] = useState(null)
@@ -256,29 +257,43 @@ const VideoCallRoom = ({ token, roomName, onLeave }) => {
   )
 }
 
-const VideoCallLauncher = ({ appointmentId, patientName, onClose }) => {
+const VideoCallLauncher = ({ appointmentId, patientName, patientId, onClose }) => {
+  const { user } = useAuth()
   const [token, setToken] = useState(null)
   const [roomName, setRoomName] = useState(null)
   const [isCreatingRoom, setIsCreatingRoom] = useState(false)
   const [isInCall, setIsInCall] = useState(false)
+  const [isNotifyingPatient, setIsNotifyingPatient] = useState(false)
 
   const createRoom = async () => {
     setIsCreatingRoom(true)
     
+    // Debug: Check what values we have
+    console.log('🎬 Starting video call...', {
+      appointmentId,
+      patientId,
+      patientName,
+      hasPatientId: !!patientId
+    })
+    
+    if (!patientId) {
+      console.error('❌ No patientId provided! Cannot notify patient.')
+      alert('Error: No se pudo identificar al paciente. Verifica que el appointment tenga patientId.')
+      setIsCreatingRoom(false)
+      return
+    }
+    
     try {
-      // TODO: Call your backend API to get Twilio access token
-      // Backend should call Twilio API to generate token
-      // Example: POST /api/video/token with appointmentId
-      
+      // Get video token
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/video/token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('authToken') || sessionStorage.getItem('authToken')}`
         },
         body: JSON.stringify({
           appointmentId,
-          identity: patientName || 'Professional'
+          identity: user?._id || user?.email || user?.nombre || `professional-${Date.now()}`
         })
       })
 
@@ -289,12 +304,64 @@ const VideoCallLauncher = ({ appointmentId, patientName, onClose }) => {
       const data = await response.json()
       setToken(data.token)
       setRoomName(data.roomName || `room-${appointmentId}`)
+      
+      // Notify patient about the call
+      await notifyPatient()
+      
       setIsInCall(true)
     } catch (error) {
       console.error('Error creating room:', error)
       alert('Error al crear la sala de videollamada. Asegúrate de que el backend esté configurado.')
     } finally {
       setIsCreatingRoom(false)
+    }
+  }
+
+  const notifyPatient = async () => {
+    setIsNotifyingPatient(true)
+    try {
+      const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/video/notify-patient`
+      console.log('📞 Notifying patient...', {
+        apiUrl,
+        appointmentId,
+        patientId
+      })
+      
+      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken')
+      console.log('🔑 Using auth token:', !!token)
+      
+      const professionalName = user?.name || user?.nombre || 'Professional'
+      
+      const requestBody = {
+        appointmentId,
+        patientId,
+        patientName,
+        professionalName
+      }
+      console.log('📤 Sending notification with:', requestBody)
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(requestBody)
+      })
+      
+      console.log('📡 Notification response status:', response.status)
+      const responseData = await response.json()
+      console.log('📥 Notification response:', responseData)
+      
+      if (response.ok) {
+        console.log('✅ Patient notified successfully')
+      } else {
+        console.error('⚠️ Failed to notify patient:', responseData)
+      }
+    } catch (error) {
+      console.error('❌ Error notifying patient:', error)
+    } finally {
+      setIsNotifyingPatient(false)
     }
   }
 
@@ -337,6 +404,18 @@ const VideoCallLauncher = ({ appointmentId, patientName, onClose }) => {
         <p className="text-gray-600 mb-6">
           {patientName ? `Cita con ${patientName}` : 'Iniciar sesión de videollamada'}
         </p>
+
+        {isNotifyingPatient && (
+          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center justify-center gap-2 text-green-700">
+              <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span className="text-sm font-medium">Notificando al paciente...</span>
+            </div>
+          </div>
+        )}
 
         <button
           onClick={createRoom}

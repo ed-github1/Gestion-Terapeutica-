@@ -117,4 +117,48 @@ export const authAPI = {
       throw error
     }
   },
+
+  // SMS Authentication - Request OTP
+  sendSMSCode: async (phoneNumber) => {
+    try {
+      const response = await apiClient.post('/auth/sms/send', { phoneNumber })
+      return response
+    } catch (error) {
+      throw error
+    }
+  },
+
+  // SMS Authentication - Verify OTP
+  verifySMSCode: async (phoneNumber, code) => {
+    try {
+      const response = await apiClient.post('/auth/sms/verify', { phoneNumber, code })
+      return response
+    } catch (error) {
+      throw error
+    }
+  },
+
+  // SMS Login - Send code
+  loginWithSMS: async (phoneNumber) => {
+    try {
+      const response = await apiClient.post('/auth/login/sms', { phoneNumber })
+      return response
+    } catch (error) {
+      throw error
+    }
+  },
+
+  // SMS Login - Verify and authenticate
+  verifyLoginSMS: async (phoneNumber, code, rememberMe = false) => {
+    try {
+      const response = await apiClient.post('/auth/login/sms/verify', { 
+        phoneNumber, 
+        code,
+        rememberMe 
+      })
+      return response
+    } catch (error) {
+      throw error
+    }
+  },
 }

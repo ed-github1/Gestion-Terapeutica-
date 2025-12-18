@@ -16,7 +16,7 @@ const Toast = () => {
     toastHandler = (message, type) => {
       const id = Date.now()
       setToasts(prev => [...prev, { id, message, type }])
-      
+
       setTimeout(() => {
         setToasts(prev => prev.filter(toast => toast.id !== id))
       }, 3500)
@@ -93,7 +93,7 @@ const Toast = () => {
   }
 
   return (
-    <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none">
+    <div className="fixed top-4 right-4 z-100 flex flex-col gap-2 pointer-events-none">
       <AnimatePresence>
         {toasts.map((toast) => (
           <motion.div

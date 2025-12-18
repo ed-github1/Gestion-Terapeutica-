@@ -1,11 +1,12 @@
 import React, { useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider, useAuth, ProtectedRoute, LoginPage, RegisterPage } from './features/auth'
+import { AuthProvider, useAuth, ProtectedRoute, LoginPage, RegisterPage, SMSLoginPage } from './features/auth'
 import { ProfessionalDashboard, AppointmentsCalendar } from './features/professional'
 import PatientsList from './features/professional/PatientsList'
 import { PatientDashboard } from './features/patient'
 import PatientVideoCall from './features/patient/PatientVideoCall'
 import PatientRegisterPage from './features/patient/PatientRegisterPage'
+import PatientRegister from './features/patient/PatientRegister'
 import { Sidebar, Header } from './components/layout'
 import { Toast } from './components'
 import { ROUTES, ROLES } from './constants/routes'
@@ -63,9 +64,10 @@ function App() {
         <Routes>
           {/* Public Routes */}
           <Route path={ROUTES.LOGIN} element={<LoginRoute />} />
+          <Route path="/login/sms" element={<SMSLoginPage />} />
           <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
           <Route path="/patient/register" element={<PatientRegisterPage />} />
-
+          <Route path="/register/:inviteCode" element={<PatientRegister />} />
           {/* Protected Routes - Professional */}
           <Route
             path={ROUTES.PROFESSIONAL_DASHBOARD}

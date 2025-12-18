@@ -4,6 +4,7 @@ import { showToast } from '../../components'
 import { patientsAPI } from '../../services/patients'
 import PatientForm from './PatientForm'
 import PatientDiary from './PatientDiary'
+import PatientInvitation from './PatientInvitation'
 
 const PatientsList = () => {
   const [patients, setPatients] = useState([])
@@ -13,6 +14,7 @@ const PatientsList = () => {
   const [filterStatus, setFilterStatus] = useState('all')
   const [viewMode, setViewMode] = useState('grid') // 'grid' or 'list'
   const [showAddPatient, setShowAddPatient] = useState(false)
+  const [showInviteModal, setShowInviteModal] = useState(false)
   const [selectedPatient, setSelectedPatient] = useState(null)
   const [showDiary, setShowDiary] = useState(false)
 
@@ -28,17 +30,33 @@ const PatientsList = () => {
     try {
       setLoading(true)
       const response = await patientsAPI.getAll()
-      setPatients(response.data || [])
+      
+      // Backend returns { success: true, data: patients }
+      const data = response.data?.data || response.data || []
+
+      // Ensure data is always an array
+      const patientsArray = Array.isArray(data) ? data : []
+    
+      setPatients(patientsArray)
     } catch (error) {
-      console.error('Error loading patients:', error)
       showToast('Error al cargar pacientes', 'error')
+      setPatients([]) // Set empty array on error
     } finally {
       setLoading(false)
     }
   }
 
   const filterPatients = () => {
+    
+    // Safety check: ensure patients is an array
+    if (!Array.isArray(patients)) {
+      console.log('❌ patients is not an array!')
+      setFilteredPatients([])
+      return
+    }
+
     let filtered = [...patients]
+    console.log('🔍 Initial filtered count:', filtered.length)
 
     // Search filter
     if (searchTerm) {
@@ -52,7 +70,10 @@ const PatientsList = () => {
 
     // Status filter
     if (filterStatus !== 'all') {
-      filtered = filtered.filter(patient => patient.status === filterStatus)
+      console.log('🔍 Filtering by status:', filterStatus)
+      filtered = filtered.filter(patient => {
+        return patient.status === filterStatus
+      })
     }
 
     setFilteredPatients(filtered)
@@ -90,16 +111,34 @@ const PatientsList = () => {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-blue-50 via-indigo-50 to-purple-50 p-6">
+    <div className="min-h-screen bg-linear-to-br from-purple-50 via-white to-blue-50 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Mis Pacientes</h1>
-          <p className="text-gray-600">Gestiona y da seguimiento a tus pacientes</p>
-        </div>
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8 bg-white/80 backdrop-blur-sm rounded-3xl p-6 shadow-sm border border-purple-100"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-linear-to-br from-purple-400 to-pink-400 rounded-2xl flex items-center justify-center shadow-lg">
+              <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-800 mb-1">Mis Pacientes</h1>
+              <p className="text-gray-600">Gestiona y da seguimiento a tus pacientes</p>
+            </div>
+          </div>
+        </motion.div>
 
         {/* Actions Bar */}
-        <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-sm p-6 mb-6 border border-purple-100"
+        >
           <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
             {/* Search */}
             <div className="flex-1 w-full lg:w-auto">
@@ -109,9 +148,9 @@ const PatientsList = () => {
                   placeholder="Buscar por nombre, email o teléfono..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  className="w-full pl-12 pr-4 py-3 border border-purple-200 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition bg-purple-50/30"
                 />
-                <svg className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-purple-400 absolute left-4 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </div>
@@ -122,7 +161,7 @@ const PatientsList = () => {
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                className="px-4 py-3 border border-purple-200 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition bg-purple-50/30 text-gray-700 font-medium"
               >
                 <option value="all">Todos</option>
                 <option value="active">Activos</option>
@@ -131,10 +170,10 @@ const PatientsList = () => {
               </select>
 
               {/* View Mode Toggle */}
-              <div className="flex bg-gray-100 rounded-xl p-1">
+              <div className="flex bg-purple-100/50 rounded-2xl p-1 border border-purple-200">
                 <button
                   onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded-lg transition ${viewMode === 'grid' ? 'bg-white shadow-sm' : 'text-gray-500'}`}
+                  className={`p-2 rounded-xl transition ${viewMode === 'grid' ? 'bg-white shadow-sm text-purple-600' : 'text-gray-500'}`}
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
@@ -142,7 +181,7 @@ const PatientsList = () => {
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
-                  className={`p-2 rounded-lg transition ${viewMode === 'list' ? 'bg-white shadow-sm' : 'text-gray-500'}`}
+                  className={`p-2 rounded-xl transition ${viewMode === 'list' ? 'bg-white shadow-sm text-purple-600' : 'text-gray-500'}`}
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -150,43 +189,62 @@ const PatientsList = () => {
                 </button>
               </div>
 
+     
               {/* Add Patient Button */}
-              <button
+              <motion.button
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => setShowAddPatient(true)}
-                className="flex items-center px-6 py-3 bg-linear-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition shadow-lg shadow-blue-500/30"
+                className="flex items-center px-6 py-3 bg-linear-to-r from-purple-500 to-pink-500 text-white rounded-2xl hover:from-purple-600 hover:to-pink-600 transition shadow-lg shadow-purple-500/30 font-semibold"
               >
                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
                 Agregar Paciente
-              </button>
+              </motion.button>
             </div>
           </div>
 
           {/* Stats */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600">{patients.length}</div>
-              <div className="text-sm text-gray-600">Total Pacientes</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-green-600">
-                {patients.filter(p => p.status === 'active').length}
+            <motion.div 
+              whileHover={{ scale: 1.05 }}
+              className="text-center p-4 bg-linear-to-br from-blue-400 to-blue-500 rounded-2xl shadow-lg text-white relative overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 w-16 h-16 bg-white/20 rounded-full -mr-8 -mt-8"></div>
+              <div className="text-3xl font-bold relative">{Array.isArray(patients) ? patients.length : 0}</div>
+              <div className="text-sm font-medium relative">Total Pacientes</div>
+            </motion.div>
+            <motion.div 
+              whileHover={{ scale: 1.05 }}
+              className="text-center p-4 bg-linear-to-br from-emerald-400 to-teal-500 rounded-2xl shadow-lg text-white relative overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 w-16 h-16 bg-white/20 rounded-full -mr-8 -mt-8"></div>
+              <div className="text-3xl font-bold relative">
+                {Array.isArray(patients) ? patients.filter(p => p.status === 'active').length : 0}
               </div>
-              <div className="text-sm text-gray-600">Activos</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-orange-600">
-                {patients.filter(p => p.status === 'pending').length}
+              <div className="text-sm font-medium relative">Activos</div>
+            </motion.div>
+            <motion.div 
+              whileHover={{ scale: 1.05 }}
+              className="text-center p-4 bg-linear-to-br from-amber-400 to-orange-500 rounded-2xl shadow-lg text-white relative overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 w-16 h-16 bg-white/20 rounded-full -mr-8 -mt-8"></div>
+              <div className="text-3xl font-bold relative">
+                {Array.isArray(patients) ? patients.filter(p => p.status === 'pending').length : 0}
               </div>
-              <div className="text-sm text-gray-600">Pendientes</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-indigo-600">{filteredPatients.length}</div>
-              <div className="text-sm text-gray-600">Resultados</div>
-            </div>
+              <div className="text-sm font-medium relative">Pendientes</div>
+            </motion.div>
+            <motion.div 
+              whileHover={{ scale: 1.05 }}
+              className="text-center p-4 bg-linear-to-br from-purple-400 to-pink-500 rounded-2xl shadow-lg text-white relative overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 w-16 h-16 bg-white/20 rounded-full -mr-8 -mt-8"></div>
+              <div className="text-3xl font-bold relative">{filteredPatients.length}</div>
+              <div className="text-sm font-medium relative">Resultados</div>
+            </motion.div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Loading State */}
         {loading && (
@@ -284,14 +342,21 @@ const PatientsList = () => {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+              className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-purple-100"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="sticky top-0 bg-linear-to-r from-blue-600 to-indigo-600 px-6 py-4 flex items-center justify-between text-white z-10">
-                <h2 className="text-2xl font-bold">Agregar Nuevo Paciente</h2>
+              <div className="sticky top-0 bg-linear-to-r from-purple-500 via-purple-600 to-pink-600 px-6 py-5 flex items-center justify-between text-white z-10 rounded-t-3xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                    </svg>
+                  </div>
+                  <h2 className="text-2xl font-bold">Agregar Nuevo Paciente</h2>
+                </div>
                 <button
                   onClick={() => setShowAddPatient(false)}
-                  className="p-2 hover:bg-white/20 rounded-lg transition"
+                  className="p-2 hover:bg-white/20 rounded-xl transition"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -300,7 +365,8 @@ const PatientsList = () => {
               </div>
               <div className="p-6">
                 <PatientForm
-                  onSuccess={() => {
+                  onClose={() => setShowAddPatient(false)}
+                  onSubmit={() => {
                     setShowAddPatient(false)
                     loadPatients()
                   }}
@@ -308,6 +374,18 @@ const PatientsList = () => {
               </div>
             </motion.div>
           </motion.div>
+        )}
+
+        {/* Invite Patient Modal */}
+        {showInviteModal && (
+          <PatientInvitation
+            onClose={() => setShowInviteModal(false)}
+            onSuccess={() => {
+              setShowInviteModal(false)
+              loadPatients()
+            }}
+            professionalName={JSON.parse(localStorage.getItem('user') || '{}').nombre || 'Tu terapeuta'}
+          />
         )}
       </AnimatePresence>
     </div>
@@ -352,7 +430,7 @@ const PatientCard = ({ patient, onDelete, onOpenDiary, onRefresh }) => {
           </div>
           <div className="flex-1">
             <h3 className="text-xl font-bold">{patient.nombre} {patient.apellido}</h3>
-            <p className="text-blue-100 text-sm">{patient.edad ? `${patient.edad} años` : 'Edad no especificada'}</p>
+            <p className="text-blue-100 text-sm">{patient.datosPersonales?.edad ? `${patient.datosPersonales.edad} años` : 'Edad no especificada'}</p>
           </div>
           <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(patient.status || 'active')}`}>
             {getStatusLabel(patient.status || 'active')}
@@ -372,12 +450,12 @@ const PatientCard = ({ patient, onDelete, onOpenDiary, onRefresh }) => {
               {patient.email}
             </div>
           )}
-          {patient.telefono && (
+          {patient.datosPersonales?.telefono && (
             <div className="flex items-center text-sm text-gray-600">
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
               </svg>
-              {patient.telefono}
+              {patient.datosPersonales.telefono}
             </div>
           )}
           {patient.diagnostico && (

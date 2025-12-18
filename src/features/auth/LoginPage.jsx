@@ -157,6 +157,18 @@ const LoginPage = () => {
             </div>
           </div>
 
+          {/* SMS Login Button */}
+          <button
+            type="button"
+            onClick={() => navigate('/login/sms')}
+            className="w-full flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition duration-200"
+          >
+            <svg className="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            <span className="text-gray-700 font-medium">Iniciar con SMS</span>
+          </button>
+
           {/* Social Login Buttons */}
           <div className="grid grid-cols-2 gap-3">
             <button
