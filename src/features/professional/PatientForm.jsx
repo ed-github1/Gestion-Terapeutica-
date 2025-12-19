@@ -123,7 +123,7 @@ const PatientForm = ({ onClose, onSubmit: onFormSubmit, mode = 'invite' }) => {
       console.log('─────────────────────────────────────')
       console.log('Invitation Payload:', JSON.stringify(invitationData, null, 2))
       console.log('Channels:', invitationData.channels)
-      console.log('Email in payload:', invitationData.email)
+      console.log('Email in payload:', invitationData.patientEmail)
       console.log('═══════════════════════════════════════')
       
       const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken')
