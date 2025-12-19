@@ -6,7 +6,7 @@ import { appointmentsAPI } from '../../services/appointments'
 const PatientAppointments = ({ onClose }) => {
   const [appointments, setAppointments] = useState([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState('all') // all, upcoming, past
+  const [filter, setFilter] = useState('all') // all, upcoming, past, today
 
   useEffect(() => {
     loadAppointments()
@@ -51,13 +51,46 @@ const PatientAppointments = ({ onClose }) => {
 
   const getFilteredAppointments = () => {
     const now = new Date()
-    const today = now.toISOString().split('T')[0]
-    
+    const todayYear = now.getFullYear()
+    const todayMonth = now.getMonth()
+    const todayDate = now.getDate()
     return appointments.filter(apt => {
       if (filter === 'upcoming') {
-        return apt.date >= today && apt.status !== 'cancelled' && apt.status !== 'completed'
+        // Keep as before
+        const aptDate = new Date(apt.date)
+        return aptDate >= now && apt.status !== 'cancelled' && apt.status !== 'completed'
       } else if (filter === 'past') {
-        return apt.date < today || apt.status === 'completed'
+        const aptDate = new Date(apt.date)
+        return aptDate < now || apt.status === 'completed'
+      } else if (filter === 'today') {
+        let isToday = false
+        if (/^\d{4}-\d{2}-\d{2}$/.test(apt.date)) {
+          // Date-only string, treat as local date
+          const [y, m, d] = apt.date.split('-').map(Number)
+          const aptDateObj = new Date(todayYear, m - 1, d)
+          isToday = (
+            aptDateObj.getFullYear() === todayYear &&
+            aptDateObj.getMonth() === todayMonth &&
+            aptDateObj.getDate() === todayDate
+          )
+        } else if (typeof apt.date === 'string' && apt.date.endsWith('Z')) {
+          // ISO string in UTC, compare UTC date parts
+          const aptDateObj = new Date(apt.date)
+          isToday = (
+            aptDateObj.getUTCFullYear() === now.getUTCFullYear() &&
+            aptDateObj.getUTCMonth() === now.getUTCMonth() &&
+            aptDateObj.getUTCDate() === now.getUTCDate()
+          )
+        } else {
+          // Fallback: parse as local date
+          const aptDateObj = new Date(apt.date)
+          isToday = (
+            aptDateObj.getFullYear() === todayYear &&
+            aptDateObj.getMonth() === todayMonth &&
+            aptDateObj.getDate() === todayDate
+          )
+        }
+        return isToday && apt.status !== 'cancelled'
       }
       return true
     })
@@ -149,6 +182,16 @@ const PatientAppointments = ({ onClose }) => {
               }`}
             >
               Todas ({appointments.length})
+            </button>
+            <button
+              onClick={() => setFilter('today')}
+              className={`px-4 py-2 rounded-lg font-medium transition ${
+                filter === 'today' 
+                  ? 'bg-white text-blue-600' 
+                  : 'bg-white/20 text-white hover:bg-white/30'
+              }`}
+            >
+              Hoy
             </button>
             <button
               onClick={() => setFilter('upcoming')}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useAuth } from '../auth/AuthContext'
 import { motion } from 'motion/react'
 import PatientPersonalDiary from './PatientPersonalDiary'
 import AppointmentRequest from './AppointmentRequest'
@@ -8,6 +9,7 @@ import { VideoCallNotificationManager } from '../../components'
 import useVideoCallNotifications from '../../hooks/useVideoCallNotifications'
 
 const PatientDashboard = () => {
+  const { user } = useAuth()
   const [showDiary, setShowDiary] = useState(false)
   const [showAppointmentRequest, setShowAppointmentRequest] = useState(false)
   const [showAppointments, setShowAppointments] = useState(false)
@@ -89,7 +91,7 @@ const PatientDashboard = () => {
             <div>
               <h1 className="text-3xl font-semibold text-gray-800 mb-2 flex items-center gap-3">
                 <span className="text-purple-400">✨</span>
-                ¡Bienvenido a tu Panel
+                ¡Bienvenido, {user?.name?.split(' ')[0] || 'Paciente'}!
               </h1>
               <p className="text-gray-600">
                 {new Date().toLocaleDateString('es-ES', {
@@ -100,23 +102,12 @@ const PatientDashboard = () => {
               </p>
             </div>
             <div className="flex gap-3">
-              {simulateIncomingCall && (
-                <button
-                  onClick={simulateIncomingCall}
-                  className="px-4 py-3 bg-orange-500 text-white rounded-2xl font-medium hover:shadow-lg transition-all flex items-center gap-2"
-                  title="Simular llamada entrante (Demo)"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                  Test Call
-                </button>
-              )}
+              {/* Test Call button removed as requested */}
               <button
                 onClick={() => setShowAppointmentRequest(true)}
-                className="px-6 py-3 bg-linear-to-r from-purple-500 to-pink-500 text-white rounded-2xl font-medium hover:shadow-lg transition-all"
+                className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-2xl font-medium transition-all hover:scale-105 hover:shadow-xl hover:from-pink-500 hover:to-purple-500"
               >
-                + Nueva Cita
+                Solicitar Cita
               </button>
             </div>
           </div>

@@ -181,15 +181,47 @@ const ProfessionalDashboardContent = ({ setShowCalendar, setDiaryPatient }) => {
     ]
 
     // Get today's appointments from real data
-    const today = new Date().toDateString()
+    const now = new Date()
+    const todayYear = now.getFullYear()
+    const todayMonth = now.getMonth()
+    const todayDate = now.getDate()
     const recentAppointments = appointments
-        .filter(apt => new Date(apt.date).toDateString() === today)
+        .filter(apt => {
+            let isToday = false
+            if (/^\d{4}-\d{2}-\d{2}$/.test(apt.date)) {
+                // Date-only string, treat as local date
+                const [y, m, d] = apt.date.split('-').map(Number)
+                const aptDateObj = new Date(todayYear, m - 1, d)
+                isToday = (
+                    aptDateObj.getFullYear() === todayYear &&
+                    aptDateObj.getMonth() === todayMonth &&
+                    aptDateObj.getDate() === todayDate
+                )
+            } else if (typeof apt.date === 'string' && apt.date.endsWith('Z')) {
+                // ISO string in UTC, compare UTC date parts
+                const aptDateObj = new Date(apt.date)
+                isToday = (
+                    aptDateObj.getUTCFullYear() === now.getUTCFullYear() &&
+                    aptDateObj.getUTCMonth() === now.getUTCMonth() &&
+                    aptDateObj.getUTCDate() === now.getUTCDate()
+                )
+            } else {
+                // Fallback: parse as local date
+                const aptDateObj = new Date(apt.date)
+                isToday = (
+                    aptDateObj.getFullYear() === todayYear &&
+                    aptDateObj.getMonth() === todayMonth &&
+                    aptDateObj.getDate() === todayDate
+                )
+            }
+            return isToday
+        })
         .slice(0, 5)
         .map(apt => ({
             id: apt._id || apt.id,
             patientId: apt.patientId?._id || apt.patientId,
             patient: apt.patientId?.nombre ? `${apt.patientId.nombre} ${apt.patientId.apellido}` : 'Paciente',
-            time: new Date(apt.date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+            time: apt.time || new Date(apt.date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
             status: apt.status === 'confirmed' ? 'Confirmada' : apt.status === 'pending' ? 'Pendiente' : apt.status === 'cancelled' ? 'Cancelada' : 'Completada',
             type: apt.type || 'Consulta'
         }))
@@ -213,7 +245,7 @@ const ProfessionalDashboardContent = ({ setShowCalendar, setDiaryPatient }) => {
                         <div>
                             <h1 className="text-3xl font-semibold text-gray-800 mb-2 flex items-center gap-3">
                                 <span className="text-purple-400">✨</span>
-                                {getGreeting()}, Dr. {user?.name?.split(' ')[0] || 'Doctor'}
+                                {getGreeting()}, Dr. {user?.name?.split(' ')[0] || user?.nombre || 'Doctor'}
                             </h1>
                             <p className="text-gray-600">
                                 {currentTime.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
@@ -280,15 +312,23 @@ const ProfessionalDashboardContent = ({ setShowCalendar, setDiaryPatient }) => {
                                     </div>
                                     <h2 className="text-xl font-semibold text-gray-800">Sesiones de Hoy</h2>
                                 </div>
-                                <button 
-                                    onClick={() => setShowCalendar(true)}
-                                    className="text-sm text-purple-600 hover:text-purple-700 font-medium transition flex items-center gap-1"
-                                >
-                                    <span>Ver agenda</span>
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                    </svg>
-                                </button>
+                                                                <div className="flex gap-2">
+                                                                    <button 
+                                                                            onClick={() => setShowCalendar(true)}
+                                                                            className="text-sm text-purple-600 hover:text-purple-700 font-medium transition flex items-center gap-1"
+                                                                    >
+                                                                            <span>Ver agenda</span>
+                                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                                            </svg>
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => setShowCalendar(true)}
+                                                                        className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-2xl font-medium transition-all hover:scale-105 hover:shadow-xl hover:from-pink-500 hover:to-purple-500"
+                                                                    >
+                                                                        Agendar Cita
+                                                                    </button>
+                                                                </div>
                             </div>
                             <div className="space-y-3">
                                 {loading ? (
