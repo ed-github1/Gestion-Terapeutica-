@@ -44,72 +44,23 @@ const AppointmentRequest = ({ onClose, onSuccess }) => {
       const response = await appointmentsAPI.getAvailableSlots(date)
       console.log('✅ Slots from API:', response.data)
       
-      // If API returns empty array, use fallback data
+      // Only use backend data for available slots
       if (response.data && response.data.length > 0) {
         setAvailableSlots(response.data)
       } else {
-        console.warn('⚠️ API returned empty slots, using fallback data')
-        generateSlotsFromAvailability(date)
+        setAvailableSlots([])
       }
     } catch (error) {
-      console.warn('⚠️ Backend not available, using fallback data:', error.message)
-      // Direct fallback to localStorage or mock data
-      generateSlotsFromAvailability(date)
+      console.warn('⚠️ Backend not available:', error.message)
+      setAvailableSlots([])
     } finally {
       setLoading(false)
     }
   }
 
-  const generateSlotsFromAvailability = (date) => {
-    // Check localStorage first
-    const savedAvailability = localStorage.getItem('professionalAvailability')
-    if (savedAvailability) {
-      try {
-        const availability = JSON.parse(savedAvailability)
-        const dayOfWeek = new Date(date).getDay()
-        const daySlots = availability[dayOfWeek] || []
-        
-        if (daySlots.length > 0) {
-          const slots = daySlots.map(time => ({
-            time,
-            available: true,
-            professional: 'Profesional'
-          }))
-          
-          console.log('📅 Generated slots from localStorage:', slots.length, 'slots')
-          setAvailableSlots(slots)
-          return
-        }
-      } catch (err) {
-        console.warn('Failed to parse saved availability')
-      }
-    }
-    
-    // Ultimate fallback: generate mock slots
-    console.log('📅 No saved availability, generating mock slots')
-    generateMockSlots()
-  }
+  // Removed generateSlotsFromAvailability. Only backend data is used for available slots.
 
-  const generateMockSlots = () => {
-    const slots = []
-    const hours = [9, 10, 11, 12, 14, 15, 16, 17, 18]
-    
-    hours.forEach(hour => {
-      slots.push({
-        time: `${hour.toString().padStart(2, '0')}:00`,
-        available: Math.random() > 0.3, // Random availability
-        professional: 'Dr. García'
-      })
-      slots.push({
-        time: `${hour.toString().padStart(2, '0')}:30`,
-        available: Math.random() > 0.3,
-        professional: 'Dr. García'
-      })
-    })
-    
-    console.log('📅 Generated mock slots:', slots.length, 'slots')
-    setAvailableSlots(slots)
-  }
+  // Removed generateMockSlots. Only real data is used.
 
   const handleReserveSlot = async () => {
     if (!selectedSlot) {

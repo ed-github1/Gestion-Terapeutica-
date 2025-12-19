@@ -208,6 +208,7 @@ export const appointmentsAPI = {
       const response = await apiClient.put('/availability', availabilityData)
       return response
     } catch (error) {
+      console.error('[updateAvailability] Error:', error)
       throw new Error(error.message || 'Error al actualizar disponibilidad')
     }
   }

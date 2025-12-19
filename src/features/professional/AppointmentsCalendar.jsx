@@ -147,9 +147,9 @@ const AppointmentModal = ({ appointment, onClose, onSave, onDelete }) => {
           <div className="p-8 space-y-6">
             {/* Patient Info Card (when viewing existing appointment) */}
             {appointment && (
-              <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-5 border-2 border-blue-200">
+              <div className="bg-linear-to-br from-blue-50 to-purple-50 rounded-2xl p-5 border-2 border-blue-200">
                 <div className="flex items-start gap-4">
-                  <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-lg">
+                  <div className="w-16 h-16 bg-linear-to-br from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-lg">
                     {formData.patientName.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1">
@@ -431,39 +431,13 @@ const AppointmentsCalendar = () => {
   const [showAvailabilityManager, setShowAvailabilityManager] = useState(false)
   const [loading, setLoading] = useState(true)
   
-  // Load appointments from backend + localStorage + demo data
+  // Load appointments from backend + localStorage only (no demo data)
   const loadAppointments = async () => {
-    const demoAppointments = [
-      {
-        id: 'demo_1',
-        patientName: 'María González',
-        type: 'consultation',
-        start: new Date(2025, 11, 15, 9, 0),
-        end: new Date(2025, 11, 15, 10, 0),
-        duration: '60',
-        isVideoCall: true,
-        status: 'scheduled',
-        notes: 'Primera consulta'
-      },
-      {
-        id: 'demo_2',
-        patientName: 'Juan Pérez',
-        type: 'followup',
-        start: new Date(2025, 11, 15, 14, 0),
-        end: new Date(2025, 11, 15, 15, 0),
-        duration: '60',
-        isVideoCall: false,
-        status: 'scheduled',
-      },
-    ]
-    
-    let allAppointments = [...demoAppointments]
-    
+    let allAppointments = []
     // Try to load from backend
     try {
       const response = await appointmentsAPI.getAppointments({})
       console.log('✅ Loaded appointments from backend:', response.data?.length || 0)
-      
       if (response.data && response.data.length > 0) {
         const backendAppointments = response.data.map(apt => {
           const [hours, minutes] = apt.time.split(':')
@@ -471,7 +445,6 @@ const AppointmentsCalendar = () => {
           startDate.setHours(parseInt(hours), parseInt(minutes), 0)
           const endDate = new Date(startDate)
           endDate.setMinutes(endDate.getMinutes() + apt.duration)
-          
           return {
             id: apt._id || apt.id,
             patientName: apt.patientName,
@@ -486,12 +459,11 @@ const AppointmentsCalendar = () => {
             reason: apt.reason
           }
         })
-        allAppointments = [...demoAppointments, ...backendAppointments]
+        allAppointments = [...backendAppointments]
       }
     } catch (error) {
       console.warn('⚠️ Could not load from backend, using localStorage')
     }
-    
     // Also load from localStorage (for offline bookings)
     const savedAppointments = localStorage.getItem('professionalAppointments')
     if (savedAppointments) {
@@ -507,7 +479,6 @@ const AppointmentsCalendar = () => {
         console.warn('Failed to parse saved appointments')
       }
     }
-    
     return allAppointments
   }
   

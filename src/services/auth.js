@@ -1,7 +1,9 @@
 import axios from 'axios'
 
 // API Configuration
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+
 
 // Create axios instance
 const apiClient = axios.create({
@@ -156,6 +158,16 @@ export const authAPI = {
         code,
         rememberMe 
       })
+      return response
+    } catch (error) {
+      throw error
+    }
+  },
+
+  // Register new patient via invitation flow
+  registerPatient: async (userData) => {
+    try {
+      const response = await apiClient.post('/auth/register/patient', userData)
       return response
     } catch (error) {
       throw error

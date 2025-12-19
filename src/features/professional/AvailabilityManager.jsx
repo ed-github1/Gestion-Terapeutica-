@@ -5,7 +5,7 @@ import { appointmentsAPI } from '../../services/appointments'
 
 const AvailabilityManager = ({ onClose }) => {
   const [loading, setLoading] = useState(false)
-  const [selectedDays, setSelectedDays] = useState([1, 2, 3, 4, 5]) // Monday to Friday
+  const [selectedDays, setSelectedDays] = useState([1, 2, 3, 4, 5,6,7]) // Monday to Friday
   const [timeSlots, setTimeSlots] = useState([])
   const [availability, setAvailability] = useState({})
 
@@ -38,23 +38,27 @@ const AvailabilityManager = ({ onClose }) => {
   const loadAvailability = async () => {
     setLoading(true)
     try {
-      // This would fetch from backend
-      const response = await appointmentsAPI.getAvailability?.() || { data: {} }
-      setAvailability(response.data || {})
-    } catch (error) {
-      console.warn('Could not load availability, using defaults')
-      // Initialize with default availability (9 AM - 6 PM, Mon-Fri)
-      const defaultAvailability = {}
-      selectedDays.forEach(day => {
-        defaultAvailability[day] = [
-          '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
-          '12:00', '12:30', '14:00', '14:30', '15:00', '15:30',
-          '16:00', '16:30', '17:00', '17:30'
-        ]
-      })
-      setAvailability(defaultAvailability)
-    } finally {
+      // Only fetch from backend or localStorage, no mock/default slots
+      let loaded = {}
+      try {
+        const response = await appointmentsAPI.getAvailability?.()
+        loaded = response?.data || {}
+      } catch (error) {
+        console.warn('Could not load availability from backend, trying localStorage')
+        const local = localStorage.getItem('professionalAvailability')
+        if (local) {
+          try {
+            loaded = JSON.parse(local)
+          } catch (e) {
+            loaded = {}
+          }
+        }
+      }
+      setAvailability(loaded)
       setLoading(false)
+    } catch (err) {
+      setLoading(false)
+      console.error('Unexpected error loading availability:', err)
     }
   }
 
@@ -141,7 +145,7 @@ const AvailabilityManager = ({ onClose }) => {
         className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col"
       >
         {/* Header */}
-        <div className="bg-gradient-to-r from-purple-500 to-blue-500 text-white p-6">
+        <div className="bg-linear-to-r from-purple-500 to-blue-500 text-white p-6">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold">Gestionar Disponibilidad</h2>
@@ -204,8 +208,8 @@ const AvailabilityManager = ({ onClose }) => {
             <div className="space-y-6">
               {selectedDays.map(dayValue => {
                 const day = daysOfWeek.find(d => d.value === dayValue)
+                if (!day) return null
                 const daySlots = availability[dayValue] || []
-                
                 return (
                   <div key={dayValue} className="border border-gray-200 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-4">
@@ -272,7 +276,7 @@ const AvailabilityManager = ({ onClose }) => {
               type="button"
               onClick={handleSave}
               disabled={loading || selectedDays.length === 0}
-              className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-lg hover:from-purple-600 hover:to-blue-600 transition font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-6 py-3 bg-linear-to-r from-purple-500 to-blue-500 text-white rounded-lg hover:from-purple-600 hover:to-blue-600 transition font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Guardando...' : 'Guardar Disponibilidad'}
             </button>

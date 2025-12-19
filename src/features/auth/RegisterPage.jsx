@@ -78,15 +78,27 @@ const RegisterPage = () => {
 
             // Register user
             console.log('Registering user:', { firstName: tempFormData.firstName, lastName: tempFormData.lastName, email: tempFormData.email, role: tempFormData.role })
-            const response = await authAPI.register({
-                firstName: tempFormData.firstName,
-                lastName: tempFormData.lastName,
-                email: tempFormData.email,
-                password: tempFormData.password,
-                role: tempFormData.role,
-                phone: phoneNumber,
-                phoneVerified: true
-            })
+            let response;
+            if (tempFormData.role === 'patient') {
+                response = await authAPI.registerPatient({
+                    firstName: tempFormData.firstName,
+                    lastName: tempFormData.lastName,
+                    email: tempFormData.email,
+                    password: tempFormData.password,
+                    phone: phoneNumber,
+                    phoneVerified: true
+                })
+            } else {
+                response = await authAPI.register({
+                    firstName: tempFormData.firstName,
+                    lastName: tempFormData.lastName,
+                    email: tempFormData.email,
+                    password: tempFormData.password,
+                    role: tempFormData.role,
+                    phone: phoneNumber,
+                    phoneVerified: true
+                })
+            }
             console.log('Registration response:', response)
 
             // After successful registration, log the user in automatically
