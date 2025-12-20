@@ -30,7 +30,7 @@ const VideoCallNotification = ({ invitation, onAccept, onDecline, onClose }) => 
       initial={{ opacity: 0, scale: 0.8, y: 50 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.8, y: 50 }}
-      className="fixed z-[9999] max-w-md w-full bottom-6 right-6
+      className="fixed z-9999 max-w-md w-full bottom-6 right-6
         md:bottom-6 md:right-6
         left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2
         md:left-auto md:top-auto md:translate-x-0 md:translate-y-0

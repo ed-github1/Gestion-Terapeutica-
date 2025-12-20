@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { motion } from 'motion/react'
 import Video from 'twilio-video'
+import { useAuth } from '../auth/AuthContext'
 
 const PatientVideoCallRoom = ({ token, roomName, patientName, onLeave }) => {
   const [room, setRoom] = useState(null)
@@ -50,18 +51,27 @@ const PatientVideoCallRoom = ({ token, roomName, patientName, onLeave }) => {
   }, [token, roomName])
 
   const handleParticipantConnected = (participant) => {
+    console.log('Participant connected:', participant);
+    console.log('Participant identity:', participant.identity);
     participant.tracks.forEach(publication => {
+      console.log('Publication:', publication);
       if (publication.isSubscribed) {
-        attachTrack(publication.track, remoteVideoRef.current)
+        console.log('Subscribed track:', publication.track);
+        attachTrack(publication.track, remoteVideoRef.current);
       }
-    })
+    });
 
     participant.on('trackSubscribed', track => {
-      attachTrack(track, remoteVideoRef.current)
-    })
+      console.log('Track subscribed:', track);
+      attachTrack(track, remoteVideoRef.current);
+    });
+
+    participant.on('trackUnsubscribed', track => {
+      console.log('Track unsubscribed:', track);
+    });
 
     if (room) {
-      updateParticipants(room)
+      updateParticipants(room);
     }
   }
 
@@ -123,7 +133,7 @@ const PatientVideoCallRoom = ({ token, roomName, patientName, onLeave }) => {
   }
 
   return (
-    <div className="fixed inset-0 bg-gray-900 z-50 flex items-center justify-center p-2">
+    <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col items-center justify-center p-2 overflow-auto">
       <div className="bg-gray-800 px-4 py-3 flex items-center justify-between w-full max-w-2xl mx-auto rounded-t-2xl md:rounded-2xl">
         <div>
           <h2 className="text-xl font-semibold text-white">Videollamada Médica</h2>
@@ -139,18 +149,17 @@ const PatientVideoCallRoom = ({ token, roomName, patientName, onLeave }) => {
         </button>
       </div>
 
-      <div className="flex-1 relative bg-black p-2 md:p-4 w-full max-w-2xl mx-auto rounded-b-2xl md:rounded-2xl flex flex-col justify-center">
+      <div className="relative bg-black p-2 md:p-4 w-full max-w-2xl mx-auto rounded-b-2xl md:rounded-2xl flex flex-col justify-center">
         {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center">
+          <div className="absolute inset-0 flex items-center justify-center z-10">
             <div className="text-center">
               <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-white mb-4"></div>
               <p className="text-white">Conectando con el profesional...</p>
             </div>
           </div>
         )}
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-full">
-          <div className="relative bg-gray-800 rounded-lg overflow-hidden">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-[60vh] md:h-[50vh] w-full">
+          <div className="relative bg-gray-800 rounded-lg overflow-hidden min-h-50 flex-1">
             <div ref={localVideoRef} className="w-full h-full flex items-center justify-center">
               {isVideoOff && (
                 <div className="absolute inset-0 flex items-center justify-center bg-gray-700">
@@ -166,11 +175,11 @@ const PatientVideoCallRoom = ({ token, roomName, patientName, onLeave }) => {
               )}
             </div>
             <div className="absolute bottom-4 left-4 bg-black bg-opacity-60 px-3 py-1 rounded-full">
-              <p className="text-white text-sm">{patientName || 'Tú'}</p>
+              <p className="text-white text-sm">Tú{patientName ? ` (${patientName})` : ''}</p>
             </div>
           </div>
 
-          <div className="relative bg-gray-800 rounded-lg overflow-hidden">
+          <div className="relative bg-gray-800 rounded-lg overflow-hidden min-h-50 flex-1">
             <div ref={remoteVideoRef} className="w-full h-full flex items-center justify-center">
               {participants.length <= 1 && (
                 <div className="absolute inset-0 flex items-center justify-center bg-gray-700">
@@ -187,63 +196,65 @@ const PatientVideoCallRoom = ({ token, roomName, patientName, onLeave }) => {
             </div>
             {participants.length > 1 && (
               <div className="absolute bottom-4 left-4 bg-black bg-opacity-60 px-3 py-1 rounded-full">
-                <p className="text-white text-sm">{participants[1]?.identity || 'Profesional'}</p>
+                <p className="text-white text-sm">
+                  {participants[1]?.identity && /^[a-f\d]{24}$/i.test(participants[1].identity)
+                    ? 'Profesional'
+                    : participants[1]?.identity || 'Profesional'}
+                </p>
               </div>
             )}
           </div>
         </div>
       </div>
 
-      <div className="bg-gray-800 px-6 py-4">
-        <div className="flex items-center justify-center space-x-4">
-          <button
-            onClick={toggleMute}
-            className={`p-4 rounded-full transition ${
-              isMuted ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-700 hover:bg-gray-600'
-            }`}
-            title={isMuted ? 'Activar micrófono' : 'Silenciar micrófono'}
-          >
-            {isMuted ? (
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
-              </svg>
-            ) : (
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-              </svg>
-            )}
-          </button>
-
-          <button
-            onClick={toggleVideo}
-            className={`p-4 rounded-full transition ${
-              isVideoOff ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-700 hover:bg-gray-600'
-            }`}
-            title={isVideoOff ? 'Activar cámara' : 'Desactivar cámara'}
-          >
-            {isVideoOff ? (
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3l18 18" />
-              </svg>
-            ) : (
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-            )}
-          </button>
-
-          <button
-            onClick={handleLeave}
-            className="p-4 bg-red-600 rounded-full hover:bg-red-700 transition"
-            title="Colgar"
-          >
+      <div className="bg-gray-800 px-6 py-4 w-full max-w-2xl mx-auto rounded-b-2xl flex items-center justify-center space-x-4 mt-2">
+        <button
+          onClick={toggleMute}
+          className={`p-4 rounded-full transition ${
+            isMuted ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-700 hover:bg-gray-600'
+          }`}
+          title={isMuted ? 'Activar micrófono' : 'Silenciar micrófono'}
+        >
+          {isMuted ? (
             <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M5 3a2 2 0 00-2 2v1c0 8.284 6.716 15 15 15h1a2 2 0 002-2v-3.28a1 1 0 00-.684-.948l-4.493-1.498a1 1 0 00-1.21.502l-1.13 2.257a11.042 11.042 0 01-5.516-5.517l2.257-1.128a1 1 0 00.502-1.21L9.228 3.683A1 1 0 008.279 3H5z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
             </svg>
-          </button>
-        </div>
+          ) : (
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+            </svg>
+          )}
+        </button>
+
+        <button
+          onClick={toggleVideo}
+          className={`p-4 rounded-full transition ${
+            isVideoOff ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-700 hover:bg-gray-600'
+          }`}
+          title={isVideoOff ? 'Activar cámara' : 'Desactivar cámara'}
+        >
+          {isVideoOff ? (
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3l18 18" />
+            </svg>
+          ) : (
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+          )}
+        </button>
+
+        <button
+          onClick={handleLeave}
+          className="p-4 bg-red-600 rounded-full hover:bg-red-700 transition"
+          title="Colgar"
+        >
+          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M5 3a2 2 0 00-2 2v1c0 8.284 6.716 15 15 15h1a2 2 0 002-2v-3.28a1 1 0 00-.684-.948l-4.493-1.498a1 1 0 00-1.21.502l-1.13 2.257a11.042 11.042 0 01-5.516-5.517l2.257-1.128a1 1 0 00.502-1.21L9.228 3.683A1 1 0 008.279 3H5z" />
+          </svg>
+        </button>
       </div>
     </div>
   )
@@ -252,8 +263,18 @@ const PatientVideoCallRoom = ({ token, roomName, patientName, onLeave }) => {
 const PatientVideoCall = () => {
   const { appointmentId } = useParams()
   const [searchParams] = useSearchParams()
-  const patientName = searchParams.get('name') || 'Paciente'
-  
+  const { user } = useAuth();
+  let patientName = searchParams.get('name');
+  console.log('[VideoCall] patientName from URL:', patientName);
+  if (!patientName || patientName === 'undefined' || patientName.trim() === '') {
+    patientName = (user?.nombre && user?.apellido)
+      ? `${user.nombre} ${user.apellido}`
+      : (user?.firstName && user?.lastName)
+        ? `${user.firstName} ${user.lastName}`
+        : user?.nombre || user?.firstName || user?.name || user?.email || 'Paciente';
+    console.log('[VideoCall] fallback patientName:', patientName);
+  }
+
   const [token, setToken] = useState(null)
   const [roomName, setRoomName] = useState(null)
   const [isLoading, setIsLoading] = useState(false)

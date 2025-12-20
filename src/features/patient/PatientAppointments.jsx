@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '../auth/AuthContext'
 import { motion, AnimatePresence } from 'motion/react'
 import { showToast } from '../../components'
 import { appointmentsAPI } from '../../services/appointments'
@@ -138,6 +139,7 @@ const PatientAppointments = ({ onClose }) => {
   }
 
   const filteredAppointments = getFilteredAppointments()
+  const { user } = useAuth();
 
   return (
     <motion.div
@@ -310,6 +312,19 @@ const PatientAppointments = ({ onClose }) => {
                         {appointment.isVideoCall && appointment.status === 'scheduled' && (
                           <button
                             className="px-4 py-2 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition font-medium"
+                            onClick={() => {
+                              // Always guarantee a valid name for the join link
+                              let patientName =
+                                (user?.nombre && user?.apellido)
+                                  ? `${user.nombre} ${user.apellido}`
+                                  : (user?.firstName && user?.lastName)
+                                    ? `${user.firstName} ${user.lastName}`
+                                    : user?.nombre || user?.firstName || user?.name || user?.email;
+                              if (!patientName || patientName === 'undefined' || patientName.trim() === '') {
+                                patientName = 'Paciente';
+                              }
+                              window.location.href = `/video/join/${appointment.id || appointment._id}?name=${encodeURIComponent(patientName)}`;
+                            }}
                           >
                             Videollamada
                           </button>
