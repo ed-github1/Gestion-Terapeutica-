@@ -116,8 +116,8 @@ const PatientVideoCallRoom = ({ token, roomName, patientName, onLeave }) => {
   }
 
   return (
-    <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col">
-      <div className="bg-gray-800 px-6 py-4 flex items-center justify-between">
+    <div className="fixed inset-0 bg-gray-900 z-50 flex items-center justify-center p-2">
+      <div className="bg-gray-800 px-4 py-3 flex items-center justify-between w-full max-w-2xl mx-auto rounded-t-2xl md:rounded-2xl">
         <div>
           <h2 className="text-xl font-semibold text-white">Videollamada Médica</h2>
           <p className="text-sm text-gray-400">
@@ -132,7 +132,7 @@ const PatientVideoCallRoom = ({ token, roomName, patientName, onLeave }) => {
         </button>
       </div>
 
-      <div className="flex-1 relative bg-black p-4">
+      <div className="flex-1 relative bg-black p-2 md:p-4 w-full max-w-2xl mx-auto rounded-b-2xl md:rounded-2xl flex flex-col justify-center">
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center">

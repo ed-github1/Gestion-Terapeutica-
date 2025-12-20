@@ -155,7 +155,7 @@ const PatientAppointments = ({ onClose }) => {
         className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
       >
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white p-6">
+        <div className="bg-linear-to-r from-blue-500 to-purple-500 text-white p-6">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold">Mis Citas</h2>

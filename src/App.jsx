@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider, useAuth, ProtectedRoute, LoginPage, RegisterPage, SMSLoginPage } from './features/auth'
+import { AuthProvider, useAuth, ProtectedRoute, LoginPage, RegisterPage } from './features/auth'
 import { ProfessionalDashboard, AppointmentsCalendar } from './features/professional'
 import PatientsList from './features/professional/PatientsList'
 import { PatientDashboard } from './features/patient'
@@ -64,7 +64,7 @@ function App() {
         <Routes>
           {/* Public Routes */}
           <Route path={ROUTES.LOGIN} element={<LoginRoute />} />
-          <Route path="/login/sms" element={<SMSLoginPage />} />
+          {/* <Route path="/login/sms" element={<SMSLoginPage />} /> */}
           <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
           <Route path="/patient/register" element={<PatientRegisterPage />} />
           <Route path="/register/:inviteCode" element={<PatientRegister />} />

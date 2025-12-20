@@ -324,7 +324,7 @@ const ProfessionalDashboardContent = ({ setShowCalendar, setDiaryPatient }) => {
                                                                     </button>
                                                                     <button
                                                                         onClick={() => setShowCalendar(true)}
-                                                                        className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-2xl font-medium transition-all hover:scale-105 hover:shadow-xl hover:from-pink-500 hover:to-purple-500"
+                                                                        className="px-6 py-2 bg-linear-to-r from-purple-500 to-pink-500 text-white rounded-2xl font-medium transition-all hover:scale-105 hover:shadow-xl hover:from-pink-500 hover:to-purple-500"
                                                                     >
                                                                         Agendar Cita
                                                                     </button>

@@ -4,17 +4,12 @@ import { useForm } from 'react-hook-form'
 import { motion } from 'motion/react'
 import { useAuth } from './AuthContext'
 import { authAPI } from '../../services/auth'
-import { smsAuth } from '../../services/api'
 import { showToast } from '../../components'
 
 const RegisterPage = () => {
     const [apiError, setApiError] = useState('')
-    const [step, setStep] = useState(1) // 1: form, 2: phone verification
-    const [otpSent, setOtpSent] = useState(false)
-    const [phoneNumber, setPhoneNumber] = useState('')
-    const [otp, setOtp] = useState('')
-    const [verifying, setVerifying] = useState(false)
-    const [tempFormData, setTempFormData] = useState(null)
+    // Add step state for multi-step registration
+    const [step, setStep] = useState(1)
 
     const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm({
         defaultValues: {
@@ -35,12 +30,21 @@ const RegisterPage = () => {
 
     const onSubmit = async (data) => {
         setApiError('')
-        
-        console.log('📝 Form submitted:', { ...data, password: '***', confirmPassword: '***' })
-        
-        setTempFormData(data)
-        setStep(2) // Move to phone verification
-        showToast('✅ Datos guardados. Ahora verifica tu teléfono', 'success')
+        try {
+            // Register user
+            const response = await authAPI.register({
+                firstName: data.firstName,
+                lastName: data.lastName,
+                email: data.email,
+                password: data.password,
+                role: data.role
+            })
+            showToast('✅ Cuenta creada exitosamente', 'success')
+            navigate('/login')
+        } catch (err) {
+            setApiError(err.message || 'Error al registrar usuario')
+            showToast(err.message || 'Error al completar registro', 'error')
+        }
     }
 
     const sendOTP = async () => {
@@ -348,104 +352,6 @@ const RegisterPage = () => {
                     </form>
                     )}
 
-                    {/* Step 2: Phone Verification */}
-                    {step === 2 && (
-                        <div className="space-y-4">
-                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                <div className="flex items-start">
-                                    <svg className="w-5 h-5 text-blue-600 mt-0.5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                    </svg>
-                                    <div>
-                                        <p className="text-sm font-medium text-blue-800">Verificación de Teléfono</p>
-                                        <p className="text-xs text-blue-600 mt-1">
-                                            {!otpSent 
-                                                ? 'Ingresa tu número de teléfono para recibir un código de verificación'
-                                                : 'Ingresa el código de 6 dígitos que enviamos a tu teléfono'}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {!otpSent ? (
-                                <>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Número de Teléfono
-                                        </label>
-                                        <input
-                                            type="tel"
-                                            value={phoneNumber}
-                                            onChange={(e) => setPhoneNumber(e.target.value)}
-                                            placeholder="5512345678"
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                            disabled={verifying}
-                                        />
-                                        <p className="text-xs text-gray-500 mt-1">Formato: 10 dígitos sin espacios</p>
-                                    </div>
-
-                                    <button
-                                        type="button"
-                                        onClick={sendOTP}
-                                        disabled={verifying}
-                                        className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                                    >
-                                        {verifying ? 'Enviando...' : 'Enviar Código'}
-                                    </button>
-                                </>
-                            ) : (
-                                <>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Código de Verificación
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={otp}
-                                            onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                            placeholder="123456"
-                                            maxLength={6}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-center text-2xl tracking-widest focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                            disabled={verifying}
-                                        />
-                                    </div>
-
-                                    <button
-                                        type="button"
-                                        onClick={verifyOTPAndRegister}
-                                        disabled={verifying}
-                                        className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                                    >
-                                        {verifying ? 'Verificando...' : 'Verificar y Crear Cuenta'}
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setOtpSent(false)
-                                            setOtp('')
-                                        }}
-                                        className="w-full text-sm text-indigo-600 hover:text-indigo-700 font-medium"
-                                    >
-                                        ¿No recibiste el código? Reenviar
-                                    </button>
-                                </>
-                            )}
-
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setStep(1)
-                                    setOtpSent(false)
-                                    setOtp('')
-                                    setPhoneNumber('')
-                                }}
-                                className="w-full text-sm text-gray-600 hover:text-gray-800"
-                            >
-                                ← Volver al formulario
-                            </button>
-                        </div>
-                    )}
 
                     {/* Sign In Link */}
                     <div className="text-center pt-4 border-t border-gray-200">
