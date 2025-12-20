@@ -158,8 +158,9 @@ const PatientVideoCallRoom = ({ token, roomName, patientName, onLeave }) => {
             </div>
           </div>
         )}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-[60vh] md:h-[50vh] w-full">
-          <div className="relative bg-gray-800 rounded-lg overflow-hidden min-h-50 flex-1">
+        {/* Mobile-first: stack videos vertically, grid on desktop */}
+        <div className="flex flex-col md:grid md:grid-cols-2 gap-4 h-[60vh] md:h-[50vh] w-full">
+          <div className="relative bg-gray-800 rounded-lg overflow-hidden min-h-48 flex-1 flex items-center justify-center">
             <div ref={localVideoRef} className="w-full h-full flex items-center justify-center">
               {isVideoOff && (
                 <div className="absolute inset-0 flex items-center justify-center bg-gray-700">
@@ -179,7 +180,7 @@ const PatientVideoCallRoom = ({ token, roomName, patientName, onLeave }) => {
             </div>
           </div>
 
-          <div className="relative bg-gray-800 rounded-lg overflow-hidden min-h-50 flex-1">
+          <div className="relative bg-gray-800 rounded-lg overflow-hidden min-h-48 flex-1 flex items-center justify-center">
             <div ref={remoteVideoRef} className="w-full h-full flex items-center justify-center">
               {participants.length <= 1 && (
                 <div className="absolute inset-0 flex items-center justify-center bg-gray-700">
@@ -207,6 +208,7 @@ const PatientVideoCallRoom = ({ token, roomName, patientName, onLeave }) => {
         </div>
       </div>
 
+      {/* Controls always below video, never overlapping */}
       <div className="bg-gray-800 px-6 py-4 w-full max-w-2xl mx-auto rounded-b-2xl flex items-center justify-center space-x-4 mt-2">
         <button
           onClick={toggleMute}
