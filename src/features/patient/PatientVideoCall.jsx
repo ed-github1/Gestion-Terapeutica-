@@ -133,9 +133,10 @@ const PatientVideoCallRoom = ({ token, roomName, patientName, onLeave }) => {
   }
 
   return (
-    <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col items-center justify-center p-2 overflow-auto">
-      <div className="bg-gray-800 px-4 py-3 flex items-center justify-between w-full max-w-2xl mx-auto rounded-t-2xl md:rounded-2xl">
-        <div>
+    <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col items-center justify-center p-2 overflow-auto min-h-screen">
+      {/* Header always full width, stacked on mobile */}
+      <div className="bg-gray-800 px-4 py-3 flex flex-col sm:flex-row items-center justify-between w-full max-w-2xl mx-auto rounded-t-2xl md:rounded-2xl">
+        <div className="w-full sm:w-auto text-center sm:text-left mb-2 sm:mb-0">
           <h2 className="text-xl font-semibold text-white">Videollamada Médica</h2>
           <p className="text-sm text-gray-400">
             {participants.length} {participants.length === 1 ? 'participante' : 'participantes'}
@@ -143,13 +144,13 @@ const PatientVideoCallRoom = ({ token, roomName, patientName, onLeave }) => {
         </div>
         <button
           onClick={handleLeave}
-          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition w-full sm:w-auto"
         >
           Salir de la llamada
         </button>
       </div>
 
-      <div className="relative bg-black p-2 md:p-4 w-full max-w-2xl mx-auto rounded-b-2xl md:rounded-2xl flex flex-col justify-center">
+      <div className="relative bg-black p-2 md:p-4 w-full max-w-2xl mx-auto rounded-b-2xl md:rounded-2xl flex flex-col justify-center min-h-[300px]">
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center z-10">
             <div className="text-center">
@@ -158,11 +159,11 @@ const PatientVideoCallRoom = ({ token, roomName, patientName, onLeave }) => {
             </div>
           </div>
         )}
-        {/* Mobile-first: stack videos vertically, grid on desktop */}
+        {/* Always stack vertically on mobile, grid on desktop */}
         <div className="flex flex-col md:grid md:grid-cols-2 gap-4 h-[60vh] md:h-[50vh] w-full">
-          <div className="relative bg-gray-800 rounded-lg overflow-hidden min-h-48 flex-1 flex items-center justify-center">
+          <div className="relative bg-gray-800 rounded-lg overflow-hidden min-h-[180px] flex-1 flex items-center justify-center">
             <div ref={localVideoRef} className="w-full h-full flex items-center justify-center">
-              {isVideoOff && (
+              {isVideoOff ? (
                 <div className="absolute inset-0 flex items-center justify-center bg-gray-700">
                   <div className="text-center">
                     <div className="w-24 h-24 bg-gray-600 rounded-full flex items-center justify-center mx-auto mb-2">
@@ -173,16 +174,20 @@ const PatientVideoCallRoom = ({ token, roomName, patientName, onLeave }) => {
                     <p className="text-white text-sm">Tú</p>
                   </div>
                 </div>
-              )}
+              ) : null}
+              {/* Fallback if video is not attached */}
+              <div className="absolute inset-0 flex items-center justify-center" style={{display: isVideoOff ? 'none' : undefined}}>
+                <span className="text-gray-400 text-xs">{!isVideoOff && 'Esperando video...'}</span>
+              </div>
             </div>
             <div className="absolute bottom-4 left-4 bg-black bg-opacity-60 px-3 py-1 rounded-full">
               <p className="text-white text-sm">Tú{patientName ? ` (${patientName})` : ''}</p>
             </div>
           </div>
 
-          <div className="relative bg-gray-800 rounded-lg overflow-hidden min-h-48 flex-1 flex items-center justify-center">
+          <div className="relative bg-gray-800 rounded-lg overflow-hidden min-h-[180px] flex-1 flex items-center justify-center">
             <div ref={remoteVideoRef} className="w-full h-full flex items-center justify-center">
-              {participants.length <= 1 && (
+              {participants.length <= 1 ? (
                 <div className="absolute inset-0 flex items-center justify-center bg-gray-700">
                   <div className="text-center">
                     <div className="w-24 h-24 bg-gray-600 rounded-full flex items-center justify-center mx-auto mb-2">
@@ -193,7 +198,11 @@ const PatientVideoCallRoom = ({ token, roomName, patientName, onLeave }) => {
                     <p className="text-white text-sm">Esperando al profesional...</p>
                   </div>
                 </div>
-              )}
+              ) : null}
+              {/* Fallback if video is not attached */}
+              <div className="absolute inset-0 flex items-center justify-center" style={{display: participants.length > 1 ? undefined : 'none'}}>
+                <span className="text-gray-400 text-xs">{participants.length > 1 ? 'Esperando video...' : ''}</span>
+              </div>
             </div>
             {participants.length > 1 && (
               <div className="absolute bottom-4 left-4 bg-black bg-opacity-60 px-3 py-1 rounded-full">
@@ -208,13 +217,13 @@ const PatientVideoCallRoom = ({ token, roomName, patientName, onLeave }) => {
         </div>
       </div>
 
-      {/* Controls always below video, never overlapping */}
-      <div className="bg-gray-800 px-6 py-4 w-full max-w-2xl mx-auto rounded-b-2xl flex items-center justify-center space-x-4 mt-2">
+      {/* Controls always below video, never overlapping, full width on mobile */}
+      <div className="bg-gray-800 px-6 py-4 w-full max-w-2xl mx-auto rounded-b-2xl flex flex-col sm:flex-row items-center justify-center gap-4 mt-2">
         <button
           onClick={toggleMute}
           className={`p-4 rounded-full transition ${
             isMuted ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-700 hover:bg-gray-600'
-          }`}
+          } w-full sm:w-auto`}
           title={isMuted ? 'Activar micrófono' : 'Silenciar micrófono'}
         >
           {isMuted ? (
@@ -233,7 +242,7 @@ const PatientVideoCallRoom = ({ token, roomName, patientName, onLeave }) => {
           onClick={toggleVideo}
           className={`p-4 rounded-full transition ${
             isVideoOff ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-700 hover:bg-gray-600'
-          }`}
+          } w-full sm:w-auto`}
           title={isVideoOff ? 'Activar cámara' : 'Desactivar cámara'}
         >
           {isVideoOff ? (
@@ -250,7 +259,7 @@ const PatientVideoCallRoom = ({ token, roomName, patientName, onLeave }) => {
 
         <button
           onClick={handleLeave}
-          className="p-4 bg-red-600 rounded-full hover:bg-red-700 transition"
+          className="p-4 bg-red-600 rounded-full hover:bg-red-700 transition w-full sm:w-auto"
           title="Colgar"
         >
           <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
