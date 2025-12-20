@@ -73,7 +73,14 @@ const PatientVideoCallRoom = ({ token, roomName, patientName, onLeave }) => {
 
   const attachTrack = (track, container) => {
     if (container && track.kind === 'video') {
-      container.appendChild(track.attach())
+      // Remove previous children to avoid duplicates
+      container.innerHTML = '';
+      const videoElement = track.attach();
+      videoElement.style.width = '100%';
+      videoElement.style.height = '100%';
+      videoElement.style.objectFit = 'cover';
+      container.appendChild(videoElement);
+      console.log('Attaching video track', track, container);
     }
   }
 
