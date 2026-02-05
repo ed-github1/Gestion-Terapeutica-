@@ -3,6 +3,86 @@ import { apiClient } from './api'
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
 
 export const videoCallAPI = {
+  // ========================================
+  // WebRTC Endpoints (New System)
+  // ========================================
+  
+  // Get ICE servers configuration for WebRTC
+  getIceServers: async () => {
+    try {
+      const response = await apiClient.get('/rtc/ice-servers')
+      return response
+    } catch (error) {
+      throw new Error(error.message || 'Error al obtener servidores ICE')
+    }
+  },
+
+  // Join video room (WebRTC)
+  joinRoom: async (appointmentId) => {
+    try {
+      const response = await apiClient.post('/rtc/rooms/join', {
+        appointmentId
+      })
+      return response
+    } catch (error) {
+      throw new Error(error.message || 'Error al unirse a la sala')
+    }
+  },
+
+  // Get room status
+  getRoomStatus: async (appointmentId) => {
+    try {
+      const response = await apiClient.get(`/rtc/rooms/${appointmentId}`)
+      return response
+    } catch (error) {
+      throw new Error(error.message || 'Error al obtener estado de la sala')
+    }
+  },
+
+  // Get all active rooms
+  getActiveRooms: async () => {
+    try {
+      const response = await apiClient.get('/rtc/rooms')
+      return response
+    } catch (error) {
+      throw new Error(error.message || 'Error al obtener salas activas')
+    }
+  },
+
+  // End room (Professional only)
+  endRoom: async (appointmentId) => {
+    try {
+      const response = await apiClient.post(`/rtc/rooms/${appointmentId}/end`)
+      return response
+    } catch (error) {
+      throw new Error(error.message || 'Error al finalizar la sala')
+    }
+  },
+
+  // Get room statistics
+  getRoomStats: async (appointmentId) => {
+    try {
+      const response = await apiClient.get(`/rtc/rooms/${appointmentId}/stats`)
+      return response
+    } catch (error) {
+      throw new Error(error.message || 'Error al obtener estadísticas')
+    }
+  },
+
+  // Health check
+  healthCheck: async () => {
+    try {
+      const response = await apiClient.get('/rtc/health')
+      return response
+    } catch (error) {
+      throw new Error(error.message || 'Error al verificar salud del servicio')
+    }
+  },
+
+  // ========================================
+  // Legacy Twilio Endpoints (Deprecated)
+  // ========================================
+  
   // Get Twilio token for video call
   getToken: async (appointmentId, identity) => {
     try {

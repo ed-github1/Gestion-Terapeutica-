@@ -19,6 +19,7 @@
     "react-dropzone": "^14.3.8",
     "react-hook-form": "^7.68.0",
     "react-router-dom": "^7.10.1",
+    "socket.io-client": "^4.8.3",
     "twilio-video": "^2.33.0",
     "zod": "^4.2.1"
   },
