@@ -5,8 +5,8 @@ import { es } from 'date-fns/locale'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
 import { motion, AnimatePresence } from 'motion/react'
 import VideoCallLauncher from './VideoCall'
-import { showToast } from '../../components'
-import { appointmentsAPI } from '../../services/appointments'
+import { showToast } from '@components'
+import { appointmentsAPI } from '@services/appointments'
 import AvailabilityManager from './AvailabilityManager'
 
 const locales = {

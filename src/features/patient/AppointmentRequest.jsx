@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { showToast } from '../../components'
-import { appointmentsAPI, paymentsAPI } from '../../services/appointments'
+import { showToast } from '@components'
+import { appointmentsAPI, paymentsAPI } from '@services/appointments'
 
 const AppointmentRequest = ({ onClose, onSuccess }) => {
   const [loading, setLoading] = useState(false)

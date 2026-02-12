@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { motion } from 'motion/react'
-import { authAPI } from '../../services/auth'
+import { authAPI } from '@services/auth'
 
 const PatientRegisterPage = () => {
   const [searchParams] = useSearchParams()

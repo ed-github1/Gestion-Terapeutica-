@@ -2,8 +2,8 @@ import { useState, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { useDropzone } from 'react-dropzone'
 import { motion } from 'motion/react'
-import { patientsAPI } from '../../services/patients'
-import { showToast } from '../../components'
+import { patientsAPI } from '@services/patients'
+import { showToast } from '@components'
 
 const PatientForm = ({ onClose, onSubmit: onFormSubmit, mode = 'invite' }) => {
   const [uploadedFiles, setUploadedFiles] = useState([])

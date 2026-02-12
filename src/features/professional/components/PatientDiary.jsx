@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { diaryAPI } from '../../services/diary'
-import { useAuth } from '../auth'
+import { diaryAPI } from '@services/diary'
+import { useAuth } from '../../auth'
 
 const PatientDiary = ({ patientId, patientName, onClose }) => {
     const { user } = useAuth()

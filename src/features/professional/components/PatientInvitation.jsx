@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { showToast } from '../../components'
+import { showToast } from '@components'
 
 const PatientInvitation = ({ onClose, onSuccess, professionalName }) => {
   const [step, setStep] = useState(1) // 1: form, 2: sending, 3: success

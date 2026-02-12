@@ -3,8 +3,8 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { motion } from 'motion/react'
 import { useAuth } from './AuthContext'
-import { authAPI } from '../../services/auth'
-import { showToast } from '../../components'
+import { authAPI } from '@services/auth'
+import { showToast } from '@components'
 
 const RegisterPage = () => {
     const [apiError, setApiError] = useState('')

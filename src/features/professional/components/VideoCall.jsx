@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import Video from 'twilio-video'
 import { motion } from 'motion/react'
-import { useAuth } from '../auth'
+import { useAuth } from '../../auth'
 
 const VideoCallRoom = ({ token, roomName, onLeave }) => {
   const [room, setRoom] = useState(null)

@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
-import { authAPI } from '../../services/auth'
-import { showToast } from '../../components'
+import { authAPI } from '@services/auth'
+import { showToast } from '@components'
 
 const SMSLoginPage = () => {
   const [step, setStep] = useState('phone') // 'phone' or 'verify'

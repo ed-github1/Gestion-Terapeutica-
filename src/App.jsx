@@ -1,36 +1,20 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider, useAuth, ProtectedRoute, LoginPage, RegisterPage } from './features/auth'
-import { ProfessionalDashboard, AppointmentsCalendar } from './features/professional'
-import PatientsList from './features/professional/PatientsList'
-import { PatientDashboard } from './features/patient'
-import PatientVideoCall from './features/patient/PatientVideoCall'
-import PatientRegisterPage from './features/patient/PatientRegisterPage'
-import PatientRegister from './features/patient/PatientRegister'
-import { Sidebar, Header } from './components/layout'
-import { Toast } from './components'
-import { ROUTES, ROLES } from './constants/routes'
-
-// Dashboard Layout with Sidebar
-const DashboardLayout = ({ children }) => {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-
-  return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header onMenuClick={() => setSidebarOpen(true)} />
-        
-        <main className="flex-1 overflow-y-auto">
-          {children}
-        </main>
-      </div>
-    </div>
-  )
-}
-
+import { AuthProvider, useAuth, ProtectedRoute, LoginPage, RegisterPage } from '@features/auth'
+import { ProfessionalDashboard, AppointmentsCalendar } from '@features/professional'
+import PatientsList from '@features/professional/components/PatientsList'
+import { PatientDashboard } from '@features/patient'
+import PatientVideoCall from '@features/patient/PatientVideoCall'
+import PatientRegisterPage from '@features/patient/PatientRegisterPage'
+import PatientRegister from '@features/patient/PatientRegister'
+import HomePage from '@pages/HomePage'
+import DashboardSidebar from '@components/layout/DashboardSidebar'
+import { Toast } from '@components'
+import { ROUTES, ROLES } from '@constants/routes'
+import DashboardLayout from './layouts/DashboardLayout'
 // Redirect authenticated users from login
+
+
 const LoginRoute = () => {
   const { isAuthenticated, user, loading } = useAuth()
 
@@ -63,6 +47,7 @@ function App() {
         <Toast />
         <Routes>
           {/* Public Routes */}
+          <Route path={ROUTES.HOME} element={<HomePage />} />
           <Route path={ROUTES.LOGIN} element={<LoginRoute />} />
           {/* <Route path="/login/sms" element={<SMSLoginPage />} /> */}
           <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
@@ -73,7 +58,7 @@ function App() {
             path={ROUTES.PROFESSIONAL_DASHBOARD}
             element={
               <ProtectedRoute allowedRoles={[ROLES.HEALTH_PROFESSIONAL, ROLES.PROFESSIONAL]}>
-                <DashboardLayout>
+                <DashboardLayout userRole="professional">
                   <ProfessionalDashboard />
                 </DashboardLayout>
               </ProtectedRoute>
@@ -83,7 +68,7 @@ function App() {
             path="/dashboard/professional/patients"
             element={
               <ProtectedRoute allowedRoles={[ROLES.HEALTH_PROFESSIONAL, ROLES.PROFESSIONAL]}>
-                <DashboardLayout>
+                <DashboardLayout userRole="professional">
                   <PatientsList />
                 </DashboardLayout>
               </ProtectedRoute>
@@ -93,7 +78,7 @@ function App() {
             path="/dashboard/professional/appointments"
             element={
               <ProtectedRoute allowedRoles={[ROLES.HEALTH_PROFESSIONAL, ROLES.PROFESSIONAL]}>
-                <DashboardLayout>
+                <DashboardLayout userRole="professional">
                   <AppointmentsCalendar />
                 </DashboardLayout>
               </ProtectedRoute>
@@ -104,7 +89,7 @@ function App() {
             path={ROUTES.PATIENT_DASHBOARD}
             element={
               <ProtectedRoute allowedRoles={[ROLES.PATIENT, ROLES.PACIENT]}>
-                <DashboardLayout>
+                <DashboardLayout userRole="patient">
                   <PatientDashboard />
                 </DashboardLayout>
               </ProtectedRoute>
@@ -114,13 +99,12 @@ function App() {
           <Route 
             path="/demo/patient" 
             element={
-              <DashboardLayout>
+              <DashboardLayout userRole="patient">
                 <PatientDashboard />
               </DashboardLayout>
             } 
           />
-          <Route path={ROUTES.HOME} element={<Navigate to={ROUTES.LOGIN} replace />} />
-          <Route path="*" element={<Navigate to={ROUTES.LOGIN} replace />} />
+          <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
         </Routes>
       </AuthProvider>
     </Router>

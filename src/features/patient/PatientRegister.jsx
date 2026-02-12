@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
-import { showToast } from '../../components'
+import { showToast } from '@components'
 
 const PatientRegister = () => {
   const navigate = useNavigate()
