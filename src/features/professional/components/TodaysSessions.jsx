@@ -1,237 +1,343 @@
+import { motion, AnimatePresence } from 'motion/react'
+import { Calendar, Clock, Video, AlertCircle, CheckCircle2, FileText, Target } from 'lucide-react'
+import { formatTime } from '../dashboard/dashboardUtils'
 import { useState } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
-import { Clock, Video, MoreHorizontal, Calendar } from 'lucide-react'
 import SessionDetailsModal from './SessionDetailsModal'
 
-/* ── Helpers ──────────────────────────────────────── */
-
+/**
+ * Get patient initials from name
+ */
 const getInitials = (name) => {
     if (!name) return '?'
     const parts = name.split(' ')
-    return parts.length >= 2
-        ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
-        : name.substring(0, 2).toUpperCase()
+    if (parts.length >= 2) {
+        return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+    }
+    return name.substring(0, 2).toUpperCase()
 }
 
-const formatSessionTime = (date) => {
-    const h = date.getHours()
-    const m = date.getMinutes()
-    const ampm = h >= 12 ? 'PM' : 'AM'
-    const hour = h % 12 || 12
-    return `${hour}:${String(m).padStart(2, '0')} ${ampm}`
+/**
+ * Get time ago text
+ */
+const getTimeAgo = (lastSession) => {
+    if (!lastSession) return 'First Visit'
+    const now = new Date()
+    const last = new Date(lastSession)
+    const weeks = Math.floor((now - last) / (7 * 24 * 60 * 60 * 1000))
+    if (weeks === 0) return 'This Week'
+    if (weeks === 1) return 'Visited 1 Week Ago'
+    return `Visited ${weeks} Weeks Ago`
 }
 
-const getTimeAgo = (lastVisit) => {
-    if (!lastVisit) return 'New patient'
-    const weeks = Math.floor((Date.now() - new Date(lastVisit)) / (7 * 24 * 60 * 60 * 1000))
-    if (weeks === 0) return 'This week'
-    if (weeks === 1) return '1 week ago'
-    return `${weeks} weeks ago`
+/**
+ * Get risk level styling
+ */
+const getRiskStyling = (riskLevel) => {
+    switch (riskLevel) {
+        case 'high':
+            return { border: 'border-l-4 border-rose-500', glow: 'shadow-rose-100' }
+        case 'medium':
+            return { border: 'border-l-4 border-amber-500', glow: 'shadow-amber-100' }
+        case 'low':
+        default:
+            return { border: '', glow: '' }
+    }
 }
 
-const AVATAR_COLORS = [
-    'bg-indigo-100 text-indigo-700',
-    'bg-emerald-100 text-emerald-700',
-    'bg-amber-100 text-amber-700',
-    'bg-rose-100 text-rose-700',
-    'bg-violet-100 text-violet-700',
-    'bg-cyan-100 text-cyan-700',
-    'bg-orange-100 text-orange-700',
-    'bg-pink-100 text-pink-700',
-]
+/**
+ * SessionCard Component
+ * Matches the reference design with time on left, dashed connector, avatar, name, time range, and visit badge
+ */
+const SessionCard = ({ appointment, index, onClick }) => {
+    const patientName = appointment.nombrePaciente || appointment.patient?.name || 'Unknown Patient'
+    const startTime = new Date(appointment.fechaHora)
+    
+    // Clinical data
+    const riskLevel = appointment.riskLevel || 'low'
+    const lastNote = appointment.lastSessionNote || 'No previous notes'
+    const todayGoal = appointment.treatmentGoal || 'Continue treatment plan'
+    const insuranceSessions = appointment.insuranceSessionsRemaining || null
+    const homeworkComplete = appointment.homeworkCompleted !== false // Default true if not specified
+    const riskStyling = getRiskStyling(riskLevel)
+    const endTime = new Date(startTime.getTime() + 60 * 60 * 1000)
+    const hours = startTime.getHours()
+    const minutes = startTime.getMinutes()
+    const ampm = hours >= 12 ? 'PM' : 'AM'
+    const displayHours = hours % 12 || 12
+    const timeStr = `${String(displayHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+    
+    const endHours = endTime.getHours()
+    const endMinutes = endTime.getMinutes()
+    const endAmpm = endHours >= 12 ? 'PM' : 'AM'
+    const endDisplayHours = endHours % 12 || 12
+    const endTimeStr = `${String(endDisplayHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')} ${endAmpm}`
 
-/* ── SessionRow ───────────────────────────────────── */
-
-const SessionRow = ({ appointment, index, onClick, isNow }) => {
-    const name = appointment.nombrePaciente || appointment.patient?.name || 'Unknown'
-    const start = new Date(appointment.fechaHora)
-    const end = new Date(start.getTime() + 50 * 60 * 1000) // 50-min session
-    const risk = appointment.riskLevel || 'low'
+    const timeRange = `${timeStr} - ${endTimeStr}`
     const lastVisit = appointment.ultimaVisita || appointment.lastSession
-    const avatarColor = AVATAR_COLORS[index % AVATAR_COLORS.length]
+
+    // Rotating background colors matching reference
+    const backgrounds = [
+        'bg-orange-50/80', // warm peach like Jemma Linda
+        'bg-white',        // plain white like Andy John
+        'bg-blue-50/80',   // light blue like Ariana Jamie
+        'bg-emerald-50/80',
+        'bg-pink-50/80'
+    ]
+    const bgColor = backgrounds[index % backgrounds.length]
+
+    // Avatar colors
+    const avatarColors = [
+        'bg-orange-200 text-orange-900',
+        'bg-indigo-200 text-indigo-900',
+        'bg-emerald-200 text-emerald-900',
+        'bg-pink-200 text-pink-900',
+        'bg-purple-200 text-purple-900'
+    ]
+    const avatarColor = avatarColors[index % avatarColors.length]
+
+    // iMessage-style positioning - strict alternation left/right
+    const isRightAligned = index % 2 === 1 // Odd indexes go right, even go left
+    
+    // Variable widths for visual interest
+    const widths = ['70%', '85%', '75%', '80%', '65%']
+    const width = widths[index % widths.length]
+    const position = `max-w-[${width}] ${isRightAligned ? 'ml-auto' : ''}`
 
     return (
-        <motion.button
-            initial={{ opacity: 0, y: 4 }}
+        <motion.div
+            initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.03, duration: 0.2 }}
-            onClick={() => onClick(appointment)}
-            className={`w-full flex items-center gap-4 px-4 py-3 text-left transition-colors hover:bg-gray-50 group ${
-                isNow ? 'bg-indigo-50/40' : ''
-            } ${index > 0 ? 'border-t border-gray-100' : ''}`}
+            transition={{ delay: index * 0.06, duration: 0.3 }}
+            className="flex items-center gap-1 group"
         >
-            {/* Time */}
-            <div className="w-16 shrink-0">
-                <p className={`text-sm font-medium ${isNow ? 'text-indigo-600' : 'text-gray-900'}`}>
-                    {formatSessionTime(start)}
-                </p>
-                <p className="text-xs text-gray-400">{formatSessionTime(end)}</p>
+            {/* Time column */}
+            <div className="w-8 md:w-10 shrink-0 text-right">
+                <div className="text-[10px] font-bold text-gray-400 leading-none">{timeStr}</div>
+                <div className="text-[10px]  text-gray-400 font-medium uppercase mt-0.5">{ampm}</div>
             </div>
 
-            {/* Avatar */}
-            <div className={`w-9 h-9 rounded-full ${avatarColor} flex items-center justify-center text-xs font-semibold shrink-0 relative`}>
-                {getInitials(name)}
-                {risk === 'high' && (
-                    <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full" />
-                )}
+            {/* Dashed line */}
+            <div className="w-4 md:w-6 border-t border-dashed border-gray-300 shrink-0"></div>
+
+            {/* Card container with full dashed line */}
+            <div className={`flex-1 flex items-center ${isRightAligned ? 'justify-end' : 'justify-start'}`}>
+                {/* Leading dashed line for right-aligned cards */}
+                {isRightAligned && <div className="flex-1 border-t border-dashed border-gray-300"></div>}
+                
+                {/* Card - Clean design with click handler */}
+                <div 
+                    className={`${position} relative shrink-0 cursor-pointer`}
+                    onClick={() => onClick(appointment)}
+                >
+                    {/* Risk level alert - subtle indicator above card */}
+                    {riskLevel === 'high' && (
+                        <div className="absolute -top-5 left-2 w-2 h-2 bg-rose-500 rounded-full animate-pulse"></div>
+                    )}
+                    
+                    <div className={`flex items-center gap-2 md:gap-3 ${bgColor} ${riskLevel === 'high' ? 'ring-2 ring-rose-200' : ''} rounded-xl md:rounded-2xl px-2.5 md:px-4 py-2 md:py-2.5 transition-all hover:shadow-md hover:scale-[1.02] min-w-0`}>
+                        {/* Avatar */}
+                        <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full ${avatarColor} flex items-center justify-center font-bold text-[10px] md:text-xs shrink-0 shadow-sm relative`}>
+                            {getInitials(patientName)}
+                            {/* Homework completion badge - subtle */}
+                            {homeworkComplete && (
+                                <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border border-white"></div>
+                            )}
+                        </div>
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 mb-0.5">
+                                <Video className="w-3 h-3 md:w-3.5 md:h-3.5 text-indigo-500 shrink-0" />
+                                <h3 className="font-bold text-gray-900 text-xs md:text-sm leading-tight wrap-break-word">{patientName}</h3>
+                            </div>
+                            <div className="flex items-center gap-1 text-[9px] md:text-[10px] text-gray-400">
+                                <Clock className="w-2.5 h-2.5 md:w-3 md:h-3 shrink-0" />
+                                <span className="truncate">{timeRange}</span>
+                            </div>
+                        </div>
+
+                        {/* Visit badge */}
+                        <div className="hidden lg:flex bg-white/70 border border-gray-200 rounded-full px-2 md:px-2.5 py-0.5 md:py-1 text-[9px] md:text-[10px] text-gray-400 font-medium italic whitespace-nowrap shrink-0">
+                            {getTimeAgo(lastVisit)}
+                        </div>
+                    </div>
+                </div>
+                
+                {/* Trailing dashed line for left-aligned cards */}
+                {!isRightAligned && <div className="flex-1 border-t border-dashed border-gray-300"></div>}
             </div>
 
-            {/* Info */}
-            <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{name}</p>
-                <p className="text-xs text-gray-500 truncate">{getTimeAgo(lastVisit)}</p>
-            </div>
-
-            {/* Status / Actions */}
-            <div className="flex items-center gap-2 shrink-0">
-                {isNow && (
-                    <span className="hidden sm:inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-indigo-700 bg-indigo-100 rounded-full">
-                        <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-pulse" />
-                        Now
-                    </span>
-                )}
-                {risk === 'high' && (
-                    <span className="hidden sm:inline-flex px-2 py-1 text-xs font-medium text-red-700 bg-red-50 rounded-full">
-                        High risk
-                    </span>
-                )}
-                <Video className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                <MoreHorizontal className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-            </div>
-        </motion.button>
+            {/* Dashed line trailing */}
+            <div className="hidden lg:block w-4 md:w-6 border-t border-dashed border-gray-300 shrink-0"></div>
+        </motion.div>
     )
 }
 
-/* ── BreakRow ─────────────────────────────────────── */
-
-const BreakRow = ({ time, index }) => {
+/**
+ * BreakCard Component
+ * Dark pill-shaped break indicator with diagonal stripes
+ */
+const BreakCard = ({ time, index }) => {
     const parts = time.split(' ')
+    const timeStr = parts[0] || '09:00'
+    const ampm = parts[1] || 'AM'
+
     return (
-        <div className={`flex items-center gap-4 px-4 py-2.5 ${index > 0 ? 'border-t border-gray-100' : ''}`}>
-            <div className="w-16 shrink-0">
-                <p className="text-sm font-medium text-gray-400">{parts[0]}</p>
-                <p className="text-xs text-gray-300">{parts[1]}</p>
+        <motion.div
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.06, duration: 0.3 }}
+            className="flex items-center gap-1 my-1"
+        >
+            {/* Time column */}
+            <div className="w-8 md:w-10 shrink-0 text-right">
+                <div className="text-[10px] font-bold text-gray-400 leading-none">{timeStr}</div>
+                <div className="text-[10px] text-gray-400 font-medium uppercase mt-0.5">{ampm}</div>
             </div>
-            <div className="flex-1 flex items-center gap-2">
-                <div className="flex-1 h-px bg-gray-200" />
-                <span className="text-xs font-medium text-gray-400 px-2">Break</span>
-                <div className="flex-1 h-px bg-gray-200" />
+
+            {/* Dashed line */}
+            <div className="w-4 md:w-6 border-t border-dashed border-gray-300 shrink-0"></div>
+
+            {/* Break container - full width */}
+            <div className="flex-1 flex items-center">
+                {/* Break pill - full width */}
+                <div className="flex-1 relative overflow-hidden bg-blue-600 rounded-full px-3 md:px-4 py-2 md:py-2.5 flex items-center justify-center">
+                    {/* Diagonal stripes overlay */}
+                    <div 
+                        className="absolute inset-0 opacity-10"
+                        style={{
+                            backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 3px, white 3px, white 5px)'
+                        }}
+                    ></div>
+                    <span className="relative text-white font-bold text-xs md:text-sm">Break time</span>
+                </div>
             </div>
-        </div>
+
+            {/* Trailing dash */}
+            <div className="hidden lg:block w-4 md:w-6 border-t border-dashed border-gray-300 shrink-0"></div>
+        </motion.div>
     )
 }
 
-/* ── Empty & Loading States ───────────────────────── */
-
+/**
+ * EmptyState Component
+ */
 const EmptyState = () => (
-    <div className="text-center py-12 px-6">
-        <Calendar className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-        <p className="text-sm font-medium text-gray-500">No sessions today</p>
-        <p className="text-xs text-gray-400 mt-1">Your schedule is clear</p>
+    <div className="text-center py-12">
+        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Calendar className="w-8 h-8 text-gray-400" />
+        </div>
+        <p className="text-gray-500 font-medium mb-1">No sessions today</p>
+        <p className="text-sm text-gray-400">Your schedule is clear for today</p>
     </div>
 )
 
-const LoadingSkeleton = () => (
-    <div className="divide-y divide-gray-100">
-        {[...Array(4)].map((_, i) => (
-            <div key={i} className="flex items-center gap-4 px-4 py-3 animate-pulse">
-                <div className="w-16 shrink-0">
-                    <div className="h-4 w-12 bg-gray-200 rounded mb-1" />
-                    <div className="h-3 w-10 bg-gray-100 rounded" />
+/**
+ * SessionsSkeleton Component
+ */
+const SessionsSkeleton = () => (
+    <div className="space-y-3">
+        {[...Array(3)].map((_, i) => (
+            <div key={i} className="flex items-center gap-2 animate-pulse">
+                <div className="w-10 shrink-0 text-right">
+                    <div className="w-8 h-3 bg-gray-200 rounded ml-auto mb-1"></div>
+                    <div className="w-5 h-2 bg-gray-100 rounded ml-auto"></div>
                 </div>
-                <div className="w-9 h-9 bg-gray-200 rounded-full shrink-0" />
-                <div className="flex-1">
-                    <div className="h-4 w-28 bg-gray-200 rounded mb-1" />
-                    <div className="h-3 w-20 bg-gray-100 rounded" />
+                <div className="w-6 border-t border-dashed border-gray-200 shrink-0"></div>
+                <div className="flex-1 flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-2.5">
+                    <div className="w-10 h-10 bg-gray-200 rounded-full shrink-0"></div>
+                    <div className="flex-1">
+                        <div className="w-24 h-3 bg-gray-200 rounded mb-1.5"></div>
+                        <div className="w-16 h-2 bg-gray-200 rounded"></div>
+                    </div>
+                    <div className="hidden lg:block w-20 h-4 bg-gray-200 rounded-full"></div>
                 </div>
+                <div className="hidden lg:block w-6 border-t border-dashed border-gray-200 shrink-0"></div>
             </div>
         ))}
     </div>
 )
 
-/* ── TodaysSessions ───────────────────────────────── */
-
+/**
+ * TodaysSessions Component
+ */
 const TodaysSessions = ({ sessions = [], loading, onJoinVideo, onViewProfile }) => {
     const [selectedSession, setSelectedSession] = useState(null)
 
     // Sort sessions by time
-    const sorted = [...sessions].sort((a, b) => new Date(a.fechaHora) - new Date(b.fechaHora))
+    const sortedSessions = [...sessions].sort((a, b) =>
+        new Date(a.fechaHora) - new Date(b.fechaHora)
+    )
 
-    // Insert break if there's a >60 min gap
-    const items = []
-    sorted.forEach((session, idx) => {
-        items.push(session)
-        if (idx < sorted.length - 1) {
-            const curEnd = new Date(session.fechaHora).getTime() + 50 * 60 * 1000
-            const nextStart = new Date(sorted[idx + 1].fechaHora).getTime()
-            if (nextStart - curEnd >= 60 * 60 * 1000) {
-                const breakTime = new Date(curEnd + 10 * 60 * 1000)
-                items.push({
-                    isBreak: true,
-                    time: formatSessionTime(breakTime)
-                })
+    // Insert break time between 8:30-9:30 gap (after last <=9:00 session, before first >9:00 session)
+    const sessionsWithBreak = []
+    let breakInserted = false
+    sortedSessions.forEach((session, idx) => {
+        sessionsWithBreak.push(session)
+        if (!breakInserted && idx < sortedSessions.length - 1) {
+            const currentHour = new Date(session.fechaHora).getHours()
+            const currentMin = new Date(session.fechaHora).getMinutes()
+            const nextHour = new Date(sortedSessions[idx + 1].fechaHora).getHours()
+            // Insert break if current session is at or before 9:00 and next one is after 9:00
+            if ((currentHour < 9 || (currentHour === 9 && currentMin === 0)) && nextHour >= 9 && nextHour > currentHour) {
+                sessionsWithBreak.push({ isBreak: true, time: '09:00 AM' })
+                breakInserted = true
             }
         }
     })
 
-    // Check if a session is happening now
-    const now = Date.now()
-    const isSessionNow = (s) => {
-        const start = new Date(s.fechaHora).getTime()
-        return now >= start && now <= start + 50 * 60 * 1000
-    }
-
     return (
-        <>
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-                <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-gray-900">Today's Schedule</h3>
-                    <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-                        {sessions.length}
-                    </span>
-                </div>
-                <button className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">
-                    View calendar
-                </button>
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-white rounded-xl md:rounded-2xl p-3 md:p-5 border border-gray-100 shadow-sm"
+        >
+            <div className="flex items-center justify-between mb-4 md:mb-5">
+                <h2 className="text-sm md:text-base font-medium text-gray-900">Sesiones de Hoy</h2>
+                <span className="w-6 h-6 md:w-7 md:h-7 bg-gray-100 text-gray-700 text-[10px] md:text-xs font-bold rounded-full flex items-center justify-center">
+                    {sessions.length}
+                </span>
             </div>
 
-            {/* List */}
             {loading ? (
-                <LoadingSkeleton />
+                <SessionsSkeleton />
             ) : sessions.length === 0 ? (
                 <EmptyState />
             ) : (
-                <div className="max-h-96 overflow-y-auto custom-scrollbar">
+                <div className="space-y-1 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
                     <AnimatePresence mode="popLayout">
-                        {items.map((item, index) =>
+                        {sessionsWithBreak.map((item, index) =>
                             item.isBreak ? (
-                                <BreakRow key={`break-${index}`} time={item.time} index={index} />
+                                <BreakCard
+                                    key={`break-${index}`}
+                                    time={item.time}
+                                    index={index}
+                                />
                             ) : (
-                                <SessionRow
+                                <SessionCard
                                     key={item.id || index}
                                     appointment={item}
                                     index={index}
                                     onClick={setSelectedSession}
-                                    isNow={isSessionNow(item)}
                                 />
                             )
                         )}
                     </AnimatePresence>
                 </div>
             )}
-
-            {/* Modal */}
+            
+            {/* Session Details Modal */}
             {selectedSession && (
                 <SessionDetailsModal
                     session={selectedSession}
                     onClose={() => setSelectedSession(null)}
                     onJoinVideo={onJoinVideo}
-                    onAddNote={(s) => console.log('Add note:', s)}
-                    onMessage={(s) => console.log('Message:', s)}
+                    onAddNote={(session) => console.log('Add note for:', session)}
+                    onMessage={(session) => console.log('Message:', session)}
                 />
             )}
-        </>
+        </motion.div>
     )
 }
 
