@@ -3,11 +3,14 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth, ProtectedRoute, LoginPage, RegisterPage } from '@features/auth'
 import { ProfessionalDashboard, AppointmentsCalendar } from '@features/professional'
 import PatientsList from '@features/professional/components/PatientsList'
-import { PatientDashboard } from '@features/patient'
+import ProfessionalProfile from '@features/professional/components/ProfessionalProfile'
+import { PatientDashboard, PatientAppointments } from '@features/patient'
 import PatientVideoCall from '@features/patient/PatientVideoCall'
 import PatientRegisterPage from '@features/patient/PatientRegisterPage'
 import PatientRegister from '@features/patient/PatientRegister'
 import HomePage from '@pages/HomePage'
+import PricingPlans from '@pages/PricingPlans'
+import CheckoutPage from '@pages/CheckoutPage'
 import DashboardSidebar from '@components/layout/DashboardSidebar'
 import { Toast } from '@components'
 import { ROUTES, ROLES } from '@constants/routes'
@@ -48,6 +51,8 @@ function App() {
         <Routes>
           {/* Public Routes */}
           <Route path={ROUTES.HOME} element={<HomePage />} />
+          <Route path="/pricing" element={<PricingPlans />} />
+          <Route path="/checkout" element={<CheckoutPage />} />
           <Route path={ROUTES.LOGIN} element={<LoginRoute />} />
           {/* <Route path="/login/sms" element={<SMSLoginPage />} /> */}
           <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
@@ -84,6 +89,14 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path={ROUTES.PROFESSIONAL_PROFILE}
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.HEALTH_PROFESSIONAL, ROLES.PROFESSIONAL]}>
+                <ProfessionalProfile />
+              </ProtectedRoute>
+            }
+          />
 
           <Route
             path={ROUTES.PATIENT_DASHBOARD}
@@ -91,6 +104,16 @@ function App() {
               <ProtectedRoute allowedRoles={[ROLES.PATIENT, ROLES.PACIENT]}>
                 <DashboardLayout userRole="patient">
                   <PatientDashboard />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/patient/appointments"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.PATIENT, ROLES.PACIENT]}>
+                <DashboardLayout userRole="patient">
+                  <PatientAppointments />
                 </DashboardLayout>
               </ProtectedRoute>
             }

@@ -1,25 +1,7 @@
-/**
- * ProfessionalDashboard - Main dashboard for therapist/professional users
- * 
- * This file maintains backward compatibility by re-exporting from the 
- * modular dashboard/ directory structure.
- * 
- * Refactored structure:
- * - dashboard/ProfessionalDashboard.jsx - Main orchestrator
- * - dashboard/DashboardHeader.jsx - Header with greeting and actions
- * - dashboard/DashboardStats.jsx - Statistics cards
- * - dashboard/QuickActions.jsx - Quick action buttons
- * - dashboard/TodaysSessions.jsx - Today's appointments list
- * - dashboard/ActivityFeed.jsx - Recent activity feed
- * - dashboard/ProgressSummary.jsx - Weekly progress metrics
- * - dashboard/ProfileSidebar.jsx - User profile and active patients
- * - dashboard/useDashboard.js - Custom hooks for state management
- * - dashboard/dashboardUtils.js - Utility functions
- */
 
 import { useState } from 'react'
 import { motion } from 'motion/react'
-import ProfessionalDashboard from './components/ProfessionalDashboard'
+import ModernProfessionalDashboard from './components/ModernProfessionalDashboard'
 import AppointmentsCalendar from './components/AppointmentsCalendar'
 import PatientDiary from './components/PatientDiary'
 
@@ -66,7 +48,7 @@ const ProfessionalDashboardWrapper = () => {
 
     // Show main dashboard
     return (
-        <ProfessionalDashboard 
+        <ModernProfessionalDashboard 
             setShowCalendar={setShowCalendar} 
             setDiaryPatient={setDiaryPatient} 
         />

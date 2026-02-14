@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react'
-import { Clock, Plus, AlertTriangle, Phone } from 'lucide-react'
+import { Clock, Plus, AlertTriangle, Phone, Bell, Search } from 'lucide-react'
 import { getGreeting, formatDate, formatTime } from "../dashboard/dashboardUtils"
 import { Calendar } from 'lucide-react'
 /**
@@ -18,6 +18,21 @@ const DashboardHeader = ({ user, currentTime, error, onNewPatient, onClearError,
     const userName = user?.name?.split(' ')[0] || user?.nombre || 'Doctor'
     const hasCrisisAlert = highRiskPatients && highRiskPatients.length > 0
 
+    // Get user initials
+    const getInitials = () => {
+        if (!user) return '?'
+        if (user.nombre && user.apellido) {
+            return `${user.nombre[0]}${user.apellido[0]}`.toUpperCase()
+        }
+        if (user.name) {
+            const parts = user.name.split(' ')
+            return parts.length > 1 
+                ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+                : user.name.substring(0, 2).toUpperCase()
+        }
+        return user.email ? user.email[0].toUpperCase() : '?'
+    }
+
     return (
         <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -32,10 +47,10 @@ const DashboardHeader = ({ user, currentTime, error, onNewPatient, onClearError,
                         initial={{ opacity: 0, y: -10, height: 0 }}
                         animate={{ opacity: 1, y: 0, height: 'auto' }}
                         exit={{ opacity: 0, y: -10, height: 0 }}
-                        className="mb-4 bg-gradient-to-r from-rose-50 to-red-50 border-l-4 border-rose-500 rounded-xl p-4 shadow-sm"
+                        className="mb-4 bg-linear-to-r from-rose-50 to-red-50 border-l-4 border-rose-500 rounded-2xl p-4 shadow-sm"
                     >
                         <div className="flex items-start gap-3">
-                            <div className="p-2 bg-rose-500 rounded-lg shrink-0">
+                            <div className="p-2 bg-rose-500 rounded-xl shrink-0">
                                 <AlertTriangle className="w-5 h-5 text-white" />
                             </div>
                             <div className="flex-1">
@@ -60,47 +75,71 @@ const DashboardHeader = ({ user, currentTime, error, onNewPatient, onClearError,
                     </motion.div>
                 )}
             </AnimatePresence>
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-                {/* Greeting and Date */}
-                <div>
 
-                    <h1 className="flex flex-col text-lg lg:text-xl font-semibold text-gray-500 mb-2">
-                        {getGreeting(currentTime)},<span className='text-xl text-gray-800'> Dr. {userName}!</span>
-                    </h1>
-                    <p className="text-xs text-gray-500 flex items-center gap-2">
-                        <Calendar className='size-4' />
-
-                        <span className="hidden sm:inline">
-                            {formatDate(currentTime)}
-                        </span>
-                        <span className="sm:hidden">
-                            {formatDate(currentTime, { day: 'numeric', month: 'short', year: 'numeric' })}
-                        </span>
+            {/* Main Header Row - Greeting on left, Search/Actions on right */}
+            <div className="flex items-start justify-between gap-6">
+                {/* Left Side - Greeting and Date */}
+                <div className="flex-1">
+                    <h1 className="text-base text-gray-500 mb-1">{getGreeting(currentTime)},</h1>
+                    <p className="text-4xl font-bold text-gray-900 mb-3">
+                        Dr. {userName}! 
                     </p>
+                    <div className="flex items-center gap-4 text-sm text-gray-500">
+                        <div className="flex items-center gap-2">
+                            <Calendar className='w-4 h-4' />
+                            <span>{formatDate(currentTime)}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Clock className="w-4 h-4" />
+                            <span>{formatTime(currentTime)}</span>
+                        </div>
+                    </div>
                 </div>
 
-                {/* Time and Actions */}
-                <div className="flex flex-wrap items-center gap-3">
-                    {/* Current Time */}
-                    <div className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-lg shadow-sm">
-                        <Clock className="w-5 h-5 text-indigo-600" />
-                        <span className="text-lg font-semibold text-gray-900">
-                            {formatTime(currentTime)}
-                        </span>
+                {/* Right Side - Search Bar + Actions */}
+                <div className="flex items-center gap-3">
+                    {/* Search Bar */}
+                    <div className="relative w-96">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder="Buscar"
+                            className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition shadow-sm"
+                        />
                     </div>
 
-                    {/* New Patient Button */}
+                    {/* Notification Bell */}
                     <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={onNewPatient}
-                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="relative w-14 h-14 bg-gradient-to-br from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 rounded-2xl flex items-center justify-center shadow-md transition-colors shrink-0"
                     >
-                        <Plus className="w-5 h-5" />
-                        <span className="hidden sm:inline">Nuevo Paciente</span>
-                        <span className="sm:hidden">Nuevo</span>
+                        <Bell className="w-5 h-5 text-white" />
+                        <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full"></span>
                     </motion.button>
+
+                    {/* User Profile Circle */}
+                    <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-600 flex items-center justify-center text-white text-base font-bold cursor-pointer shadow-md shrink-0"
+                    >
+                        {getInitials()}
+                    </motion.div>
                 </div>
+            </div>
+
+            {/* New Patient Button Row */}
+            <div className="mt-6 flex gap-3">
+                <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={onNewPatient}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold rounded-2xl shadow-lg transition-colors"
+                >
+                    <Plus className="w-5 h-5" />
+                    <span>Nuevo Paciente</span>
+                </motion.button>
             </div>
 
             {/* Error Banner */}
@@ -110,7 +149,7 @@ const DashboardHeader = ({ user, currentTime, error, onNewPatient, onClearError,
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3"
+                        className="mt-4 bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3"
                     >
                         <svg className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />

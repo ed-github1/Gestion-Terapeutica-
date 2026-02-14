@@ -1,16 +1,17 @@
 import { useState } from 'react'
 import { useDashboardData, useDashboardView, useCurrentTime } from '../dashboard/useDashboard'
-import { getGreeting } from '../dashboard/dashboardUtils'
+import DashboardHeader from './DashboardHeader'
+import DashboardStats from './DashboardStats'
+import QuickActions from './QuickActions'
 import TodaysSessions from './TodaysSessions'
 import ActivityFeed from './ActivityFeed'
+import ProgressSummary from './ProgressSummary'
+import ProfileSidebar from './ProfileSidebar'
+import ComplianceWidget from './ComplianceWidget'
+import ClinicalQuickActions from './ClinicalQuickActions'
 import { getTodayAppointments } from '../dashboard/dashboardUtils'
 import { useAuth } from '@features/auth'
 import ChatPanel from '@components/layout/ChatPanel'
-import { 
-    Users, CalendarDays, FileText, TrendingUp, 
-    Video, Plus, ClipboardList, Phone,
-    Shield, Award, AlertTriangle, ChevronRight
-} from 'lucide-react'
 
 /**
  * ProfessionalDashboard Component
@@ -333,210 +334,94 @@ const ProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
             unreadMessages: p.mensajesNoLeidos || 0
         }))
 
-    // Format date for header
-    const greeting = getGreeting(currentTime)
-    const dateStr = currentTime.toLocaleDateString('en-US', { 
-        weekday: 'long', month: 'long', day: 'numeric' 
-    })
-
-    // Get user initials
-    const initials = user?.nombre && user?.apellido 
-        ? `${user.nombre[0]}${user.apellido[0]}`.toUpperCase() 
-        : '?'
-
     return (
         <>
-            <div className="h-screen flex flex-col overflow-hidden">
-                {/* Scrollable Content */}
-                <div className="flex-1 overflow-y-auto">
-                    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
-
-                        {/* ── Header ───────────────────────────────── */}
-                        <div className="flex items-start justify-between mb-8">
-                            <div>
-                                <h1 className="text-xl lg:text-2xl font-semibold text-gray-900 tracking-tight">
-                                    {greeting}, {user?.nombre || 'Doctor'}
-                                </h1>
-                                <p className="mt-1 text-sm text-gray-500">{dateStr}</p>
+            <div className='flex flex-col lg:flex-row h-screen'>
+                {/* Main Content Area - Apple Watch Grid Layout */}
+                <div className="p-4 md:p-6 lg:p-8 bg-gray-50 overflow-y-auto flex-1">
+                    {/* Apple Watch Style Grid */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4 auto-rows-auto">
+                        
+                        {/* Profile Tile */}
+                        <div className="col-span-1 row-span-1 bg-linear-to-br from-gray-900 to-gray-800 rounded-2xl md:rounded-3xl p-4 md:p-6 flex flex-col items-center justify-center shadow-lg hover:shadow-xl transition-all cursor-pointer group aspect-square">
+                            <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white text-lg md:text-2xl font-bold mb-2 group-hover:scale-110 transition-transform">
+                                {user?.nombre?.[0]}{user?.apellido?.[0]}
                             </div>
-                            <div className="flex items-center gap-3">
-                                <button 
-                                    onClick={handleNewPatient}
-                                    className="hidden sm:flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
-                                >
-                                    <Plus className="w-4 h-4" />
-                                    New Patient
-                                </button>
-                                <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors">
-                                    {initials}
-                                </div>
-                            </div>
+                            <p className="text-white/90 text-xs md:text-sm font-medium text-center">Profile</p>
                         </div>
 
-                        {/* ── Crisis Alert (conditional) ────────── */}
-                        {highRiskPatients.length > 0 && (
-                            <div className="mb-6 flex items-center gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-lg">
-                                <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
-                                <p className="text-sm text-red-800 flex-1">
-                                    <span className="font-semibold">{highRiskPatients.length} high-risk patient{highRiskPatients.length > 1 ? 's' : ''}</span>
-                                    {' '}need{highRiskPatients.length === 1 ? 's' : ''} attention today
-                                </p>
-                                <button className="text-sm font-medium text-red-700 hover:text-red-900 whitespace-nowrap">
-                                    Review
-                                </button>
+                        {/* Crisis Alert or Time Tile */}
+                        {highRiskPatients.length > 0 ? (
+                            <div className="col-span-1 md:col-span-2 row-span-1 bg-linear-to-br from-rose-500 to-rose-600 rounded-2xl md:rounded-3xl p-4 md:p-6 flex flex-col justify-center shadow-lg hover:shadow-xl transition-all cursor-pointer group aspect-square md:aspect-auto">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                                    <span className="text-white/90 text-xs font-medium uppercase tracking-wide">Crisis Alert</span>
+                                </div>
+                                <p className="text-white text-sm md:text-base font-bold">{highRiskPatients.length} High-Risk Patient{highRiskPatients.length > 1 ? 's' : ''}</p>
+                                <p className="text-white/80 text-xs mt-1">Immediate attention needed</p>
+                            </div>
+                        ) : (
+                            <div className="col-span-1 md:col-span-2 row-span-1 bg-linear-to-br from-indigo-500 to-indigo-600 rounded-2xl md:rounded-3xl p-4 md:p-6 flex flex-col justify-center shadow-lg aspect-square md:aspect-auto">
+                                <p className="text-white/90 text-xs md:text-sm font-medium mb-1">Good {currentTime.greeting}</p>
+                                <p className="text-white text-base md:text-xl font-bold">{user?.nombre || 'Doctor'}</p>
+                                <p className="text-white/80 text-xs mt-2">{currentTime.dateStr}</p>
                             </div>
                         )}
 
-                        {/* ── KPI Cards ─────────────────────────── */}
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                            {[
-                                { 
-                                    label: 'Active Patients', 
-                                    value: stats?.activePatients || 0, 
-                                    change: '+3 this month', 
-                                    positive: true,
-                                    icon: Users, 
-                                    color: 'text-indigo-600 bg-indigo-50' 
-                                },
-                                { 
-                                    label: "Today's Sessions", 
-                                    value: todaySessions.length, 
-                                    change: `${todaySessions.filter(s => new Date(s.fechaHora) < currentTime).length} completed`,
-                                    positive: true,
-                                    icon: CalendarDays, 
-                                    color: 'text-emerald-600 bg-emerald-50' 
-                                },
-                                { 
-                                    label: 'Pending Notes', 
-                                    value: stats?.pendingNotes || 4, 
-                                    change: '2 due today', 
-                                    positive: false,
-                                    icon: FileText, 
-                                    color: 'text-amber-600 bg-amber-50' 
-                                },
-                                { 
-                                    label: 'Week Utilization', 
-                                    value: `${stats?.weekUtilization || 78}%`, 
-                                    change: '↑ 5% from last week', 
-                                    positive: true,
-                                    icon: TrendingUp, 
-                                    color: 'text-violet-600 bg-violet-50' 
-                                },
-                            ].map((kpi) => (
-                                <div key={kpi.label} className="bg-white rounded-xl border border-gray-200 p-5 hover:border-gray-300 transition-colors">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <span className="text-sm text-gray-500">{kpi.label}</span>
-                                        <div className={`w-8 h-8 rounded-lg ${kpi.color} flex items-center justify-center`}>
-                                            <kpi.icon className="w-4 h-4" />
-                                        </div>
-                                    </div>
-                                    <p className="text-2xl font-semibold text-gray-900">{kpi.value}</p>
-                                    <p className={`mt-1 text-xs ${kpi.positive ? 'text-emerald-600' : 'text-amber-600'}`}>
-                                        {kpi.change}
-                                    </p>
-                                </div>
-                            ))}
+                        {/* Stat Tiles - 4 individual tiles */}
+                        <div className="col-span-1 row-span-1 bg-linear-to-br from-blue-500 to-blue-600 rounded-2xl md:rounded-3xl p-4 md:p-6 flex flex-col justify-between shadow-lg hover:shadow-xl transition-all cursor-pointer group aspect-square">
+                            <div className="text-white/90 text-xs md:text-sm font-medium">Active Caseload</div>
+                            <div className="text-white text-2xl md:text-4xl font-bold mt-auto">{stats?.activePatients || 0}</div>
                         </div>
 
-                        {/* ── Main Grid: Sessions + Sidebar ──── */}
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="col-span-1 row-span-1 bg-linear-to-br from-emerald-500 to-emerald-600 rounded-2xl md:rounded-3xl p-4 md:p-6 flex flex-col justify-between shadow-lg hover:shadow-xl transition-all cursor-pointer group aspect-square">
+                            <div className="text-white/90 text-xs md:text-sm font-medium">Today</div>
+                            <div className="text-white text-2xl md:text-4xl font-bold mt-auto">{todaySessions.length}</div>
+                        </div>
 
-                            {/* Left Column — Sessions (2/3 width) */}
-                            <div className="lg:col-span-2 space-y-6">
+                        <div className="col-span-1 row-span-1 bg-linear-to-br from-amber-500 to-amber-600 rounded-2xl md:rounded-3xl p-4 md:p-6 flex flex-col justify-between shadow-lg hover:shadow-xl transition-all cursor-pointer group aspect-square">
+                            <div className="text-white/90 text-xs md:text-sm font-medium">Pending</div>
+                            <div className="text-white text-2xl md:text-4xl font-bold mt-auto">{stats?.pendingNotes || 0}</div>
+                        </div>
 
-                                {/* Today's Schedule */}
-                                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                                    <TodaysSessions
-                                        sessions={todaySessions}
-                                        loading={loading}
-                                        onJoinVideo={handleJoinVideo}
-                                        onViewProfile={handleViewProfile}
-                                    />
-                                </div>
+                        <div className="col-span-1 row-span-1 bg-linear-to-br from-purple-500 to-purple-600 rounded-2xl md:rounded-3xl p-4 md:p-6 flex flex-col justify-between shadow-lg hover:shadow-xl transition-all cursor-pointer group aspect-square">
+                            <div className="text-white/90 text-xs md:text-sm font-medium">Week</div>
+                            <div className="text-white text-2xl md:text-4xl font-bold mt-auto">{stats?.weekUtilization || 0}%</div>
+                        </div>
 
-                                {/* Quick Actions */}
-                                <div className="bg-white rounded-xl border border-gray-200 p-5">
-                                    <h3 className="text-sm font-semibold text-gray-900 mb-4">Quick Actions</h3>
-                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                        {[
-                                            { label: 'Start Session', icon: Video, color: 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100' },
-                                            { label: 'Add Note', icon: Plus, color: 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100' },
-                                            { label: 'Assessment', icon: ClipboardList, color: 'text-violet-600 bg-violet-50 hover:bg-violet-100' },
-                                            { label: 'Crisis Line', icon: Phone, color: 'text-red-600 bg-red-50 hover:bg-red-100' },
-                                        ].map((action) => (
-                                            <button
-                                                key={action.label}
-                                                className={`flex flex-col items-center gap-2 p-4 rounded-lg ${action.color} transition-colors`}
-                                            >
-                                                <action.icon className="w-5 h-5" />
-                                                <span className="text-xs font-medium">{action.label}</span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
+                        {/* Today's Sessions - Large tile spanning multiple columns */}
+                        <div className="col-span-2 md:col-span-4 lg:col-span-4 row-span-2 md:row-span-3 bg-white rounded-2xl md:rounded-3xl shadow-lg hover:shadow-xl transition-all overflow-hidden">
+                            <TodaysSessions
+                                sessions={todaySessions}
+                                loading={loading}
+                                onJoinVideo={handleJoinVideo}
+                                onViewProfile={handleViewProfile}
+                            />
+                        </div>
 
-                            {/* Right Column — Sidebar (1/3 width) */}
-                            <div className="space-y-6">
-
-                                {/* Activity Feed */}
-                                <div className="bg-white rounded-xl border border-gray-200 p-5">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <h3 className="text-sm font-semibold text-gray-900">Recent Activity</h3>
-                                        <button className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">View all</button>
-                                    </div>
-                                    <div className="max-h-80 overflow-y-auto pr-1 custom-scrollbar">
-                                        <ActivityFeed
-                                            activities={recentActivity}
-                                            loading={loading}
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Compliance */}
-                                <div className="bg-white rounded-xl border border-gray-200 p-5">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <h3 className="text-sm font-semibold text-gray-900">Compliance</h3>
-                                        <Shield className="w-4 h-4 text-gray-400" />
-                                    </div>
-                                    <div className="space-y-3">
-                                        <div className="flex items-center justify-between py-2">
-                                            <div className="flex items-center gap-3">
-                                                <Shield className="w-4 h-4 text-emerald-500" />
-                                                <div>
-                                                    <p className="text-sm font-medium text-gray-900">License</p>
-                                                    <p className="text-xs text-gray-500">PSY-12345-CA</p>
-                                                </div>
-                                            </div>
-                                            <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">Active</span>
-                                        </div>
-                                        <div className="border-t border-gray-100"></div>
-                                        <div className="flex items-center justify-between py-2">
-                                            <div className="flex items-center gap-3">
-                                                <Award className="w-4 h-4 text-amber-500" />
-                                                <div>
-                                                    <p className="text-sm font-medium text-gray-900">CEU Credits</p>
-                                                    <p className="text-xs text-gray-500">28 of 40 completed</p>
-                                                </div>
-                                            </div>
-                                            <span className="text-xs font-medium text-amber-600">70%</span>
-                                        </div>
-                                        <div className="border-t border-gray-100"></div>
-                                        <div className="flex items-center justify-between py-2">
-                                            <div className="flex items-center gap-3">
-                                                <FileText className="w-4 h-4 text-red-500" />
-                                                <div>
-                                                    <p className="text-sm font-medium text-gray-900">Consent Forms</p>
-                                                    <p className="text-xs text-gray-500">3 expiring soon</p>
-                                                </div>
-                                            </div>
-                                            <ChevronRight className="w-4 h-4 text-gray-400" />
-                                        </div>
-                                    </div>
-                                </div>
+                        {/* Activity Feed Tile */}
+                        <div className="col-span-2 md:col-span-2 lg:col-span-2 row-span-2 bg-white rounded-2xl md:rounded-3xl p-4 md:p-5 shadow-lg hover:shadow-xl transition-all overflow-hidden">
+                            <h2 className="text-sm md:text-base font-medium text-gray-900 mb-4">Recent Activity</h2>
+                            <div className="h-full max-h-75 md:max-h-100 overflow-y-auto pr-2 custom-scrollbar">
+                                <ActivityFeed
+                                    activities={recentActivity}
+                                    loading={loading}
+                                />
                             </div>
                         </div>
 
+                        {/* Compliance Widget Tile */}
+                        <div className="col-span-2 md:col-span-2 lg:col-span-2 row-span-1">
+                            <ComplianceWidget 
+                                compliance={{
+                                    licenseExpiration: new Date('2026-12-31'),
+                                    licenseNumber: 'PSY-12345-CA',
+                                    ceuCreditsRequired: 40,
+                                    ceuCreditsEarned: 28,
+                                    informedConsentExpirations: 3
+                                }}
+                            />
+                        </div>
                     </div>
                 </div>
             </div>

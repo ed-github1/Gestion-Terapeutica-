@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Menu, X, User } from 'lucide-react'
+import { Menu, X, User, Brain } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
 import DashboardSidebar from '@components/layout/DashboardSidebar'
 import { useAuth } from '@features/auth'
@@ -25,9 +25,9 @@ const DashboardLayout = ({ children, userRole }) => {
     }
 
     return (
-        <div className="h-screen bg-indigo-50 flex flex-col">
+        <div className="h-screen bg-indigo-50 flex flex-col overflow-hidden">
             {/* Mobile Top Bar */}
-            <div className="md:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shadow-sm z-30">
+            <div className="md:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shadow-sm z-30 shrink-0">
                 <div className="flex items-center gap-3">
                     <motion.button
                         whileHover={{ scale: 1.05 }}
@@ -39,7 +39,7 @@ const DashboardLayout = ({ children, userRole }) => {
                     </motion.button>
                     <div className="flex items-center gap-2">
                         <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center shadow-sm">
-                            <span className="text-white text-sm font-bold">T</span>
+                            <span className="text-white text-sm font-bold"><Brain /> </span>
                         </div>
                         <span className="text-lg font-semibold text-gray-900">TotalMente</span>
                     </div>
@@ -48,7 +48,7 @@ const DashboardLayout = ({ children, userRole }) => {
                 <motion.div
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="w-9 h-9 rounded-full bg-gray-900 flex items-center justify-center text-white text-xs font-semibold cursor-pointer shadow-sm"
+                    className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-600 to-blue-600 flex items-center justify-center text-white text-xs font-semibold cursor-pointer shadow-md"
                 >
                     {getInitials()}
                 </motion.div>
@@ -70,21 +70,14 @@ const DashboardLayout = ({ children, userRole }) => {
                 </AnimatePresence>
 
                 {/* Sidebar - Hidden on mobile, always visible on md+ */}
-                <div className={`${isSidebarOpen ? 'fixed' : 'hidden'
-                    } md:block left-0 md:relative md:left-0 top-[52px] md:top-0 h-[calc(100vh-52px)] md:h-full z-50`}>
+                <div className={`${
+                    isSidebarOpen ? 'fixed top-0 bottom-0 w-64' : 'hidden'
+                } md:block md:relative left-0 md:top-0 md:h-full z-50 md:z-auto`}>
                     <DashboardSidebar userRole={userRole} onClose={() => setIsSidebarOpen(false)} />
                 </div>
 
-                {/* Main Content with Profile Circle */}
-                <div className="flex-1 h-full overflow-hidden bg-white md:bg-transparent relative">
-                    {/* Desktop Profile Circle - Top Right */}
-                    <motion.div
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="hidden md:flex fixed top-6 right-6 z-50 w-10 h-10 rounded-full bg-gray-900 items-center justify-center text-white text-sm font-semibold cursor-pointer shadow-lg hover:shadow-xl transition-shadow"
-                    >
-                        {getInitials()}
-                    </motion.div>
+                {/* Main Content */}
+                <div className="flex-1 h-full overflow-y-auto overflow-x-hidden bg-white md:bg-transparent relative">
                     {children}
                 </div>
             </div>

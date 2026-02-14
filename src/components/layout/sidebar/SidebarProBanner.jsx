@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react'
 import { Crown, Sparkles, X } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 
 /**
  * SidebarProBanner Component
@@ -13,6 +14,8 @@ import { Crown, Sparkles, X } from 'lucide-react'
  * @param {boolean} props.prefersReducedMotion - User motion preference
  */
 const SidebarProBanner = ({ isCollapsed, show, onClose, prefersReducedMotion }) => {
+    const navigate = useNavigate()
+    
     if (!show) return null
 
     // Expanded banner with full content
@@ -53,6 +56,10 @@ const SidebarProBanner = ({ isCollapsed, show, onClose, prefersReducedMotion }) 
                     <motion.button
                         whileHover={prefersReducedMotion ? {} : { scale: 1.03 }}
                         whileTap={prefersReducedMotion ? {} : { scale: 0.97 }}
+                        onClick={() => {
+                            console.log('🔥 Pro Banner Button Clicked - Navigating to /pricing')
+                            navigate('/pricing')
+                        }}
                         className="w-full px-4 py-2.5 bg-white text-indigo-700 text-xs font-bold rounded-xl hover:bg-slate-50 transition-colors shadow-lg hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-indigo-600"
                         aria-label="Actualizar al Plan Pro"
                     >
@@ -70,6 +77,10 @@ const SidebarProBanner = ({ isCollapsed, show, onClose, prefersReducedMotion }) 
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
             whileHover={prefersReducedMotion ? {} : { scale: 1.05 }}
+            onClick={() => {
+                console.log('🔥 Pro Banner Icon Clicked - Navigating to /pricing')
+                navigate('/pricing')
+            }}
             whileTap={prefersReducedMotion ? {} : { scale: 0.95 }}
             aria-label="Actualizar al Plan Pro"
             className="mx-2 mb-4 p-4 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl shadow-lg cursor-pointer flex items-center justify-center relative focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"

@@ -30,10 +30,10 @@ export const professionalMenuItems = [
     },
     {
         icon: Calendar,
-        path: '/dashboard/professional/calendar',
-        label: 'Calendario',
+        path: '/dashboard/professional/appointments',
+        label: 'Citas',
         description: 'Sesiones y citas',
-        ariaLabel: 'Calendario de sesiones'
+        ariaLabel: 'Citas y sesiones programadas'
     },
     {
         icon: MessageSquare,

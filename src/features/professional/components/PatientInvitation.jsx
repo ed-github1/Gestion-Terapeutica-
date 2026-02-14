@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
+import { X, Send, Check, Copy, UserPlus } from 'lucide-react'
 import { showToast } from '@components'
 
 const PatientInvitation = ({ onClose, onSuccess, professionalName }) => {
@@ -118,166 +119,109 @@ const PatientInvitation = ({ onClose, onSuccess, professionalName }) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
       onClick={onClose}
     >
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
-        className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden border border-purple-100"
+        transition={{ type: "spring", duration: 0.3, bounce: 0.2 }}
+        className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="bg-linear-to-r from-purple-500 via-purple-600 to-pink-600 px-8 py-6 flex items-center justify-between text-white rounded-t-3xl">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-              </svg>
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold">Invitar Paciente</h2>
-              <p className="text-white/90 text-sm mt-1">Envía una invitación personalizada</p>
-            </div>
-          </div>
+        <div className="relative p-6 pb-5 border-b border-gray-100">
           <button
             onClick={onClose}
-            className="p-2 hover:bg-white/20 rounded-xl transition"
+            className="absolute top-4 right-4 p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <X className="w-4 h-4 text-gray-500" />
           </button>
+
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
+              <UserPlus className="w-6 h-6 text-indigo-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">Invitar Paciente</h2>
+              <p className="text-xs text-gray-500 mt-0.5">Envía una invitación personalizada</p>
+            </div>
+          </div>
         </div>
 
         {/* Content */}
-        <div className="overflow-y-auto max-h-[calc(90vh-180px)]">
+        <div className="overflow-y-auto max-h-[70vh]">
           <AnimatePresence mode="wait">
             {step === 1 && (
               <motion.form
                 key="form"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
                 onSubmit={handleSubmit}
-                className="p-8 space-y-6"
+                className="p-6 space-y-5"
               >
                 {/* Patient Info */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 bg-linear-to-br from-blue-400 to-blue-500 rounded-2xl flex items-center justify-center">
-                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                    </div>
-                    <h3 className="text-lg font-semibold text-gray-800">Información del Paciente</h3>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Nombre *
-                      </label>
-                      <input
-                        required
-                        type="text"
-                        value={formData.firstName}
-                        onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                        className="w-full px-4 py-3 border border-purple-200 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition bg-purple-50/30"
-                        placeholder="María"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Apellidos *
-                      </label>
-                      <input
-                        required
-                        type="text"
-                        value={formData.lastName}
-                        onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                        className="w-full px-4 py-3 border border-purple-200 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition bg-purple-50/30"
-                        placeholder="González"
-                      />
-                    </div>
+                <div className="space-y-3">
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Información del Paciente</h3>
+                  <div className="space-y-3">
+                    <input
+                      required
+                      type="text"
+                      value={formData.firstName}
+                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                      placeholder="Nombre"
+                    />
+                    <input
+                      required
+                      type="text"
+                      value={formData.lastName}
+                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                      placeholder="Apellidos"
+                    />
                   </div>
                 </div>
 
                 {/* Contact Channels */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 bg-linear-to-br from-emerald-400 to-teal-500 rounded-2xl flex items-center justify-center">
-                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
-                    </div>
-                    <h3 className="text-lg font-semibold text-gray-800">Canales de Contacto</h3>
-                  </div>
-
-                  {/* Channel Selection */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className={`p-4 rounded-2xl border-2 transition cursor-pointer ${
-                      formData.channels.sms 
-                        ? 'border-purple-500 bg-purple-50' 
-                        : 'border-gray-200 bg-gray-50'
-                    }`}
-                      onClick={() => setFormData({ 
-                        ...formData, 
-                        channels: { ...formData.channels, sms: !formData.channels.sms }
-                      })}
+                <div className="space-y-3">
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Canal de Envío</h3>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, channels: { sms: true, email: false }})}
+                      className={`flex-1 px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
+                        formData.channels.sms && !formData.channels.email
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
                     >
-                      <label className="flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={formData.channels.sms}
-                          onChange={(e) => setFormData({ 
-                            ...formData, 
-                            channels: { ...formData.channels, sms: e.target.checked }
-                          })}
-                          className="w-5 h-5 text-purple-600 border-purple-300 rounded focus:ring-purple-500"
-                        />
-                        <div className="ml-3">
-                          <span className="text-base font-semibold text-gray-800 flex items-center gap-2">
-                            📱 SMS (Recomendado)
-                          </span>
-                          <p className="text-xs text-gray-600 mt-1">
-                            Respuesta instantánea
-                          </p>
-                        </div>
-                      </label>
-                    </div>
-
-                    <div className={`p-4 rounded-2xl border-2 transition cursor-pointer ${
-                      formData.channels.email 
-                        ? 'border-blue-500 bg-blue-50' 
-                        : 'border-gray-200 bg-gray-50'
-                    }`}
-                      onClick={() => setFormData({ 
-                        ...formData, 
-                        channels: { ...formData.channels, email: !formData.channels.email }
-                      })}
+                      📱 SMS
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, channels: { sms: false, email: true }})}
+                      className={`flex-1 px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
+                        formData.channels.email && !formData.channels.sms
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
                     >
-                      <label className="flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={formData.channels.email}
-                          onChange={(e) => setFormData({ 
-                            ...formData, 
-                            channels: { ...formData.channels, email: e.target.checked }
-                          })}
-                          className="w-5 h-5 text-blue-600 border-blue-300 rounded focus:ring-blue-500"
-                        />
-                        <div className="ml-3">
-                          <span className="text-base font-semibold text-gray-800 flex items-center gap-2">
-                            📧 Email
-                          </span>
-                          <p className="text-xs text-gray-600 mt-1">
-                            Información detallada
-                          </p>
-                        </div>
-                      </label>
-                    </div>
+                      📧 Email
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, channels: { sms: true, email: true }})}
+                      className={`flex-1 px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
+                        formData.channels.sms && formData.channels.email
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      Ambos
+                    </button>
                   </div>
 
                   {/* Phone Input */}
@@ -286,24 +230,20 @@ const PatientInvitation = ({ onClose, onSuccess, professionalName }) => {
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
+                      className="relative"
                     >
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Teléfono (10 dígitos) *
-                      </label>
-                      <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium">
-                          +52
-                        </span>
-                        <input
-                          required={formData.channels.sms}
-                          type="tel"
-                          value={formData.phone}
-                          onChange={handlePhoneChange}
-                          maxLength={14}
-                          className="w-full pl-14 pr-4 py-3 border border-purple-200 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition bg-purple-50/30"
-                          placeholder="(555) 123-4567"
-                        />
-                      </div>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium">
+                        +52
+                      </span>
+                      <input
+                        required={formData.channels.sms}
+                        type="tel"
+                        value={formData.phone}
+                        onChange={handlePhoneChange}
+                        maxLength={14}
+                        className="w-full pl-12 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                        placeholder="(555) 123-4567"
+                      />
                     </motion.div>
                   )}
 
@@ -314,40 +254,30 @@ const PatientInvitation = ({ onClose, onSuccess, professionalName }) => {
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
                     >
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Correo Electrónico *
-                      </label>
                       <input
                         required={formData.channels.email}
                         type="email"
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        className="w-full px-4 py-3 border border-purple-200 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition bg-purple-50/30"
-                        placeholder="maria@ejemplo.com"
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                        placeholder="correo@ejemplo.com"
                       />
                     </motion.div>
                   )}
                 </div>
 
                 {/* Custom Message */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 bg-linear-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center">
-                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                      </svg>
-                    </div>
-                    <h3 className="text-lg font-semibold text-gray-800">Mensaje Personalizado (Opcional)</h3>
-                  </div>
+                <div className="space-y-2">
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Mensaje (Opcional)</h3>
                   <textarea
                     value={formData.message}
                     onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                    rows={3}
+                    rows={2}
                     maxLength={160}
-                    className="w-full px-4 py-3 border border-purple-200 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition resize-none bg-purple-50/30"
-                    placeholder="Agrega un mensaje personalizado para tu paciente..."
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition resize-none"
+                    placeholder="Agrega un mensaje personalizado..."
                   />
-                  <p className="text-xs text-gray-500 text-right">{formData.message.length}/160 caracteres</p>
+                  <p className="text-xs text-gray-400 text-right">{formData.message.length}/160</p>
                 </div>
               </motion.form>
             )}
@@ -359,21 +289,19 @@ const PatientInvitation = ({ onClose, onSuccess, professionalName }) => {
                 animate={{ opacity: 1 }}
                 className="p-12 text-center"
               >
-                <div className="w-20 h-20 mx-auto mb-6 relative">
-                  <div className="absolute inset-0 bg-linear-to-br from-purple-400 to-pink-400 rounded-full animate-ping opacity-75"></div>
-                  <div className="relative w-20 h-20 bg-linear-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-                    <svg className="w-10 h-10 text-white animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                    </svg>
+                <div className="w-16 h-16 mx-auto mb-4 relative">
+                  <div className="absolute inset-0 bg-indigo-400 rounded-full animate-ping opacity-75"></div>
+                  <div className="relative w-16 h-16 bg-indigo-600 rounded-full flex items-center justify-center">
+                    <Send className="w-8 h-8 text-white animate-pulse" />
                   </div>
                 </div>
-                <h3 className="text-2xl font-bold text-gray-800 mb-2">Enviando Invitación...</h3>
-                <p className="text-gray-600">
+                <h3 className="text-lg font-bold text-gray-900 mb-1">Enviando...</h3>
+                <p className="text-sm text-gray-500">
                   {formData.channels.sms && formData.channels.email
-                    ? 'Enviando por SMS y Email'
+                    ? 'Por SMS y Email'
                     : formData.channels.sms
-                    ? 'Enviando mensaje SMS'
-                    : 'Enviando correo electrónico'}
+                    ? 'Por SMS'
+                    : 'Por Email'}
                 </p>
               </motion.div>
             )}
@@ -381,93 +309,70 @@ const PatientInvitation = ({ onClose, onSuccess, professionalName }) => {
             {step === 3 && inviteResult && (
               <motion.div
                 key="success"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="p-8 space-y-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="p-6 space-y-4"
               >
                 <div className="text-center">
-                  <div className="w-20 h-20 bg-linear-to-br from-emerald-400 to-teal-500 rounded-full mx-auto mb-4 flex items-center justify-center">
-                    <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
+                  <div className="w-16 h-16 bg-emerald-100 rounded-full mx-auto mb-3 flex items-center justify-center">
+                    <Check className="w-8 h-8 text-emerald-600" />
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-800 mb-2">¡Invitación Enviada!</h3>
-                  <p className="text-gray-600">
-                    La invitación ha sido enviada exitosamente a {formData.firstName} {formData.lastName}
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">¡Invitación Enviada!</h3>
+                  <p className="text-sm text-gray-600">
+                    {formData.firstName} {formData.lastName}
                   </p>
                 </div>
 
-                {/* Invite Details */}
-                <div className="space-y-4">
-                  {/* Invite Code */}
-                  <div className="bg-linear-to-br from-purple-50 to-pink-50 rounded-2xl p-5 border border-purple-200">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-700">Código de Invitación</span>
-                      <button
-                        onClick={copyInviteCode}
-                        className="text-purple-600 hover:text-purple-700 text-sm font-semibold"
-                      >
-                        Copiar
-                      </button>
-                    </div>
-                    <div className="font-mono text-2xl font-bold text-purple-600 tracking-wider">
-                      {inviteResult.inviteCode}
-                    </div>
-                    <p className="text-xs text-gray-500 mt-2">Válido por 7 días</p>
+                {/* Invite Code */}
+                <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold text-gray-500 uppercase">Código</span>
+                    <button
+                      onClick={copyInviteCode}
+                      className="text-indigo-600 hover:text-indigo-700 p-1"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                    </button>
                   </div>
-
-                  {/* Registration Link */}
-                  <div className="bg-linear-to-br from-blue-50 to-cyan-50 rounded-2xl p-5 border border-blue-200">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-700">Enlace de Registro</span>
-                      <button
-                        onClick={copyRegistrationLink}
-                        className="text-blue-600 hover:text-blue-700 text-sm font-semibold"
-                      >
-                        Copiar
-                      </button>
-                    </div>
-                    <div className="text-sm text-blue-600 break-all font-medium">
-                      {inviteResult.registrationLink}
-                    </div>
+                  <div className="font-mono text-xl font-bold text-indigo-600 tracking-wider">
+                    {inviteResult.inviteCode}
                   </div>
-
-                  {/* Delivery Status */}
-                  {inviteResult.deliveryStatus && (
-                    <div className="space-y-2">
-                      {inviteResult.deliveryStatus.sms && (
-                        <div className="flex items-center gap-2 text-sm">
-                          <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                          <span className="text-gray-700">SMS enviado a {formData.phone}</span>
-                        </div>
-                      )}
-                      {inviteResult.deliveryStatus.email && (
-                        <div className="flex items-center gap-2 text-sm">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                          <span className="text-gray-700">Email enviado a {formData.email}</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  <p className="text-xs text-gray-500 mt-1">Válido 7 días</p>
                 </div>
 
-                {/* Instructions */}
-                <div className="bg-amber-50 rounded-2xl p-5 border border-amber-200">
-                  <div className="flex items-start gap-3">
-                    <svg className="w-5 h-5 text-amber-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-amber-900">Próximos Pasos</p>
-                      <ul className="text-sm text-amber-800 mt-2 space-y-1 list-disc list-inside">
-                        <li>El paciente recibirá el enlace de registro</li>
-                        <li>Deberá verificar su teléfono con un código OTP</li>
-                        <li>Completará su perfil y aceptará términos</li>
-                        <li>Aparecerá en tu lista de pacientes</li>
-                      </ul>
-                    </div>
+                {/* Registration Link */}
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold text-gray-500 uppercase">Enlace</span>
+                    <button
+                      onClick={copyRegistrationLink}
+                      className="text-gray-600 hover:text-gray-700 p-1"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <div className="text-xs text-gray-600 break-all">
+                    {inviteResult.registrationLink}
                   </div>
                 </div>
+
+                {/* Delivery Status */}
+                {inviteResult.deliveryStatus && (
+                  <div className="space-y-1.5 pt-2">
+                    {inviteResult.deliveryStatus.sms && (
+                      <div className="flex items-center gap-2 text-xs text-gray-600">
+                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
+                        SMS enviado a {formData.phone}
+                      </div>
+                    )}
+                    {inviteResult.deliveryStatus.email && (
+                      <div className="flex items-center gap-2 text-xs text-gray-600">
+                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                        Email enviado a {formData.email}
+                      </div>
+                    )}
+                  </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
@@ -475,30 +380,31 @@ const PatientInvitation = ({ onClose, onSuccess, professionalName }) => {
 
         {/* Footer */}
         {step === 1 && (
-          <div className="bg-purple-50/50 px-8 py-5 border-t border-purple-100 flex items-center justify-end gap-3 rounded-b-3xl">
+          <div className="p-6 pt-4 border-t border-gray-100 flex gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-3 border-2 border-purple-300 rounded-2xl text-gray-700 hover:bg-purple-50 transition font-semibold"
+              className="flex-1 px-4 py-2 text-sm font-medium border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
             >
               Cancelar
             </button>
             <button
               onClick={handleSubmit}
-              className="px-6 py-3 bg-linear-to-r from-purple-500 to-pink-500 text-white rounded-2xl hover:from-purple-600 hover:to-pink-600 transition font-semibold shadow-lg shadow-purple-500/30"
+              className="flex-1 px-4 py-2 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
             >
-              Enviar Invitación
+              <Send className="w-4 h-4" />
+              Enviar
             </button>
           </div>
         )}
 
         {step === 3 && (
-          <div className="bg-purple-50/50 px-8 py-5 border-t border-purple-100 flex items-center justify-center rounded-b-3xl">
+          <div className="p-6 pt-4 border-t border-gray-100">
             <button
               onClick={onClose}
-              className="px-8 py-3 bg-linear-to-r from-purple-500 to-pink-500 text-white rounded-2xl hover:from-purple-600 hover:to-pink-600 transition font-semibold shadow-lg shadow-purple-500/30"
+              className="w-full px-4 py-2 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
             >
-              Entendido
+              Cerrar
             </button>
           </div>
         )}

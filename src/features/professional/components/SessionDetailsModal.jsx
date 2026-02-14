@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react'
-import { X, Video, Phone, MessageSquare, FileText, AlertTriangle, CheckCircle2, Clock, Calendar, Target, TrendingUp, Shield } from 'lucide-react'
+import { X, Video, FileText, MessageSquare, Clock, Target, AlertTriangle, CheckCircle2 } from 'lucide-react'
 
 /**
  * Get patient initials from name
@@ -63,160 +63,131 @@ const SessionDetailsModal = ({ session, onClose, onJoinVideo, onAddNote, onMessa
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
                 onClick={onClose}
             >
                 <motion.div
-                    initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                    animate={{ scale: 1, opacity: 1, y: 0 }}
-                    exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                    transition={{ type: "spring", duration: 0.5 }}
-                    className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden"
+                    initial={{ scale: 0.95, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.95, opacity: 0 }}
+                    transition={{ type: "spring", duration: 0.3, bounce: 0.2 }}
+                    className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
                     onClick={(e) => e.stopPropagation()}
                 >
                     {/* Header */}
-                    <div className="relative bg-gradient-to-br from-indigo-500 to-purple-600 text-white p-6">
+                    <div className="relative p-6 pb-5 border-b border-gray-100">
                         <button
                             onClick={onClose}
-                            className="absolute top-4 right-4 p-2 hover:bg-white/20 rounded-full transition-colors"
+                            className="absolute top-4 right-4 p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
                         >
-                            <X className="w-5 h-5" />
+                            <X className="w-4 h-4 text-gray-500" />
                         </button>
 
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3">
                             {/* Avatar */}
-                            <div className={`w-16 h-16 rounded-full ${avatarColor} flex items-center justify-center font-bold text-xl shadow-lg relative`}>
+                            <div className={`w-12 h-12 rounded-xl ${avatarColor} flex items-center justify-center font-bold text-sm shadow-sm relative`}>
                                 {getInitials(patientName)}
                                 {homeworkComplete && (
-                                    <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center border-2 border-white">
-                                        <CheckCircle2 className="w-3 h-3 text-white" />
-                                    </div>
+                                    <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white"></div>
                                 )}
                             </div>
 
-                            {/* Patient Info */}
-                            <div className="flex-1">
-                                <h2 className="text-2xl font-bold mb-1">{patientName}</h2>
-                                <div className="flex items-center gap-3 text-sm text-white/90">
-                                    <div className="flex items-center gap-1">
-                                        <Clock className="w-4 h-4" />
-                                        <span>{timeStr} - {endTimeStr}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        <Calendar className="w-4 h-4" />
-                                        <span>{startTime.toLocaleDateString()}</span>
-                                    </div>
+                            {/* Info */}
+                            <div className="flex-1 min-w-0">
+                                <h2 className="text-lg font-bold text-gray-900 truncate">{patientName}</h2>
+                                <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-0.5">
+                                    <Clock className="w-3 h-3" />
+                                    <span>{timeStr} - {endTimeStr}</span>
                                 </div>
                             </div>
 
                             {/* Risk Badge */}
                             {riskLevel === 'high' && (
-                                <div className="flex items-center gap-1.5 bg-rose-500 px-3 py-1.5 rounded-full text-sm font-semibold">
-                                    <AlertTriangle className="w-4 h-4" />
-                                    <span>High Risk</span>
-                                </div>
+                                <div className="w-2 h-2 bg-rose-500 rounded-full animate-pulse"></div>
                             )}
                         </div>
                     </div>
 
                     {/* Content */}
-                    <div className="p-6 space-y-6 max-h-[calc(90vh-200px)] overflow-y-auto">
-                        {/* Quick Actions */}
-                        <div className="grid grid-cols-3 gap-3">
+                    <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                        {/* Action Buttons */}
+                        <div className="flex gap-2">
                             <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
                                 onClick={handleStartSession}
-                                className="flex flex-col items-center gap-2 p-4 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl shadow-lg transition-colors"
+                                className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium text-sm transition-colors shadow-sm"
                             >
-                                <Video className="w-6 h-6" />
-                                <span className="text-sm font-semibold">Start Session</span>
+                                <Video className="w-4 h-4" />
+                                Iniciar
                             </motion.button>
 
                             <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
                                 onClick={handleAddNote}
-                                className="flex flex-col items-center gap-2 p-4 bg-gray-600 hover:bg-gray-700 text-white rounded-xl shadow-lg transition-colors"
+                                className="p-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl transition-colors"
                             >
-                                <FileText className="w-6 h-6" />
-                                <span className="text-sm font-semibold">Add Note</span>
+                                <FileText className="w-4 h-4" />
                             </motion.button>
 
                             <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
                                 onClick={handleMessage}
-                                className="flex flex-col items-center gap-2 p-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow-lg transition-colors"
+                                className="p-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl transition-colors"
                             >
-                                <MessageSquare className="w-6 h-6" />
-                                <span className="text-sm font-semibold">Message</span>
+                                <MessageSquare className="w-4 h-4" />
                             </motion.button>
                         </div>
 
                         {/* Today's Goal */}
-                        <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-100">
-                            <div className="flex items-center gap-2 mb-2">
-                                <Target className="w-5 h-5 text-indigo-600" />
-                                <h3 className="font-bold text-gray-900">Today's Goal</h3>
+                        <div className="space-y-2">
+                            <div className="flex items-center gap-1.5">
+                                <Target className="w-4 h-4 text-indigo-600" />
+                                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Objetivo de Hoy</h3>
                             </div>
-                            <p className="text-gray-700 text-sm">{todayGoal}</p>
+                            <p className="text-sm text-gray-700 leading-relaxed">{todayGoal}</p>
                         </div>
 
-                        {/* Last Session Notes */}
-                        <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                            <div className="flex items-center gap-2 mb-2">
-                                <FileText className="w-5 h-5 text-gray-600" />
-                                <h3 className="font-bold text-gray-900">Previous Session Notes</h3>
+                        {/* Last Note */}
+                        {lastNote !== 'No previous notes' && (
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-1.5">
+                                    <FileText className="w-4 h-4 text-gray-400" />
+                                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Última Nota</h3>
+                                </div>
+                                <p className="text-sm text-gray-600 leading-relaxed">{lastNote}</p>
                             </div>
-                            <p className="text-gray-700 text-sm">{lastNote}</p>
-                        </div>
+                        )}
 
-                        {/* Clinical Metrics */}
-                        <div className="grid grid-cols-2 gap-4">
+                        {/* Metrics Row */}
+                        <div className="flex gap-3 pt-2">
+                            {/* Homework */}
+                            <div className="flex items-center gap-2 text-xs">
+                                <div className={`w-1.5 h-1.5 rounded-full ${homeworkComplete ? 'bg-emerald-500' : 'bg-gray-300'}`}></div>
+                                <span className={homeworkComplete ? 'text-gray-700 font-medium' : 'text-gray-400'}>
+                                    Tarea {homeworkComplete ? 'completa' : 'pendiente'}
+                                </span>
+                            </div>
+
                             {/* Insurance */}
                             {insuranceSessions !== null && (
-                                <div className={`p-4 rounded-xl border ${insuranceSessions <= 3 ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-200'}`}>
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <Shield className={`w-4 h-4 ${insuranceSessions <= 3 ? 'text-amber-600' : 'text-gray-600'}`} />
-                                        <h4 className="text-xs font-semibold text-gray-600 uppercase">Insurance</h4>
-                                    </div>
-                                    <p className={`text-2xl font-bold ${insuranceSessions <= 3 ? 'text-amber-700' : 'text-gray-900'}`}>
-                                        {insuranceSessions}
-                                    </p>
-                                    <p className="text-xs text-gray-500 mt-0.5">sessions remaining</p>
+                                <div className="flex items-center gap-2 text-xs">
+                                    <div className={`w-1.5 h-1.5 rounded-full ${insuranceSessions <= 3 ? 'bg-amber-500' : 'bg-blue-400'}`}></div>
+                                    <span className={insuranceSessions <= 3 ? 'text-amber-700 font-medium' : 'text-gray-700'}>
+                                        {insuranceSessions} sesiones restantes
+                                    </span>
                                 </div>
                             )}
-
-                            {/* Homework Status */}
-                            <div className={`p-4 rounded-xl border ${homeworkComplete ? 'bg-emerald-50 border-emerald-200' : 'bg-gray-50 border-gray-200'}`}>
-                                <div className="flex items-center gap-2 mb-1">
-                                    <CheckCircle2 className={`w-4 h-4 ${homeworkComplete ? 'text-emerald-600' : 'text-gray-400'}`} />
-                                    <h4 className="text-xs font-semibold text-gray-600 uppercase">Homework</h4>
-                                </div>
-                                <p className={`text-lg font-bold ${homeworkComplete ? 'text-emerald-700' : 'text-gray-500'}`}>
-                                    {homeworkComplete ? 'Completed' : 'Pending'}
-                                </p>
-                            </div>
                         </div>
 
                         {/* Risk Alert */}
                         {riskLevel === 'high' && (
-                            <div className="bg-rose-50 border-l-4 border-rose-500 rounded-lg p-4">
-                                <div className="flex items-start gap-3">
-                                    <AlertTriangle className="w-5 h-5 text-rose-600 mt-0.5" />
-                                    <div>
-                                        <h4 className="font-bold text-rose-900 mb-1">Safety Alert</h4>
-                                        <p className="text-sm text-rose-700">This patient is marked as high risk. Review safety plan before session.</p>
-                                        <div className="flex gap-3 mt-3">
-                                            <a href="tel:988" className="text-sm font-semibold text-rose-700 hover:text-rose-900">
-                                                📞 988 Crisis Line
-                                            </a>
-                                            <a href="tel:911" className="text-sm font-semibold text-rose-700 hover:text-rose-900">
-                                                🚨 911 Emergency
-                                            </a>
-                                        </div>
-                                    </div>
+                            <div className="flex items-start gap-2 p-3 bg-rose-50 rounded-xl border border-rose-100">
+                                <AlertTriangle className="w-4 h-4 text-rose-600 mt-0.5 shrink-0" />
+                                <div className="text-xs text-rose-700 leading-relaxed">
+                                    <span className="font-semibold">Paciente de alto riesgo.</span> Revisar plan de seguridad antes de la sesión.
                                 </div>
                             </div>
                         )}

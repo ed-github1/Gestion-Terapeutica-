@@ -5,6 +5,7 @@ export const ROUTES = {
   REGISTER: '/register',
   DASHBOARD: '/dashboard',
   PROFESSIONAL_DASHBOARD: '/dashboard/professional',
+  PROFESSIONAL_PROFILE: '/dashboard/professional/profile',
   PATIENT_DASHBOARD: '/dashboard/patient',
 }
 

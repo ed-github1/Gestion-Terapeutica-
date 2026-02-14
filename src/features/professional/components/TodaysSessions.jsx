@@ -20,13 +20,13 @@ const getInitials = (name) => {
  * Get time ago text
  */
 const getTimeAgo = (lastSession) => {
-    if (!lastSession) return 'First Visit'
+    if (!lastSession) return 'Primera Visita'
     const now = new Date()
     const last = new Date(lastSession)
     const weeks = Math.floor((now - last) / (7 * 24 * 60 * 60 * 1000))
-    if (weeks === 0) return 'This Week'
-    if (weeks === 1) return 'Visited 1 Week Ago'
-    return `Visited ${weeks} Weeks Ago`
+    if (weeks === 0) return 'Esta Semana'
+    if (weeks === 1) return 'Visitado Hace 1 Semana'
+    return `Visitado Hace ${weeks} Semanas`
 }
 
 /**
@@ -49,13 +49,13 @@ const getRiskStyling = (riskLevel) => {
  * Matches the reference design with time on left, dashed connector, avatar, name, time range, and visit badge
  */
 const SessionCard = ({ appointment, index, onClick }) => {
-    const patientName = appointment.nombrePaciente || appointment.patient?.name || 'Unknown Patient'
+    const patientName = appointment.nombrePaciente || appointment.patient?.name || 'Paciente Desconocido'
     const startTime = new Date(appointment.fechaHora)
     
     // Clinical data
     const riskLevel = appointment.riskLevel || 'low'
-    const lastNote = appointment.lastSessionNote || 'No previous notes'
-    const todayGoal = appointment.treatmentGoal || 'Continue treatment plan'
+    const lastNote = appointment.lastSessionNote || 'Sin notas previas'
+    const todayGoal = appointment.treatmentGoal || 'Continuar plan de tratamiento'
     const insuranceSessions = appointment.insuranceSessionsRemaining || null
     const homeworkComplete = appointment.homeworkCompleted !== false // Default true if not specified
     const riskStyling = getRiskStyling(riskLevel)
@@ -209,7 +209,7 @@ const BreakCard = ({ time, index }) => {
                             backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 3px, white 3px, white 5px)'
                         }}
                     ></div>
-                    <span className="relative text-white font-bold text-xs md:text-sm">Break time</span>
+                    <span className="relative text-white font-bold text-xs md:text-sm">Hora de Descanso</span>
                 </div>
             </div>
 
@@ -227,8 +227,8 @@ const EmptyState = () => (
         <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Calendar className="w-8 h-8 text-gray-400" />
         </div>
-        <p className="text-gray-500 font-medium mb-1">No sessions today</p>
-        <p className="text-sm text-gray-400">Your schedule is clear for today</p>
+        <p className="text-gray-500 font-medium mb-1">No hay sesiones hoy</p>
+        <p className="text-sm text-gray-400">Tu agenda está libre hoy</p>
     </div>
 )
 
@@ -291,14 +291,8 @@ const TodaysSessions = ({ sessions = [], loading, onJoinVideo, onViewProfile }) 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="bg-white rounded-xl md:rounded-2xl p-3 md:p-5 border border-gray-100 shadow-sm"
         >
-            <div className="flex items-center justify-between mb-4 md:mb-5">
-                <h2 className="text-sm md:text-base font-medium text-gray-900">Sesiones de Hoy</h2>
-                <span className="w-6 h-6 md:w-7 md:h-7 bg-gray-100 text-gray-700 text-[10px] md:text-xs font-bold rounded-full flex items-center justify-center">
-                    {sessions.length}
-                </span>
-            </div>
+        
 
             {loading ? (
                 <SessionsSkeleton />
