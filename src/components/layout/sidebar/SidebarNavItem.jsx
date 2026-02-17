@@ -34,17 +34,17 @@ const SidebarNavItem = ({
             transition={{ delay: index * 0.05 }}
             aria-label={item.ariaLabel || item.label}
             aria-current={isActive ? 'page' : undefined}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50 ${
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
                 isActive 
-                    ? 'bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-700 shadow-sm' 
-                    : 'text-slate-700 hover:bg-slate-100/80 hover:shadow-sm'
+                    ? 'bg-blue-50 text-blue-600 shadow-sm' 
+                    : 'text-blue-600 hover:bg-gray-50 hover:shadow-sm'
             } ${isCollapsed ? 'justify-center px-0' : ''}`}
         >
             {/* Icon with security indicator */}
             <div className="relative">
                 <IconComponent 
                     className={`w-5 h-5 flex-shrink-0 transition-colors ${
-                        isActive ? 'text-indigo-600' : 'text-slate-500 group-hover:text-slate-700'
+                        isActive ? 'text-blue-600' : 'text-blue-600 group-hover:text-blue-700'
                     }`}
                     strokeWidth={isActive ? 2.5 : 2}
                 />
@@ -61,7 +61,7 @@ const SidebarNavItem = ({
                 <div className="flex-1 text-left min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
                         <span className={`text-sm font-semibold ${
-                            isActive ? 'text-indigo-700' : 'text-slate-800'
+                            isActive ? 'text-blue-600' : 'text-blue-600'
                         }`}>
                             {item.label}
                         </span>
@@ -69,14 +69,14 @@ const SidebarNavItem = ({
                             <motion.span 
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1 }}
-                                className="px-2 py-0.5 text-xs font-bold bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-full shadow-sm"
+                                className="px-2 py-0.5 text-xs font-bold bg-white text-blue-600 rounded-full shadow-sm"
                                 aria-label={`${item.badge} notificaciones`}
                             >
                                 {item.badge > 9 ? '9+' : item.badge}
                             </motion.span>
                         )}
                     </div>
-                    <p className="text-xs text-slate-500 truncate font-medium">
+                    <p className="text-xs text-gray-500 truncate font-medium">
                         {item.description}
                     </p>
                 </div>
@@ -86,7 +86,7 @@ const SidebarNavItem = ({
             {isActive && !isCollapsed && (
                 <motion.div
                     layoutId="activeIndicator"
-                    className="absolute left-0 w-1.5 h-10 bg-gradient-to-b from-indigo-600 to-purple-600 rounded-r-full shadow-md"
+                    className="absolute left-0 w-1.5 h-10 bg-blue-600 rounded-r-full shadow-md"
                     transition={{ type: "spring", stiffness: 380, damping: 30 }}
                 />
             )}
@@ -96,7 +96,7 @@ const SidebarNavItem = ({
                 <motion.span 
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-md"
+                    className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-white text-blue-600 text-[10px] font-bold rounded-full flex items-center justify-center shadow-md"
                     aria-label={`${item.badge} notificaciones`}
                 >
                     {item.badge > 9 ? '9+' : item.badge}

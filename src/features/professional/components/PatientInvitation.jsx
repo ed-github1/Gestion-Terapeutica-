@@ -140,8 +140,8 @@ const PatientInvitation = ({ onClose, onSuccess, professionalName }) => {
           </button>
 
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
-              <UserPlus className="w-6 h-6 text-indigo-600" />
+            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+              <UserPlus className="w-6 h-6 text-blue-600" />
             </div>
             <div>
               <h2 className="text-lg font-bold text-gray-900">Invitar Paciente</h2>
@@ -171,7 +171,7 @@ const PatientInvitation = ({ onClose, onSuccess, professionalName }) => {
                       type="text"
                       value={formData.firstName}
                       onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                       placeholder="Nombre"
                     />
                     <input
@@ -179,7 +179,7 @@ const PatientInvitation = ({ onClose, onSuccess, professionalName }) => {
                       type="text"
                       value={formData.lastName}
                       onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                       placeholder="Apellidos"
                     />
                   </div>
@@ -194,7 +194,7 @@ const PatientInvitation = ({ onClose, onSuccess, professionalName }) => {
                       onClick={() => setFormData({ ...formData, channels: { sms: true, email: false }})}
                       className={`flex-1 px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
                         formData.channels.sms && !formData.channels.email
-                          ? 'bg-indigo-600 text-white'
+                          ? 'bg-blue-600 text-white'
                           : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
                     >
@@ -205,7 +205,7 @@ const PatientInvitation = ({ onClose, onSuccess, professionalName }) => {
                       onClick={() => setFormData({ ...formData, channels: { sms: false, email: true }})}
                       className={`flex-1 px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
                         formData.channels.email && !formData.channels.sms
-                          ? 'bg-indigo-600 text-white'
+                          ? 'bg-blue-600 text-white'
                           : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
                     >
@@ -216,7 +216,7 @@ const PatientInvitation = ({ onClose, onSuccess, professionalName }) => {
                       onClick={() => setFormData({ ...formData, channels: { sms: true, email: true }})}
                       className={`flex-1 px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
                         formData.channels.sms && formData.channels.email
-                          ? 'bg-indigo-600 text-white'
+                          ? 'bg-blue-600 text-white'
                           : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
                     >
@@ -241,7 +241,7 @@ const PatientInvitation = ({ onClose, onSuccess, professionalName }) => {
                         value={formData.phone}
                         onChange={handlePhoneChange}
                         maxLength={14}
-                        className="w-full pl-12 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                        className="w-full pl-12 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                         placeholder="(555) 123-4567"
                       />
                     </motion.div>
@@ -259,7 +259,7 @@ const PatientInvitation = ({ onClose, onSuccess, professionalName }) => {
                         type="email"
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                         placeholder="correo@ejemplo.com"
                       />
                     </motion.div>
@@ -274,7 +274,7 @@ const PatientInvitation = ({ onClose, onSuccess, professionalName }) => {
                     onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                     rows={2}
                     maxLength={160}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition resize-none"
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition resize-none"
                     placeholder="Agrega un mensaje personalizado..."
                   />
                   <p className="text-xs text-gray-400 text-right">{formData.message.length}/160</p>
@@ -290,8 +290,8 @@ const PatientInvitation = ({ onClose, onSuccess, professionalName }) => {
                 className="p-12 text-center"
               >
                 <div className="w-16 h-16 mx-auto mb-4 relative">
-                  <div className="absolute inset-0 bg-indigo-400 rounded-full animate-ping opacity-75"></div>
-                  <div className="relative w-16 h-16 bg-indigo-600 rounded-full flex items-center justify-center">
+                  <div className="absolute inset-0 bg-blue-400 rounded-full animate-ping opacity-75"></div>
+                  <div className="relative w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
                     <Send className="w-8 h-8 text-white animate-pulse" />
                   </div>
                 </div>
@@ -324,17 +324,17 @@ const PatientInvitation = ({ onClose, onSuccess, professionalName }) => {
                 </div>
 
                 {/* Invite Code */}
-                <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-100">
+                <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-semibold text-gray-500 uppercase">Código</span>
                     <button
                       onClick={copyInviteCode}
-                      className="text-indigo-600 hover:text-indigo-700 p-1"
+                      className="text-blue-600 hover:text-blue-700 p-1"
                     >
                       <Copy className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                  <div className="font-mono text-xl font-bold text-indigo-600 tracking-wider">
+                  <div className="font-mono text-xl font-bold text-blue-600 tracking-wider">
                     {inviteResult.inviteCode}
                   </div>
                   <p className="text-xs text-gray-500 mt-1">Válido 7 días</p>
@@ -390,7 +390,7 @@ const PatientInvitation = ({ onClose, onSuccess, professionalName }) => {
             </button>
             <button
               onClick={handleSubmit}
-              className="flex-1 px-4 py-2 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
             >
               <Send className="w-4 h-4" />
               Enviar
@@ -402,7 +402,7 @@ const PatientInvitation = ({ onClose, onSuccess, professionalName }) => {
           <div className="p-6 pt-4 border-t border-gray-100">
             <button
               onClick={onClose}
-              className="w-full px-4 py-2 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
+              className="w-full px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
             >
               Cerrar
             </button>

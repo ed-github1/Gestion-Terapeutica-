@@ -28,7 +28,7 @@ const DashboardSidebar = ({ userRole = 'professional', onClose }) => {
     const navigate = useNavigate()
     const { logout } = useAuth()
     const [showProBanner, setShowProBanner] = useState(true)
-    
+
     // Custom hook for sidebar state management
     const {
         isCollapsed,
@@ -74,7 +74,7 @@ const DashboardSidebar = ({ userRole = 'professional', onClose }) => {
             animate={sidebarAnimationConfig.animate(isCollapsed)}
             exit={sidebarAnimationConfig.exit}
             transition={sidebarAnimationConfig.transition(prefersReducedMotion)}
-            className="h-full w-full pt-[52px] md:pt-0 bg-gradient-to-b from-slate-50 to-white border-r border-slate-200/60 flex flex-col relative shadow-sm"
+            className="h-full w-full pt-13 md:pt-0 bg-white border-r border-gray-200 flex flex-col relative shadow-sm"
             role="navigation"
             aria-label="Navegación principal"
         >
