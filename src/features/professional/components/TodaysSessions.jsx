@@ -98,10 +98,10 @@ const SessionCard = ({ appointment, index, onClick }) => {
     // iMessage-style positioning - strict alternation left/right
     const isRightAligned = index % 2 === 1 // Odd indexes go right, even go left
     
-    // Variable widths for visual interest
-    const widths = ['70%', '85%', '75%', '80%', '65%']
-    const width = widths[index % widths.length]
-    const position = `max-w-[${width}] ${isRightAligned ? 'ml-auto' : ''}`
+    // Variable widths for visual interest - using Tailwind classes that will be purged correctly
+    const widthClasses = ['max-w-[70%]', 'max-w-[85%]', 'max-w-[75%]', 'max-w-[80%]', 'max-w-[65%]']
+    const widthClass = widthClasses[index % widthClasses.length]
+    const position = `${widthClass} ${isRightAligned ? 'ml-auto' : ''}`
 
     return (
         <motion.div
@@ -148,7 +148,7 @@ const SessionCard = ({ appointment, index, onClick }) => {
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5 mb-0.5">
                                 <Video className="w-3 h-3 md:w-3.5 md:h-3.5 text-indigo-500 shrink-0" />
-                                <h3 className="font-bold text-gray-900 text-xs md:text-sm leading-tight wrap-break-word">{patientName}</h3>
+                                <h3 className="font-bold text-gray-900 text-xs md:text-sm leading-tight break-words">{patientName}</h3>
                             </div>
                             <div className="flex items-center gap-1 text-[9px] md:text-[10px] text-gray-400">
                                 <Clock className="w-2.5 h-2.5 md:w-3 md:h-3 shrink-0" />

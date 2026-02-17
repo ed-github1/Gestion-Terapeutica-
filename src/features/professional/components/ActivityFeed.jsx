@@ -141,7 +141,7 @@ const ActivityItem = ({ activity, index, total }) => {
                         <h3 className="font-bold text-gray-900 text-xs leading-tight">{activity.title}</h3>
                         <span className="text-[10px] text-gray-400 font-medium shrink-0">{timeAgo}</span>
                     </div>
-                    <p className="text-[11px] text-gray-600 leading-snug wrap-break-words">
+                    <p className="text-[11px] text-gray-600 leading-snug break-words">
                         {activity.description}
                     </p>
                 </div>

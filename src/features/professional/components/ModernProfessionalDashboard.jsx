@@ -112,20 +112,20 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
 
     return (
         <>
-            <div className="h-screen bg-gray-50">
-                <div className="grid grid-cols-1 xl:grid-cols-[1fr,380px] h-screen">
+            <div className="min-h-screen bg-gray-50">
+                <div className="grid grid-cols-1 xl:grid-cols-[1fr,380px] min-h-screen">
                     {/* Main Content */}
-                    <div className="p-8 overflow-y-auto">
+                    <div className="p-4 md:p-6 lg:p-8 overflow-y-auto overflow-x-hidden">
                         {/* Header */}
                         <motion.div
                             initial={{ opacity: 0, y: -20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="mb-8"
+                            className="mb-6 md:mb-8"
                         >
-                            <div className="flex items-center justify-between mb-6">
+                            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 gap-4">
                                 <div>
-                                    <h1 className="text-xl text-gray-600 mb-1">{getGreeting()},</h1>
-                                    <p className="text-4xl font-bold text-gray-900 mb-3">
+                                    <h1 className="text-lg md:text-xl text-gray-600 mb-1">{getGreeting()},</h1>
+                                    <p className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-3">
                                         Dr. {userName}!
                                     </p>
                                     <div className="flex items-center gap-4">
@@ -144,13 +144,13 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-2 md:gap-4">
                                     {/* Search */}
-                                    <div className="relative">
+                                    <div className="relative hidden md:block">
                                         <input
                                             type="text"
                                             placeholder="Buscar"
-                                            className="w-64 pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm"
+                                            className="w-40 lg:w-64 pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm"
                                         />
                                         <svg className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -161,12 +161,12 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                     <motion.button
                                         whileHover={{ scale: 1.05 }}
                                         whileTap={{ scale: 0.95 }}
-                                        className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white relative shadow-lg"
+                                        className="w-10 h-10 md:w-12 md:h-12 bg-blue-600 rounded-xl md:rounded-2xl flex items-center justify-center text-white relative shadow-lg"
                                     >
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                                         </svg>
-                                        <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-gray-50"></span>
+                                        <span className="absolute -top-0.5 -right-0.5 md:-top-1 md:-right-1 w-2.5 h-2.5 md:w-3 md:h-3 bg-red-500 rounded-full border-2 border-gray-50"></span>
                                     </motion.button>
 
                                     {/* Profile Button */}
@@ -174,7 +174,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                         whileHover={{ scale: 1.05 }}
                                         whileTap={{ scale: 0.95 }}
                                         onClick={() => navigate(ROUTES.PROFESSIONAL_PROFILE)}
-                                        className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg text-white font-bold text-lg"
+                                        className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg text-white font-bold text-sm md:text-lg"
                                         title="Ver Perfil"
                                     >
                                         {initials}
@@ -184,13 +184,13 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                         </motion.div>
 
                         {/* Stats Cards Row */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
                             {/* Total Patients Card - Dark */}
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ delay: 0.1 }}
-                                className=" bg-linear-to-br from-blue-400 to-indigo-500 rounded-4xl p-8 text-white relative overflow-hidden shadow-xl"
+                                className="bg-linear-to-br from-blue-400 to-indigo-500 rounded-2xl md:rounded-3xl lg:rounded-4xl p-6 md:p-8 text-white relative overflow-hidden shadow-xl"
                             >
                                 <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -mr-20 -mt-20"></div>
                                 <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full -ml-16 -mb-16"></div>
@@ -244,7 +244,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ delay: 0.2 }}
-                                className="bg-linear-to-br from-emerald-100 via-teal-50 to-cyan-50 rounded-4xl p-8 relative overflow-hidden shadow-sm"
+                                className="bg-linear-to-br from-emerald-100 via-teal-50 to-cyan-50 rounded-2xl md:rounded-3xl lg:rounded-4xl p-6 md:p-8 relative overflow-hidden shadow-sm"
                             >
                                 <div className="flex items-center justify-between mb-4">
                                     <h3 className="text-xl font-bold text-gray-900">Estadísticas de Pacientes</h3>
@@ -295,17 +295,15 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                         </div>
 
                         {/* Today's Sessions & Recent Activity */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
                             {/* Today's Sessions */}
                             <motion.div
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.3 }}
-                                                                className="bg-white rounded-4xl p-6 shadow-sm"
-
-
+                                className="bg-white rounded-2xl md:rounded-3xl lg:rounded-4xl p-4 md:p-6 shadow-sm"
                             >
-                                <h2 className="text-2xl font-bold text-gray-900 mb-6">Sesiones De Hoy</h2>
+                                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-4 md:mb-6">Sesiones De Hoy</h2>
 
                                 <TodaysSessions
                                     sessions={todayAppointments}
@@ -319,9 +317,9 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.4 }}
-                                className="bg-white rounded-4xl p-6 shadow-sm"
+                                className="bg-white rounded-2xl md:rounded-3xl lg:rounded-4xl p-4 md:p-6 shadow-sm"
                             >
-                                <h2 className="text-2xl font-bold text-gray-900 mb-6">Actividad Reciente</h2>
+                                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-4 md:mb-6">Actividad Reciente</h2>
                                 <ActivityFeed
                                     activities={dashboardActivities}
                                     loading={loading}
@@ -331,7 +329,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                     </div>
 
                     {/* Barra Lateral Derecha - Herramientas Clínicas */}
-                    <div className="bg-white border-l border-gray-100 p-6 space-y-6 overflow-y-auto">
+                    <div className="hidden xl:block bg-white border-l border-gray-100 p-6 space-y-6 overflow-y-auto">
                         {/* Quick Notes Widget */}
                         <div className="bg-linear-to-br from-indigo-50 to-blue-50 rounded-3xl p-6 border border-indigo-100">
                             <div className="flex items-center justify-between mb-4">

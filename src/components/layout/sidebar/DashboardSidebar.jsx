@@ -74,7 +74,7 @@ const DashboardSidebar = ({ userRole = 'professional', onClose }) => {
             animate={sidebarAnimationConfig.animate(isCollapsed)}
             exit={sidebarAnimationConfig.exit}
             transition={sidebarAnimationConfig.transition(prefersReducedMotion)}
-            className="h-full w-full pt-13 md:pt-0 bg-white border-r border-gray-200 flex flex-col relative shadow-sm"
+            className="h-full w-full bg-white border-r border-gray-200 flex flex-col relative shadow-sm"
             role="navigation"
             aria-label="Navegación principal"
         >
