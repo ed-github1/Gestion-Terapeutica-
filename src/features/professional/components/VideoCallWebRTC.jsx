@@ -3,7 +3,7 @@
  * Allows professionals to initiate and manage video therapy sessions
  */
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Mic, MicOff, Video as VideoIcon, VideoOff, MessageSquare, Maximize, Minimize, PhoneOff, StopCircle } from 'lucide-react';
@@ -46,6 +46,14 @@ const ProfessionalVideoCallWebRTC = () => {
   const callStartTimeRef = useRef(null);
   const durationIntervalRef = useRef(null);
 
+  // Stable ref callback for local video — sets srcObject once
+  const setLocalVideoRef = useCallback((el) => {
+    localVideoRef.current = el;
+    if (el && localStream && el.srcObject !== localStream) {
+      el.srcObject = localStream;
+    }
+  }, [localStream]);
+
   // Auto-join room when initialized
   useEffect(() => {
     if (isInitialized && !isInRoom && !isConnecting && appointmentId) {
@@ -53,22 +61,14 @@ const ProfessionalVideoCallWebRTC = () => {
     }
   }, [isInitialized, appointmentId]);
 
-  // Setup local video stream
+  // Setup local video stream when it arrives
   useEffect(() => {
     if (localStream && localVideoRef.current) {
-      localVideoRef.current.srcObject = localStream;
+      if (localVideoRef.current.srcObject !== localStream) {
+        localVideoRef.current.srcObject = localStream;
+      }
     }
   }, [localStream]);
-
-  // Setup remote video streams
-  useEffect(() => {
-    remoteStreams.forEach(({ userId, stream }) => {
-      const videoElement = remoteVideoRefs.current.get(userId);
-      if (videoElement) {
-        videoElement.srcObject = stream;
-      }
-    });
-  }, [remoteStreams]);
 
   // Call duration timer
   useEffect(() => {
@@ -198,13 +198,13 @@ const ProfessionalVideoCallWebRTC = () => {
   }
 
   return (
-    <div className="h-dvh bg-gray-900 flex flex-col overflow-hidden">
+    <div className="fixed inset-0 bg-gray-900 flex flex-col" style={{ height: '100dvh' }}>
       {/* Header - Compact */}
-      <div className="bg-gray-800/90 backdrop-blur-sm border-b border-gray-700/50 px-4 sm:px-6 py-2.5 flex items-center justify-between shrink-0 z-10">
-        <div className="flex items-center gap-3 min-w-0">
+      <div className="bg-gray-800/90 backdrop-blur-sm border-b border-gray-700/50 px-3 sm:px-6 py-2 flex items-center justify-between shrink-0 z-20">
+        <div className="flex items-center gap-2 min-w-0">
           <div className="text-white min-w-0">
-            <h1 className="text-sm sm:text-base font-semibold truncate">Sesión Terapéutica</h1>
-            <p className="text-xs text-gray-400 truncate">
+            <h1 className="text-xs sm:text-sm font-semibold truncate">Sesión Terapéutica</h1>
+            <p className="text-[10px] sm:text-xs text-gray-400 truncate">
               {participants.length > 0 
                 ? `Con ${participants[0]?.userName}`
                 : 'Esperando al paciente...'
@@ -213,20 +213,16 @@ const ProfessionalVideoCallWebRTC = () => {
           </div>
           
           {isInRoom && (
-            <div className="flex items-center gap-1.5 text-gray-400 shrink-0">
+            <div className="flex items-center gap-1 text-gray-400 shrink-0">
               <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-              <span className="text-xs font-mono">{formatDuration(callDuration)}</span>
+              <span className="text-[10px] sm:text-xs font-mono">{formatDuration(callDuration)}</span>
             </div>
           )}
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <span className="text-gray-400 text-xs hidden sm:inline">
-            {participants.length + 1} en la sala
-          </span>
-          
           {participants.length > 0 && (
-            <span className="px-2 py-0.5 bg-green-600/80 text-white text-xs rounded-full">
+            <span className="px-1.5 py-0.5 bg-green-600/80 text-white text-[10px] sm:text-xs rounded-full">
               Conectado
             </span>
           )}
@@ -234,52 +230,53 @@ const ProfessionalVideoCallWebRTC = () => {
       </div>
 
       {/* Video Container - fills remaining space */}
-      <div className="flex-1 relative min-h-0">
-        {/* Remote Video (Main) */}
-        <div className="absolute inset-0">
-          {remoteStreams.length > 0 ? (
-            remoteStreams.map(({ userId, stream }) => (
-              <div key={userId} className="absolute inset-0">
-                <video
-                  ref={el => {
-                    if (el) remoteVideoRefs.current.set(userId, el);
-                  }}
-                  autoPlay
-                  playsInline
-                  className="w-full h-full object-cover"
-                />
-                  
-                  {/* Remote user info overlay */}
-                  <div className="absolute bottom-4 left-4 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-lg">
-                    <p className="text-white text-sm font-medium">
-                      {participants.find(p => p.userId === userId)?.userName || 'Paciente'}
-                    </p>
-                  </div>
-                </div>
-              ))
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-center">
-                <div className="w-20 h-20 bg-purple-600/60 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <span className="text-3xl text-white">👤</span>
-                </div>
-                <p className="text-white text-base">Esperando al paciente...</p>
-                <p className="text-gray-500 text-xs mt-1">La sesión comenzará cuando se conecte</p>
+      <div className="flex-1 relative min-h-0 overflow-hidden">
+        {/* Remote Video (Main) - fills entire area */}
+        {remoteStreams.length > 0 ? (
+          remoteStreams.map(({ userId, stream }) => (
+            <div key={userId} className="absolute inset-0 bg-black">
+              <video
+                ref={el => {
+                  if (el) {
+                    remoteVideoRefs.current.set(userId, el);
+                    if (el.srcObject !== stream) {
+                      el.srcObject = stream;
+                    }
+                  }
+                }}
+                autoPlay
+                playsInline
+                className="w-full h-full object-cover"
+              />
+              
+              {/* Remote user label */}
+              <div className="absolute bottom-3 left-3 bg-black/40 backdrop-blur-md px-2 py-1 rounded-md">
+                <p className="text-white text-xs font-medium">
+                  {participants.find(p => p.userId === userId)?.userName || 'Paciente'}
+                </p>
               </div>
             </div>
-          )}
-        </div>
+          ))
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-purple-600/50 rounded-full flex items-center justify-center mx-auto mb-3">
+                <span className="text-2xl">👤</span>
+              </div>
+              <p className="text-white text-sm">Esperando al paciente...</p>
+              <p className="text-gray-500 text-xs mt-1">La sesión comenzará cuando se conecte</p>
+            </div>
+          </div>
+        )}
 
-        {/* Local Video (Picture-in-Picture) */}
-        <motion.div
-          drag
-          dragConstraints={{ top: -20, bottom: 200, left: -200, right: 20 }}
-          className="absolute top-3 right-3 w-28 sm:w-40 md:w-52 aspect-video bg-gray-800 rounded-lg overflow-hidden shadow-2xl border border-white/20 cursor-move z-10"
+        {/* Local Video (PIP) - small on mobile */}
+        <div
+          className="absolute top-2 right-2 w-20 h-[60px] sm:w-36 sm:h-[100px] md:w-44 md:h-[124px] bg-gray-800 rounded-lg overflow-hidden shadow-xl border border-white/15 z-10"
         >
           {localStream ? (
             <>
               <video
-                ref={localVideoRef}
+                ref={setLocalVideoRef}
                 autoPlay
                 muted
                 playsInline
@@ -288,23 +285,20 @@ const ProfessionalVideoCallWebRTC = () => {
               
               {!isVideoEnabled && (
                 <div className="absolute inset-0 bg-gray-800 flex items-center justify-center">
-                  <div className="text-center">
-                    <span className="text-4xl">📹</span>
-                    <p className="text-white text-sm mt-2">Cámara apagada</p>
-                  </div>
+                  <VideoOff className="w-4 h-4 text-gray-400" />
                 </div>
               )}
               
-              <div className="absolute bottom-1.5 left-1.5 bg-black/50 backdrop-blur-sm px-1.5 py-0.5 rounded text-[10px] sm:text-xs">
-                <p className="text-white font-medium">Tú</p>
+              <div className="absolute bottom-0.5 left-1 text-[8px] sm:text-[10px]">
+                <span className="text-white/80 font-medium bg-black/40 px-1 rounded">Tú</span>
               </div>
             </>
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gray-800">
-              <span className="text-4xl">👤</span>
+              <span className="text-lg">👤</span>
             </div>
           )}
-        </motion.div>
+        </div>
 
         {/* Chat Panel */}
         <AnimatePresence>
@@ -428,102 +422,63 @@ const ProfessionalVideoCallWebRTC = () => {
         </AnimatePresence>
       </div>
 
-      {/* Controls - Responsive & Minimalistic */}
-      <div className="bg-gradient-to-t from-gray-900 to-gray-800 border-t border-gray-700/50 backdrop-blur-sm">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
-          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
-            {/* Primary Controls Group */}
-            <div className="flex items-center gap-2">
-              {/* Audio */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleToggleAudio}
-                className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center transition-all shadow-lg ${
-                  isAudioEnabled
-                    ? 'bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm'
-                    : 'bg-red-500 hover:bg-red-600 text-white'
-                }`}
-                title={isAudioEnabled ? 'Silenciar' : 'Activar audio'}
-              >
-                {isAudioEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
-              </motion.button>
+      {/* Controls */}
+      <div className="bg-gray-800/95 border-t border-gray-700/50 shrink-0 z-20">
+        <div className="flex items-center justify-center gap-2.5 sm:gap-3 px-3 py-2.5 sm:py-3">
+          {/* Audio */}
+          <button
+            onClick={handleToggleAudio}
+            className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center transition-colors ${
+              isAudioEnabled
+                ? 'bg-white/10 text-white'
+                : 'bg-red-500 text-white'
+            }`}
+          >
+            {isAudioEnabled ? <Mic className="w-4 h-4 sm:w-5 sm:h-5" /> : <MicOff className="w-4 h-4 sm:w-5 sm:h-5" />}
+          </button>
 
-              {/* Video */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleToggleVideo}
-                className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center transition-all shadow-lg ${
-                  isVideoEnabled
-                    ? 'bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm'
-                    : 'bg-red-500 hover:bg-red-600 text-white'
-                }`}
-                title={isVideoEnabled ? 'Apagar cámara' : 'Encender cámara'}
-              >
-                {isVideoEnabled ? <VideoIcon className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
-              </motion.button>
-            </div>
+          {/* Video */}
+          <button
+            onClick={handleToggleVideo}
+            className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center transition-colors ${
+              isVideoEnabled
+                ? 'bg-white/10 text-white'
+                : 'bg-red-500 text-white'
+            }`}
+          >
+            {isVideoEnabled ? <VideoIcon className="w-4 h-4 sm:w-5 sm:h-5" /> : <VideoOff className="w-4 h-4 sm:w-5 sm:h-5" />}
+          </button>
 
-            {/* Secondary Controls Group */}
-            <div className="flex items-center gap-2">
-              {/* Chat */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setShowChat(!showChat)}
-                className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all backdrop-blur-sm shadow-lg"
-                title="Chat"
-              >
-                <MessageSquare className="w-5 h-5" />
-                {chatMessages.length > 0 && !showChat && (
-                  <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute -top-1 -right-1 w-5 h-5 bg-purple-500 rounded-full text-xs flex items-center justify-center font-semibold"
-                  >
-                    {chatMessages.length > 9 ? '9+' : chatMessages.length}
-                  </motion.span>
-                )}
-              </motion.button>
+          {/* Chat */}
+          <button
+            onClick={() => setShowChat(!showChat)}
+            className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/10 text-white flex items-center justify-center transition-colors"
+          >
+            <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
+            {chatMessages.length > 0 && !showChat && (
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-purple-500 rounded-full text-[9px] flex items-center justify-center font-bold">
+                {chatMessages.length > 9 ? '9+' : chatMessages.length}
+              </span>
+            )}
+          </button>
 
-              {/* Fullscreen */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleToggleFullscreen}
-                className="hidden sm:flex w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-white/10 hover:bg-white/20 text-white items-center justify-center transition-all backdrop-blur-sm shadow-lg"
-                title={isFullscreen ? 'Salir pantalla completa' : 'Pantalla completa'}
-              >
-                {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
-              </motion.button>
-            </div>
+          {/* Leave */}
+          <button
+            onClick={handleLeaveRoom}
+            className="h-10 sm:h-11 px-3 sm:px-4 bg-gray-600/80 text-white rounded-full font-medium transition-colors flex items-center gap-1.5 text-xs sm:text-sm"
+          >
+            <PhoneOff className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">Salir</span>
+          </button>
 
-            {/* Action Buttons Group */}
-            <div className="flex items-center gap-2 w-full sm:w-auto justify-center">
-              {/* Leave Call */}
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleLeaveRoom}
-                className="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 bg-gray-600/80 hover:bg-gray-600 text-white rounded-xl font-medium transition-all backdrop-blur-sm shadow-lg flex items-center justify-center gap-2 text-sm"
-              >
-                <PhoneOff className="w-4 h-4" />
-                <span className="hidden sm:inline">Salir</span>
-              </motion.button>
-
-              {/* End Session */}
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setShowEndConfirm(true)}
-                className="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-all shadow-lg flex items-center justify-center gap-2 text-sm"
-              >
-                <StopCircle className="w-4 h-4" />
-                <span>Finalizar</span>
-              </motion.button>
-            </div>
-          </div>
+          {/* End Session */}
+          <button
+            onClick={() => setShowEndConfirm(true)}
+            className="h-10 sm:h-11 px-4 sm:px-5 bg-red-500 hover:bg-red-600 text-white rounded-full font-medium transition-colors flex items-center gap-1.5 text-xs sm:text-sm"
+          >
+            <StopCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span>Finalizar</span>
+          </button>
         </div>
       </div>
 
