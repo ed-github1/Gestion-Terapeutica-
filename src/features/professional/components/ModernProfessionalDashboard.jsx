@@ -293,11 +293,10 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
     const handleJoinVideo = async (appointment) => {
         try {
             // Notify patient about video call
-            await videoCallAPI.notifyPatient(appointment.id, user.id)
+            await videoCallAPI.notifyPatient(appointment.id, appointment.patientId)
             // Navigate to video call page
             navigate(`/professional/video/${appointment.id}`)
         } catch (error) {
-            console.error('Error notifying patient:', error)
             // Still navigate even if notification fails
             navigate(`/professional/video/${appointment.id}`)
         }

@@ -10,6 +10,7 @@ import PatientVideoCallWebRTC from '@features/patient/PatientVideoCallWebRTC'
 import PatientRegisterPage from '@features/patient/PatientRegisterPage'
 import PatientRegister from '@features/patient/PatientRegister'
 import HomePage from '@pages/HomePage'
+import LandingPage from '@pages/LandingPage'
 import PricingPlans from '@pages/PricingPlans'
 import CheckoutPage from '@pages/CheckoutPage'
 import { Toast } from '@components'
@@ -49,6 +50,7 @@ function App() {
         <Routes>
           {/* Public Routes */}
           <Route path={ROUTES.HOME} element={<HomePage />} />
+          <Route path="/landing" element={<LandingPage />} />
           <Route path="/pricing" element={<PricingPlans />} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path={ROUTES.LOGIN} element={<LoginRoute />} />

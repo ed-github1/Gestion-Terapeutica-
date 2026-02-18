@@ -91,7 +91,7 @@ const ProfessionalVideoCallWebRTC = () => {
     try {
       await joinRoom(appointmentId);
     } catch (err) {
-      console.error('Failed to join room:', err);
+      // Failed to join room
     }
   };
 
@@ -111,7 +111,7 @@ const ProfessionalVideoCallWebRTC = () => {
         }
       });
     } catch (err) {
-      console.error('Failed to end session:', err);
+      // Failed to end session
     }
   };
 
