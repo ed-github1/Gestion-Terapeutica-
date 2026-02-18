@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { X, Send, Check, Copy, UserPlus } from 'lucide-react'
 import { showToast } from '@components'
+import { invitationsAPI } from '@services/invitations'
 
 const PatientInvitation = ({ onClose, onSuccess, professionalName }) => {
   const [step, setStep] = useState(1) // 1: form, 2: sending, 3: success
@@ -64,35 +65,22 @@ const PatientInvitation = ({ onClose, onSuccess, professionalName }) => {
     try {
       const cleanPhone = formData.phone.replace(/\D/g, '')
       
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/invitations/send`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          phone: cleanPhone ? `+52${cleanPhone}` : null,
-          email: formData.email || null,
-          channels: Object.keys(formData.channels).filter(ch => formData.channels[ch]),
-          customMessage: formData.message,
-          professionalName: professionalName || 'tu terapeuta'
-        })
+      const data = await invitationsAPI.sendInvitation({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phone: cleanPhone ? `+52${cleanPhone}` : null,
+        email: formData.email || null,
+        channels: Object.keys(formData.channels).filter(ch => formData.channels[ch]),
+        customMessage: formData.message,
+        professionalName: professionalName || 'tu terapeuta'
       })
 
-      const data = await response.json()
-
-      if (response.ok) {
-        setInviteResult(data)
-        setStep(3)
-        showToast('🎉 Invitación enviada exitosamente', 'success')
-        setTimeout(() => {
-          onSuccess?.()
-        }, 3000)
-      } else {
-        throw new Error(data.message || 'Error al enviar invitación')
-      }
+      setInviteResult(data)
+      setStep(3)
+      showToast('🎉 Invitación enviada exitosamente', 'success')
+      setTimeout(() => {
+        onSuccess?.()
+      }, 3000)
     } catch (error) {
       console.error('Error sending invitation:', error)
       showToast(`❌ ${error.message}`, 'error')

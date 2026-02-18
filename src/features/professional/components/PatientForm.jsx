@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form'
 import { useDropzone } from 'react-dropzone'
 import { motion } from 'motion/react'
 import { patientsAPI } from '@services/patients'
+import { invitationsAPI } from '@services/invitations'
 import { showToast } from '@components'
 
 const PatientForm = ({ onClose, onSubmit: onFormSubmit, mode = 'invite' }) => {
@@ -70,17 +71,12 @@ const PatientForm = ({ onClose, onSubmit: onFormSubmit, mode = 'invite' }) => {
     try {
       // Get current professional ID from localStorage/sessionStorage
       const userDataStr = localStorage.getItem('userData') || sessionStorage.getItem('userData')
-      console.log('🔍 userDataStr:', userDataStr)
       const user = JSON.parse(userDataStr || '{}')
-      console.log('🔍 Parsed user:', user)
       
       // Try multiple possible ID fields
       const professionalId = user.id || user._id || user.userId || user.professional_id || user.professionalId
-      console.log('🔍 Professional ID found:', professionalId)
 
       if (!professionalId) {
-        console.error('❌ User data:', user)
-        console.error('❌ Available keys:', Object.keys(user))
         showToast('Error: No se encontró el ID del profesional. Por favor, vuelve a iniciar sesión.', 'error')
         return
       }
@@ -111,51 +107,16 @@ const PatientForm = ({ onClose, onSubmit: onFormSubmit, mode = 'invite' }) => {
         currentMedications: data.currentMedications
       }
 
-      console.log('═══════════════════════════════════════')
-      console.log('📤 SENDING INVITATION PAYLOAD')
-      console.log('═══════════════════════════════════════')
-      console.log('Form Data Received:', data)
-      console.log('Email Field Value:', data.invitationEmail)
-      console.log('Phone Field Value:', data.phone)
-      console.log('─────────────────────────────────────')
-      console.log('Professional User Data:', user)
-      console.log('Professional Role:', user?.role || user?.rol)
-      console.log('─────────────────────────────────────')
-      console.log('Invitation Payload:', JSON.stringify(invitationData, null, 2))
-      console.log('Channels:', invitationData.channels)
-      console.log('Email in payload:', invitationData.patientEmail)
-      console.log('═══════════════════════════════════════')
-      
-      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken')
-      console.log('🔑 Auth Token:', token ? `${token.substring(0, 20)}...` : 'NOT FOUND')
-      
       // Send invitation via API
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/invitations/send`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify(invitationData)
-        }
-      )
+      const result = await invitationsAPI.sendInvitation(invitationData)
 
-      const result = await response.json()
-
-      if (response.ok) {
-        showToast(`✅ Invitación enviada exitosamente a ${data.invitationEmail}`, 'success')
-        console.log('✅ Invitation sent:', result)
-        
-        if (onFormSubmit) {
-          onFormSubmit(result.data)
-        }
-        
-        onClose()
-      } else {
-        throw new Error(result.message || 'Error al enviar invitación')
+      showToast(`✅ Invitación enviada exitosamente a ${data.invitationEmail}`, 'success')
+      
+      if (onFormSubmit) {
+        onFormSubmit(result.data)
       }
+      
+      onClose()
 
     } catch (error) {
       console.error('Error sending invitation:', error)

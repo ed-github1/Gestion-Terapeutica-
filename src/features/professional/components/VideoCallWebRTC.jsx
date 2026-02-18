@@ -14,9 +14,6 @@ const ProfessionalVideoCallWebRTC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  console.log('VideoCallWebRTC - appointmentId:', appointmentId);
-  console.log('VideoCallWebRTC - user:', user);
-
   const {
     isInitialized,
     isConnecting,
@@ -35,11 +32,6 @@ const ProfessionalVideoCallWebRTC = () => {
     toggleVideo,
     sendMessage
   } = useWebRTC();
-
-  console.log('VideoCallWebRTC - isInitialized:', isInitialized);
-  console.log('VideoCallWebRTC - isConnecting:', isConnecting);
-  console.log('VideoCallWebRTC - isInRoom:', isInRoom);
-  console.log('VideoCallWebRTC - error:', error);
 
   const [showChat, setShowChat] = useState(false);
   const [chatInput, setChatInput] = useState('');
