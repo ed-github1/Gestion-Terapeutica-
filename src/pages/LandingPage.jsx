@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { motion } from 'motion/react';
+import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   Video, 
   Calendar, 
@@ -14,19 +15,23 @@ import {
   Shield,
   Clock,
   MessageCircle,
-  Zap
+  Zap,
+  Menu,
+  X
 } from 'lucide-react';
 
 const LandingPage = () => {
+  const navigate = useNavigate();
   const [activePricing, setActivePricing] = useState('professional');
   const [email, setEmail] = useState('');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const features = [
     {
       icon: Video,
       title: 'Videollamadas Seguras',
       description: 'Sesiones de terapia en tiempo real con conexión WebRTC encriptada de extremo a extremo.',
-      gradient: 'from-violet-500 to-purple-500'
+      gradient: 'from-blue-500 to-cyan-500'
     },
     {
       icon: Calendar,
@@ -56,7 +61,7 @@ const LandingPage = () => {
       icon: MessageCircle,
       title: 'Diario Terapéutico',
       description: 'Herramienta de registro emocional para pacientes entre sesiones.',
-      gradient: 'from-indigo-500 to-violet-500'
+      gradient: 'from-blue-500 to-cyan-500'
     }
   ];
 
@@ -67,7 +72,7 @@ const LandingPage = () => {
       image: 'MG',
       rating: 5,
       text: 'Totalmente transformó mi práctica. Ahora puedo atender a más pacientes sin sacrificar la calidad del cuidado.',
-      gradient: 'from-violet-100 to-purple-100'
+      gradient: 'from-blue-100 to-cyan-100'
     },
     {
       name: 'Dr. Carlos Méndez',
@@ -150,11 +155,11 @@ const LandingPage = () => {
   const companyLogos = ['Harvard', 'Stanford', 'Mayo Clinic', 'Johns Hopkins', 'UCLA', 'MIT'];
 
   return (
-    <div className="relative min-h-screen bg-linear-to-br from-slate-50 via-violet-50/30 to-blue-50 overflow-hidden">
+    <div className="relative min-h-screen bg-linear-to-br from-slate-50 via-blue-50/30 to-cyan-50 overflow-hidden">
       {/* Animated Background Blobs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
-          className="absolute -top-40 -left-40 w-96 h-96 bg-linear-to-br from-violet-300/40 to-purple-300/40 rounded-full blur-3xl"
+          className="absolute -top-40 -left-40 w-96 h-96 bg-linear-to-br from-blue-300/40 to-cyan-300/40 rounded-full blur-3xl"
           animate={{
             scale: [1, 1.2, 1],
             opacity: [0.3, 0.5, 0.3],
@@ -195,10 +200,10 @@ const LandingPage = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <div className="w-10 h-10 bg-linear-to-br from-violet-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/30">
+              <div className="w-10 h-10 bg-linear-to-br from-blue-600 to-cyan-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30">
                 <Heart className="w-5 h-5 text-white" />
               </div>
-              <span className="text-2xl font-bold bg-linear-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
+              <span className="text-2xl font-bold bg-linear-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
                 TotalMente
               </span>
             </motion.div>
@@ -209,27 +214,95 @@ const LandingPage = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
-              <a href="#features" className="text-slate-700 hover:text-violet-600 transition-colors font-medium">
+              <a href="#features" className="text-slate-700 hover:text-blue-600 transition-colors font-medium">
                 Características
               </a>
-              <a href="#testimonials" className="text-slate-700 hover:text-violet-600 transition-colors font-medium">
+              <a href="#testimonials" className="text-slate-700 hover:text-blue-600 transition-colors font-medium">
                 Testimonios
               </a>
-              <a href="#pricing" className="text-slate-700 hover:text-violet-600 transition-colors font-medium">
+              <a href="#pricing" className="text-slate-700 hover:text-blue-600 transition-colors font-medium">
                 Precios
               </a>
-              <button className="text-slate-700 hover:text-violet-600 transition-colors font-medium">
+              <button 
+                onClick={() => navigate('/login')}
+                className="text-slate-700 hover:text-blue-600 transition-colors font-medium"
+              >
                 Iniciar Sesión
               </button>
               <motion.button 
-                className="px-6 py-2.5 bg-linear-to-r from-violet-600 to-purple-600 text-white rounded-xl font-semibold shadow-lg shadow-violet-500/30 hover:shadow-xl hover:shadow-violet-500/40 transition-all duration-300 hover:scale-105"
+                onClick={() => navigate('/register')}
+                className="px-6 py-2.5 bg-linear-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-semibold shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-300 hover:scale-105"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
                 Comenzar Gratis
               </motion.button>
             </motion.div>
+
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-2 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors"
+              aria-label="Toggle menu"
+            >
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
           </div>
+
+          {/* Mobile Menu */}
+          <AnimatePresence>
+            {mobileMenuOpen && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="md:hidden border-t border-slate-200/60 mt-4 pt-4 pb-4"
+              >
+                <div className="flex flex-col gap-4">
+                  <a 
+                    href="#features" 
+                    className="text-slate-700 hover:text-blue-600 transition-colors font-medium py-2"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Características
+                  </a>
+                  <a 
+                    href="#testimonials" 
+                    className="text-slate-700 hover:text-blue-600 transition-colors font-medium py-2"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Testimonios
+                  </a>
+                  <a 
+                    href="#pricing" 
+                    className="text-slate-700 hover:text-blue-600 transition-colors font-medium py-2"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Precios
+                  </a>
+                  <button 
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      navigate('/login');
+                    }}
+                    className="text-slate-700 hover:text-blue-600 transition-colors font-medium py-2 text-left"
+                  >
+                    Iniciar Sesión
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      navigate('/register');
+                    }}
+                    className="px-6 py-3 bg-linear-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-semibold shadow-lg shadow-blue-500/30"
+                  >
+                    Comenzar Gratis
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </nav>
 
@@ -242,19 +315,19 @@ const LandingPage = () => {
             transition={{ duration: 0.8 }}
           >
             <motion.div 
-              className="inline-flex items-center gap-2 px-4 py-2 bg-linear-to-r from-violet-100 to-purple-100 rounded-full mb-6 border border-violet-200/60"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-linear-to-r from-blue-100 to-cyan-100 rounded-full mb-6 border border-blue-200/60"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
-              <Sparkles className="w-4 h-4 text-violet-600" />
-              <span className="text-sm font-semibold text-violet-700">
+              <Sparkles className="w-4 h-4 text-blue-600" />
+              <span className="text-sm font-semibold text-blue-700">
                 Plataforma #1 en gestión terapéutica
               </span>
             </motion.div>
 
             <h1 className="text-5xl lg:text-7xl font-bold mb-6 leading-tight">
-              <span className="bg-linear-to-r from-violet-600 via-purple-600 to-blue-600 bg-clip-text text-transparent">
+              <span className="bg-linear-to-r from-blue-600 via-cyan-600 to-sky-600 bg-clip-text text-transparent">
                 Transforma
               </span>
               <br />
@@ -269,7 +342,8 @@ const LandingPage = () => {
 
             <div className="flex flex-col sm:flex-row gap-4 mb-12">
               <motion.button
-                className="group px-8 py-4 bg-linear-to-r from-violet-600 to-purple-600 text-white rounded-2xl font-semibold shadow-2xl shadow-violet-500/40 hover:shadow-violet-500/60 transition-all duration-300 flex items-center justify-center gap-2"
+                onClick={() => navigate('/register')}
+                className="group px-8 py-4 bg-linear-to-r from-blue-600 to-cyan-600 text-white rounded-2xl font-semibold shadow-2xl shadow-blue-500/40 hover:shadow-blue-500/60 transition-all duration-300 flex items-center justify-center gap-2"
                 whileHover={{ scale: 1.03, y: -2 }}
                 whileTap={{ scale: 0.98 }}
               >
@@ -278,7 +352,8 @@ const LandingPage = () => {
               </motion.button>
 
               <motion.button
-                className="group px-8 py-4 bg-white/80 backdrop-blur-sm text-slate-700 rounded-2xl font-semibold border-2 border-slate-200 hover:border-violet-300 hover:bg-white transition-all duration-300 flex items-center justify-center gap-2 shadow-lg"
+                onClick={() => navigate('/register')}
+                className="group px-8 py-4 bg-white/80 backdrop-blur-sm text-slate-700 rounded-2xl font-semibold border-2 border-slate-200 hover:border-blue-300 hover:bg-white transition-all duration-300 flex items-center justify-center gap-2 shadow-lg"
                 whileHover={{ scale: 1.03, y: -2 }}
                 whileTap={{ scale: 0.98 }}
               >
@@ -309,7 +384,7 @@ const LandingPage = () => {
             <div className="relative">
               {/* Main Dashboard Mockup */}
               <div className="relative bg-white rounded-3xl shadow-2xl border border-slate-200/60 overflow-hidden">
-                <div className="bg-linear-to-r from-violet-600 to-purple-600 px-6 py-4 flex items-center gap-2">
+                <div className="bg-linear-to-r from-blue-600 to-cyan-600 px-6 py-4 flex items-center gap-2">
                   <div className="flex gap-2">
                     <div className="w-3 h-3 rounded-full bg-white/30"></div>
                     <div className="w-3 h-3 rounded-full bg-white/30"></div>
@@ -322,17 +397,17 @@ const LandingPage = () => {
                 <div className="p-6 space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="h-8 w-32 bg-linear-to-r from-slate-200 to-slate-100 rounded-lg"></div>
-                    <div className="h-8 w-24 bg-linear-to-r from-violet-200 to-purple-200 rounded-lg"></div>
+                    <div className="h-8 w-24 bg-linear-to-r from-blue-200 to-cyan-200 rounded-lg"></div>
                   </div>
                   <div className="grid grid-cols-3 gap-4">
                     {[1, 2, 3].map((i) => (
                       <motion.div
                         key={i}
-                        className="bg-linear-to-br from-slate-50 to-violet-50/30 rounded-2xl p-4 border border-slate-200/60"
+                        className="bg-linear-to-br from-slate-50 to-blue-50/30 rounded-2xl p-4 border border-slate-200/60"
                         animate={{ y: [0, -5, 0] }}
                         transition={{ duration: 2, repeat: Infinity, delay: i * 0.2 }}
                       >
-                        <div className="h-6 w-6 bg-linear-to-br from-violet-400 to-purple-400 rounded-lg mb-3"></div>
+                        <div className="h-6 w-6 bg-linear-to-br from-blue-400 to-cyan-400 rounded-lg mb-3"></div>
                         <div className="h-3 w-16 bg-slate-200 rounded mb-2"></div>
                         <div className="h-5 w-12 bg-linear-to-r from-slate-300 to-slate-200 rounded"></div>
                       </motion.div>
@@ -381,7 +456,7 @@ const LandingPage = () => {
                 transition={{ duration: 4, repeat: Infinity }}
               >
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-linear-to-br from-violet-500 to-purple-500 rounded-full flex items-center justify-center">
+                  <div className="w-8 h-8 bg-linear-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center">
                     <CheckCircle className="w-4 h-4 text-white" />
                   </div>
                   <div>
@@ -407,7 +482,7 @@ const LandingPage = () => {
               className="text-center"
               whileHover={{ scale: 1.05 }}
             >
-              <div className="text-4xl lg:text-5xl font-bold bg-linear-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent mb-2">
+              <div className="text-4xl lg:text-5xl font-bold bg-linear-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-2">
                 {stat.value}
               </div>
               <div className="text-slate-600 font-medium">{stat.label}</div>
@@ -426,7 +501,7 @@ const LandingPage = () => {
             {companyLogos.map((logo, index) => (
               <motion.div
                 key={index}
-                className="text-2xl font-bold text-slate-400 hover:text-violet-600 transition-colors cursor-pointer"
+                className="text-2xl font-bold text-slate-400 hover:text-blue-600 transition-colors cursor-pointer"
                 whileHover={{ scale: 1.1 }}
               >
                 {logo}
@@ -445,14 +520,14 @@ const LandingPage = () => {
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-linear-to-r from-violet-100 to-purple-100 rounded-full mb-6 border border-violet-200/60">
-            <Zap className="w-4 h-4 text-violet-600" />
-            <span className="text-sm font-semibold text-violet-700">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-linear-to-r from-blue-100 to-cyan-100 rounded-full mb-6 border border-blue-200/60">
+            <Zap className="w-4 h-4 text-blue-600" />
+            <span className="text-sm font-semibold text-blue-700">
               Potencia tu práctica
             </span>
           </div>
           <h2 className="text-4xl lg:text-6xl font-bold mb-6">
-            <span className="bg-linear-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
+            <span className="bg-linear-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
               Todo lo que necesitas
             </span>
             <br />
@@ -467,7 +542,7 @@ const LandingPage = () => {
           {features.map((feature, index) => (
             <motion.div
               key={index}
-              className="group relative bg-white/80 backdrop-blur-sm rounded-3xl p-8 border border-slate-200/60 hover:border-violet-300 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2"
+              className="group relative bg-white/80 backdrop-blur-sm rounded-3xl p-8 border border-slate-200/60 hover:border-blue-300 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2"
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -489,7 +564,7 @@ const LandingPage = () => {
       </section>
 
       {/* Testimonials Section */}
-      <section id="testimonials" className="relative z-10 py-32 bg-linear-to-br from-violet-50 to-purple-50/50">
+      <section id="testimonials" className="relative z-10 py-32 bg-linear-to-br from-blue-50 to-cyan-50/50">
         <div className="max-w-7xl mx-auto px-6">
           <motion.div
             className="text-center mb-20"
@@ -498,15 +573,15 @@ const LandingPage = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full mb-6 border border-violet-200/60 shadow-lg">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full mb-6 border border-blue-200/60 shadow-lg">
               <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-              <span className="text-sm font-semibold text-violet-700">
+              <span className="text-sm font-semibold text-blue-700">
                 5.0 en todas las reseñas
               </span>
             </div>
             <h2 className="text-4xl lg:text-6xl font-bold mb-6">
               <span className="text-slate-900">Amado por </span>
-              <span className="bg-linear-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
+              <span className="bg-linear-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
                 profesionales
               </span>
             </h2>
@@ -535,7 +610,7 @@ const LandingPage = () => {
                   "{testimonial.text}"
                 </p>
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-linear-to-br from-violet-600 to-purple-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg">
+                  <div className="w-12 h-12 bg-linear-to-br from-blue-600 to-cyan-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg">
                     {testimonial.image}
                   </div>
                   <div>
@@ -566,7 +641,7 @@ const LandingPage = () => {
           </div>
           <h2 className="text-4xl lg:text-6xl font-bold mb-6">
             <span className="text-slate-900">Planes que </span>
-            <span className="bg-linear-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
+            <span className="bg-linear-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
               se adaptan a ti
             </span>
           </h2>
@@ -581,8 +656,8 @@ const LandingPage = () => {
               key={key}
               className={`relative bg-white rounded-3xl p-8 border-2 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 ${
                 plan.popular
-                  ? 'border-violet-500 shadow-2xl scale-105 z-10'
-                  : 'border-slate-200/60 hover:border-violet-300'
+                  ? 'border-blue-500 shadow-2xl scale-105 z-10'
+                  : 'border-slate-200/60 hover:border-blue-300'
               }`}
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -592,7 +667,7 @@ const LandingPage = () => {
             >
               {plan.popular && (
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  <div className="bg-linear-to-r from-violet-600 to-purple-600 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg">
+                  <div className="bg-linear-to-r from-blue-600 to-cyan-600 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg">
                     Más popular
                   </div>
                 </div>
@@ -606,7 +681,7 @@ const LandingPage = () => {
               <div className="mb-8">
                 <div className="flex items-baseline gap-1">
                   {plan.price !== 'Personalizado' && <span className="text-slate-600 text-2xl">$</span>}
-                  <span className="text-5xl font-bold bg-linear-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
+                  <span className="text-5xl font-bold bg-linear-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
                     {plan.price}
                   </span>
                   {plan.period && <span className="text-slate-600">/{plan.period}</span>}
@@ -614,9 +689,10 @@ const LandingPage = () => {
               </div>
 
               <motion.button
+                onClick={() => navigate('/register')}
                 className={`w-full py-4 rounded-2xl font-semibold mb-8 transition-all duration-300 ${
                   plan.popular
-                    ? 'bg-linear-to-r from-violet-600 to-purple-600 text-white shadow-lg shadow-violet-500/30 hover:shadow-xl hover:shadow-violet-500/40'
+                    ? 'bg-linear-to-r from-blue-600 to-cyan-600 text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40'
                     : 'bg-slate-100 text-slate-900 hover:bg-slate-200'
                 }`}
                 whileHover={{ scale: 1.03 }}
@@ -645,7 +721,7 @@ const LandingPage = () => {
           transition={{ duration: 0.8, delay: 0.3 }}
         >
           <p className="text-slate-600 mb-4">
-            ¿Necesitas más información? <a href="#" className="text-violet-600 font-semibold hover:underline">Compara todos los planes</a>
+            ¿Necesitas más información? <a href="#" className="text-blue-600 font-semibold hover:underline">Compara todos los planes</a>
           </p>
           <div className="flex items-center justify-center gap-8 text-sm text-slate-600">
             <div className="flex items-center gap-2">
@@ -663,7 +739,7 @@ const LandingPage = () => {
       {/* Final CTA Section */}
       <section className="relative z-10 py-32 max-w-5xl mx-auto px-6">
         <motion.div
-          className="relative bg-linear-to-br from-violet-600 via-purple-600 to-blue-600 rounded-[3rem] p-12 lg:p-16 overflow-hidden shadow-2xl"
+          className="relative bg-linear-to-br from-blue-600 via-cyan-600 to-sky-600 rounded-[3rem] p-12 lg:p-16 overflow-hidden shadow-2xl"
           initial={{ opacity: 0, scale: 0.95 }}
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true }}
@@ -706,7 +782,8 @@ const LandingPage = () => {
                 className="px-6 py-4 rounded-2xl bg-white/20 backdrop-blur-sm border border-white/30 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50 w-full sm:w-80"
               />
               <motion.button
-                className="px-8 py-4 bg-white text-violet-600 rounded-2xl font-bold shadow-xl hover:shadow-2xl transition-all duration-300 flex items-center gap-2 w-full sm:w-auto justify-center"
+                onClick={() => navigate('/register')}
+                className="px-8 py-4 bg-white text-blue-600 rounded-2xl font-bold shadow-xl hover:shadow-2xl transition-all duration-300 flex items-center gap-2 w-full sm:w-auto justify-center"
                 whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.95 }}
               >
@@ -739,10 +816,10 @@ const LandingPage = () => {
           <div className="grid md:grid-cols-4 gap-12 mb-12">
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-linear-to-br from-violet-600 to-purple-600 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-linear-to-br from-blue-600 to-cyan-600 rounded-lg flex items-center justify-center">
                   <Heart className="w-4 h-4 text-white" />
                 </div>
-                <span className="text-xl font-bold bg-linear-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
+                <span className="text-xl font-bold bg-linear-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
                   TotalMente
                 </span>
               </div>
@@ -753,7 +830,7 @@ const LandingPage = () => {
                 {['tw', 'fb', 'in', 'ig'].map((social) => (
                   <motion.div
                     key={social}
-                    className="w-10 h-10 bg-slate-100 hover:bg-linear-to-br hover:from-violet-600 hover:to-purple-600 rounded-xl flex items-center justify-center cursor-pointer transition-all duration-300 hover:shadow-lg group"
+                    className="w-10 h-10 bg-slate-100 hover:bg-linear-to-br hover:from-blue-600 hover:to-cyan-600 rounded-xl flex items-center justify-center cursor-pointer transition-all duration-300 hover:shadow-lg group"
                     whileHover={{ scale: 1.1, y: -2 }}
                   >
                     <span className="text-slate-600 group-hover:text-white font-bold text-xs uppercase">
@@ -769,7 +846,7 @@ const LandingPage = () => {
               <ul className="space-y-3">
                 {['Características', 'Precios', 'Integraciones', 'Demo', 'Roadmap'].map((item) => (
                   <li key={item}>
-                    <a href="#" className="text-slate-600 hover:text-violet-600 transition-colors">
+                    <a href="#" className="text-slate-600 hover:text-blue-600 transition-colors">
                       {item}
                     </a>
                   </li>
@@ -782,7 +859,7 @@ const LandingPage = () => {
               <ul className="space-y-3">
                 {['Blog', 'Guías', 'Centro de ayuda', 'Webinars', 'Comunidad'].map((item) => (
                   <li key={item}>
-                    <a href="#" className="text-slate-600 hover:text-violet-600 transition-colors">
+                    <a href="#" className="text-slate-600 hover:text-blue-600 transition-colors">
                       {item}
                     </a>
                   </li>
@@ -795,7 +872,7 @@ const LandingPage = () => {
               <ul className="space-y-3">
                 {['Nosotros', 'Contacto', 'Carreras', 'Legal', 'Privacidad'].map((item) => (
                   <li key={item}>
-                    <a href="#" className="text-slate-600 hover:text-violet-600 transition-colors">
+                    <a href="#" className="text-slate-600 hover:text-blue-600 transition-colors">
                       {item}
                     </a>
                   </li>
@@ -809,13 +886,13 @@ const LandingPage = () => {
               © 2026 TotalMente. Todos los derechos reservados.
             </p>
             <div className="flex items-center gap-6 text-sm">
-              <a href="#" className="text-slate-600 hover:text-violet-600 transition-colors">
+              <a href="#" className="text-slate-600 hover:text-blue-600 transition-colors">
                 Términos
               </a>
-              <a href="#" className="text-slate-600 hover:text-violet-600 transition-colors">
+              <a href="#" className="text-slate-600 hover:text-blue-600 transition-colors">
                 Privacidad
               </a>
-              <a href="#" className="text-slate-600 hover:text-violet-600 transition-colors">
+              <a href="#" className="text-slate-600 hover:text-blue-600 transition-colors">
                 Cookies
               </a>
             </div>
@@ -827,4 +904,5 @@ const LandingPage = () => {
 };
 
 export default LandingPage;
+
 
