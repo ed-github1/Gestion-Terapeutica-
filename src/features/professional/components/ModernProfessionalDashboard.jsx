@@ -226,31 +226,51 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
 
     // Memoize expensive calculations to prevent re-running on every render
     const { todayAppointments, allDaySlots, upcomingPatient } = useMemo(() => {
-        // Get real appointments for today (backend already filters by professional)
-        let realTodayAppointments = getTodayAppointments(appointments)
-    
-    // Combine real and mock appointments
-    // Keep mock data for early hours (before 12:00 PM) but prioritize real appointments
-    const earlyMorningCutoff = new Date(new Date().setHours(12, 0, 0, 0))
-    
-    // Get time slots that already have real appointments
-    const realAppointmentTimes = new Set(
-        realTodayAppointments.map(apt => {
-            const date = new Date(apt.fechaHora)
-            return `${date.getHours()}:${date.getMinutes()}`
+        // Real appointments from backend
+        const realTodayAppointments = getTodayAppointments(appointments)
+
+        // Appointments saved via patient booking flow (localStorage)
+        let localStorageAppointments = []
+        try {
+            const saved = localStorage.getItem('professionalAppointments')
+            if (saved) {
+                const parsed = JSON.parse(saved)
+                const today = new Date()
+                localStorageAppointments = parsed
+                    .filter(apt => {
+                        const d = new Date(apt.start || apt.fechaHora)
+                        return (
+                            d.getFullYear() === today.getFullYear() &&
+                            d.getMonth() === today.getMonth() &&
+                            d.getDate() === today.getDate()
+                        )
+                    })
+                    .map(apt => ({
+                        id: apt.id,
+                        nombrePaciente: apt.patientName || 'Paciente',
+                        fechaHora: apt.start || apt.fechaHora,
+                        estado: apt.status || 'reserved',
+                        type: apt.type || 'Consulta',
+                        riskLevel: apt.riskLevel || 'low',
+                        lastSessionNote: apt.notes || '',
+                        treatmentGoal: '',
+                        homeworkCompleted: false,
+                        ultimaVisita: null,
+                    }))
+            }
+        } catch (e) {
+            console.warn('Could not read localStorage appointments', e)
+        }
+
+        // Merge: real backend + localStorage, deduplicate by id
+        const seenIds = new Set(realTodayAppointments.map(a => String(a.id)))
+        const merged = [...realTodayAppointments]
+        localStorageAppointments.forEach(apt => {
+            if (!seenIds.has(String(apt.id))) merged.push(apt)
         })
-    )
-    
-    // Filter mock appointments: only early morning slots that don't conflict with real appointments
-    const earlyMorningMockSlots = mockAppointments.filter(mock => {
-        const mockTime = new Date(mock.fechaHora)
-        const timeKey = `${mockTime.getHours()}:${mockTime.getMinutes()}`
-        return mockTime < earlyMorningCutoff && !realAppointmentTimes.has(timeKey)
-    })
-    
-    // Merge appointments - keep ALL appointments
-    let todayAppointments = [...realTodayAppointments, ...earlyMorningMockSlots]
-        .sort((a, b) => new Date(a.fechaHora) - new Date(b.fechaHora)) // Chronological order (earliest first)
+
+        let todayAppointments = merged
+            .sort((a, b) => new Date(a.fechaHora) - new Date(b.fechaHora))
     
     // Add availability info to appointments
     todayAppointments = todayAppointments.map(appointment => {

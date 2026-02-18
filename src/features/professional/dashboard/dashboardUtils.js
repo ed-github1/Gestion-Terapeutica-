@@ -40,12 +40,12 @@ export const getTodayAppointments = (appointments) => {
                     return false
                 }
                 
-                // Use UTC date parts to compare (this fixes timezone issues)
-                // If the date is stored as 2026-02-17T00:00:00.000Z, we want to match Feb 17 regardless of timezone
+                // Use LOCAL date parts to compare so the appointment date
+                // matches what the user sees on their device's calendar.
                 const isToday = (
-                    aptDateObj.getUTCFullYear() === todayYear &&
-                    aptDateObj.getUTCMonth() === todayMonth &&
-                    aptDateObj.getUTCDate() === todayDate
+                    aptDateObj.getFullYear() === todayYear &&
+                    aptDateObj.getMonth() === todayMonth &&
+                    aptDateObj.getDate() === todayDate
                 )
                 
                 return isToday
