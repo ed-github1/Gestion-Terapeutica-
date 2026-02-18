@@ -13,7 +13,10 @@ export const useDashboardData = () => {
         weekAppointments: 0,
         activeTreatments: 0,
         completedThisWeek: 0,
-        pendingTasks: 0
+        pendingTasks: 0,
+        pendingNotes: 0,
+        noShowCount: 0,
+        unreadMessages: 0
     })
     const [patients, setPatients] = useState([])
     const [appointments, setAppointments] = useState([])
@@ -75,12 +78,23 @@ export const useDashboardData = () => {
                     new Date(apt.date) >= startOfWeek && apt.status === 'completed'
                 )
 
+                const noShows = appointmentsList.filter(apt =>
+                    apt.status === 'no-show' || apt.status === 'no_show'
+                )
+
+                // Pending notes = completed sessions that have no sessionNotes field
+                const pendingNotes = appointmentsList.filter(apt =>
+                    apt.status === 'completed' && !apt.sessionNotes && !apt.notes
+                )
+
                 setStats(prev => ({
                     ...prev,
                     todayAppointments: todayApts.length,
                     weekAppointments: weekApts.length,
                     completedThisWeek: completed.length,
-                    pendingTasks: appointmentsList.filter(a => a.status === 'pending').length
+                    pendingTasks: appointmentsList.filter(a => a.status === 'pending').length,
+                    pendingNotes: pendingNotes.length,
+                    noShowCount: noShows.length
                 }))
             }
         } catch (error) {
@@ -110,6 +124,7 @@ export const useDashboardData = () => {
         stats,
         patients,
         appointments,
+        activities: [],
         loading,
         error,
         setError,

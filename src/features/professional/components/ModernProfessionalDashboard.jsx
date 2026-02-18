@@ -6,7 +6,12 @@ import PatientForm from './PatientForm'
 import TodaysSessions from './TodaysSessions'
 import ActivityFeed from './ActivityFeed'
 import { useDashboardData } from '../dashboard/useDashboard'
-import { Clock } from 'lucide-react'
+import {
+    Clock, FileText, UserPlus, CalendarPlus, Video,
+    AlertTriangle, CheckCircle, XCircle, MessageSquare,
+    Users, CalendarCheck, TrendingUp, ArrowUpRight, ArrowDownRight, Minus,
+    ChevronRight
+} from 'lucide-react'
 import { formatDate, formatTime, getTodayAppointments } from '../dashboard/dashboardUtils'
 import { ROUTES } from '@constants/routes'
 import { videoCallAPI } from '@services/videoCall'
@@ -183,6 +188,14 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
         }
     ]
 
+    // Mock messages for sidebar
+    const mockMessages = [
+        { id: 1, name: 'Jemma Linda', initials: 'JL', preview: '¿Podemos cambiar la cita del jueves?', time: '9:14', unread: true },
+        { id: 2, name: 'Pedro Martínez', initials: 'PM', preview: 'Tuve una semana muy difícil...', time: '8:02', unread: true },
+        { id: 3, name: 'Maria González', initials: 'MG', preview: 'Gracias por la sesión de hoy 🙏', time: 'Ayer', unread: false },
+        { id: 4, name: 'Carlos Rivera', initials: 'CR', preview: 'Completé los ejercicios de respiración', time: 'Ayer', unread: false },
+    ]
+
     // Memoize expensive calculations to prevent re-running on every render
     const { todayAppointments, allDaySlots, upcomingPatient } = useMemo(() => {
         // Get real appointments for today (backend already filters by professional)
@@ -289,6 +302,57 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
     const dashboardActivities = activities && activities.length > 0 ? activities : mockActivities
     const monthGrowth = Math.round((stats.totalPatients / Math.max(stats.totalPatients - 10, 1)) * 100) - 100
 
+    // Build pending actions list from real + mock data
+    const pendingActions = useMemo(() => {
+        const actions = []
+
+        // High-risk patients from today's schedule
+        todayAppointments.filter(a => a.riskLevel === 'high').forEach(apt => {
+            actions.push({
+                id: `crisis-${apt.id}`,
+                type: 'crisis',
+                title: `Paciente de alto riesgo: ${apt.nombrePaciente || apt.patient?.name}`,
+                subtitle: 'Requiere seguimiento — revisar plan de seguridad',
+                cta: 'Ver'
+            })
+        })
+
+        // Pending notes (sessions completed without notes)
+        if (stats.pendingNotes > 0) {
+            actions.push({
+                id: 'pending-notes',
+                type: 'pending_note',
+                title: `${stats.pendingNotes} sesión${stats.pendingNotes > 1 ? 'es' : ''} sin nota clínica`,
+                subtitle: 'Documentar antes del final del día',
+                cta: 'Completar'
+            })
+        }
+
+        // Pending appointment requests
+        if (stats.pendingTasks > 0) {
+            actions.push({
+                id: 'appointment-requests',
+                type: 'appointment_request',
+                title: `${stats.pendingTasks} solicitud${stats.pendingTasks > 1 ? 'es' : ''} de cita pendiente`,
+                subtitle: 'Pacientes esperando confirmación',
+                cta: 'Revisar'
+            })
+        }
+
+        // No-shows
+        if (stats.noShowCount > 0) {
+            actions.push({
+                id: 'no-shows',
+                type: 'no_show',
+                title: `${stats.noShowCount} paciente${stats.noShowCount > 1 ? 's' : ''} no se presentó`,
+                subtitle: 'Considera contactar para reagendar',
+                cta: 'Gestionar'
+            })
+        }
+
+        return actions
+    }, [todayAppointments, stats.pendingNotes, stats.pendingTasks, stats.noShowCount])
+
     // Handler for joining video call - memoized to prevent excessive re-renders
     const handleJoinVideo = useCallback(async (appointment) => {
         try {
@@ -362,188 +426,181 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                             animate={{ opacity: 1, y: 0 }}
                             className="mb-6 md:mb-8"
                         >
-                            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 gap-4">
+                            <div className="flex items-start justify-between gap-4">
                                 <div>
-                                    <h1 className="text-lg md:text-xl text-gray-600 mb-1">{getGreeting()},</h1>
-                                    <p className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-3">
-                                        Dr. {userName}!
-                                    </p>
-                                    <div className="flex items-center gap-4">
-                                        <p className="text-sm text-gray-500 flex items-center gap-2">
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                            </svg>
-                                            {formatDate(currentTime)}
-                                        </p>
-                                        <div className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-xl">
-                                            <Clock className="w-4 h-4 text-gray-900" />
-                                            <span className="text-sm font-semibold text-gray-900">
-                                                {formatTime(currentTime)}
-                                            </span>
-                                        </div>
-                                    </div>
+                                    <p className="text-xs text-gray-400 font-medium mb-1">{getGreeting()}</p>
+                                    <h1 className="text-xl md:text-2xl font-bold text-gray-900 tracking-tight">
+                                        Dr. {userName}
+                                    </h1>
+                                    <p className="text-sm text-gray-500 mt-0.5">{formatDate(currentTime)}</p>
                                 </div>
-
-                                <div className="flex items-center gap-2 md:gap-4">
+                                <div className="flex items-center gap-2 shrink-0">
                                     {/* Search */}
                                     <div className="relative hidden md:block">
                                         <input
                                             type="text"
-                                            placeholder="Buscar"
-                                            className="w-40 lg:w-64 pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm"
+                                            placeholder="Buscar paciente..."
+                                            className="w-48 lg:w-60 pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-500 text-sm"
                                         />
-                                        <svg className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <svg className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                         </svg>
                                     </div>
-
-                                    {/* Notifications */}
-                                    <motion.button
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        className="hidden lg:flex w-10 h-10 md:w-12 md:h-12 bg-blue-600 rounded-xl md:rounded-2xl items-center justify-center text-white relative shadow-lg"
-                                    >
-                                        <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                                        </svg>
-                                    </motion.button>
-
-                                    {/* Profile Button */}
-                                    <motion.button
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
+                                    <div className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 rounded-lg">
+                                        <Clock className="w-3.5 h-3.5 text-gray-400" />
+                                        <span className="text-sm font-semibold text-gray-700 tabular-nums">
+                                            {formatTime(currentTime)}
+                                        </span>
+                                    </div>
+                                    <button
                                         onClick={() => navigate(ROUTES.PROFESSIONAL_PROFILE)}
-                                        className="hidden lg:flex w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-blue-600 items-center justify-center shadow-lg text-white font-bold text-sm md:text-lg"
+                                        className="hidden lg:flex w-8 h-8 rounded-full bg-gray-900 items-center justify-center text-white font-bold text-xs"
                                         title="Ver Perfil"
                                     >
                                         {initials}
-                                    </motion.button>
+                                    </button>
                                 </div>
                             </div>
                         </motion.div>
 
-                        {/* Stats Cards Row */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
-                            {/* Total Patients Card - Dark */}
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ delay: 0.1 }}
-                                className="bg-linear-to-br from-blue-400 to-indigo-500 rounded-2xl md:rounded-3xl lg:rounded-4xl p-6 md:p-8 text-white relative overflow-hidden shadow-xl"
+                        {/* Quick Actions Bar */}
+                        <motion.div
+                            initial={{ opacity: 0, y: -8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.15 }}
+                            className="flex flex-wrap items-center gap-2 mb-6 md:mb-8"
+                        >
+                            <button
+                                onClick={() => setShowPatientForm(true)}
+                                className="flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors"
                             >
-                                <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -mr-20 -mt-20"></div>
-                                <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full -ml-16 -mb-16"></div>
-
-                                <div className="relative z-10">
-                                    <div className="flex items-center justify-between mb-6">
-                                        <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center">
-                                            <span className="text-4xl font-bold text-gray-900">{stats.totalPatients || 0}</span>
+                                <UserPlus className="w-3.5 h-3.5" />
+                                Nuevo paciente
+                            </button>
+                            <button
+                                onClick={() => setShowCalendar(true)}
+                                className="flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+                            >
+                                <CalendarPlus className="w-3.5 h-3.5" />
+                                Agendar cita
+                            </button>
+                            {upcomingPatient && (
+                                <button
+                                    onClick={() => handleJoinVideo(upcomingPatient)}
+                                    className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                                >
+                                    <Video className="w-3.5 h-3.5" />
+                                    Iniciar sesión
+                                </button>
+                            )}
+                            {stats.pendingNotes > 0 && (
+                                <span className="flex items-center gap-1.5 px-3 py-2 bg-amber-50 border border-amber-200 text-amber-700 rounded-lg text-sm font-medium">
+                                    <AlertTriangle className="w-3.5 h-3.5" />
+                                    {stats.pendingNotes} nota{stats.pendingNotes > 1 ? 's' : ''} pendiente{stats.pendingNotes > 1 ? 's' : ''}
+                                </span>
+                            )}
+                        </motion.div>
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
+                            {[
+                                {
+                                    label: 'Pacientes activos',
+                                    value: stats.totalPatients || 0,
+                                    sub: 'total en carga',
+                                    icon: Users,
+                                    iconColor: 'text-blue-600',
+                                    iconBg: 'bg-blue-50',
+                                    trend: monthGrowth,
+                                    delay: 0.1
+                                },
+                                {
+                                    label: 'Sesiones hoy',
+                                    value: todayAppointments.length,
+                                    sub: `${todayAppointments.filter(a => new Date(a.fechaHora) > new Date()).length} restantes`,
+                                    icon: CalendarCheck,
+                                    iconColor: 'text-violet-600',
+                                    iconBg: 'bg-violet-50',
+                                    trend: null,
+                                    delay: 0.15
+                                },
+                                {
+                                    label: 'Completadas esta semana',
+                                    value: stats.completedThisWeek || 0,
+                                    sub: `de ${stats.weekAppointments || 0} programadas`,
+                                    icon: TrendingUp,
+                                    iconColor: 'text-emerald-600',
+                                    iconBg: 'bg-emerald-50',
+                                    trend: stats.weekAppointments > 0
+                                        ? Math.round((stats.completedThisWeek / stats.weekAppointments) * 100) - 80
+                                        : null,
+                                    delay: 0.2
+                                },
+                                {
+                                    label: 'Notas pendientes',
+                                    value: stats.pendingNotes || 0,
+                                    sub: stats.pendingNotes > 0 ? 'requiere atención' : 'al día',
+                                    icon: FileText,
+                                    iconColor: stats.pendingNotes > 0 ? 'text-amber-600' : 'text-gray-500',
+                                    iconBg: stats.pendingNotes > 0 ? 'bg-amber-50' : 'bg-gray-50',
+                                    trend: null,
+                                    alert: stats.pendingNotes > 0,
+                                    delay: 0.25
+                                }
+                            ].map((card) => (
+                                <motion.div
+                                    key={card.label}
+                                    initial={{ opacity: 0, y: 8 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: card.delay, duration: 0.3 }}
+                                    className={`bg-white rounded-2xl p-5 border flex flex-col gap-3 hover:shadow-md transition-shadow cursor-default ${
+                                        card.alert ? 'border-amber-200' : 'border-gray-100'
+                                    }`}
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${card.iconBg}`}>
+                                            <card.icon className={`w-4.5 h-4.5 ${card.iconColor}`} strokeWidth={2} />
                                         </div>
-                                        {monthGrowth > 0 && (
-                                            <span className="px-4 py-1.5 bg-emerald-500/20 text-emerald-300 rounded-full text-xs font-semibold flex items-center gap-1">
-                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                                                </svg>
-                                                +{monthGrowth}%
+                                        {card.trend !== null && card.trend !== undefined && (
+                                            <span className={`flex items-center gap-0.5 text-xs font-semibold ${
+                                                card.trend > 0 ? 'text-emerald-600' : card.trend < 0 ? 'text-rose-500' : 'text-gray-400'
+                                            }`}>
+                                                {card.trend > 0
+                                                    ? <ArrowUpRight className="w-3.5 h-3.5" />
+                                                    : card.trend < 0
+                                                    ? <ArrowDownRight className="w-3.5 h-3.5" />
+                                                    : <Minus className="w-3.5 h-3.5" />
+                                                }
+                                                {Math.abs(card.trend)}%
+                                            </span>
+                                        )}
+                                        {card.alert && (
+                                            <span className="flex items-center gap-1 text-xs font-semibold text-amber-600">
+                                                <AlertTriangle className="w-3.5 h-3.5" />
                                             </span>
                                         )}
                                     </div>
-
-                                    <div className="space-y-2">
-                                        <h3 className="text-white text-lg font-bold">Pacientes Totales</h3>
-                                        <p className="text-white/60 text-sm">este mes</p>
+                                    <div>
+                                        <p className="text-2xl md:text-3xl font-bold text-gray-900 leading-none mb-1">
+                                            {card.value}
+                                        </p>
+                                        <p className="text-[13px] font-medium text-gray-900">{card.label}</p>
+                                        <p className="text-xs text-gray-400 mt-0.5">{card.sub}</p>
                                     </div>
-
-                                    {upcomingPatient && (
-                                        <div className="mt-6 pt-4 border-t border-white/10">
-                                            <div className="flex items-center justify-between text-sm">
-                                                <span className="text-white/60">Próximo Paciente</span>
-                                                <svg className="w-4 h-4 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                                </svg>
-                                            </div>
-                                            <div className="flex items-center gap-3 mt-3">
-                                                <div className="w-10 h-10 rounded-full bg-linear-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
-                                                    <span className="text-white text-xs font-bold">
-                                                        {(upcomingPatient.nombrePaciente || upcomingPatient.patient?.name || 'P').split(' ').map(n => n[0]).join('').toUpperCase()}
-                                                    </span>
-                                                </div>
-                                                <div>
-                                                    <p className="font-semibold text-white">{upcomingPatient.nombrePaciente || upcomingPatient.patient?.name || 'Patient'}</p>
-                                                    <p className="text-xs text-white/50">{new Date(upcomingPatient.fechaHora).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </motion.div>
-
-                            {/* Patient Statistics Card - Mint Green */}
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ delay: 0.2 }}
-                                className="bg-linear-to-br from-emerald-100 via-teal-50 to-cyan-50 rounded-2xl md:rounded-3xl lg:rounded-4xl p-6 md:p-8 relative overflow-hidden shadow-sm"
-                            >
-                                <div className="flex items-center justify-between mb-4">
-                                    <h3 className="text-xl font-bold text-gray-900">Estadísticas de Pacientes</h3>
-                                    <select className="px-3 py-1.5 bg-white/60 backdrop-blur-sm border-0 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                                        <option>Semanal</option>
-                                        <option>Mensual</option>
-                                        <option>Anual</option>
-                                    </select>
-                                </div>
-                                <p className="text-sm text-gray-600 mb-6">Mes de Octubre</p>
-
-                                {/* Graph Placeholder */}
-                                <div className="relative h-48 flex items-end justify-center">
-                                    <svg className="w-full h-full" viewBox="0 0 300 150" preserveAspectRatio="none">
-                                        <defs>
-                                            <linearGradient id="lineGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                                                <stop offset="0%" stopColor="#10b981" stopOpacity="0.8" />
-                                                <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
-                                            </linearGradient>
-                                        </defs>
-                                        <path
-                                            d="M 0,120 Q 30,80 75,90 T 150,60 T 225,80 T 300,50"
-                                            fill="none"
-                                            stroke="#10b981"
-                                            strokeWidth="3"
-                                            strokeLinecap="round"
-                                        />
-                                        <path
-                                            d="M 0,120 Q 30,80 75,90 T 150,60 T 225,80 T 300,50 L 300,150 L 0,150 Z"
-                                            fill="url(#lineGradient)"
-                                        />
-                                    </svg>
-
-                                    {/* Floating Badge */}
-                                    <motion.div
-                                        initial={{ scale: 0 }}
-                                        animate={{ scale: 1 }}
-                                        transition={{ delay: 0.5, type: "spring" }}
-                                        className="absolute top-8 right-16 px-4 py-2 bg-gray-900 text-white rounded-2xl shadow-xl text-sm font-bold flex items-center gap-2"
-                                    >
-                                        {stats.completedThisWeek || 0}
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                    </motion.div>
-                                </div>
-                            </motion.div>
+                                </motion.div>
+                            ))}
                         </div>
-
                         {/* Today's Sessions & Recent Activity */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
                             {/* Today's Sessions */}
                             <motion.div
-                                initial={{ opacity: 0, y: 20 }}
+                                initial={{ opacity: 0, y: 16 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.3 }}
-                                className="bg-white rounded-2xl md:rounded-3xl lg:rounded-4xl p-4 md:p-6 shadow-sm"
+                                className="bg-white rounded-2xl p-5 md:p-6 border border-gray-100"
                             >
-                                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-4 md:mb-6">Sesiones De Hoy</h2>
-
+                                <div className="flex items-center justify-between mb-5">
+                                    <h2 className="text-[15px] font-semibold text-gray-900">Sesiones de hoy</h2>
+                                    <span className="text-xs text-gray-400">{todayAppointments.length} citas</span>
+                                </div>
                                 <TodaysSessions
                                     sessions={allDaySlots}
                                     loading={loading}
@@ -554,22 +611,123 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
 
                             {/* Recent Activity */}
                             <motion.div
-                                initial={{ opacity: 0, y: 20 }}
+                                initial={{ opacity: 0, y: 16 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.4 }}
-                                className="bg-white rounded-2xl md:rounded-3xl lg:rounded-4xl p-4 md:p-6 shadow-sm"
+                                transition={{ delay: 0.35 }}
+                                className="bg-white rounded-2xl p-5 md:p-6 border border-gray-100"
                             >
-                                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-4 md:mb-6">Actividad Reciente</h2>
+                                <div className="flex items-center justify-between mb-5">
+                                    <h2 className="text-[15px] font-semibold text-gray-900">Actividad reciente</h2>
+                                </div>
                                 <ActivityFeed
                                     activities={dashboardActivities}
                                     loading={loading}
                                 />
                             </motion.div>
                         </div>
+
+                        {/* Pending Actions Panel */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.4 }}
+                            className="bg-white rounded-2xl border border-gray-100 overflow-hidden"
+                        >
+                            <div className="flex items-center justify-between px-5 md:px-6 py-4 border-b border-gray-100">
+                                <div className="flex items-center gap-2">
+                                    <h2 className="text-[15px] font-semibold text-gray-900">Acciones pendientes</h2>
+                                    {pendingActions.length > 0 && (
+                                        <span className="inline-flex items-center justify-center w-5 h-5 bg-rose-500 text-white text-[10px] font-bold rounded-full">
+                                            {pendingActions.length}
+                                        </span>
+                                    )}
+                                </div>
+                                <button className="text-xs text-gray-400 hover:text-gray-600 font-medium">Ver todo</button>
+                            </div>
+
+                            {pendingActions.length === 0 ? (
+                                <div className="flex items-center gap-2.5 px-5 py-6 text-gray-400">
+                                    <CheckCircle className="w-5 h-5 text-emerald-500 shrink-0" />
+                                    <p className="text-sm text-gray-500">Todo al día — sin acciones pendientes</p>
+                                </div>
+                            ) : (
+                                <div className="divide-y divide-gray-50">
+                                    {pendingActions.map((action, idx) => (
+                                        <div
+                                            key={action.id || idx}
+                                            className="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50/60 transition-colors"
+                                        >
+                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                                                action.type === 'crisis' ? 'bg-rose-50' :
+                                                action.type === 'pending_note' ? 'bg-amber-50' :
+                                                action.type === 'appointment_request' ? 'bg-blue-50' :
+                                                'bg-gray-100'
+                                            }`}>
+                                                {action.type === 'crisis' && <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />}
+                                                {action.type === 'pending_note' && <FileText className="w-3.5 h-3.5 text-amber-600" />}
+                                                {action.type === 'appointment_request' && <CalendarPlus className="w-3.5 h-3.5 text-blue-600" />}
+                                                {action.type === 'no_show' && <XCircle className="w-3.5 h-3.5 text-gray-500" />}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-medium text-gray-900 truncate">{action.title}</p>
+                                                <p className="text-xs text-gray-400 truncate">{action.subtitle}</p>
+                                            </div>
+                                            <button className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${
+                                                action.type === 'crisis'
+                                                    ? 'bg-rose-50 text-rose-600 hover:bg-rose-100'
+                                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                            }`}>
+                                                {action.cta}
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </motion.div>
                     </div>
 
                     {/* Barra Lateral Derecha - Herramientas Clínicas */}
                     <div className="hidden xl:block bg-white border-l border-gray-100 p-6 space-y-6 overflow-y-auto">
+
+                        {/* Messages Widget */}
+                        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+                            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                                <h4 className="font-bold text-gray-900 flex items-center gap-2">
+                                    <MessageSquare className="w-4 h-4 text-blue-600" />
+                                    Mensajes
+                                </h4>
+                                <div className="flex items-center gap-2">
+                                    {stats.unreadMessages > 0 && (
+                                        <span className="w-5 h-5 bg-blue-600 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                                            {stats.unreadMessages}
+                                        </span>
+                                    )}
+                                    <button className="text-xs text-blue-600 font-semibold hover:text-blue-700">Ver Todo</button>
+                                </div>
+                            </div>
+                            <div className="divide-y divide-gray-50">
+                                {mockMessages.map((msg) => (
+                                    <motion.button
+                                        key={msg.id}
+                                        whileHover={{ backgroundColor: '#f9fafb' }}
+                                        className="w-full flex items-start gap-3 px-5 py-3.5 text-left transition-colors"
+                                    >
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${msg.unread ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
+                                            {msg.initials}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-1.5 mb-0.5">
+                                                <p className={`text-sm truncate ${msg.unread ? 'font-semibold text-gray-900' : 'font-medium text-gray-700'}`}>{msg.name}</p>
+                                                {msg.unread && <span className="w-1.5 h-1.5 bg-blue-600 rounded-full shrink-0"></span>}
+                                            </div>
+                                            <p className="text-xs text-gray-500 truncate">{msg.preview}</p>
+                                        </div>
+                                        <p className="text-[10px] text-gray-400 shrink-0">{msg.time}</p>
+                                    </motion.button>
+                                ))}
+                            </div>
+                        </div>
+
                         {/* Quick Notes Widget */}
                         <div className="bg-linear-to-br from-indigo-50 to-blue-50 rounded-3xl p-6 border border-indigo-100">
                             <div className="flex items-center justify-between mb-4">
