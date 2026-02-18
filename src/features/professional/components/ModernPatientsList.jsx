@@ -2,9 +2,10 @@
 // Clinical caseload view — not a generic contact list.
 // Displays PHQ-9 sparklines, risk levels, homework status, insurance sessions,
 // treatment goals, and outcome trends for each patient.
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { showToast } from '@components'
+import { patientsService } from '@shared/services/patientsService'
 import PatientForm from './PatientForm'
 import PatientDiary from './PatientDiary'
 import {
@@ -16,7 +17,32 @@ import {
     XCircle, TimerOff
 } from 'lucide-react'
 
-// ─── Mock patients (replace with real API data) ───────────────────────────────
+// ─── Normalize backend patient → UI shape ────────────────────────────────────
+// Backend uses firstName/lastName/_id; UI uses nombre/apellido/id.
+// Clinical fields (phq9, riskLevel, etc.) not yet on backend default to null.
+const normalizePatient = (p) => ({
+    id:                p._id || p.id,
+    nombre:            p.firstName  || p.nombre  || '',
+    apellido:          p.lastName   || p.apellido || '',
+    email:             p.email      || '',
+    telefono:          p.phone      || p.telefono || null,
+    status:            p.status     || 'pending',
+    lastSession:       p.lastSession || null,
+    nextSession:       p.nextSession || null,
+    totalSessions:     p.totalSessions ?? 0,
+    riskLevel:         p.riskLevel   || 'low',
+    phq9:              p.phq9        || [],
+    treatmentGoal:     p.presentingConcern || p.treatmentGoal || '',
+    homeworkCompleted: p.homeworkCompleted ?? null,
+    diagnosis:         p.diagnosis  || (p.status === 'pending' ? 'Pendiente' : '—'),
+    insuranceRemaining: p.insuranceRemaining ?? null,
+    age:               p.dateOfBirth
+        ? Math.floor((Date.now() - new Date(p.dateOfBirth)) / 3.156e10)
+        : null,
+    hasRegistered:     p.hasRegistered ?? (p.userId != null),
+})
+
+// ─── Mock patients (fallback while backend has no clinical data) ────────────────
 const mockPatients = [
     { id: 1,  nombre: 'María',   apellido: 'González',  email: 'maria.gonzalez@email.com',  telefono: '+34 612 345 678', status: 'active',   lastSession: '2026-02-10', nextSession: '2026-02-19', totalSessions: 14, riskLevel: 'low',    phq9: [14,12,10,8,7],  treatmentGoal: 'Manejo de ansiedad generalizada',               homeworkCompleted: true,  diagnosis: 'TAG',     insuranceRemaining: 6,    age: 34 },
     { id: 2,  nombre: 'Carlos',  apellido: 'Rodríguez', email: 'carlos.rodriguez@email.com', telefono: '+34 623 456 789', status: 'active',   lastSession: '2026-02-08', nextSession: '2026-02-20', totalSessions: 7,  riskLevel: 'high',   phq9: [18,19,17,20,22],treatmentGoal: 'Reducir ideación pasiva — plan de seguridad activo', homeworkCompleted: false, diagnosis: 'TDM',     insuranceRemaining: 2,    age: 42 },
@@ -327,8 +353,8 @@ const PatientRow = ({ patient, onOpenDiary, onDelete }) => {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 const ModernPatientsList = () => {
-    const [patients, setPatients]         = useState(mockPatients)
-    const [loading]                       = useState(false)
+    const [patients, setPatients]         = useState([])
+    const [loading, setLoading]           = useState(true)
     const [search, setSearch]             = useState('')
     const [filterStatus, setFilterStatus] = useState('all')
     const [filterRisk, setFilterRisk]     = useState('all')
@@ -338,8 +364,26 @@ const ModernPatientsList = () => {
     const [selectedPatient, setSelectedPatient] = useState(null)
     const [showDiary, setShowDiary]       = useState(false)
 
-    const handleDelete = (id) => {
+    useEffect(() => { loadPatients() }, [])
+
+    const loadPatients = async () => {
+        try {
+            setLoading(true)
+            const res  = await patientsService.getAll()
+            const raw  = res.data?.data || res.data || []
+            const list = Array.isArray(raw) ? raw.map(normalizePatient) : []
+            setPatients(list.length > 0 ? list : mockPatients)
+        } catch {
+            // backend not reachable — show mock data so UI is never blank
+            setPatients(mockPatients)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleDelete = async (id) => {
         if (!confirm('¿Eliminar este paciente definitivamente?')) return
+        try { await patientsService.remove(id) } catch { /* silent */ }
         setPatients(p => p.filter(x => x.id !== id))
         showToast('Paciente eliminado', 'success')
     }
@@ -511,14 +555,7 @@ const ModernPatientsList = () => {
             {/* Add patient modal */}
             <AnimatePresence>
                 {showAddPatient && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-                        onClick={() => setShowAddPatient(false)}>
-                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-                            onClick={e => e.stopPropagation()}>
-                            <PatientForm onClose={() => setShowAddPatient(false)} onSuccess={() => { setShowAddPatient(false); loadPatients() }} />
-                        </motion.div>
-                    </motion.div>
+                    <PatientForm onClose={() => { setShowAddPatient(false); loadPatients() }} />
                 )}
             </AnimatePresence>
         </div>

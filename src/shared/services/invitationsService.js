@@ -5,18 +5,19 @@
 import apiClient from '@shared/api/client'
 
 export const invitationsService = {
+  // POST /api/invitations — professional sends invite
   send: (data) =>
-    apiClient.post('/invitations/send', data),
+    apiClient.post('/invitations', data),
 
-  verify: (inviteCode) =>
-    apiClient.get(`/invitations/verify/${inviteCode}`),
+  // GET /api/invitations/verify/:code — validate token before showing register form
+  verify: (code) =>
+    apiClient.get(`/invitations/verify/${code}`),
 
+  // GET /api/invitations — list all invitations sent by this professional
   getAll: () =>
     apiClient.get('/invitations'),
 
+  // POST /api/invitations/:id/resend — resend email for a pending invite
   resend: (invitationId) =>
     apiClient.post(`/invitations/${invitationId}/resend`),
-
-  complete: (inviteCode, patientData) =>
-    apiClient.post(`/invitations/${inviteCode}/complete`, patientData),
 }

@@ -42,35 +42,16 @@ const PatientRegister = () => {
       return
     }
 
-    console.log('🔍 Verifying invitation code:', formData.inviteCode)
     setLoading(true)
     try {
       const url = `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/invitations/verify/${formData.inviteCode}`
-      console.log('📡 Calling:', url)
-      
-      const response = await fetch(url, { 
-        method: 'GET',
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
-      })
-
-      console.log('📥 Response status:', response.status)
+      const response = await fetch(url, { method: 'GET' })
       const data = await response.json()
-      console.log('📥 Response data:', data)
-      console.log('📥 data.valid:', data.valid)
-      console.log('📥 data.success:', data.success)
-      console.log('📥 data.invitation:', data.invitation)
-      console.log('📥 data.data:', data.data)
-      console.log('📥 Full structure:', JSON.stringify(data, null, 2))
 
-      // Backend returns {success: true, data: {...}} or {valid: true, invitation: {...}}
       const isValid = response.ok && (data.valid || data.success)
       const invitationData = data.invitation || data.data || data
       
       if (isValid && invitationData) {
-        console.log('✅ Invitation valid:', invitationData)
         setInviteData(invitationData)
         
         const updatedFormData = {
@@ -81,10 +62,9 @@ const PatientRegister = () => {
           email: invitationData.email || invitationData.patientEmail || ''
         }
         
-        console.log('📝 Updated form data:', updatedFormData)
         setFormData(updatedFormData)
-        setStep(2) // Move directly to registration form
-        showToast('✅ Código válido', 'success')
+        setStep(2)
+        showToast('Código válido', 'success')
       } else {
         console.error('❌ Invalid invitation:', data)
         throw new Error(data.message || 'Código de invitación inválido')
@@ -187,30 +167,18 @@ const PatientRegister = () => {
 
     setLoading(true)
     try {
-      // Send minimal data - backend will populate from invitation
+      // Send all intake fields — backend maps them onto the patient record
       const registrationPayload = {
-        inviteCode: formData.inviteCode,
-        password: formData.password,
-        consentimientos: {
-          tratamientoDatos: {
-            aceptado: formData.acceptPrivacy,
-            fecha: new Date()
-          },
-          terminosCondiciones: {
-            aceptado: formData.acceptTerms,
-            fecha: new Date()
-          }
-        }
+        code:                 formData.inviteCode,
+        password:             formData.password,
+        gender:               formData.gender               || undefined,
+        address:              formData.address              || undefined,
+        emergencyContactName: formData.emergencyContact     || undefined,
+        emergencyContactPhone:formData.emergencyPhone       || undefined,
+        medicalHistory:       formData.medicalHistory       || undefined,
+        allergies:            formData.allergies            || undefined,
+        currentMedications:   formData.currentMedications   || undefined,
       }
-      
-      console.log('═══════════════════════════════════════')
-      console.log('📤 PATIENT REGISTRATION PAYLOAD')
-      console.log('═══════════════════════════════════════')
-      console.log('Form Data:', formData)
-      console.log('Email from form:', formData.email)
-      console.log('─────────────────────────────────────')
-      console.log('Registration Payload:', JSON.stringify(registrationPayload, null, 2))
-      console.log('═══════════════════════════════════════')
       
       const response = await fetch(
         `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/auth/register/patient`,
@@ -222,14 +190,17 @@ const PatientRegister = () => {
       )
 
       const data = await response.json()
-      console.log('📥 Registration response:', data)
 
       if (response.ok) {
-        setStep(3) // Success
-        showToast('🎉 ¡Registro exitoso!', 'success')
-        setTimeout(() => {
-          navigate('/login')
-        }, 3000)
+        // Store token + user data exactly like the login flow
+        const token = data.token
+        const user  = data.user
+        if (token) {
+          localStorage.setItem('authToken', token)
+          localStorage.setItem('userData', JSON.stringify(user))
+        }
+        showToast('¡Registro exitoso! Bienvenido.', 'success')
+        setTimeout(() => navigate('/dashboard/patient'), 1500)
       } else {
         throw new Error(data.message || 'Error en el registro')
       }
