@@ -9,7 +9,6 @@ import { PatientDashboard, PatientAppointments } from '@features/patient'
 import PatientVideoCallWebRTC from '@features/patient/PatientVideoCallWebRTC'
 import PatientRegisterPage from '@features/patient/PatientRegisterPage'
 import PatientRegister from '@features/patient/PatientRegister'
-import HomePage from '@pages/HomePage'
 import LandingPage from '@pages/LandingPage'
 import PricingPlans from '@pages/PricingPlans'
 import CheckoutPage from '@pages/CheckoutPage'
@@ -49,8 +48,7 @@ function App() {
         <Toast />
         <Routes>
           {/* Public Routes */}
-          <Route path={ROUTES.HOME} element={<HomePage />} />
-          <Route path="/landing" element={<LandingPage />} />
+          <Route path={ROUTES.HOME} element={<LandingPage />} />
           <Route path="/pricing" element={<PricingPlans />} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path={ROUTES.LOGIN} element={<LoginRoute />} />
