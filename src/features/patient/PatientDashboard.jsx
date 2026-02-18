@@ -46,9 +46,17 @@ const PatientDashboard = () => {
     try {
       setError(null)
       const appointments = await appointmentsAPI.getPatientAppointments()
+      
+      // Defensive check - ensure appointments is an array
+      const appointmentsArray = Array.isArray(appointments) ? appointments : []
+      
+      if (appointmentsArray.length === 0) {
+        console.log('No appointments returned from API')
+      }
+      
       const now = new Date()
 
-      const upcoming = appointments
+      const upcoming = appointmentsArray
         .filter(apt => new Date(apt.date) > now && apt.status !== 'cancelled')
         .sort((a, b) => new Date(a.date) - new Date(b.date))
 
@@ -56,13 +64,13 @@ const PatientDashboard = () => {
         setNextAppointment(upcoming[0])
       }
 
-      const completed = appointments.filter(apt => apt.status === 'completed').length
+      const completed = appointmentsArray.filter(apt => apt.status === 'completed').length
       const upcomingCount = upcoming.length
 
       // Calculate week progress (sessions this week)
       const startOfWeek = new Date(now)
       startOfWeek.setDate(now.getDate() - now.getDay())
-      const weekSessions = appointments.filter(apt => 
+      const weekSessions = appointmentsArray.filter(apt => 
         new Date(apt.date) >= startOfWeek && 
         new Date(apt.date) <= now && 
         apt.status === 'completed'
@@ -71,7 +79,7 @@ const PatientDashboard = () => {
       setStats({
         upcomingAppointments: upcomingCount,
         completedSessions: completed,
-        totalAppointments: appointments.length,
+        totalAppointments: appointmentsArray.length,
         weekProgress: Math.min((weekSessions / 2) * 100, 100) // Assuming 2 sessions per week goal
       })
     } catch (error) {

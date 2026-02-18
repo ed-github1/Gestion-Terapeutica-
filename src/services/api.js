@@ -1,5 +1,6 @@
 // API service configuration
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
+const API_BASE_URL = import.meta.env.VITE_API_URL || (isProduction ? 'https://totalmentegestionterapeutica.onrender.com/api' : 'http://localhost:3000/api')
 
 // Get auth token from storage
 const getAuthToken = () => {

@@ -1,6 +1,7 @@
 import { apiClient } from './api'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
+const API_BASE_URL = import.meta.env.VITE_API_URL || (isProduction ? 'https://totalmentegestionterapeutica.onrender.com/api' : 'http://localhost:3000/api')
 
 // Get auth token from storage
 const getAuthToken = () => {
@@ -74,11 +75,32 @@ export const appointmentsAPI = {
   getPatientAppointments: async () => {
     try {
       const response = await apiClient.get('/appointments/patient/my-appointments')
-      return response
+      // Ensure we always return an array
+      if (Array.isArray(response)) {
+        return response
+      } else if (response?.appointments && Array.isArray(response.appointments)) {
+        return response.appointments
+      } else {
+        console.warn('Unexpected response format, returning empty array')
+        return []
+      }
     } catch (error) {
       // Fallback to regular getAppointments
       console.warn('Using fallback getAppointments')
-      return appointmentsAPI.getAppointments({})
+      try {
+        const fallbackResponse = await appointmentsAPI.getAppointments({})
+        // Ensure we always return an array from fallback too
+        if (Array.isArray(fallbackResponse)) {
+          return fallbackResponse
+        } else if (fallbackResponse?.appointments && Array.isArray(fallbackResponse.appointments)) {
+          return fallbackResponse.appointments
+        } else {
+          return []
+        }
+      } catch (fallbackError) {
+        console.error('Fallback also failed:', fallbackError)
+        return []
+      }
     }
   },
 

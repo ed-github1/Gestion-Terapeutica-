@@ -19,4 +19,9 @@ export default defineConfig({
       '@constants': path.resolve(__dirname, './src/constants'),
     },
   },
+  define: {
+    // Provide fallback values for environment variables in production
+    'import.meta.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL || 'https://totalmentegestionterapeutica.onrender.com/api'),
+    'import.meta.env.VITE_SOCKET_URL': JSON.stringify(process.env.VITE_SOCKET_URL || 'https://totalmentegestionterapeutica.onrender.com'),
+  },
 })

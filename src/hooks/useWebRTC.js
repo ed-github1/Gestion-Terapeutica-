@@ -38,8 +38,10 @@ export const useWebRTC = () => {
 
     try {
       console.log('useWebRTC initializing...');
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
-      const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
+      // Use production backend if in production environment
+      const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+      const API_URL = import.meta.env.VITE_API_URL || (isProduction ? 'https://totalmentegestionterapeutica.onrender.com/api' : 'http://localhost:3000/api');
+      const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || (isProduction ? 'https://totalmentegestionterapeutica.onrender.com' : 'http://localhost:3000');
 
       const userId = user.id || user._id;
       const userName = user.name || user.nombre || 'Usuario';
