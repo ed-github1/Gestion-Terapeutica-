@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { motion, AnimatePresence } from 'motion/react'
 import { showToast } from '@components'
-import { appointmentsAPI } from '@services/appointments'
+import { appointmentsService } from '@shared/services/appointmentsService'
 
 const PatientAppointments = ({ onClose }) => {
   const [appointments, setAppointments] = useState([])
@@ -17,7 +17,7 @@ const PatientAppointments = ({ onClose }) => {
     setLoading(true)
     try {
       // Try to fetch from backend
-      const response = await appointmentsAPI.getAppointments({})
+      const response = await appointmentsService.getAll({})
       console.log('✅ Loaded patient appointments from backend:', response.data?.length || 0)
       
       if (response.data && response.data.length > 0) {
@@ -101,7 +101,7 @@ const PatientAppointments = ({ onClose }) => {
     if (!confirm('¿Estás seguro de que deseas cancelar esta cita?')) return
     
     try {
-      await appointmentsAPI.cancelAppointment(appointmentId, 'Cancelado por el paciente')
+      await appointmentsService.cancel(appointmentId, 'Cancelado por el paciente')
       showToast('✅ Cita cancelada exitosamente', 'success')
       loadAppointments()
     } catch (error) {

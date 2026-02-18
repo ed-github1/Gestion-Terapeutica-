@@ -1,7 +1,7 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
-import { LogIn, Mail, Lock, AlertCircle } from 'lucide-react'
+import {  Brain, Mail, Lock, AlertCircle } from 'lucide-react'
 import { useAuth } from './AuthContext'
 
 const LoginPage = () => {
@@ -37,12 +37,12 @@ const LoginPage = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Login Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6">
+        <div className="p-8 space-y-6">
           {/* Header */}
           <div className="text-center space-y-3">
             <div className="flex justify-center">
-              <div className="w-14 h-14 bg-gradient-to-br from-indigo-600 to-blue-600 rounded-xl flex items-center justify-center shadow-md">
-                <LogIn className="w-7 h-7 text-white" />
+              <div className="w-14 h-14  rounded-xl flex items-center justify-center">
+                <Brain className="w-7 h-7 text-blue-600" />
               </div>
             </div>
             <div>

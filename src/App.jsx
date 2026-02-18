@@ -12,9 +12,9 @@ import PatientRegister from '@features/patient/PatientRegister'
 import LandingPage from '@pages/LandingPage'
 import PricingPlans from '@pages/PricingPlans'
 import CheckoutPage from '@pages/CheckoutPage'
-import { Toast } from '@components'
-import { ROUTES, ROLES } from '@constants/routes'
-import DashboardLayout from './layouts/DashboardLayout'
+import { Toast } from '@shared/ui'
+import { ROUTES, ROLES } from '@shared/constants/routes'
+import DashboardLayout from '@shared/layouts/DashboardLayout'
 // Redirect authenticated users from login
 
 
@@ -29,7 +29,6 @@ const LoginRoute = () => {
   }
   if (isAuthenticated && user) {
     const role = user.role || user.rol
-    console.log('LoginRoute: User is authenticated, role:', role)
     
     if (role === 'health_professional' || role === 'professional') {
       return <Navigate to={ROUTES.PROFESSIONAL_DASHBOARD} replace />

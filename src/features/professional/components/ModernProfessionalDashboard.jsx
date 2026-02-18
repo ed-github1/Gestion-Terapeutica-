@@ -10,12 +10,40 @@ import {
     Clock, FileText, UserPlus, CalendarPlus, Video,
     AlertTriangle, CheckCircle, XCircle, MessageSquare,
     Users, CalendarCheck, TrendingUp, ArrowUpRight, ArrowDownRight, Minus,
-    ChevronRight
+    ChevronRight, DollarSign, BookOpen, Target, BarChart2, UserCheck
 } from 'lucide-react'
 import { formatDate, formatTime, getTodayAppointments } from '../dashboard/dashboardUtils'
-import { ROUTES } from '@constants/routes'
-import { videoCallAPI } from '@services/videoCall'
-import { appointmentsAPI } from '@services/appointments'
+import { ROUTES } from '@shared/constants/routes'
+import { videoCallService } from '@shared/services/videoCallService'
+import { appointmentsService } from '@shared/services/appointmentsService'
+
+/**
+ * Mini sparkline SVG for outcome tracking
+ */
+const Sparkline = ({ scores, color = '#10b981' }) => {
+    if (!scores || scores.length < 2) return null
+    const max = Math.max(...scores)
+    const min = Math.min(...scores)
+    const range = max - min || 1
+    const w = 80, h = 32, pad = 4
+    const pts = scores.map((v, i) => {
+        const x = pad + (i / (scores.length - 1)) * (w - pad * 2)
+        const y = pad + (1 - (v - min) / range) * (h - pad * 2)
+        return `${x},${y}`
+    }).join(' ')
+    return (
+        <svg width={w} height={h} className="overflow-visible">
+            <polyline points={pts} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            {scores.map((v, i) => {
+                const x = pad + (i / (scores.length - 1)) * (w - pad * 2)
+                const y = pad + (1 - (v - min) / range) * (h - pad * 2)
+                return i === scores.length - 1 ? (
+                    <circle key={i} cx={x} cy={y} r="3" fill={color} />
+                ) : null
+            })}
+        </svg>
+    )
+}
 
 const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
     const { user } = useAuth()
@@ -353,11 +381,45 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
         return actions
     }, [todayAppointments, stats.pendingNotes, stats.pendingTasks, stats.noShowCount])
 
+    // --- Feature data ---
+    // 1. Revenue snapshot (mock — replace with real billing service)
+    const mockRevenue = { thisMonth: 4800, lastMonth: 4200, outstanding: 650, pendingClaims: 3 }
+    const revenueGrowth = Math.round(((mockRevenue.thisMonth - mockRevenue.lastMonth) / mockRevenue.lastMonth) * 100)
+
+    // 2. Outcome tracking — PHQ-9 scores per patient (mock)
+    const mockOutcomes = [
+        { initials: 'JL', name: 'Jemma Linda',    scores: [14, 12, 10, 8, 7],   trend: 'improving' },
+        { initials: 'PM', name: 'Pedro Martínez', scores: [18, 19, 17, 20, 22], trend: 'concerning' },
+        { initials: 'AJ', name: 'Andy John',      scores: [12, 11, 10, 9, 8],   trend: 'improving' },
+        { initials: 'MG', name: 'Maria González', scores: [10, 9, 8, 6, 5],     trend: 'improving' },
+        { initials: 'CR', name: 'Carlos Rivera',  scores: [15, 14, 14, 13, 12], trend: 'stable' },
+    ]
+
+    // 3. Waitlist count (mock)
+    const waitlistCount = 4
+
+    // 4. Homework completion rate from today's schedule
+    const homeworkRate = todayAppointments.length > 0
+        ? Math.round((todayAppointments.filter(a => a.homeworkCompleted).length / todayAppointments.length) * 100)
+        : 68
+
+    // 6. Cancellation / no-show rate this month
+    const noShowRateVal = stats.weekAppointments > 0
+        ? Math.round((stats.noShowCount / stats.weekAppointments) * 100)
+        : 12
+    const prevNoShowRate = 18
+
+    // 5. Next upcoming session (for prep card)
+    const nextUpcomingSession = todayAppointments.find(a => new Date(a.fechaHora) > new Date())
+
+    // 7. CPD / Supervision hours (mock — replace with real CPD service)
+    const mockCPD = { completed: 18, required: 30, deadline: 'Jun 2026', supervised: 6, supervisedRequired: 10 }
+
     // Handler for joining video call - memoized to prevent excessive re-renders
     const handleJoinVideo = useCallback(async (appointment) => {
         try {
             // Notify patient about video call
-            await videoCallAPI.notifyPatient(appointment.id, appointment.patientId)
+            await videoCallService.sendVideoInvitation(appointment.id, appointment.patientId)
             // Navigate to video call page
             navigate(`/professional/video/${appointment.id}`)
         } catch (error) {
@@ -375,7 +437,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
     useEffect(() => {
         const loadAvailability = async () => {
             try {
-                const response = await appointmentsAPI.getAvailability?.()
+                const response = await appointmentsService.getAll({})
                 setAvailability(response?.data || {})
             } catch (error) {
                 // Try localStorage fallback
@@ -499,8 +561,14 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                     {stats.pendingNotes} nota{stats.pendingNotes > 1 ? 's' : ''} pendiente{stats.pendingNotes > 1 ? 's' : ''}
                                 </span>
                             )}
+                            {waitlistCount > 0 && (
+                                <span className="flex items-center gap-1.5 px-3 py-2 bg-purple-50 border border-purple-200 text-purple-700 rounded-lg text-sm font-medium cursor-pointer hover:bg-purple-100 transition-colors">
+                                    <UserCheck className="w-3.5 h-3.5" />
+                                    {waitlistCount} en lista de espera
+                                </span>
+                            )}
                         </motion.div>
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
+                        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 md:gap-4 mb-6 md:mb-8">
                             {[
                                 {
                                     label: 'Pacientes activos',
@@ -544,6 +612,26 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                     trend: null,
                                     alert: stats.pendingNotes > 0,
                                     delay: 0.25
+                                },
+                                {
+                                    label: 'Tareas completadas',
+                                    value: `${homeworkRate}%`,
+                                    sub: 'cumplimiento esta semana',
+                                    icon: Target,
+                                    iconColor: homeworkRate >= 70 ? 'text-emerald-600' : 'text-orange-500',
+                                    iconBg: homeworkRate >= 70 ? 'bg-emerald-50' : 'bg-orange-50',
+                                    trend: homeworkRate - 60,
+                                    delay: 0.3
+                                },
+                                {
+                                    label: 'Tasa no-show',
+                                    value: `${noShowRateVal}%`,
+                                    sub: `era ${prevNoShowRate}% mes anterior`,
+                                    icon: BarChart2,
+                                    iconColor: noShowRateVal < prevNoShowRate ? 'text-emerald-600' : 'text-rose-500',
+                                    iconBg: noShowRateVal < prevNoShowRate ? 'bg-emerald-50' : 'bg-rose-50',
+                                    trend: prevNoShowRate - noShowRateVal,
+                                    delay: 0.35
                                 }
                             ].map((card) => (
                                 <motion.div
@@ -588,6 +676,65 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                 </motion.div>
                             ))}
                         </div>
+                        {/* Feature 5: Next Session Prep Card */}
+                        {nextUpcomingSession && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 12 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.28 }}
+                                className="mb-6 bg-linear-to-r from-blue-600 to-indigo-600 rounded-2xl p-5 text-white"
+                            >
+                                <div className="flex items-start justify-between gap-4">
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-blue-200 text-xs font-medium mb-1 uppercase tracking-wide">Próxima sesión</p>
+                                        <h3 className="text-lg font-bold truncate">
+                                            {nextUpcomingSession.nombrePaciente || nextUpcomingSession.patient?.name}
+                                        </h3>
+                                        <p className="text-blue-200 text-sm mt-0.5">
+                                            {formatTime(new Date(nextUpcomingSession.fechaHora))} &nbsp;·&nbsp;
+                                            {nextUpcomingSession.treatmentGoal || 'Sin objetivo registrado'}
+                                        </p>
+                                    </div>
+                                    <div className="flex flex-col items-end gap-2 shrink-0">
+                                        <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${
+                                            nextUpcomingSession.riskLevel === 'high' ? 'bg-rose-500/30 text-rose-100' :
+                                            nextUpcomingSession.riskLevel === 'medium' ? 'bg-amber-400/30 text-amber-100' :
+                                            'bg-emerald-400/20 text-emerald-100'
+                                        }`}>
+                                            Riesgo {nextUpcomingSession.riskLevel === 'high' ? 'alto' : nextUpcomingSession.riskLevel === 'medium' ? 'medio' : 'bajo'}
+                                        </span>
+                                        <button
+                                            onClick={() => setDiaryPatient(nextUpcomingSession)}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/15 hover:bg-white/25 rounded-lg text-xs font-medium transition-colors text-blue-100"
+                                        >
+                                            <FileText className="w-3 h-3" />
+                                            Ver expediente
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="mt-4 grid grid-cols-3 gap-3">
+                                    <div className="bg-white/10 rounded-xl p-3">
+                                        <p className="text-blue-200 text-[10px] uppercase tracking-wide mb-1">Última nota</p>
+                                        <p className="text-white text-xs leading-snug line-clamp-2">
+                                            {nextUpcomingSession.lastSessionNote || 'Sin nota previa'}
+                                        </p>
+                                    </div>
+                                    <div className="bg-white/10 rounded-xl p-3">
+                                        <p className="text-blue-200 text-[10px] uppercase tracking-wide mb-1">Objetivo</p>
+                                        <p className="text-white text-xs leading-snug line-clamp-2">
+                                            {nextUpcomingSession.treatmentGoal || 'Sin objetivo'}
+                                        </p>
+                                    </div>
+                                    <div className="bg-white/10 rounded-xl p-3">
+                                        <p className="text-blue-200 text-[10px] uppercase tracking-wide mb-1">Tarea previa</p>
+                                        <p className={`text-xs font-semibold ${nextUpcomingSession.homeworkCompleted ? 'text-emerald-300' : 'text-rose-300'}`}>
+                                            {nextUpcomingSession.homeworkCompleted ? '✓ Completada' : '✗ Pendiente'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+
                         {/* Today's Sessions & Recent Activity */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
                             {/* Today's Sessions */}
@@ -625,6 +772,48 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                 />
                             </motion.div>
                         </div>
+
+                        {/* Feature 2: Outcome Tracking (PHQ-9 trends) */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.38 }}
+                            className="bg-white rounded-2xl border border-gray-100 overflow-hidden mb-6"
+                        >
+                            <div className="flex items-center justify-between px-5 md:px-6 py-4 border-b border-gray-100">
+                                <div className="flex items-center gap-2">
+                                    <BarChart2 className="w-4 h-4 text-indigo-600" />
+                                    <h2 className="text-[15px] font-semibold text-gray-900">Seguimiento PHQ-9</h2>
+                                </div>
+                                <button className="text-xs text-gray-400 hover:text-gray-600 font-medium">Ver todos</button>
+                            </div>
+                            <div className="divide-y divide-gray-50">
+                                {mockOutcomes.map((p) => (
+                                    <div key={p.initials} className="flex items-center gap-4 px-5 py-3 hover:bg-gray-50/50 transition-colors">
+                                        <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center shrink-0">
+                                            {p.initials}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-medium text-gray-900 truncate">{p.name}</p>
+                                            <p className="text-xs text-gray-400">Último: <span className="font-semibold text-gray-600">{p.scores[p.scores.length - 1]}</span> / 27</p>
+                                        </div>
+                                        <div className="shrink-0">
+                                            <Sparkline
+                                                scores={p.scores}
+                                                color={p.trend === 'improving' ? '#10b981' : p.trend === 'concerning' ? '#f43f5e' : '#94a3b8'}
+                                            />
+                                        </div>
+                                        <span className={`shrink-0 text-[10px] font-semibold px-2 py-1 rounded-full ${
+                                            p.trend === 'improving' ? 'bg-emerald-50 text-emerald-600' :
+                                            p.trend === 'concerning' ? 'bg-rose-50 text-rose-600' :
+                                            'bg-gray-100 text-gray-500'
+                                        }`}>
+                                            {p.trend === 'improving' ? 'Mejorando' : p.trend === 'concerning' ? 'Alerta' : 'Estable'}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </motion.div>
 
                         {/* Pending Actions Panel */}
                         <motion.div
@@ -688,6 +877,34 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
 
                     {/* Barra Lateral Derecha - Herramientas Clínicas */}
                     <div className="hidden xl:block bg-white border-l border-gray-100 p-6 space-y-6 overflow-y-auto">
+
+                        {/* Feature 1: Revenue Snapshot */}
+                        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <h4 className="font-bold text-gray-900 flex items-center gap-2">
+                                    <DollarSign className="w-4 h-4 text-emerald-600" />
+                                    Ingresos del Mes
+                                </h4>
+                                <span className={`flex items-center gap-0.5 text-xs font-semibold ${
+                                    revenueGrowth > 0 ? 'text-emerald-600' : 'text-rose-500'
+                                }`}>
+                                    {revenueGrowth > 0 ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
+                                    {Math.abs(revenueGrowth)}%
+                                </span>
+                            </div>
+                            <p className="text-3xl font-bold text-gray-900">${mockRevenue.thisMonth.toLocaleString()}</p>
+                            <p className="text-xs text-gray-400 mt-0.5 mb-4">vs ${mockRevenue.lastMonth.toLocaleString()} el mes pasado</p>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="bg-amber-50 rounded-xl p-3">
+                                    <p className="text-[10px] text-amber-600 font-semibold uppercase tracking-wide">Pendiente cobro</p>
+                                    <p className="text-lg font-bold text-amber-700 mt-0.5">${mockRevenue.outstanding}</p>
+                                </div>
+                                <div className="bg-blue-50 rounded-xl p-3">
+                                    <p className="text-[10px] text-blue-600 font-semibold uppercase tracking-wide">Reclamos activos</p>
+                                    <p className="text-lg font-bold text-blue-700 mt-0.5">{mockRevenue.pendingClaims}</p>
+                                </div>
+                            </div>
+                        </div>
 
                         {/* Messages Widget */}
                         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
@@ -829,6 +1046,41 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                         Iniciar ejercicio de respiración 5-min →
                                     </button>
                                 </div>
+                            </div>
+                        </div>
+
+                        {/* Feature 7: CPD / Supervision Hours Tracker */}
+                        <div className="bg-linear-to-br from-violet-50 to-purple-50 rounded-3xl p-6 border border-violet-100">
+                            <h4 className="font-bold text-gray-900 flex items-center gap-2 mb-4">
+                                <BookOpen className="w-5 h-5 text-violet-600" />
+                                Horas de Formación CPD
+                            </h4>
+                            <div className="space-y-4">
+                                <div>
+                                    <div className="flex items-center justify-between text-xs mb-1.5">
+                                        <span className="font-medium text-gray-700">Formación continua</span>
+                                        <span className="font-bold text-violet-600">{mockCPD.completed}/{mockCPD.required} h</span>
+                                    </div>
+                                    <div className="w-full h-2 bg-white rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-linear-to-r from-violet-500 to-purple-500 rounded-full transition-all"
+                                            style={{ width: `${Math.min((mockCPD.completed / mockCPD.required) * 100, 100)}%` }}
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="flex items-center justify-between text-xs mb-1.5">
+                                        <span className="font-medium text-gray-700">Supervisión clínica</span>
+                                        <span className="font-bold text-indigo-600">{mockCPD.supervised}/{mockCPD.supervisedRequired} h</span>
+                                    </div>
+                                    <div className="w-full h-2 bg-white rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-linear-to-r from-indigo-500 to-blue-500 rounded-full transition-all"
+                                            style={{ width: `${Math.min((mockCPD.supervised / mockCPD.supervisedRequired) * 100, 100)}%` }}
+                                        />
+                                    </div>
+                                </div>
+                                <p className="text-[11px] text-gray-400 mt-2">Renovación de licencia: <span className="font-semibold text-gray-600">{mockCPD.deadline}</span></p>
                             </div>
                         </div>
                     </div>

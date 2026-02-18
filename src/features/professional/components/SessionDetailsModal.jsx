@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react'
-import { X, Video, FileText, MessageSquare, Clock, Target, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { X, Video, FileText, MessageSquare, Clock, Target, AlertTriangle, BookOpen } from 'lucide-react'
 
 /**
  * Get patient initials from name
@@ -17,7 +17,7 @@ const getInitials = (name) => {
  * SessionDetailsModal Component
  * Shows comprehensive clinical information for a selected session
  */
-const SessionDetailsModal = ({ session, onClose, onJoinVideo, onAddNote, onMessage }) => {
+const SessionDetailsModal = ({ session, onClose, onJoinVideo, onAddNote, onMessage, onViewDiary }) => {
     if (!session) return null
 
     const patientName = session.nombrePaciente || session.patient?.name || 'Unknown Patient'
@@ -58,6 +58,11 @@ const SessionDetailsModal = ({ session, onClose, onJoinVideo, onAddNote, onMessa
 
     const handleMessage = () => {
         if (onMessage) onMessage(session)
+        onClose()
+    }
+
+    const handleViewDiary = () => {
+        if (onViewDiary) onViewDiary(session)
         onClose()
     }
 
@@ -115,33 +120,47 @@ const SessionDetailsModal = ({ session, onClose, onJoinVideo, onAddNote, onMessa
                     {/* Content */}
                     <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
                         {/* Action Buttons */}
-                        <div className="flex gap-2">
+                        {/* Primary: video call — full width, dominant */}
+                        <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={handleStartSession}
+                            className="w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold text-sm transition-colors shadow-sm"
+                        >
+                            <Video className="w-4 h-4" />
+                            Iniciar videollamada
+                        </motion.button>
+
+                        {/* Secondary actions — equal weight, labeled */}
+                        <div className="grid grid-cols-3 gap-2">
                             <motion.button
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
-                                onClick={handleStartSession}
-                                className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium text-sm transition-colors shadow-sm"
+                                onClick={handleAddNote}
+                                className="flex flex-col items-center gap-1.5 py-3 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-xl transition-colors"
                             >
-                                <Video className="w-4 h-4" />
-                                Iniciar
+                                <FileText className="w-4 h-4 text-gray-500" />
+                                <span className="text-[11px] font-medium">Añadir nota</span>
                             </motion.button>
 
                             <motion.button
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
-                                onClick={handleAddNote}
-                                className="p-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl transition-colors"
+                                onClick={handleViewDiary}
+                                className="flex flex-col items-center gap-1.5 py-3 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-xl transition-colors"
                             >
-                                <FileText className="w-4 h-4" />
+                                <BookOpen className="w-4 h-4 text-gray-500" />
+                                <span className="text-[11px] font-medium">Diario</span>
                             </motion.button>
 
                             <motion.button
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
                                 onClick={handleMessage}
-                                className="p-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl transition-colors"
+                                className="flex flex-col items-center gap-1.5 py-3 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-xl transition-colors"
                             >
-                                <MessageSquare className="w-4 h-4" />
+                                <MessageSquare className="w-4 h-4 text-gray-500" />
+                                <span className="text-[11px] font-medium">Mensaje</span>
                             </motion.button>
                         </div>
 

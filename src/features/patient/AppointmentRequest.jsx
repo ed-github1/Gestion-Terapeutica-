@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { showToast } from '@components'
-import { appointmentsAPI, paymentsAPI } from '@services/appointments'
+import { appointmentsService } from '@shared/services/appointmentsService'
 
 const AppointmentRequest = ({ onClose, onSuccess }) => {
   const [loading, setLoading] = useState(false)
@@ -41,7 +41,7 @@ const AppointmentRequest = ({ onClose, onSuccess }) => {
   const fetchAvailableSlots = async (date) => {
     setLoading(true)
     try {
-      const response = await appointmentsAPI.getAvailableSlots(date)
+      const response = await appointmentsService.getAvailableSlots(date)
       console.log('✅ Slots from API:', response.data)
       
       // Only use backend data for available slots
@@ -80,7 +80,7 @@ const AppointmentRequest = ({ onClose, onSuccess }) => {
       let appointmentId
       try {
         // Try to reserve with backend
-        const response = await appointmentsAPI.reserveAppointment({
+        const response = await appointmentsService.reserve({
           date: selectedDate,
           time: selectedSlot.time,
           type: formData.type,

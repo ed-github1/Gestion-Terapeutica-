@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { CreditCard, Lock, Check, ArrowLeft } from 'lucide-react'
 import { PLAN_PRICING, PLAN_LIMITS, PLAN_TYPES } from '@constants/subscriptionPlans'
-import subscriptionAPI from '@services/subscription'
+import { subscriptionService } from '@shared/services/subscriptionService'
 import { showToast } from '@components'
 
 const CheckoutPage = () => {
@@ -43,14 +43,14 @@ const CheckoutPage = () => {
     setLoading(true)
     try {
       // Create checkout session (Stripe integration)
-      const session = await subscriptionAPI.createCheckoutSession(planType, billingPeriod)
+      const session = await subscriptionService.createCheckoutSession(planType, billingPeriod)
       
       // Redirect to Stripe checkout
       if (session.checkoutUrl) {
         window.location.href = session.checkoutUrl
       } else {
         // Handle direct subscription creation
-        await subscriptionAPI.createSubscription(planType, billingPeriod)
+        await subscriptionService.createCheckoutSession(planType, billingPeriod)
         showToast('✅ Suscripción activada exitosamente', 'success')
         navigate('/dashboard/professional?subscription=success')
       }

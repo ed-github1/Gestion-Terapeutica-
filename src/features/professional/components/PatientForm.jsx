@@ -2,8 +2,8 @@ import { useState, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { useDropzone } from 'react-dropzone'
 import { motion } from 'motion/react'
-import { patientsAPI } from '@services/patients'
-import { invitationsAPI } from '@services/invitations'
+import { patientsService } from '@shared/services/patientsService'
+import { invitationsService } from '@shared/services/invitationsService'
 import { showToast } from '@components'
 
 const PatientForm = ({ onClose, onSubmit: onFormSubmit, mode = 'invite' }) => {
@@ -108,7 +108,7 @@ const PatientForm = ({ onClose, onSubmit: onFormSubmit, mode = 'invite' }) => {
       }
 
       // Send invitation via API
-      const result = await invitationsAPI.sendInvitation(invitationData)
+      const result = await invitationsService.send(invitationData)
 
       showToast(`✅ Invitación enviada exitosamente a ${data.invitationEmail}`, 'success')
       

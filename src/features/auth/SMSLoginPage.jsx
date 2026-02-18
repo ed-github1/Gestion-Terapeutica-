@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
-import { authAPI } from '@services/auth'
+import { authService } from '@shared/services/authService'
 import { showToast } from '@components'
 
 const SMSLoginPage = () => {
@@ -46,7 +46,7 @@ const SMSLoginPage = () => {
       setLoading(true)
       const cleanPhone = data.phone.replace(/[^\d]/g, '')
       
-      const response = await authAPI.loginWithSMS(cleanPhone)
+      const response = await authService.sendOTP(cleanPhone)
       
       if (response.data.success) {
         setPhoneNumber(cleanPhone)
@@ -69,7 +69,7 @@ const SMSLoginPage = () => {
       setLoading(true)
       const code = data.code
       
-      const response = await authAPI.verifyLoginSMS(phoneNumber, code, data.rememberMe)
+      const response = await authService.verifyOTP(phoneNumber, code)
       
       if (response.data.success) {
         const { token, user } = response.data.data
@@ -107,7 +107,7 @@ const SMSLoginPage = () => {
     
     try {
       setLoading(true)
-      const response = await authAPI.loginWithSMS(phoneNumber)
+      const response = await authService.sendOTP(phoneNumber)
       
       if (response.data.success) {
         startResendTimer()

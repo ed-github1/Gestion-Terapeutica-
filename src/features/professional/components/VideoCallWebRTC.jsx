@@ -7,7 +7,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Mic, MicOff, Video as VideoIcon, VideoOff, MessageSquare, PhoneOff, StopCircle } from 'lucide-react';
-import { useWebRTC } from '../../../hooks/useWebRTC';
+import { useWebRTC } from '@shared/hooks/useWebRTC';
 import { useAuth } from '../../auth/AuthContext';
 
 const ProfessionalVideoCallWebRTC = () => {

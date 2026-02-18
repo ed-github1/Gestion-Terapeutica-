@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { X, Send, Check, Copy, UserPlus } from 'lucide-react'
 import { showToast } from '@components'
-import { invitationsAPI } from '@services/invitations'
+import { invitationsService } from '@shared/services/invitationsService'
 
 const PatientInvitation = ({ onClose, onSuccess, professionalName }) => {
   const [step, setStep] = useState(1) // 1: form, 2: sending, 3: success
@@ -65,7 +65,7 @@ const PatientInvitation = ({ onClose, onSuccess, professionalName }) => {
     try {
       const cleanPhone = formData.phone.replace(/\D/g, '')
       
-      const data = await invitationsAPI.sendInvitation({
+      const data = await invitationsService.send({
         firstName: formData.firstName,
         lastName: formData.lastName,
         phone: cleanPhone ? `+52${cleanPhone}` : null,

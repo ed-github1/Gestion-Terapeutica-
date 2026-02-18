@@ -1,18 +1,7 @@
-import axios from 'axios'
 
-// API Configuration
+export { default as apiClient } from '@shared/api/client'
+export { authService as authAPI } from '@shared/services/authService'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
-
-
-// Create axios instance
-const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  timeout: 10000, // 10 seconds
-})
 
 // Request interceptor - Add auth token to requests
 apiClient.interceptors.request.use(

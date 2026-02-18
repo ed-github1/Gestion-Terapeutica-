@@ -1,10 +1,9 @@
 import { apiClient } from './api'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
 
 export const videoCallAPI = {
   // ========================================
-  // WebRTC Endpoints (New System)
+  // WebRTC Endpoints 
   // ========================================
   
   // Get ICE servers configuration for WebRTC
@@ -79,22 +78,7 @@ export const videoCallAPI = {
     }
   },
 
-  // ========================================
-  // Legacy Twilio Endpoints (Deprecated)
-  // ========================================
-  
-  // Get Twilio token for video call
-  getToken: async (appointmentId, identity) => {
-    try {
-      const response = await apiClient.post('/video/token', {
-        appointmentId,
-        identity
-      })
-      return response
-    } catch (error) {
-      throw new Error(error.message || 'Error al obtener token de video')
-    }
-  },
+
 
   // Notify patient about incoming video call
   notifyPatient: async (appointmentId, patientId) => {

@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import VideoCallLauncher from './VideoCall'
 import { showToast } from '@components'
-import { appointmentsAPI } from '@services/appointments'
+import { appointmentsService } from '@shared/services/appointmentsService'
 import AvailabilityManager from './AvailabilityManager'
 import ModernAppointmentsCalendar from './ModernAppointmentsCalendar'
 
@@ -37,11 +37,7 @@ const AppointmentModal = ({ appointment, onClose, onSave, onDelete }) => {
     try {
       const videoLink = `${window.location.origin}/video/join/${appointment.id}?name=${encodeURIComponent(formData.patientName)}`
       
-      await appointmentsAPI.sendVideoLink(appointment.id, {
-        patientName: formData.patientName,
-        videoLink,
-        appointmentTime: formData.date + ' ' + formData.time
-      })
+      await appointmentsService.updateStatus(appointment.id, 'notified')
 
       showToast('✉️ Notificación enviada exitosamente', 'success')
     } catch (error) {
@@ -385,7 +381,7 @@ const AppointmentsCalendar = () => {
     let allAppointments = []
     // Try to load from backend
     try {
-      const response = await appointmentsAPI.getAppointments({})
+      const response = await appointmentsService.getAll({})
       console.log('✅ Loaded appointments from backend:', response.data?.length || 0)
       if (response.data && response.data.length > 0) {
         const backendAppointments = response.data.map(apt => {

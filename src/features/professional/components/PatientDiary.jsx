@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { diaryAPI } from '@services/diary'
+import { diaryService } from '@shared/services/diaryService'
 import { useAuth } from '../../auth'
 
 const PatientDiary = ({ patientId, patientName, onClose }) => {
@@ -19,7 +19,7 @@ const PatientDiary = ({ patientId, patientName, onClose }) => {
         setIsLoading(true)
         setError(null)
         try {
-            const response = await diaryAPI.getNotes(patientId)
+            const response = await diaryService.getNotes(patientId)
             setNotes(response.data || [])
         } catch (error) {
             console.error('Error fetching notes:', error)
@@ -40,7 +40,7 @@ const PatientDiary = ({ patientId, patientName, onClose }) => {
                 author: user?.name || user?.email || 'Professional'
             }
 
-            const response = await diaryAPI.addNote(patientId, noteData)
+            const response = await diaryService.addNote(patientId, noteData)
             setNotes(prev => [response.data, ...prev])
             setNewNote('')
         } catch (error) {

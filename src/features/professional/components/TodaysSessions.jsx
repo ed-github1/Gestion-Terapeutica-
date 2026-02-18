@@ -46,7 +46,7 @@ const getRiskStyling = (riskLevel) => {
 
 /**
  * SessionCard Component
- * Matches the reference design with time on left, dashed connector, avatar, name, time range, and visit badge
+ * Read-only card — click opens the SessionDetailsModal which contains all actions (join, note, message).
  */
 const SessionCard = ({ appointment, index, onClick }) => {
     const patientName = appointment.nombrePaciente || appointment.patient?.name || 'Paciente Desconocido'
@@ -149,7 +149,7 @@ const SessionCard = ({ appointment, index, onClick }) => {
                             </div>
                         </div>
 
-                        {/* Visit badge - hide on smaller screens */}
+                        {/* Last visit badge */}
                         <div className="hidden xl:flex bg-white/70 border border-gray-200 rounded-full px-1.5 md:px-2 py-0.5 text-[8px] md:text-[9px] text-gray-400 font-medium italic whitespace-nowrap shrink-0">
                             {getTimeAgo(lastVisit)}
                         </div>
@@ -303,7 +303,7 @@ const SessionsSkeleton = () => (
 /**
  * TodaysSessions Component
  */
-const TodaysSessions = ({ sessions = [], loading, onJoinVideo, onViewProfile }) => {
+const TodaysSessions = ({ sessions = [], loading, onJoinVideo, onViewDiary, onViewProfile }) => {
     const [selectedSession, setSelectedSession] = useState(null)
 
     // Use sessions as-is - they're already sorted from parent
@@ -356,6 +356,7 @@ const TodaysSessions = ({ sessions = [], loading, onJoinVideo, onViewProfile }) 
                     session={selectedSession}
                     onClose={() => setSelectedSession(null)}
                     onJoinVideo={onJoinVideo}
+                    onViewDiary={onViewDiary}
                     onAddNote={(session) => console.log('Add note for:', session)}
                     onMessage={(session) => console.log('Message:', session)}
                 />

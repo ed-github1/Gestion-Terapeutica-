@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { motion } from 'motion/react'
 import { useAuth } from './AuthContext'
-import { authAPI } from '@services/auth'
+import { authService } from '@shared/services/authService'
 import { showToast } from '@components'
 import { Brain, Mail, Lock, User, Phone, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react'
 
@@ -22,7 +22,6 @@ const RegisterPage = () => {
         }
     })
 
-    const { login } = useAuth()
     const navigate = useNavigate()
 
     const password = watch('password')
@@ -31,7 +30,7 @@ const RegisterPage = () => {
         setApiError('')
         try {
             // Register user
-            const response = await authAPI.register({
+            const response = await authService.register({
                 firstName: data.firstName,
                 lastName: data.lastName,
                 email: data.email,
@@ -59,8 +58,8 @@ const RegisterPage = () => {
                     {/* Header */}
                     <div className="text-center space-y-3">
                         <div className="flex justify-center">
-                            <div className="w-14 h-14 bg-gradient-to-br from-indigo-600 to-blue-600 rounded-xl flex items-center justify-center shadow-md">
-                              <Brain className='w-7 h-7 text-white'/> 
+                            <div className="w-14 h-14  rounded-xl flex items-center justify-center">
+                                <Brain className="w-7 h-7 text-blue-600" />
                             </div>
                         </div>
                         <div>

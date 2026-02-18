@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { motion } from 'motion/react'
-import { authAPI } from '@services/auth'
+import { authService } from '@shared/services/authService'
+import apiClient from '@shared/api/client'
 
 const PatientRegisterPage = () => {
   const [searchParams] = useSearchParams()
@@ -67,7 +68,7 @@ const PatientRegisterPage = () => {
         token: token
       }
 
-      await authAPI.post('/patients/complete-registration', registrationData)
+      await apiClient.post('/patients/complete-registration', registrationData)
       
       alert('✅ Registro completado exitosamente!\n\nYa puedes iniciar sesión con tu correo y contraseña.')
       navigate('/login')

@@ -4,9 +4,9 @@ import { motion, AnimatePresence } from 'motion/react'
 import PatientPersonalDiary from './PatientPersonalDiary'
 import AppointmentRequest from './AppointmentRequest'
 import PatientAppointments from './PatientAppointments'
-import { appointmentsAPI } from '@services/appointments'
+import { appointmentsService } from '@shared/services/appointmentsService'
 import { VideoCallNotificationManager } from '@components'
-import useVideoCallNotifications from '@hooks/useVideoCallNotifications'
+import useVideoCallNotifications from '@shared/hooks/useVideoCallNotifications'
 import ChatPanel from '@components/layout/ChatPanel'
 import { Clock } from 'lucide-react'
 
@@ -45,7 +45,7 @@ const PatientDashboard = () => {
   const loadDashboardData = async () => {
     try {
       setError(null)
-      const appointments = await appointmentsAPI.getPatientAppointments()
+      const appointments = await appointmentsService.getPatientAppointments()
       
       // Defensive check - ensure appointments is an array
       const appointmentsArray = Array.isArray(appointments) ? appointments : []
