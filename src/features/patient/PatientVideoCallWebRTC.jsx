@@ -177,64 +177,64 @@ const PatientVideoCallWebRTC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 flex flex-col">
-      {/* Header */}
-      <div className="bg-gray-800 border-b border-gray-700 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <div className="text-white">
-            <h1 className="text-lg font-semibold">Sesión de Terapia</h1>
-            <p className="text-sm text-gray-400">
+    <div className="h-dvh bg-gray-900 flex flex-col overflow-hidden">
+      {/* Header - Compact */}
+      <div className="bg-gray-800/90 backdrop-blur-sm border-b border-gray-700/50 px-4 sm:px-6 py-2.5 flex items-center justify-between shrink-0 z-10">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="text-white min-w-0">
+            <h1 className="text-sm sm:text-base font-semibold truncate">Sesión de Terapia</h1>
+            <p className="text-xs text-gray-400 truncate">
               {participants.length > 0 && `Con ${participants[0]?.userName}`}
             </p>
           </div>
           
           {isInRoom && (
-            <div className="flex items-center space-x-2 text-gray-400">
-              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-              <span className="text-sm">{formatDuration(callDuration)}</span>
+            <div className="flex items-center gap-1.5 text-gray-400 shrink-0">
+              <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+              <span className="text-xs font-mono">{formatDuration(callDuration)}</span>
             </div>
           )}
         </div>
 
-        <div className="flex items-center space-x-2">
-          <span className="text-gray-400 text-sm">
-            Participantes: {participants.length + 1}
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-gray-400 text-xs">
+            {participants.length + 1} en la sala
           </span>
         </div>
       </div>
 
-      {/* Video Container */}
-      <div className="flex-1 relative overflow-hidden bg-gray-900">
+      {/* Video Container - fills remaining space */}
+      <div className="flex-1 relative min-h-0">
         {/* Remote Video (Main) */}
-        <div className="w-full h-full flex items-center justify-center">
+        <div className="absolute inset-0">
           {remoteStreams.length > 0 ? (
             remoteStreams.map(({ userId, stream }) => (
-              <div key={userId} className="w-full h-full flex items-center justify-center relative">
+              <div key={userId} className="absolute inset-0">
                 <video
                   ref={el => {
                     if (el) remoteVideoRefs.current.set(userId, el);
                   }}
                   autoPlay
                   playsInline
-                  className="max-w-full max-h-full object-contain"
+                  className="w-full h-full object-cover"
                 />
                 
                 {/* Remote user info overlay */}
-                <div className="absolute bottom-4 left-4 bg-black/50 backdrop-blur-sm px-4 py-2 rounded-lg">
-                  <p className="text-white font-medium">
+                <div className="absolute bottom-4 left-4 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-lg">
+                  <p className="text-white text-sm font-medium">
                     {participants.find(p => p.userId === userId)?.userName || 'Profesional'}
                   </p>
                 </div>
               </div>
             ))
           ) : (
-            <div className="w-full h-full flex items-center justify-center">
+            <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-center">
-                <div className="w-24 h-24 bg-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-4xl text-white">👤</span>
+                <div className="w-20 h-20 bg-indigo-600/60 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <span className="text-3xl text-white">👤</span>
                 </div>
-                <p className="text-white text-lg">Esperando al profesional...</p>
-                <p className="text-gray-400 text-sm mt-2">La videollamada comenzará pronto</p>
+                <p className="text-white text-base">Esperando al profesional...</p>
+                <p className="text-gray-500 text-xs mt-1">La videollamada comenzará pronto</p>
               </div>
             </div>
           )}
@@ -243,8 +243,8 @@ const PatientVideoCallWebRTC = () => {
         {/* Local Video (Picture-in-Picture) */}
         <motion.div
           drag
-          dragConstraints={{ top: 0, bottom: 0, left: 0, right: 0 }}
-          className="absolute top-4 right-4 w-48 sm:w-56 md:w-64 aspect-video bg-gray-800 rounded-xl overflow-hidden shadow-2xl border-2 border-indigo-500/50 cursor-move backdrop-blur-sm"
+          dragConstraints={{ top: -20, bottom: 200, left: -200, right: 20 }}
+          className="absolute top-3 right-3 w-28 sm:w-40 md:w-52 aspect-video bg-gray-800 rounded-lg overflow-hidden shadow-2xl border border-white/20 cursor-move z-10"
         >
           {localStream ? (
             <>
@@ -265,8 +265,8 @@ const PatientVideoCallWebRTC = () => {
                 </div>
               )}
               
-              <div className="absolute bottom-2 left-2 bg-black/50 backdrop-blur-sm px-2 py-1 rounded">
-                <p className="text-white text-xs font-medium">Tú</p>
+              <div className="absolute bottom-1.5 left-1.5 bg-black/50 backdrop-blur-sm px-1.5 py-0.5 rounded text-[10px] sm:text-xs">
+                <p className="text-white font-medium">Tú</p>
               </div>
             </>
           ) : (

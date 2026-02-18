@@ -311,11 +311,17 @@ class WebRTCManager {
       }
     };
 
-    // Handle remote stream
+    // Handle remote stream — ontrack fires once per track (audio + video),
+    // so we deduplicate by checking if the stream is already stored.
     pc.ontrack = (event) => {
-      console.log('Received remote track from:', targetUserId);
       const remoteStream = event.streams[0];
+      if (!remoteStream) return;
       
+      // Only notify once per unique stream
+      const existing = this.remoteStreams.get(targetUserId);
+      if (existing?.id === remoteStream.id) return;
+      
+      console.log('Received remote track from:', targetUserId);
       this.remoteStreams.set(targetUserId, remoteStream);
       
       if (this.onRemoteStreamAdded) {

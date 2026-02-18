@@ -3,7 +3,7 @@
  * Provides easy integration of WebRTC functionality in React components
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import WebRTCManager from '../services/webrtc/WebRTCManager';
 import { useAuth } from '../features/auth';
 
@@ -15,6 +15,7 @@ export const useWebRTC = () => {
   const [isInRoom, setIsInRoom] = useState(false);
   const [localStream, setLocalStream] = useState(null);
   const [remoteStreams, setRemoteStreams] = useState(new Map());
+  const [remoteStreamsVersion, setRemoteStreamsVersion] = useState(0);
   const [participants, setParticipants] = useState([]);
   const [chatMessages, setChatMessages] = useState([]);
   const [error, setError] = useState(null);
@@ -61,16 +62,25 @@ export const useWebRTC = () => {
       // Setup event callbacks
       manager.onRemoteStreamAdded = ({ userId, stream }) => {
         console.log('Remote stream added:', userId);
-        setRemoteStreams(prev => new Map(prev).set(userId, stream));
+        setRemoteStreams(prev => {
+          // Skip if the same stream is already set for this user
+          if (prev.get(userId) === stream) return prev;
+          const newMap = new Map(prev);
+          newMap.set(userId, stream);
+          return newMap;
+        });
+        setRemoteStreamsVersion(v => v + 1);
       };
 
       manager.onRemoteStreamRemoved = ({ userId }) => {
         console.log('Remote stream removed:', userId);
         setRemoteStreams(prev => {
+          if (!prev.has(userId)) return prev;
           const newMap = new Map(prev);
           newMap.delete(userId);
           return newMap;
         });
+        setRemoteStreamsVersion(v => v + 1);
       };
 
       manager.onUserJoined = ({ userId, userName, role }) => {
@@ -172,6 +182,7 @@ export const useWebRTC = () => {
     setIsInRoom(false);
     setLocalStream(null);
     setRemoteStreams(new Map());
+    setRemoteStreamsVersion(0);
     setParticipants([]);
     setChatMessages([]);
     currentRoomIdRef.current = null;
@@ -267,16 +278,22 @@ export const useWebRTC = () => {
     }
   }, [user, token, isInitialized, initialize]);
 
+  // Memoize the remote streams array so it only changes when streams actually change
+  const remoteStreamsArray = useMemo(() => {
+    return Array.from(remoteStreams.entries()).map(([userId, stream]) => ({
+      userId,
+      stream
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [remoteStreamsVersion]);
+
   return {
     // State
     isInitialized,
     isConnecting,
     isInRoom,
     localStream,
-    remoteStreams: Array.from(remoteStreams.entries()).map(([userId, stream]) => ({
-      userId,
-      stream
-    })),
+    remoteStreams: remoteStreamsArray,
     participants,
     chatMessages,
     error,
