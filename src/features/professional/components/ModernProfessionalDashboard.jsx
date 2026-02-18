@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useAuth } from '@features/auth'
 import { useNavigate } from 'react-router-dom'
@@ -183,13 +183,10 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
         }
     ]
 
-    // Get real appointments for today (backend already filters by professional)
-    let realTodayAppointments = getTodayAppointments(appointments)
-    
-    console.log('Today appointments loaded:', realTodayAppointments.length)
-    if (realTodayAppointments.length > 0) {
-        console.log('Sample appointment:', realTodayAppointments[0])
-    }
+    // Memoize expensive calculations to prevent re-running on every render
+    const { todayAppointments, allDaySlots, upcomingPatient } = useMemo(() => {
+        // Get real appointments for today (backend already filters by professional)
+        let realTodayAppointments = getTodayAppointments(appointments)
     
     // Combine real and mock appointments
     // Keep mock data for early hours (before 12:00 PM) but prioritize real appointments
@@ -235,8 +232,6 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
     const todayDayOfWeek = today.getDay()
     const todayAvailability = availability[todayDayOfWeek] || []
     
-    console.log('Today is day:', todayDayOfWeek, 'Availability slots:', todayAvailability)
-    
     // Get times of existing appointments
     const appointmentTimes = new Set(
         todayAppointments.map(apt => {
@@ -244,8 +239,6 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
             return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
         })
     )
-    
-    console.log('Existing appointment times:', Array.from(appointmentTimes))
     
     // Generate all possible time slots for the day (7:00 AM - 8:00 PM)
     const allPossibleSlots = []
@@ -267,8 +260,6 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
             const slotDate = new Date()
             slotDate.setHours(parseInt(hours), parseInt(minutes), 0, 0)
             
-            console.log(`Slot ${timeSlot}: ${isInAvailability ? 'Available (no pill)' : 'NOT available (show pill)'} - Date: ${slotDate.toLocaleString()}`)
-            
             // Only show pill for slots NOT in availability
             if (!isInAvailability) {
                 unavailableSlotsToday.push({
@@ -281,8 +272,6 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
         }
     })
     
-    console.log('Total unavailable slots to show:', unavailableSlotsToday.length)
-    
     // Merge appointments and unavailable slots, sort chronologically (earliest first)
     const allDaySlots = [...todayAppointments, ...unavailableSlotsToday]
         .sort((a, b) => {
@@ -291,32 +280,22 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
             return timeA - timeB
         })
     
-    // Log sorted times for debugging
-    console.log('Sorted timeline:', allDaySlots.map(slot => {
-        const date = new Date(slot.fechaHora)
-        return `${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')} ${slot.nombrePaciente || (slot.isUnavailable ? 'Unavailable' : 'Break')}`
-    }))
-    
-    const dashboardActivities = activities && activities.length > 0 ? activities : mockActivities
-
     // Get upcoming patient info from first appointment
     const upcomingPatient = todayAppointments[0]
+    
+    return { todayAppointments, allDaySlots, upcomingPatient }
+    }, [appointments, availability]) // Only recalculate when appointments or availability change
+    
+    const dashboardActivities = activities && activities.length > 0 ? activities : mockActivities
     const monthGrowth = Math.round((stats.totalPatients / Math.max(stats.totalPatients - 10, 1)) * 100) - 100
 
     // Handler for joining video call
     const handleJoinVideo = async (appointment) => {
-        console.log('ModernDashboard handleJoinVideo called with appointment:', appointment)
-        
         try {
-            // First, notify the patient about the video call
-            console.log('Sending notification to patient:', appointment.patientId)
-            await videoCallAPI.notifyPatient(appointment.id, appointment.patientId)
-            console.log('Patient notified successfully')
-            
-            // Then navigate to the video call page
-            const videoUrl = `/professional/video/${appointment.id}`
-            console.log('Navigating to:', videoUrl)
-            navigate(videoUrl)
+            // Notify patient about video call
+            await videoCallAPI.notifyPatient(appointment.id, user.id)
+            // Navigate to video call page
+            navigate(`/professional/video/${appointment.id}`)
         } catch (error) {
             console.error('Error notifying patient:', error)
             // Still navigate even if notification fails
@@ -334,7 +313,6 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
         const loadAvailability = async () => {
             try {
                 const response = await appointmentsAPI.getAvailability?.()
-                console.log('Loaded availability from backend:', response?.data)
                 setAvailability(response?.data || {})
             } catch (error) {
                 // Try localStorage fallback
@@ -342,10 +320,9 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                 if (local) {
                     try {
                         const parsed = JSON.parse(local)
-                        console.log('Loaded availability from localStorage:', parsed)
                         setAvailability(parsed)
                     } catch (e) {
-                        console.warn('Could not parse availability from localStorage')
+                        // Silently fail
                     }
                 }
             }

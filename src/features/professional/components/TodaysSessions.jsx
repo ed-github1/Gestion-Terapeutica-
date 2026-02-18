@@ -305,12 +305,6 @@ const SessionsSkeleton = () => (
  */
 const TodaysSessions = ({ sessions = [], loading, onJoinVideo, onViewProfile }) => {
     const [selectedSession, setSelectedSession] = useState(null)
-    
-    console.log('TodaysSessions - Received sessions count:', sessions.length)
-    console.log('TodaysSessions - Session times order:', sessions.map(s => {
-        const date = new Date(s.fechaHora)
-        return `${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`
-    }))
 
     // Use sessions as-is - they're already sorted from parent
     const sortedSessions = sessions
