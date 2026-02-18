@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useAuth } from '@features/auth'
 import { useNavigate } from 'react-router-dom'
@@ -289,8 +289,8 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
     const dashboardActivities = activities && activities.length > 0 ? activities : mockActivities
     const monthGrowth = Math.round((stats.totalPatients / Math.max(stats.totalPatients - 10, 1)) * 100) - 100
 
-    // Handler for joining video call
-    const handleJoinVideo = async (appointment) => {
+    // Handler for joining video call - memoized to prevent excessive re-renders
+    const handleJoinVideo = useCallback(async (appointment) => {
         try {
             // Notify patient about video call
             await videoCallAPI.notifyPatient(appointment.id, appointment.patientId)
@@ -300,7 +300,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
             // Still navigate even if notification fails
             navigate(`/professional/video/${appointment.id}`)
         }
-    }
+    }, [navigate])
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000)

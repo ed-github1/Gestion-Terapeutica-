@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDashboardData, useDashboardView, useCurrentTime } from '../dashboard/useDashboard'
 import DashboardHeader from './DashboardHeader'
@@ -71,14 +71,10 @@ const ProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
         console.log('Navigate to reports')
     }
 
-    const handleJoinVideo = (appointment) => {
-        console.log('handleJoinVideo called with appointment:', appointment)
-        const videoUrl = `/professional/video/${appointment.id}`
-        console.log('Navigating to:', videoUrl)
+    const handleJoinVideo = useCallback((appointment) => {
         // Navigate directly to video call
-        navigate(videoUrl)
-        console.log('Navigate function called')
-    }
+        navigate(`/professional/video/${appointment.id}`)
+    }, [navigate])
 
     const handleViewProfile = (appointment) => {
         const patient = patients.find(p =>

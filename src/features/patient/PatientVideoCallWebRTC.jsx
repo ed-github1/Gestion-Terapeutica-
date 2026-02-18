@@ -6,6 +6,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
+import { Mic, MicOff, Video as VideoIcon, VideoOff, MessageSquare, Maximize, Minimize, PhoneOff } from 'lucide-react';
 import { useWebRTC } from '../../hooks/useWebRTC';
 import { useAuth } from '../auth/AuthContext';
 
@@ -203,19 +204,19 @@ const PatientVideoCallWebRTC = () => {
       </div>
 
       {/* Video Container */}
-      <div className="flex-1 relative overflow-hidden">
+      <div className="flex-1 relative overflow-hidden bg-gray-900">
         {/* Remote Video (Main) */}
-        <div className="w-full h-full bg-gray-900">
+        <div className="w-full h-full flex items-center justify-center">
           {remoteStreams.length > 0 ? (
             remoteStreams.map(({ userId, stream }) => (
-              <div key={userId} className="w-full h-full relative">
+              <div key={userId} className="w-full h-full flex items-center justify-center relative">
                 <video
                   ref={el => {
                     if (el) remoteVideoRefs.current.set(userId, el);
                   }}
                   autoPlay
                   playsInline
-                  className="w-full h-full object-cover"
+                  className="max-w-full max-h-full object-contain"
                 />
                 
                 {/* Remote user info overlay */}
@@ -243,7 +244,7 @@ const PatientVideoCallWebRTC = () => {
         <motion.div
           drag
           dragConstraints={{ top: 0, bottom: 0, left: 0, right: 0 }}
-          className="absolute top-4 right-4 w-64 h-48 bg-gray-800 rounded-lg overflow-hidden shadow-2xl border-2 border-gray-700 cursor-move"
+          className="absolute top-4 right-4 w-48 sm:w-56 md:w-64 aspect-video bg-gray-800 rounded-xl overflow-hidden shadow-2xl border-2 border-indigo-500/50 cursor-move backdrop-blur-sm"
         >
           {localStream ? (
             <>
@@ -345,66 +346,90 @@ const PatientVideoCallWebRTC = () => {
         </AnimatePresence>
       </div>
 
-      {/* Controls */}
-      <div className="bg-gray-800 border-t border-gray-700 px-6 py-4">
-        <div className="flex items-center justify-center space-x-4">
-          {/* Mute Audio */}
-          <button
-            onClick={handleToggleAudio}
-            className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
-              isAudioEnabled
-                ? 'bg-gray-700 hover:bg-gray-600 text-white'
-                : 'bg-red-600 hover:bg-red-700 text-white'
-            }`}
-            title={isAudioEnabled ? 'Silenciar' : 'Activar audio'}
-          >
-            {isAudioEnabled ? '🎤' : '🔇'}
-          </button>
+      {/* Controls - Responsive & Minimalistic */}
+      <div className="bg-gradient-to-t from-gray-900 to-gray-800 border-t border-gray-700/50 backdrop-blur-sm">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+            {/* Primary Controls Group */}
+            <div className="flex items-center gap-2">
+              {/* Audio */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleToggleAudio}
+                className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center transition-all shadow-lg ${
+                  isAudioEnabled
+                    ? 'bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm'
+                    : 'bg-red-500 hover:bg-red-600 text-white'
+                }`}
+                title={isAudioEnabled ? 'Silenciar' : 'Activar audio'}
+              >
+                {isAudioEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+              </motion.button>
 
-          {/* Toggle Video */}
-          <button
-            onClick={handleToggleVideo}
-            className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
-              isVideoEnabled
-                ? 'bg-gray-700 hover:bg-gray-600 text-white'
-                : 'bg-red-600 hover:bg-red-700 text-white'
-            }`}
-            title={isVideoEnabled ? 'Apagar cámara' : 'Encender cámara'}
-          >
-            {isVideoEnabled ? '📹' : '📹❌'}
-          </button>
+              {/* Video */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleToggleVideo}
+                className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center transition-all shadow-lg ${
+                  isVideoEnabled
+                    ? 'bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm'
+                    : 'bg-red-500 hover:bg-red-600 text-white'
+                }`}
+                title={isVideoEnabled ? 'Apagar cámara' : 'Encender cámara'}
+              >
+                {isVideoEnabled ? <VideoIcon className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
+              </motion.button>
+            </div>
 
-          {/* Chat */}
-          <button
-            onClick={() => setShowChat(!showChat)}
-            className="w-12 h-12 rounded-full bg-gray-700 hover:bg-gray-600 text-white flex items-center justify-center transition-colors relative"
-            title="Chat"
-          >
-            💬
-            {chatMessages.length > 0 && !showChat && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-xs flex items-center justify-center">
-                {chatMessages.length}
-              </span>
-            )}
-          </button>
+            {/* Secondary Controls Group */}
+            <div className="flex items-center gap-2">
+              {/* Chat */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setShowChat(!showChat)}
+                className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all backdrop-blur-sm shadow-lg"
+                title="Chat"
+              >
+                <MessageSquare className="w-5 h-5" />
+                {chatMessages.length > 0 && !showChat && (
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="absolute -top-1 -right-1 w-5 h-5 bg-indigo-500 rounded-full text-xs flex items-center justify-center font-semibold"
+                  >
+                    {chatMessages.length > 9 ? '9+' : chatMessages.length}
+                  </motion.span>
+                )}
+              </motion.button>
 
-          {/* Fullscreen */}
-          <button
-            onClick={handleToggleFullscreen}
-            className="w-12 h-12 rounded-full bg-gray-700 hover:bg-gray-600 text-white flex items-center justify-center transition-colors"
-            title={isFullscreen ? 'Salir pantalla completa' : 'Pantalla completa'}
-          >
-            {isFullscreen ? '⛶' : '⛶'}
-          </button>
+              {/* Fullscreen */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleToggleFullscreen}
+                className="hidden sm:flex w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-white/10 hover:bg-white/20 text-white items-center justify-center transition-all backdrop-blur-sm shadow-lg"
+                title={isFullscreen ? 'Salir pantalla completa' : 'Pantalla completa'}
+              >
+                {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+              </motion.button>
+            </div>
 
-          {/* Leave Call */}
-          <button
-            onClick={handleLeaveRoom}
-            className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-full font-semibold transition-colors flex items-center space-x-2"
-          >
-            <span>📞</span>
-            <span>Salir</span>
-          </button>
+            {/* Leave Call Button */}
+            <div className="flex items-center w-full sm:w-auto justify-center">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleLeaveRoom}
+                className="flex-1 sm:flex-none px-6 sm:px-8 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-all shadow-lg flex items-center justify-center gap-2"
+              >
+                <PhoneOff className="w-4 h-4" />
+                <span>Salir de la llamada</span>
+              </motion.button>
+            </div>
+          </div>
         </div>
       </div>
 

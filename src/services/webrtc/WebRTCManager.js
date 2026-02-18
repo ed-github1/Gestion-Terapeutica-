@@ -216,7 +216,21 @@ class WebRTCManager {
   /**
    * Get local media stream (camera/microphone)
    */
-  async getLocalStream(constraints = { video: true, audio: true }) {
+  async getLocalStream(constraints = {
+    video: {
+      width: { ideal: 1280, max: 1920 },
+      height: { ideal: 720, max: 1080 },
+      aspectRatio: { ideal: 16/9 },
+      frameRate: { ideal: 30, max: 60 },
+      facingMode: 'user'
+    },
+    audio: {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+      sampleRate: 48000
+    }
+  }) {
     try {
       this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
       console.log('Local stream acquired');

@@ -19,8 +19,6 @@ const getInitials = (name) => {
  */
 const SessionDetailsModal = ({ session, onClose, onJoinVideo, onAddNote, onMessage }) => {
     if (!session) return null
-    
-    console.log('SessionDetailsModal - onJoinVideo prop:', onJoinVideo, 'Type:', typeof onJoinVideo)
 
     const patientName = session.nombrePaciente || session.patient?.name || 'Unknown Patient'
     const riskLevel = session.riskLevel || 'low'
