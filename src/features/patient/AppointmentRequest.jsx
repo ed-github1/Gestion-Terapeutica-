@@ -38,21 +38,39 @@ const AppointmentRequest = ({ onClose, onSuccess }) => {
     }
   }, [selectedDate])
 
+  const getSlotsFromLocalAvailability = (date) => {
+    try {
+      const raw = localStorage.getItem('professionalAvailability')
+      if (!raw) return []
+      const availability = JSON.parse(raw)
+      // day-of-week: 0=Sun … 6=Sat
+      // Add 'T00:00:00' to avoid timezone shifting the date
+      const dayOfWeek = new Date(`${date}T00:00:00`).getDay()
+      const times = availability[dayOfWeek] || []
+      return times.map(time => ({ time, available: true }))
+    } catch {
+      return []
+    }
+  }
+
   const fetchAvailableSlots = async (date) => {
     setLoading(true)
     try {
       const response = await appointmentsService.getAvailableSlots(date)
       console.log('✅ Slots from API:', response.data)
       
-      // Only use backend data for available slots
       if (response.data && response.data.length > 0) {
         setAvailableSlots(response.data)
       } else {
-        setAvailableSlots([])
+        // API returned empty — fall back to professional's saved availability
+        const localSlots = getSlotsFromLocalAvailability(date)
+        console.log('ℹ️ Using local availability slots:', localSlots)
+        setAvailableSlots(localSlots)
       }
     } catch (error) {
-      console.warn('⚠️ Backend not available:', error.message)
-      setAvailableSlots([])
+      console.warn('⚠️ Backend not available, trying local availability:', error.message)
+      const localSlots = getSlotsFromLocalAvailability(date)
+      setAvailableSlots(localSlots)
     } finally {
       setLoading(false)
     }
@@ -292,7 +310,7 @@ const AppointmentRequest = ({ onClose, onSuccess }) => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <p className="text-xs sm:text-sm text-gray-600">No hay horarios disponibles para esta fecha.</p>
-                    <p className="text-xs text-gray-500 mt-1">Intenta con otra fecha</p>
+                    <p className="text-xs text-gray-500 mt-1">El profesional no ha configurado disponibilidad para este día. Intenta con otra fecha.</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 sm:gap-2 max-h-48 sm:max-h-64 overflow-y-auto">

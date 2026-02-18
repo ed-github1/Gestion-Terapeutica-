@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { X, Clock } from 'lucide-react'
 import { showToast } from '@components'
-import { appointmentsService } from '@shared/services/appointmentsService'
 
 const AvailabilityManager = ({ onClose }) => {
   const [loading, setLoading] = useState(false)
@@ -39,27 +38,18 @@ const AvailabilityManager = ({ onClose }) => {
   const loadAvailability = async () => {
     setLoading(true)
     try {
-      // Only fetch from backend or localStorage, no mock/default slots
-      let loaded = {}
-      try {
-        const response = await appointmentsService.getAll({})
-        loaded = response?.data || {}
-      } catch (error) {
-        console.warn('Could not load availability from backend, trying localStorage')
-        const local = localStorage.getItem('professionalAvailability')
-        if (local) {
-          try {
-            loaded = JSON.parse(local)
-          } catch (e) {
-            loaded = {}
-          }
-        }
+      const local = localStorage.getItem('professionalAvailability')
+      if (local) {
+        const parsed = JSON.parse(local)
+        // Keys are stored as strings — normalize to numbers
+        const normalized = {}
+        Object.entries(parsed).forEach(([k, v]) => { normalized[Number(k)] = v })
+        setAvailability(normalized)
       }
-      setAvailability(loaded)
-      setLoading(false)
     } catch (err) {
+      console.error('Error loading availability:', err)
+    } finally {
       setLoading(false)
-      console.error('Unexpected error loading availability:', err)
     }
   }
 
