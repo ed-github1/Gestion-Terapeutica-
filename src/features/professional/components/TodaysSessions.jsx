@@ -98,10 +98,8 @@ const SessionCard = ({ appointment, index, onClick }) => {
     // iMessage-style positioning - strict alternation left/right
     const isRightAligned = index % 2 === 1 // Odd indexes go right, even go left
     
-    // Variable widths for visual interest - using Tailwind classes that will be purged correctly
-    const widthClasses = ['max-w-[70%]', 'max-w-[85%]', 'max-w-[75%]', 'max-w-[80%]', 'max-w-[65%]']
-    const widthClass = widthClasses[index % widthClasses.length]
-    const position = `${widthClass} ${isRightAligned ? 'ml-auto' : ''}`
+    // Simpler responsive width - let it flow naturally
+    const position = isRightAligned ? 'ml-auto max-w-[85%]' : 'mr-auto max-w-[85%]'
 
     return (
         <motion.div
@@ -126,38 +124,33 @@ const SessionCard = ({ appointment, index, onClick }) => {
                 
                 {/* Card - Clean design with click handler */}
                 <div 
-                    className={`${position} relative shrink-0 cursor-pointer`}
+                    className={`${position} relative shrink-0 cursor-pointer min-w-0 w-full`}
                     onClick={() => onClick(appointment)}
                 >
-                    {/* Risk level alert - subtle indicator above card */}
-                    {riskLevel === 'high' && (
-                        <div className="absolute -top-5 left-2 w-2 h-2 bg-rose-500 rounded-full animate-pulse"></div>
-                    )}
-                    
-                    <div className={`flex items-center gap-2 md:gap-3 ${bgColor} ${riskLevel === 'high' ? 'ring-2 ring-rose-200' : ''} rounded-xl md:rounded-2xl px-2.5 md:px-4 py-2 md:py-2.5 transition-all hover:shadow-md hover:scale-[1.02] min-w-0`}>
+                    <div className={`flex items-center gap-1.5 md:gap-2 ${bgColor} ${riskLevel === 'high' ? 'ring-2 ring-rose-200' : ''} rounded-xl md:rounded-2xl px-2 md:px-3 py-1.5 md:py-2 transition-all hover:shadow-md hover:scale-[1.02] min-w-0 w-full`}>
                         {/* Avatar */}
-                        <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full ${avatarColor} flex items-center justify-center font-bold text-[10px] md:text-xs shrink-0 shadow-sm relative`}>
+                        <div className={`w-7 h-7 md:w-9 md:h-9 rounded-full ${avatarColor} flex items-center justify-center font-bold text-[9px] md:text-xs shrink-0 shadow-sm relative`}>
                             {getInitials(patientName)}
                             {/* Homework completion badge - subtle */}
                             {homeworkComplete && (
-                                <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border border-white"></div>
+                                <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 md:w-2.5 md:h-2.5 bg-emerald-500 rounded-full border border-white"></div>
                             )}
                         </div>
 
-                        {/* Info */}
-                        <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5 mb-0.5">
-                                <Video className="w-3 h-3 md:w-3.5 md:h-3.5 text-indigo-500 shrink-0" />
-                                <h3 className="font-bold text-gray-900 text-xs md:text-sm leading-tight break-words">{patientName}</h3>
+                        {/* Info - with proper flex and truncation */}
+                        <div className="flex-1 min-w-0 overflow-hidden">
+                            <div className="flex items-center gap-1 mb-0.5">
+                                <Video className="w-2.5 h-2.5 md:w-3 md:h-3 text-indigo-500 shrink-0" />
+                                <h3 className="font-bold text-gray-900 text-[10px] md:text-xs leading-tight truncate">{patientName}</h3>
                             </div>
-                            <div className="flex items-center gap-1 text-[9px] md:text-[10px] text-gray-400">
-                                <Clock className="w-2.5 h-2.5 md:w-3 md:h-3 shrink-0" />
+                            <div className="flex items-center gap-1 text-[8px] md:text-[9px] text-gray-400">
+                                <Clock className="w-2 h-2 md:w-2.5 md:h-2.5 shrink-0" />
                                 <span className="truncate">{timeRange}</span>
                             </div>
                         </div>
 
-                        {/* Visit badge */}
-                        <div className="hidden lg:flex bg-white/70 border border-gray-200 rounded-full px-2 md:px-2.5 py-0.5 md:py-1 text-[9px] md:text-[10px] text-gray-400 font-medium italic whitespace-nowrap shrink-0">
+                        {/* Visit badge - hide on smaller screens */}
+                        <div className="hidden xl:flex bg-white/70 border border-gray-200 rounded-full px-1.5 md:px-2 py-0.5 text-[8px] md:text-[9px] text-gray-400 font-medium italic whitespace-nowrap shrink-0">
                             {getTimeAgo(lastVisit)}
                         </div>
                     </div>
@@ -220,6 +213,55 @@ const BreakCard = ({ time, index }) => {
 }
 
 /**
+ * AvailableSlotCard Component
+ * Gray/blue pill showing unavailable time slot (not in schedule) or break time
+ */
+const AvailableSlotCard = ({ slot, index }) => {
+    const startTime = new Date(slot.fechaHora)
+    const hours = startTime.getHours()
+    const minutes = startTime.getMinutes()
+    const ampm = hours >= 12 ? 'PM' : 'AM'
+    const displayHours = hours % 12 || 12
+    const timeStr = `${String(displayHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.06, duration: 0.3 }}
+            className="flex items-center gap-1 my-1"
+        >
+            {/* Time column */}
+            <div className="w-8 md:w-10 shrink-0 text-right">
+                <div className="text-[10px] font-bold text-gray-400 leading-none">{timeStr}</div>
+                <div className="text-[10px] text-gray-400 font-medium uppercase mt-0.5">{ampm}</div>
+            </div>
+
+            {/* Dashed line */}
+            <div className="w-4 md:w-6 border-t border-dashed border-gray-300 shrink-0"></div>
+
+            {/* Unavailable slot container - full width */}
+            <div className="flex-1 flex items-center">
+                {/* Unavailable pill - full width with stripes */}
+                <div className="flex-1 relative overflow-hidden bg-gray-400/60 rounded-full px-3 md:px-4 py-2 md:py-2.5 flex items-center justify-center">
+                    {/* Diagonal stripes overlay */}
+                    <div 
+                        className="absolute inset-0 opacity-20"
+                        style={{
+                            backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 3px, white 3px, white 5px)'
+                        }}
+                    ></div>
+                    <span className="relative text-white font-semibold text-xs md:text-sm">No Disponible</span>
+                </div>
+            </div>
+
+            {/* Trailing dash */}
+            <div className="hidden lg:block w-4 md:w-6 border-t border-dashed border-gray-300 shrink-0"></div>
+        </motion.div>
+    )
+}
+
+/**
  * EmptyState Component
  */
 const EmptyState = () => (
@@ -263,28 +305,15 @@ const SessionsSkeleton = () => (
  */
 const TodaysSessions = ({ sessions = [], loading, onJoinVideo, onViewProfile }) => {
     const [selectedSession, setSelectedSession] = useState(null)
+    
+    console.log('TodaysSessions - Received sessions count:', sessions.length)
+    console.log('TodaysSessions - Session times order:', sessions.map(s => {
+        const date = new Date(s.fechaHora)
+        return `${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`
+    }))
 
-    // Sort sessions by time
-    const sortedSessions = [...sessions].sort((a, b) =>
-        new Date(a.fechaHora) - new Date(b.fechaHora)
-    )
-
-    // Insert break time between 8:30-9:30 gap (after last <=9:00 session, before first >9:00 session)
-    const sessionsWithBreak = []
-    let breakInserted = false
-    sortedSessions.forEach((session, idx) => {
-        sessionsWithBreak.push(session)
-        if (!breakInserted && idx < sortedSessions.length - 1) {
-            const currentHour = new Date(session.fechaHora).getHours()
-            const currentMin = new Date(session.fechaHora).getMinutes()
-            const nextHour = new Date(sortedSessions[idx + 1].fechaHora).getHours()
-            // Insert break if current session is at or before 9:00 and next one is after 9:00
-            if ((currentHour < 9 || (currentHour === 9 && currentMin === 0)) && nextHour >= 9 && nextHour > currentHour) {
-                sessionsWithBreak.push({ isBreak: true, time: '09:00 AM' })
-                breakInserted = true
-            }
-        }
-    })
+    // Use sessions as-is - they're already sorted from parent
+    const sortedSessions = sessions
 
     return (
         <motion.div
@@ -301,11 +330,17 @@ const TodaysSessions = ({ sessions = [], loading, onJoinVideo, onViewProfile }) 
             ) : (
                 <div className="space-y-1 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
                     <AnimatePresence mode="popLayout">
-                        {sessionsWithBreak.map((item, index) =>
+                        {sortedSessions.map((item, index) =>
                             item.isBreak ? (
                                 <BreakCard
                                     key={`break-${index}`}
                                     time={item.time}
+                                    index={index}
+                                />
+                            ) : item.isUnavailable ? (
+                                <AvailableSlotCard
+                                    key={item.id || index}
+                                    slot={item}
                                     index={index}
                                 />
                             ) : (

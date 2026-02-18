@@ -1,25 +1,10 @@
 import { useState, useCallback, useEffect } from 'react'
-import { Calendar, dateFnsLocalizer } from 'react-big-calendar'
-import { format, parse, startOfWeek, getDay } from 'date-fns'
-import { es } from 'date-fns/locale'
-import 'react-big-calendar/lib/css/react-big-calendar.css'
 import { motion, AnimatePresence } from 'motion/react'
 import VideoCallLauncher from './VideoCall'
 import { showToast } from '@components'
 import { appointmentsAPI } from '@services/appointments'
 import AvailabilityManager from './AvailabilityManager'
-
-const locales = {
-  'es': es,
-}
-
-const localizer = dateFnsLocalizer({
-  format,
-  parse,
-  startOfWeek,
-  getDay,
-  locales,
-})
+import ModernAppointmentsCalendar from './ModernAppointmentsCalendar'
 
 const AppointmentModal = ({ appointment, onClose, onSave, onDelete }) => {
   const [showVideoCall, setShowVideoCall] = useState(false)
@@ -117,10 +102,10 @@ const AppointmentModal = ({ appointment, onClose, onSave, onDelete }) => {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="relative p-6 pb-5 border-b border-gray-100">
+        <div className="relative p-4 md:p-6 pb-4 md:pb-5 border-b border-gray-100">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+            className="absolute top-3 right-3 md:top-4 md:right-4 p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -128,16 +113,16 @@ const AppointmentModal = ({ appointment, onClose, onSave, onDelete }) => {
           </button>
 
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-100 rounded-xl flex items-center justify-center shrink-0">
+              <svg className="w-5 h-5 md:w-6 md:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
-            <div>
-              <h2 className="text-lg font-bold text-gray-900">
+            <div className="min-w-0">
+              <h2 className="text-base md:text-lg font-bold text-gray-900 truncate">
                 {appointment ? 'Editar Sesión' : 'Nueva Sesión'}
               </h2>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-xs text-gray-500 mt-0.5 truncate">
                 {appointment ? 'Modifica los detalles de la sesión' : 'Agenda una nueva sesión terapéutica'}
               </p>
             </div>
@@ -146,12 +131,12 @@ const AppointmentModal = ({ appointment, onClose, onSave, onDelete }) => {
 
         {/* Form Content */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
-          <div className="p-6 space-y-5">
+          <div className="p-4 md:p-6 space-y-4 md:space-y-5">
             {/* Patient Info Card (when viewing existing appointment) */}
             {appointment && (
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
+              <div className="bg-linear-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
                 <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-white text-lg font-bold shadow-sm">
+                  <div className="w-12 h-12 bg-linear-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-white text-lg font-bold shadow-sm">
                     {formData.patientName.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -260,7 +245,7 @@ const AppointmentModal = ({ appointment, onClose, onSave, onDelete }) => {
             </div>
 
             {/* Video Call Option */}
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
+            <div className="bg-linear-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
               <label className="flex items-start cursor-pointer group">
                 <input
                   type="checkbox"
@@ -299,11 +284,11 @@ const AppointmentModal = ({ appointment, onClose, onSave, onDelete }) => {
 
             {/* Video Call Actions (if editing and is video call) */}
             {appointment && appointment.isVideoCall && (
-              <div className="space-y-3 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
+              <div className="space-y-3 bg-linear-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
                 <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
                   Acciones de Videollamada
                 </h4>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -347,14 +332,14 @@ const AppointmentModal = ({ appointment, onClose, onSave, onDelete }) => {
           </div>
 
           {/* Footer Actions */}
-          <div className="border-t border-gray-100 px-6 py-4 flex items-center justify-between bg-gray-50">
+          <div className="border-t border-gray-100 px-4 md:px-6 py-3 md:py-4 flex flex-col sm:flex-row items-center justify-between bg-gray-50 gap-3">
             {appointment ? (
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 type="button"
                 onClick={() => onDelete(appointment.id)}
-                className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition font-medium"
+                className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition font-medium w-full sm:w-auto justify-center"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -365,13 +350,13 @@ const AppointmentModal = ({ appointment, onClose, onSave, onDelete }) => {
               <div></div>
             )}
             
-            <div className="flex gap-2">
+            <div className="flex gap-2 w-full sm:w-auto">
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition font-medium"
+                className="flex-1 sm:flex-none px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition font-medium"
               >
                 Cancelar
               </motion.button>
@@ -379,7 +364,7 @@ const AppointmentModal = ({ appointment, onClose, onSave, onDelete }) => {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 type="submit"
-                className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition font-medium shadow-sm"
+                className="flex-1 sm:flex-none px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition font-medium shadow-sm"
               >
                 {appointment ? 'Actualizar' : 'Crear Sesión'}
               </motion.button>
@@ -495,8 +480,8 @@ const AppointmentsCalendar = () => {
     return () => clearInterval(interval)
   }, [])
 
-  const handleSelectSlot = useCallback(({ start, end }) => {
-    setSelectedSlot({ start, end })
+  const handleSelectSlot = useCallback(() => {
+    setSelectedSlot({ start: new Date(), end: new Date() })
     setSelectedAppointment(null)
     setIsModalOpen(true)
   }, [])
@@ -540,162 +525,86 @@ const AppointmentsCalendar = () => {
     setSelectedAppointment(null)
   }
 
-  const eventStyleGetter = (event) => {
-    let backgroundColor = '#3b82f6'
-    
-    if (event.type === 'therapy') backgroundColor = '#8b5cf6'
-    else if (event.type === 'followup') backgroundColor = '#10b981'
-    else if (event.type === 'emergency') backgroundColor = '#ef4444'
-    
-    return {
-      style: {
-        backgroundColor,
-        borderRadius: '6px',
-        opacity: 0.9,
-        color: 'white',
-        border: '0',
-        display: 'block'
-      }
-    }
-  }
-
   return (
-    <div className="min-h-screen bg-linear-to-br from-purple-50 via-white to-blue-50 p-6">
+    <div className="min-h-screen bg-linear-to-br from-purple-50 via-white to-blue-50 p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Stat Cards - match patient dashboard */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-          <div className="bg-white p-6 rounded-lg shadow border border-gray-200 hover:shadow-md transition-shadow">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
+          <div className="bg-white p-4 md:p-6 rounded-lg shadow border border-gray-200 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 font-medium">Próximas Citas</p>
-                <p className="text-2xl font-bold text-gray-900 mt-2">{loading ? '...' : stats.upcomingAppointments}</p>
+                <p className="text-xs md:text-sm text-gray-600 font-medium">Próximas Citas</p>
+                <p className="text-xl md:text-2xl font-bold text-gray-900 mt-1 md:mt-2">{loading ? '...' : stats.upcomingAppointments}</p>
                 <p className="text-xs text-gray-500 mt-1">Agendadas</p>
               </div>
-              <div className="bg-blue-100 p-3 rounded-lg">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-blue-100 p-2 md:p-3 rounded-lg">
+                <svg className="w-5 h-5 md:w-6 md:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
             </div>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow border border-gray-200 hover:shadow-md transition-shadow">
+          <div className="bg-white p-4 md:p-6 rounded-lg shadow border border-gray-200 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 font-medium">Sesiones Completadas</p>
-                <p className="text-2xl font-bold text-gray-900 mt-2">{loading ? '...' : stats.completedSessions}</p>
+                <p className="text-xs md:text-sm text-gray-600 font-medium">Sesiones Completadas</p>
+                <p className="text-xl md:text-2xl font-bold text-gray-900 mt-1 md:mt-2">{loading ? '...' : stats.completedSessions}</p>
                 <p className="text-xs text-gray-500 mt-1">Histórico</p>
               </div>
-              <div className="bg-green-100 p-3 rounded-lg">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-green-100 p-2 md:p-3 rounded-lg">
+                <svg className="w-5 h-5 md:w-6 md:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
             </div>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow border border-gray-200 hover:shadow-md transition-shadow">
+          <div className="bg-white p-4 md:p-6 rounded-lg shadow border border-gray-200 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 font-medium">Total Citas</p>
-                <p className="text-2xl font-bold text-gray-900 mt-2">{loading ? '...' : stats.totalAppointments}</p>
+                <p className="text-xs md:text-sm text-gray-600 font-medium">Total Citas</p>
+                <p className="text-xl md:text-2xl font-bold text-gray-900 mt-1 md:mt-2">{loading ? '...' : stats.totalAppointments}</p>
                 <p className="text-xs text-gray-500 mt-1">En el sistema</p>
               </div>
-              <div className="bg-gray-100 p-3 rounded-lg">
-                <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-gray-100 p-2 md:p-3 rounded-lg">
+                <svg className="w-5 h-5 md:w-6 md:h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
               </div>
             </div>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow border border-gray-200 hover:shadow-md transition-shadow">
+          <div className="bg-white p-4 md:p-6 rounded-lg shadow border border-gray-200 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 font-medium">Sesiones Activas</p>
-                <p className="text-2xl font-bold text-gray-900 mt-2">{loading ? '...' : stats.upcomingAppointments}</p>
+                <p className="text-xs md:text-sm text-gray-600 font-medium">Sesiones Activas</p>
+                <p className="text-xl md:text-2xl font-bold text-gray-900 mt-1 md:mt-2">{loading ? '...' : stats.upcomingAppointments}</p>
                 <p className="text-xs text-gray-500 mt-1">En curso</p>
               </div>
-              <div className="bg-purple-100 p-3 rounded-lg">
-                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-purple-100 p-2 md:p-3 rounded-lg">
+                <svg className="w-5 h-5 md:w-6 md:h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
             </div>
           </div>
         </div>
-        {/* Header and actions */}
+        {/* Availability Manager Button */}
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-6 flex items-center justify-between bg-white/80 backdrop-blur-sm rounded-3xl p-6 shadow-sm border border-blue-100"
+          className="mb-4 md:mb-6 flex justify-end"
         >
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-linear-to-br from-blue-400 to-blue-500 rounded-2xl flex items-center justify-center shadow-lg">
-              <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-800">Agenda de Sesiones</h1>
-              <p className="text-gray-600 mt-1">Gestiona tus sesiones terapéuticas y horarios</p>
-            </div>
-          </div>
-          <div className="flex gap-3">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setShowAvailabilityManager(true)}
-              className="flex items-center px-6 py-3 bg-white text-blue-600 rounded-2xl hover:bg-blue-50 transition shadow-md border-2 border-blue-200 font-semibold"
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Mi Disponibilidad
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => {
-                setSelectedAppointment(null)
-                setIsModalOpen(true)
-              }}
-              className="flex items-center px-6 py-3 bg-linear-to-r from-blue-500 to-blue-600 text-white rounded-2xl hover:from-blue-600 hover:to-blue-700 transition shadow-lg shadow-blue-500/30 font-semibold"
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Nueva Sesión
-            </motion.button>
-          </div>
-        </motion.div>
-
-        {/* Legend */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-sm p-5 mb-4 flex flex-wrap items-center gap-6 border border-blue-100"
-        >
-          <span className="text-sm font-semibold text-gray-800 flex items-center gap-2">
-            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowAvailabilityManager(true)}
+            className="flex items-center px-4 md:px-6 py-2.5 md:py-3 bg-white text-indigo-600 rounded-xl md:rounded-2xl hover:bg-indigo-50 transition shadow-md border-2 border-indigo-200 font-semibold text-xs md:text-sm"
+          >
+            <svg className="w-4 h-4 md:w-5 md:h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            Tipos de Sesión:
-          </span>
-          <div className="flex items-center gap-2 px-3 py-2 bg-blue-100 rounded-xl">
-            <div className="w-4 h-4 bg-blue-500 rounded-lg shadow-sm"></div>
-            <span className="text-sm font-medium text-blue-700">Consulta</span>
-          </div>
-          <div className="flex items-center gap-2 px-3 py-2 bg-emerald-100 rounded-xl">
-            <div className="w-4 h-4 bg-emerald-500 rounded-lg shadow-sm"></div>
-            <span className="text-sm font-medium text-emerald-700">Seguimiento</span>
-          </div>
-          <div className="flex items-center gap-2 px-3 py-2 bg-purple-100 rounded-xl">
-            <div className="w-4 h-4 bg-purple-500 rounded-lg shadow-sm"></div>
-            <span className="text-sm font-medium text-purple-700">Terapia</span>
-          </div>
-          <div className="flex items-center gap-2 px-3 py-2 bg-red-100 rounded-xl">
-            <div className="w-4 h-4 bg-red-500 rounded-lg shadow-sm"></div>
-            <span className="text-sm font-medium text-red-700">Emergencia</span>
-          </div>
+            <span className="hidden sm:inline">Gestionar Mi Disponibilidad</span>
+            <span className="sm:hidden">Disponibilidad</span>
+          </motion.button>
         </motion.div>
 
         {/* Calendar */}
@@ -703,52 +612,24 @@ const AppointmentsCalendar = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-sm p-6 border border-blue-100" 
-          style={{ height: '700px' }}
         >
           {loading ? (
-            <div className="flex items-center justify-center h-full">
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-200 p-12 flex items-center justify-center">
               <div className="text-center">
-                <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mb-4"></div>
-                <p className="text-gray-600">Cargando citas...</p>
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent mb-4"></div>
+                <p className="text-gray-900 font-semibold text-lg">Cargando citas...</p>
                 <p className="text-sm text-gray-500 mt-2">Total citas: {appointments.length}</p>
               </div>
             </div>
           ) : (
-            <>
-              <div className="mb-4 text-sm text-gray-600">
-                📅 Mostrando {appointments.length} citas
-              </div>
-              <Calendar
-                localizer={localizer}
-                events={appointments}
-                startAccessor="start"
-                endAccessor="end"
-                titleAccessor="patientName"
-                culture="es"
-                selectable
-                onSelectSlot={handleSelectSlot}
-                onSelectEvent={handleSelectEvent}
-                eventPropGetter={eventStyleGetter}
-                views={['month', 'week', 'day', 'agenda']}
-                defaultView="week"
-                step={30}
-                showMultiDayTimes
-                messages={{
-                  next: "Siguiente",
-                  previous: "Anterior",
-                  today: "Hoy",
-                  month: "Mes",
-                  week: "Semana",
-                  day: "Día",
-                  agenda: "Agenda",
-                  date: "Fecha",
-                  time: "Hora",
-                  event: "Cita",
-                  noEventsInRange: "No hay citas en este rango"
-                }}
-              />
-            </>
+            <ModernAppointmentsCalendar
+              appointments={appointments}
+              onSelectAppointment={handleSelectEvent}
+              onAddNew={() => {
+                setSelectedAppointment(null)
+                setIsModalOpen(true)
+              }}
+            />
           )}
         </motion.div>
 

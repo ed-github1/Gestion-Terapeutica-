@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useDashboardData, useDashboardView, useCurrentTime } from '../dashboard/useDashboard'
 import DashboardHeader from './DashboardHeader'
 import DashboardStats from './DashboardStats'
@@ -20,6 +21,7 @@ import ChatPanel from '@components/layout/ChatPanel'
  */
 const ProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
     const { user } = useAuth()
+    const navigate = useNavigate()
     const currentTime = useCurrentTime()
     const {
         stats,
@@ -70,11 +72,12 @@ const ProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
     }
 
     const handleJoinVideo = (appointment) => {
-        setSelectedAppointment({
-            id: appointment.id,
-            patientId: appointment.patientId,
-            patient: appointment.nombrePaciente || appointment.patient?.name
-        })
+        console.log('handleJoinVideo called with appointment:', appointment)
+        const videoUrl = `/professional/video/${appointment.id}`
+        console.log('Navigating to:', videoUrl)
+        // Navigate directly to video call
+        navigate(videoUrl)
+        console.log('Navigate function called')
     }
 
     const handleViewProfile = (appointment) => {
@@ -243,10 +246,28 @@ const ProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
         }
     ]
     
-    // Combine real and mock appointments (use mock if empty)
-    if (todaySessions.length === 0) {
-        todaySessions = mockAppointments
-    }
+    // Combine real and mock appointments
+    // Keep mock data for early hours (before 12:00 PM) but prioritize real appointments
+    const earlyMorningCutoff = new Date(new Date().setHours(12, 0, 0, 0))
+    
+    // Get time slots that already have real appointments
+    const realAppointmentTimes = new Set(
+        todaySessions.map(apt => {
+            const date = new Date(apt.fechaHora)
+            return `${date.getHours()}:${date.getMinutes()}`
+        })
+    )
+    
+    // Filter mock appointments: only early morning slots that don't conflict with real appointments
+    const earlyMorningMockSlots = mockAppointments.filter(mock => {
+        const mockTime = new Date(mock.fechaHora)
+        const timeKey = `${mockTime.getHours()}:${mockTime.getMinutes()}`
+        return mockTime < earlyMorningCutoff && !realAppointmentTimes.has(timeKey)
+    })
+    
+    // Merge and sort: real appointments + non-conflicting mocks
+    todaySessions = [...todaySessions, ...earlyMorningMockSlots]
+        .sort((a, b) => new Date(a.fechaHora) - new Date(b.fechaHora))
 
     // Extract high-risk patients for crisis alert
     const highRiskPatients = todaySessions
@@ -455,35 +476,7 @@ const ProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                 </div>
             )}
 
-            {/* Video Call Modal - TODO: Implement video call launcher */}
-            {selectedAppointment && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
-                        <h2 className="text-xl font-semibold text-gray-900 mb-4">Iniciar Videollamada</h2>
-                        <p className="text-gray-600 mb-6">
-                            ¿Desea iniciar la videollamada con {selectedAppointment.patient}?
-                        </p>
-                        <div className="flex gap-3">
-                            <button
-                                onClick={() => setSelectedAppointment(null)}
-                                className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                onClick={() => {
-                                    // Navigate to video call
-                                    console.log('Start video call:', selectedAppointment)
-                                    setSelectedAppointment(null)
-                                }}
-                                className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors"
-                            >
-                                Iniciar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+
         </>
     )
 }

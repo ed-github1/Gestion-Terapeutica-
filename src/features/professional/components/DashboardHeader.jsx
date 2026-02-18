@@ -97,7 +97,7 @@ const DashboardHeader = ({ user, currentTime, error, onNewPatient, onClearError,
                 </div>
 
                 {/* Right Side - Search Bar + Actions */}
-                <div className="flex items-center gap-3">
+                <div className="hidden lg:flex items-center gap-3">
                     {/* Search Bar */}
                     <div className="relative w-96">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -115,7 +115,6 @@ const DashboardHeader = ({ user, currentTime, error, onNewPatient, onClearError,
                         className="relative w-14 h-14 bg-gradient-to-br from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 rounded-2xl flex items-center justify-center shadow-md transition-colors shrink-0"
                     >
                         <Bell className="w-5 h-5 text-white" />
-                        <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full"></span>
                     </motion.button>
 
                     {/* User Profile Circle */}

@@ -30,19 +30,30 @@ export const useWebRTC = () => {
    * Initialize WebRTC Manager
    */
   const initialize = useCallback(async () => {
-    if (isInitialized || !user || !token) return;
+    console.log('useWebRTC initialize called - isInitialized:', isInitialized, 'user:', user, 'token:', token);
+    if (isInitialized || !user || !token) {
+      console.log('useWebRTC initialize skipped - isInitialized:', isInitialized, 'hasUser:', !!user, 'hasToken:', !!token);
+      return;
+    }
 
     try {
+      console.log('useWebRTC initializing...');
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
       const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
+
+      const userId = user.id || user._id;
+      const userName = user.name || user.nombre || 'Usuario';
+      const userRole = user.role || user.rol || 'patient';
+
+      console.log('WebRTC config:', { API_URL, SOCKET_URL, userId, userName, userRole });
 
       const manager = new WebRTCManager({
         apiUrl: API_URL,
         socketUrl: SOCKET_URL,
         userToken: token,
-        userId: user.id,
-        userName: user.name || user.nombre || 'Usuario',
-        userRole: user.role || user.rol || 'patient'
+        userId: userId,
+        userName: userName,
+        userRole: userRole
       });
 
       // Setup event callbacks
@@ -71,12 +82,13 @@ export const useWebRTC = () => {
       };
 
       manager.onChatMessage = ({ userId, userName, message, timestamp }) => {
+        const currentUserId = user.id || user._id;
         setChatMessages(prev => [...prev, {
           userId,
           userName,
           message,
           timestamp,
-          isOwn: userId === user.id
+          isOwn: userId === currentUserId
         }]);
       };
 
@@ -209,8 +221,9 @@ export const useWebRTC = () => {
     webrtcManagerRef.current.sendChatMessage(message);
     
     // Add to own messages
+    const userId = user.id || user._id;
     setChatMessages(prev => [...prev, {
-      userId: user.id,
+      userId: userId,
       userName: 'Tú',
       message,
       timestamp: new Date().toISOString(),

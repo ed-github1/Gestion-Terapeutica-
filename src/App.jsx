@@ -4,14 +4,14 @@ import { AuthProvider, useAuth, ProtectedRoute, LoginPage, RegisterPage } from '
 import { ProfessionalDashboard, AppointmentsCalendar } from '@features/professional'
 import PatientsList from '@features/professional/components/PatientsList'
 import ProfessionalProfile from '@features/professional/components/ProfessionalProfile'
+import ProfessionalVideoCallWebRTC from '@features/professional/components/VideoCallWebRTC'
 import { PatientDashboard, PatientAppointments } from '@features/patient'
-import PatientVideoCall from '@features/patient/PatientVideoCall'
+import PatientVideoCallWebRTC from '@features/patient/PatientVideoCallWebRTC'
 import PatientRegisterPage from '@features/patient/PatientRegisterPage'
 import PatientRegister from '@features/patient/PatientRegister'
 import HomePage from '@pages/HomePage'
 import PricingPlans from '@pages/PricingPlans'
 import CheckoutPage from '@pages/CheckoutPage'
-import DashboardSidebar from '@components/layout/DashboardSidebar'
 import { Toast } from '@components'
 import { ROUTES, ROLES } from '@constants/routes'
 import DashboardLayout from './layouts/DashboardLayout'
@@ -20,7 +20,6 @@ import DashboardLayout from './layouts/DashboardLayout'
 
 const LoginRoute = () => {
   const { isAuthenticated, user, loading } = useAuth()
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -28,7 +27,6 @@ const LoginRoute = () => {
       </div>
     )
   }
-
   if (isAuthenticated && user) {
     const role = user.role || user.rol
     console.log('LoginRoute: User is authenticated, role:', role)
@@ -54,7 +52,6 @@ function App() {
           <Route path="/pricing" element={<PricingPlans />} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path={ROUTES.LOGIN} element={<LoginRoute />} />
-          {/* <Route path="/login/sms" element={<SMSLoginPage />} /> */}
           <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
           <Route path="/patient/register" element={<PatientRegisterPage />} />
           <Route path="/register/:inviteCode" element={<PatientRegister />} />
@@ -97,6 +94,14 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/professional/video/:appointmentId"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.HEALTH_PROFESSIONAL, ROLES.PROFESSIONAL]}>
+                <ProfessionalVideoCallWebRTC />
+              </ProtectedRoute>
+            }
+          />
 
           <Route
             path={ROUTES.PATIENT_DASHBOARD}
@@ -118,7 +123,14 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/video/join/:appointmentId" element={<PatientVideoCall />} />
+          <Route 
+            path="/video/join/:appointmentId" 
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.PATIENT]}>
+                <PatientVideoCallWebRTC />
+              </ProtectedRoute>
+            } 
+          />
           <Route 
             path="/demo/patient" 
             element={

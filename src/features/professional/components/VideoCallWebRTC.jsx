@@ -6,13 +6,16 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { useWebRTC } from '../../hooks/useWebRTC';
-import { useAuth } from '../auth/AuthContext';
+import { useWebRTC } from '../../../hooks/useWebRTC';
+import { useAuth } from '../../auth/AuthContext';
 
 const ProfessionalVideoCallWebRTC = () => {
   const { appointmentId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  console.log('VideoCallWebRTC - appointmentId:', appointmentId);
+  console.log('VideoCallWebRTC - user:', user);
 
   const {
     isInitialized,
@@ -32,6 +35,11 @@ const ProfessionalVideoCallWebRTC = () => {
     toggleVideo,
     sendMessage
   } = useWebRTC();
+
+  console.log('VideoCallWebRTC - isInitialized:', isInitialized);
+  console.log('VideoCallWebRTC - isConnecting:', isConnecting);
+  console.log('VideoCallWebRTC - isInRoom:', isInRoom);
+  console.log('VideoCallWebRTC - error:', error);
 
   const [showChat, setShowChat] = useState(false);
   const [chatInput, setChatInput] = useState('');
@@ -148,6 +156,32 @@ const ProfessionalVideoCallWebRTC = () => {
     return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Check for error first
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100 flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full text-center"
+        >
+          <div className="text-red-500 text-5xl mb-4">⚠️</div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Error en la Videollamada</h2>
+          <p className="text-gray-600 mb-2">{error.message}</p>
+          <p className="text-sm text-gray-500 mb-6">
+            Asegúrese de que el servidor backend esté ejecutándose en el puerto 3000.
+          </p>
+          <button
+            onClick={() => navigate('/dashboard/professional')}
+            className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors"
+          >
+            Volver al Dashboard
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
+
   if (!isInitialized) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100 flex items-center justify-center">
@@ -166,28 +200,6 @@ const ProfessionalVideoCallWebRTC = () => {
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Preparando sesión...</p>
         </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100 flex items-center justify-center p-4">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full text-center"
-        >
-          <div className="text-red-500 text-5xl mb-4">⚠️</div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Error en la Videollamada</h2>
-          <p className="text-gray-600 mb-6">{error.message}</p>
-          <button
-            onClick={() => navigate('/professional/appointments')}
-            className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors"
-          >
-            Volver a Citas
-          </button>
-        </motion.div>
       </div>
     );
   }

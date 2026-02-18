@@ -79,9 +79,9 @@ const PatientRegisterPage = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-purple-50 via-pink-50 to-blue-50 flex items-center justify-center">
+      <div className="min-h-screen bg-linear-to-br from-blue-50 via-cyan-50 to-indigo-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Verificando invitación...</p>
         </div>
       </div>
@@ -90,7 +90,7 @@ const PatientRegisterPage = () => {
 
   if (error && !patientInfo) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-purple-50 via-pink-50 to-blue-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-linear-to-br from-blue-50 via-cyan-50 to-indigo-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -101,7 +101,7 @@ const PatientRegisterPage = () => {
           <p className="text-gray-600 mb-6">{error}</p>
           <button
             onClick={() => navigate('/login')}
-            className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
           >
             Ir al Login
           </button>
@@ -111,7 +111,7 @@ const PatientRegisterPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-purple-50 via-pink-50 to-blue-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-blue-50 via-cyan-50 to-indigo-50 flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -119,7 +119,7 @@ const PatientRegisterPage = () => {
       >
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-linear-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-linear-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
             </svg>
@@ -134,12 +134,12 @@ const PatientRegisterPage = () => {
         </div>
 
         {/* Info Box */}
-        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
           <div className="flex items-start gap-3">
-            <svg className="w-5 h-5 text-purple-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <div className="text-sm text-purple-800">
+            <div className="text-sm text-blue-800">
               <p className="font-medium mb-1">Tu profesional de salud te ha invitado</p>
               <p>Ingresa tu correo electrónico y crea una contraseña segura para acceder a tu expediente y gestionar tus citas.</p>
             </div>
@@ -170,7 +170,7 @@ const PatientRegisterPage = () => {
                   message: 'Correo electrónico inválido'
                 }
               })}
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition duration-200 outline-none ${
+              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 outline-none ${
                 errors.email ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="tu@correo.com"
@@ -200,7 +200,7 @@ const PatientRegisterPage = () => {
                   message: 'Debe incluir mayúsculas, minúsculas y números'
                 }
               })}
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition duration-200 outline-none ${
+              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 outline-none ${
                 errors.password ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="••••••••"
@@ -226,7 +226,7 @@ const PatientRegisterPage = () => {
                 required: 'Confirma tu contraseña',
                 validate: value => value === password || 'Las contraseñas no coinciden'
               })}
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition duration-200 outline-none ${
+              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 outline-none ${
                 errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="••••••••"
@@ -241,7 +241,7 @@ const PatientRegisterPage = () => {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-3 px-4 bg-linear-to-r from-purple-600 to-pink-600 text-white font-medium rounded-lg hover:from-purple-700 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 px-4 bg-linear-to-r from-blue-600 to-cyan-600 text-white font-medium rounded-lg hover:from-blue-700 hover:to-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (
               <span className="flex items-center justify-center">
@@ -263,7 +263,7 @@ const PatientRegisterPage = () => {
             ¿Ya tienes cuenta?{' '}
             <button
               onClick={() => navigate('/login')}
-              className="text-purple-600 hover:text-purple-700 font-medium"
+              className="text-blue-600 hover:text-blue-700 font-medium"
             >
               Inicia sesión aquí
             </button>

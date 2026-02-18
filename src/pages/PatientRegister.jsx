@@ -197,7 +197,7 @@ const PatientRegister = () => {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-purple-50 via-white to-blue-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-cyan-50 flex items-center justify-center p-4">
       <div className="w-full max-w-2xl">
         {/* Logo/Header */}
         <motion.div
@@ -205,7 +205,7 @@ const PatientRegister = () => {
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-8"
         >
-          <div className="w-20 h-20 bg-linear-to-br from-purple-500 to-pink-500 rounded-3xl mx-auto mb-4 flex items-center justify-center shadow-lg">
+          <div className="w-20 h-20 bg-linear-to-br from-blue-500 to-cyan-500 rounded-3xl mx-auto mb-4 flex items-center justify-center shadow-lg">
             <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
             </svg>
@@ -225,7 +225,7 @@ const PatientRegister = () => {
               <div key={s} className="flex items-center">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition ${
                   s < step ? 'bg-emerald-500 text-white' :
-                  s === step ? 'bg-purple-500 text-white' :
+                  s === step ? 'bg-blue-500 text-white' :
                   'bg-gray-200 text-gray-400'
                 }`}>
                   {s < step ? '✓' : s}
@@ -250,7 +250,7 @@ const PatientRegister = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-purple-100 overflow-hidden"
+          className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-blue-100 overflow-hidden"
         >
           <AnimatePresence mode="wait">
             {/* Step 1: Verify Invite Code */}
@@ -263,8 +263,8 @@ const PatientRegister = () => {
                 className="p-8"
               >
                 <div className="text-center mb-6">
-                  <div className="w-16 h-16 bg-linear-to-br from-purple-100 to-pink-100 rounded-2xl mx-auto mb-4 flex items-center justify-center">
-                    <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-16 h-16 bg-linear-to-br from-blue-100 to-cyan-100 rounded-2xl mx-auto mb-4 flex items-center justify-center">
+                    <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                     </svg>
                   </div>
@@ -277,7 +277,7 @@ const PatientRegister = () => {
                     type="text"
                     value={formData.inviteCode}
                     onChange={(e) => setFormData({ ...formData, inviteCode: e.target.value.toUpperCase() })}
-                    className="w-full px-6 py-4 text-center text-2xl font-mono font-bold tracking-wider border-2 border-purple-200 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition bg-purple-50/30 uppercase"
+                    className="w-full px-6 py-4 text-center text-2xl font-mono font-bold tracking-wider border-2 border-blue-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-blue-50/30 uppercase"
                     placeholder="ABCD1234"
                     maxLength={8}
                   />
@@ -285,7 +285,7 @@ const PatientRegister = () => {
                   <button
                     onClick={verifyInviteCode}
                     disabled={loading || !formData.inviteCode}
-                    className="w-full px-6 py-4 bg-linear-to-r from-purple-500 to-pink-500 text-white rounded-2xl hover:from-purple-600 hover:to-pink-600 transition font-semibold shadow-lg shadow-purple-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full px-6 py-4 bg-linear-to-r from-blue-500 to-cyan-500 text-white rounded-2xl hover:from-blue-600 hover:to-cyan-600 transition font-semibold shadow-lg shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {loading ? 'Verificando...' : 'Verificar Código'}
                   </button>
@@ -315,7 +315,7 @@ const PatientRegister = () => {
                 <div className="space-y-4">
                   {!otpSent ? (
                     <>
-                      <div className="bg-purple-50 rounded-2xl p-4 border border-purple-200">
+                      <div className="bg-blue-50 rounded-2xl p-4 border border-blue-200">
                         <p className="text-sm text-gray-700">
                           <span className="font-semibold">Teléfono registrado:</span> {formData.phone}
                         </p>
@@ -385,7 +385,7 @@ const PatientRegister = () => {
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full px-4 py-3 border border-purple-200 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition bg-purple-50/30"
+                      className="w-full px-4 py-3 border border-blue-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-blue-50/30"
                       placeholder="tu@email.com"
                     />
                   </div>
@@ -400,7 +400,7 @@ const PatientRegister = () => {
                       type="password"
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      className="w-full px-4 py-3 border border-purple-200 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition bg-purple-50/30"
+                      className="w-full px-4 py-3 border border-blue-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-blue-50/30"
                       placeholder="Mínimo 8 caracteres"
                     />
                   </div>
@@ -414,7 +414,7 @@ const PatientRegister = () => {
                       type="password"
                       value={formData.confirmPassword}
                       onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                      className="w-full px-4 py-3 border border-purple-200 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition bg-purple-50/30"
+                      className="w-full px-4 py-3 border border-blue-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-blue-50/30"
                       placeholder="Repite la contraseña"
                     />
                   </div>
@@ -429,7 +429,7 @@ const PatientRegister = () => {
                       type="date"
                       value={formData.birthDate}
                       onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
-                      className="w-full px-4 py-3 border border-purple-200 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition bg-purple-50/30"
+                      className="w-full px-4 py-3 border border-blue-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-blue-50/30"
                     />
                   </div>
 
@@ -442,7 +442,7 @@ const PatientRegister = () => {
                       required
                       value={formData.gender}
                       onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                      className="w-full px-4 py-3 border border-purple-200 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition bg-purple-50/30"
+                      className="w-full px-4 py-3 border border-blue-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-blue-50/30"
                     >
                       <option value="">Selecciona...</option>
                       <option value="male">Masculino</option>
@@ -462,7 +462,7 @@ const PatientRegister = () => {
                       type="text"
                       value={formData.emergencyContact}
                       onChange={(e) => setFormData({ ...formData, emergencyContact: e.target.value })}
-                      className="w-full px-4 py-3 border border-purple-200 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition bg-purple-50/30"
+                      className="w-full px-4 py-3 border border-blue-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-blue-50/30"
                       placeholder="Nombre completo"
                     />
                   </div>
@@ -476,7 +476,7 @@ const PatientRegister = () => {
                       type="tel"
                       value={formData.emergencyPhone}
                       onChange={(e) => setFormData({ ...formData, emergencyPhone: e.target.value })}
-                      className="w-full px-4 py-3 border border-purple-200 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition bg-purple-50/30"
+                      className="w-full px-4 py-3 border border-blue-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-blue-50/30"
                       placeholder="(555) 123-4567"
                     />
                   </div>
@@ -490,10 +490,10 @@ const PatientRegister = () => {
                       type="checkbox"
                       checked={formData.acceptTerms}
                       onChange={(e) => setFormData({ ...formData, acceptTerms: e.target.checked })}
-                      className="w-5 h-5 text-purple-600 border-purple-300 rounded focus:ring-purple-500 mt-0.5"
+                      className="w-5 h-5 text-blue-600 border-blue-300 rounded focus:ring-blue-500 mt-0.5"
                     />
                     <span className="text-sm text-gray-700">
-                      Acepto los <a href="#" className="text-purple-600 hover:text-purple-700 font-semibold">términos y condiciones</a> del servicio
+                      Acepto los <a href="#" className="text-blue-600 hover:text-blue-700 font-semibold">términos y condiciones</a> del servicio
                     </span>
                   </label>
 
@@ -503,10 +503,10 @@ const PatientRegister = () => {
                       type="checkbox"
                       checked={formData.acceptPrivacy}
                       onChange={(e) => setFormData({ ...formData, acceptPrivacy: e.target.checked })}
-                      className="w-5 h-5 text-purple-600 border-purple-300 rounded focus:ring-purple-500 mt-0.5"
+                      className="w-5 h-5 text-blue-600 border-blue-300 rounded focus:ring-blue-500 mt-0.5"
                     />
                     <span className="text-sm text-gray-700">
-                      He leído y acepto el <a href="#" className="text-purple-600 hover:text-purple-700 font-semibold">aviso de privacidad</a>
+                      He leído y acepto el <a href="#" className="text-blue-600 hover:text-blue-700 font-semibold">aviso de privacidad</a>
                     </span>
                   </label>
                 </div>
@@ -514,7 +514,7 @@ const PatientRegister = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full px-6 py-4 bg-linear-to-r from-purple-500 to-pink-500 text-white rounded-2xl hover:from-purple-600 hover:to-pink-600 transition font-semibold shadow-lg shadow-purple-500/30 disabled:opacity-50"
+                  className="w-full px-6 py-4 bg-linear-to-r from-blue-500 to-cyan-500 text-white rounded-2xl hover:from-blue-600 hover:to-cyan-600 transition font-semibold shadow-lg shadow-blue-500/30 disabled:opacity-50"
                 >
                   {loading ? 'Registrando...' : 'Completar Registro'}
                 </button>

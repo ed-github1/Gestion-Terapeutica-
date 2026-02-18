@@ -7,8 +7,10 @@ import TodaysSessions from './TodaysSessions'
 import ActivityFeed from './ActivityFeed'
 import { useDashboardData } from '../dashboard/useDashboard'
 import { Clock } from 'lucide-react'
-import { formatDate, formatTime } from '../dashboard/dashboardUtils'
+import { formatDate, formatTime, getTodayAppointments } from '../dashboard/dashboardUtils'
 import { ROUTES } from '@constants/routes'
+import { videoCallAPI } from '@services/videoCall'
+import { appointmentsAPI } from '@services/appointments'
 
 const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
     const { user } = useAuth()
@@ -16,6 +18,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
     const [currentTime, setCurrentTime] = useState(new Date())
     const { stats, patients, appointments, activities, loading, error } = useDashboardData()
     const [showPatientForm, setShowPatientForm] = useState(false)
+    const [availability, setAvailability] = useState({})
 
     // Extract user name with fallback
     const userName = user?.name?.split(' ')[0] || user?.nombre || 'Doctor'
@@ -33,7 +36,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
         {
             id: 1,
             nombrePaciente: 'Jemma Linda',
-            fechaHora: new Date(new Date().setHours(9, 0, 0)),
+            fechaHora: new Date(new Date().setHours(8, 0, 0)),
             ultimaVisita: new Date(new Date().setDate(new Date().getDate() - 7)),
             riskLevel: 'low',
             lastSessionNote: 'Progresando bien con el manejo de la ansiedad',
@@ -43,7 +46,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
         {
             id: 2,
             nombrePaciente: 'Andy John',
-            fechaHora: new Date(new Date().setHours(10, 0, 0)),
+            fechaHora: new Date(new Date().setHours(9, 0, 0)),
             ultimaVisita: new Date(new Date().setDate(new Date().getDate() - 3)),
             riskLevel: 'medium',
             lastSessionNote: 'Necesita apoyo con equilibrio trabajo-vida',
@@ -53,11 +56,101 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
         {
             id: 3,
             nombrePaciente: 'Ariana Jamie',
-            fechaHora: new Date(new Date().setHours(12, 0, 0)),
+            fechaHora: new Date(new Date().setHours(10, 0, 0)),
             ultimaVisita: new Date(new Date().setDate(new Date().getDate() - 21)),
             riskLevel: 'low',
             lastSessionNote: 'Excelente progreso en terapia grupal',
             treatmentGoal: 'Mantener plan de tratamiento actual',
+            homeworkCompleted: false
+        },
+        {
+            id: 4,
+            nombrePaciente: 'Carlos Rivera',
+            fechaHora: new Date(new Date().setHours(11, 0, 0)),
+            ultimaVisita: new Date(new Date().setDate(new Date().getDate() - 14)),
+            riskLevel: 'medium',
+            lastSessionNote: 'Trabajando en técnicas de regulación emocional',
+            treatmentGoal: 'Reducir episodios de ira',
+            homeworkCompleted: true
+        },
+        {
+            id: 5,
+            nombrePaciente: 'Maria González',
+            fechaHora: new Date(new Date().setHours(12, 0, 0)),
+            ultimaVisita: new Date(new Date().setDate(new Date().getDate() - 10)),
+            riskLevel: 'low',
+            lastSessionNote: 'Mejora significativa en autoestima',
+            treatmentGoal: 'Fortalecer habilidades sociales',
+            homeworkCompleted: true
+        },
+        {
+            id: 6,
+            nombrePaciente: 'Pedro Martínez',
+            fechaHora: new Date(new Date().setHours(13, 0, 0)),
+            ultimaVisita: new Date(new Date().setDate(new Date().getDate() - 4)),
+            riskLevel: 'high',
+            lastSessionNote: 'Requiere seguimiento cercano - ideación pasiva',
+            treatmentGoal: 'Implementar plan de seguridad',
+            homeworkCompleted: false
+        },
+        {
+            id: 7,
+            nombrePaciente: 'Sofia Torres',
+            fechaHora: new Date(new Date().setHours(14, 0, 0)),
+            ultimaVisita: new Date(new Date().setDate(new Date().getDate() - 5)),
+            riskLevel: 'low',
+            lastSessionNote: 'Adaptándose bien a nuevas rutinas',
+            treatmentGoal: 'Mantener progreso en gestión del tiempo',
+            homeworkCompleted: true
+        },
+        {
+            id: 8,
+            nombrePaciente: 'Luis Fernández',
+            fechaHora: new Date(new Date().setHours(15, 0, 0)),
+            ultimaVisita: new Date(new Date().setDate(new Date().getDate() - 8)),
+            riskLevel: 'medium',
+            lastSessionNote: 'Dificultades con el sueño continúan',
+            treatmentGoal: 'Implementar higiene del sueño',
+            homeworkCompleted: false
+        },
+        {
+            id: 9,
+            nombrePaciente: 'Ana Morales',
+            fechaHora: new Date(new Date().setHours(16, 0, 0)),
+            ultimaVisita: new Date(new Date().setDate(new Date().getDate() - 2)),
+            riskLevel: 'low',
+            lastSessionNote: 'Excelente progreso en terapia familiar',
+            treatmentGoal: 'Continuar fortaleciendo comunicación',
+            homeworkCompleted: true
+        },
+        {
+            id: 10,
+            nombrePaciente: 'Roberto Díaz',
+            fechaHora: new Date(new Date().setHours(17, 0, 0)),
+            ultimaVisita: new Date(new Date().setDate(new Date().getDate() - 12)),
+            riskLevel: 'medium',
+            lastSessionNote: 'Trabajando en exposición gradual',
+            treatmentGoal: 'Reducir conductas de evitación',
+            homeworkCompleted: true
+        },
+        {
+            id: 11,
+            nombrePaciente: 'Isabel Ruiz',
+            fechaHora: new Date(new Date().setHours(18, 0, 0)),
+            ultimaVisita: new Date(new Date().setDate(new Date().getDate() - 6)),
+            riskLevel: 'low',
+            lastSessionNote: 'Mejorando autoconfianza y asertividad',
+            treatmentGoal: 'Practicar técnicas de comunicación',
+            homeworkCompleted: true
+        },
+        {
+            id: 12,
+            nombrePaciente: 'Miguel Sánchez',
+            fechaHora: new Date(new Date().setHours(19, 0, 0)),
+            ultimaVisita: new Date(new Date().setDate(new Date().getDate() - 15)),
+            riskLevel: 'high',
+            lastSessionNote: 'Crisis reciente - necesita apoyo adicional',
+            treatmentGoal: 'Reforzar red de apoyo social',
             homeworkCompleted: false
         }
     ]
@@ -90,17 +183,188 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
         }
     ]
 
-    // Use mock data for now (always show it)
-    const todayAppointments = mockAppointments
+    // Get real appointments for today (backend already filters by professional)
+    let realTodayAppointments = getTodayAppointments(appointments)
+    
+    console.log('Today appointments loaded:', realTodayAppointments.length)
+    if (realTodayAppointments.length > 0) {
+        console.log('Sample appointment:', realTodayAppointments[0])
+    }
+    
+    // Combine real and mock appointments
+    // Keep mock data for early hours (before 12:00 PM) but prioritize real appointments
+    const earlyMorningCutoff = new Date(new Date().setHours(12, 0, 0, 0))
+    
+    // Get time slots that already have real appointments
+    const realAppointmentTimes = new Set(
+        realTodayAppointments.map(apt => {
+            const date = new Date(apt.fechaHora)
+            return `${date.getHours()}:${date.getMinutes()}`
+        })
+    )
+    
+    // Filter mock appointments: only early morning slots that don't conflict with real appointments
+    const earlyMorningMockSlots = mockAppointments.filter(mock => {
+        const mockTime = new Date(mock.fechaHora)
+        const timeKey = `${mockTime.getHours()}:${mockTime.getMinutes()}`
+        return mockTime < earlyMorningCutoff && !realAppointmentTimes.has(timeKey)
+    })
+    
+    // Merge appointments - keep ALL appointments
+    let todayAppointments = [...realTodayAppointments, ...earlyMorningMockSlots]
+        .sort((a, b) => new Date(a.fechaHora) - new Date(b.fechaHora)) // Chronological order (earliest first)
+    
+    // Add availability info to appointments
+    todayAppointments = todayAppointments.map(appointment => {
+        const appointmentDate = new Date(appointment.fechaHora)
+        const dayOfWeek = appointmentDate.getDay()
+        const timeStr = `${appointmentDate.getHours().toString().padStart(2, '0')}:${appointmentDate.getMinutes().toString().padStart(2, '0')}`
+        
+        const dayAvailability = availability[dayOfWeek] || []
+        const isInAvailableSlot = dayAvailability.includes(timeStr)
+        
+        return {
+            ...appointment,
+            isInAvailableSlot
+        }
+    })
+    
+    // Generate pills for time slots WITHOUT appointments (either unavailable or break time)
+    const unavailableSlotsToday = []
+    const today = new Date()
+    const todayDayOfWeek = today.getDay()
+    const todayAvailability = availability[todayDayOfWeek] || []
+    
+    console.log('Today is day:', todayDayOfWeek, 'Availability slots:', todayAvailability)
+    
+    // Get times of existing appointments
+    const appointmentTimes = new Set(
+        todayAppointments.map(apt => {
+            const date = new Date(apt.fechaHora)
+            return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+        })
+    )
+    
+    console.log('Existing appointment times:', Array.from(appointmentTimes))
+    
+    // Generate all possible time slots for the day (7:00 AM - 8:00 PM)
+    const allPossibleSlots = []
+    for (let hour = 7; hour <= 20; hour++) {
+        allPossibleSlots.push(`${hour.toString().padStart(2, '0')}:00`)
+        if (hour < 20) {
+            allPossibleSlots.push(`${hour.toString().padStart(2, '0')}:30`)
+        }
+    }
+    
+    // Create "unavailable" or "break" entries for slots without appointments
+    allPossibleSlots.forEach(timeSlot => {
+        if (!appointmentTimes.has(timeSlot)) {
+            // Check if this slot is in availability
+            const isInAvailability = todayAvailability.includes(timeSlot)
+            const [hours, minutes] = timeSlot.split(':')
+            
+            // Create date for TODAY with the specific time
+            const slotDate = new Date()
+            slotDate.setHours(parseInt(hours), parseInt(minutes), 0, 0)
+            
+            console.log(`Slot ${timeSlot}: ${isInAvailability ? 'Available (no pill)' : 'NOT available (show pill)'} - Date: ${slotDate.toLocaleString()}`)
+            
+            // Only show pill for slots NOT in availability
+            if (!isInAvailability) {
+                unavailableSlotsToday.push({
+                    id: `unavailable-${timeSlot}`,
+                    fechaHora: slotDate,
+                    isUnavailable: true,
+                    timeSlot: timeSlot
+                })
+            }
+        }
+    })
+    
+    console.log('Total unavailable slots to show:', unavailableSlotsToday.length)
+    
+    // Merge appointments and unavailable slots, sort chronologically (earliest first)
+    const allDaySlots = [...todayAppointments, ...unavailableSlotsToday]
+        .sort((a, b) => {
+            const timeA = new Date(a.fechaHora).getTime()
+            const timeB = new Date(b.fechaHora).getTime()
+            return timeA - timeB
+        })
+    
+    // Log sorted times for debugging
+    console.log('Sorted timeline:', allDaySlots.map(slot => {
+        const date = new Date(slot.fechaHora)
+        return `${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')} ${slot.nombrePaciente || (slot.isUnavailable ? 'Unavailable' : 'Break')}`
+    }))
+    
     const dashboardActivities = activities && activities.length > 0 ? activities : mockActivities
 
     // Get upcoming patient info from first appointment
     const upcomingPatient = todayAppointments[0]
     const monthGrowth = Math.round((stats.totalPatients / Math.max(stats.totalPatients - 10, 1)) * 100) - 100
 
+    // Handler for joining video call
+    const handleJoinVideo = async (appointment) => {
+        console.log('ModernDashboard handleJoinVideo called with appointment:', appointment)
+        
+        try {
+            // First, notify the patient about the video call
+            console.log('Sending notification to patient:', appointment.patientId)
+            await videoCallAPI.notifyPatient(appointment.id, appointment.patientId)
+            console.log('Patient notified successfully')
+            
+            // Then navigate to the video call page
+            const videoUrl = `/professional/video/${appointment.id}`
+            console.log('Navigating to:', videoUrl)
+            navigate(videoUrl)
+        } catch (error) {
+            console.error('Error notifying patient:', error)
+            // Still navigate even if notification fails
+            navigate(`/professional/video/${appointment.id}`)
+        }
+    }
+
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000)
         return () => clearInterval(timer)
+    }, [])
+
+    // Load availability settings
+    useEffect(() => {
+        const loadAvailability = async () => {
+            try {
+                const response = await appointmentsAPI.getAvailability?.()
+                console.log('Loaded availability from backend:', response?.data)
+                setAvailability(response?.data || {})
+            } catch (error) {
+                // Try localStorage fallback
+                const local = localStorage.getItem('professionalAvailability')
+                if (local) {
+                    try {
+                        const parsed = JSON.parse(local)
+                        console.log('Loaded availability from localStorage:', parsed)
+                        setAvailability(parsed)
+                    } catch (e) {
+                        console.warn('Could not parse availability from localStorage')
+                    }
+                }
+            }
+        }
+        loadAvailability()
+        
+        // Listen for availability changes (when modal closes)
+        const handleStorageChange = () => {
+            loadAvailability()
+        }
+        window.addEventListener('storage', handleStorageChange)
+        
+        // Also listen for custom event when availability is saved
+        window.addEventListener('availabilityUpdated', handleStorageChange)
+        
+        return () => {
+            window.removeEventListener('storage', handleStorageChange)
+            window.removeEventListener('availabilityUpdated', handleStorageChange)
+        }
     }, [])
 
     const getGreeting = () => {
@@ -161,12 +425,11 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                     <motion.button
                                         whileHover={{ scale: 1.05 }}
                                         whileTap={{ scale: 0.95 }}
-                                        className="w-10 h-10 md:w-12 md:h-12 bg-blue-600 rounded-xl md:rounded-2xl flex items-center justify-center text-white relative shadow-lg"
+                                        className="hidden lg:flex w-10 h-10 md:w-12 md:h-12 bg-blue-600 rounded-xl md:rounded-2xl items-center justify-center text-white relative shadow-lg"
                                     >
                                         <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                                         </svg>
-                                        <span className="absolute -top-0.5 -right-0.5 md:-top-1 md:-right-1 w-2.5 h-2.5 md:w-3 md:h-3 bg-red-500 rounded-full border-2 border-gray-50"></span>
                                     </motion.button>
 
                                     {/* Profile Button */}
@@ -174,7 +437,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                         whileHover={{ scale: 1.05 }}
                                         whileTap={{ scale: 0.95 }}
                                         onClick={() => navigate(ROUTES.PROFESSIONAL_PROFILE)}
-                                        className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg text-white font-bold text-sm md:text-lg"
+                                        className="hidden lg:flex w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-blue-600 items-center justify-center shadow-lg text-white font-bold text-sm md:text-lg"
                                         title="Ver Perfil"
                                     >
                                         {initials}
@@ -306,8 +569,9 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                 <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-4 md:mb-6">Sesiones De Hoy</h2>
 
                                 <TodaysSessions
-                                    sessions={todayAppointments}
+                                    sessions={allDaySlots}
                                     loading={loading}
+                                    onJoinVideo={handleJoinVideo}
                                     onViewDiary={setDiaryPatient}
                                 />
                             </motion.div>

@@ -9,8 +9,6 @@ import { Brain, Mail, Lock, User, Phone, ArrowRight, AlertCircle, CheckCircle2 }
 
 const RegisterPage = () => {
     const [apiError, setApiError] = useState('')
-    // Add step state for multi-step registration
-    const [step, setStep] = useState(1)
 
     const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm({
         defaultValues: {
@@ -48,81 +46,6 @@ const RegisterPage = () => {
         }
     }
 
-    const sendOTP = async () => {
-        if (!phoneNumber || phoneNumber.length < 10) {
-            showToast('Ingresa un número de teléfono válido', 'warning')
-            return
-        }
-
-        console.log('📱 Attempting to send OTP to:', phoneNumber)
-        setVerifying(true)
-        try {
-            const result = await smsAuth.sendOTP(phoneNumber)
-            console.log('✅ OTP send result:', result)
-            setOtpSent(true)
-            showToast('✅ Código enviado a tu teléfono', 'success')
-        } catch (error) {
-            console.error('❌ Error sending OTP:', error)
-            showToast(error.message || 'Error al enviar código', 'error')
-        } finally {
-            setVerifying(false)
-        }
-    }
-
-    const verifyOTPAndRegister = async () => {
-        if (!otp || otp.length < 4) {
-            showToast('Ingresa el código de verificación', 'warning')
-            return
-        }
-
-        setVerifying(true)
-        try {
-            // Verify OTP
-            await smsAuth.verifyOTP(phoneNumber, otp)
-            showToast('✅ Teléfono verificado', 'success')
-
-            // Register user
-            console.log('Registering user:', { firstName: tempFormData.firstName, lastName: tempFormData.lastName, email: tempFormData.email, role: tempFormData.role })
-            let response;
-            if (tempFormData.role === 'patient') {
-                response = await authAPI.registerPatient({
-                    firstName: tempFormData.firstName,
-                    lastName: tempFormData.lastName,
-                    email: tempFormData.email,
-                    password: tempFormData.password,
-                    phone: phoneNumber,
-                    phoneVerified: true
-                })
-            } else {
-                response = await authAPI.register({
-                    firstName: tempFormData.firstName,
-                    lastName: tempFormData.lastName,
-                    email: tempFormData.email,
-                    password: tempFormData.password,
-                    role: tempFormData.role,
-                    phone: phoneNumber,
-                    phoneVerified: true
-                })
-            }
-            console.log('Registration response:', response)
-
-            // After successful registration, log the user in automatically
-            console.log('Logging in user...')
-            const userData = await login(tempFormData.email, tempFormData.password, false)
-            console.log('Login successful:', userData)
-
-            showToast('✅ Cuenta creada exitosamente', 'success')
-            // Redirect to professional dashboard
-            navigate('/dashboard/professional')
-        } catch (err) {
-            console.error('Registration/Login error:', err)
-            setApiError(err.message || 'Error al registrar usuario')
-            showToast(err.message || 'Error al completar registro', 'error')
-        } finally {
-            setVerifying(false)
-        }
-    }
-
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 flex items-center justify-center p-4">
             <motion.div
@@ -144,14 +67,6 @@ const RegisterPage = () => {
                             <h1 className="text-2xl font-bold text-gray-900">Crear Cuenta</h1>
                             <p className="text-sm text-gray-500 mt-1">Comienza tu viaje con nosotros</p>
                         </div>
-                        {step === 2 && (
-                            <div className="flex items-center justify-center gap-2 text-xs text-green-600 bg-green-50 px-3 py-2 rounded-full">
-                                <CheckCircle2 className="w-3 h-3" />
-                                <span className="font-medium">Paso 1 completado</span>
-                                <ArrowRight className="w-3 h-3" />
-                                <span className="font-semibold">Verificar Teléfono</span>
-                            </div>
-                        )}
                     </div>
 
                     {/* Error Message */}
@@ -166,13 +81,12 @@ const RegisterPage = () => {
                         </motion.div>
                     )}
 
-                    {/* Step 1: Register Form */}
-                    {step === 1 && (
+                    {/* Register Form */}
                     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                         <input type="hidden" {...register('role')} value="health_professional" />
 
                         {/* Professional Registration Info */}
-                        <div className="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-xl p-4 border border-indigo-100">
+                        <div className="bg-linear-to-r from-indigo-50 to-blue-50 rounded-xl p-4 border border-indigo-100">
                             <p className="text-xs text-gray-600 leading-relaxed">
                                 <span className="font-semibold text-indigo-700">Registro de Profesional</span> - Como profesional de salud, podrás gestionar pacientes y sus tratamientos.
                             </p>
@@ -366,7 +280,6 @@ const RegisterPage = () => {
                             )}
                         </motion.button>
                     </form>
-                    )}
 
 
                     {/* Sign In Link */}

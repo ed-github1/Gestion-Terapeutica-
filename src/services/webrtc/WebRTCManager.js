@@ -81,11 +81,18 @@ class WebRTCManager {
    */
   connectSocket() {
     return new Promise((resolve, reject) => {
-      this.socket = io(this.socketUrl, {
+      // Connect to the /webrtc namespace
+      const socketUrl = `${this.socketUrl}/webrtc`;
+      
+      this.socket = io(socketUrl, {
         transports: ['websocket', 'polling'],
         reconnection: true,
         reconnectionDelay: 1000,
-        reconnectionAttempts: 5
+        reconnectionAttempts: 5,
+        withCredentials: true,
+        auth: {
+          token: this.userToken
+        }
       });
 
       this.socket.on('connect', () => {
@@ -122,10 +129,9 @@ class WebRTCManager {
     this.socket.on('room-joined', async ({ roomId, users }) => {
       console.log('Joined room:', roomId, 'Users:', users);
       
-      // Create offers to all existing users
-      for (const user of users) {
-        await this.createOffer(user.userId);
-      }
+      // Don't create offers to existing users - wait for them to send offers
+      // This prevents "glare" condition where both peers send offers simultaneously
+      // Existing users will receive 'user-joined' event and create offers
     });
 
     // New user joined
@@ -389,6 +395,13 @@ class WebRTCManager {
 
       if (!pc) {
         console.error('No peer connection found for:', fromUserId);
+        return;
+      }
+
+      // Check if we're in the right state to accept an answer
+      // Ignore answer if we're already stable (prevents "wrong state" error)
+      if (pc.signalingState === 'stable') {
+        console.log('Ignoring answer - already in stable state for:', fromUserId);
         return;
       }
 

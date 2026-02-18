@@ -16,6 +16,10 @@ export const getGreeting = (currentTime) => {
  * @returns {Array} Today's appointments
  */
 export const getTodayAppointments = (appointments) => {
+    if (!Array.isArray(appointments) || appointments.length === 0) {
+        return []
+    }
+
     const now = new Date()
     const todayYear = now.getFullYear()
     const todayMonth = now.getMonth()
@@ -23,35 +27,60 @@ export const getTodayAppointments = (appointments) => {
 
     return appointments
         .filter(apt => {
-            let isToday = false
-            if (/^\d{4}-\d{2}-\d{2}$/.test(apt.date)) {
-                const [y, m, d] = apt.date.split('-').map(Number)
-                const aptDateObj = new Date(todayYear, m - 1, d)
-                isToday = (
-                    aptDateObj.getFullYear() === todayYear &&
-                    aptDateObj.getMonth() === todayMonth &&
-                    aptDateObj.getDate() === todayDate
+            // Support both 'date' and 'fechaHora' fields
+            const dateField = apt.fechaHora || apt.date
+            
+            if (!dateField) return false
+            
+            // Parse the date - use UTC date parts to avoid timezone conversion issues
+            try {
+                const aptDateObj = new Date(dateField)
+                
+                if (isNaN(aptDateObj.getTime())) {
+                    return false
+                }
+                
+                // Use UTC date parts to compare (this fixes timezone issues)
+                // If the date is stored as 2026-02-17T00:00:00.000Z, we want to match Feb 17 regardless of timezone
+                const isToday = (
+                    aptDateObj.getUTCFullYear() === todayYear &&
+                    aptDateObj.getUTCMonth() === todayMonth &&
+                    aptDateObj.getUTCDate() === todayDate
                 )
-            } else {
-                const aptDateObj = new Date(apt.date)
-                isToday = (
-                    aptDateObj.getFullYear() === todayYear &&
-                    aptDateObj.getMonth() === todayMonth &&
-                    aptDateObj.getDate() === todayDate
-                )
+                
+                return isToday
+                
+            } catch (error) {
+                return false
             }
-            return isToday
         })
-        .map(apt => ({
-            id: apt._id || apt.id,
-            patientId: apt.patientId?._id || apt.patientId,
-            patientName: apt.patientId?.nombre 
-                ? `${apt.patientId.nombre} ${apt.patientId.apellido}` 
-                : 'Paciente',
-            dateTime: apt.date,
-            status: apt.status,
-            type: apt.type || 'Consulta'
-        }))
+        .map(apt => {
+            // Combine date and time fields if they exist separately
+            let fechaHora = apt.fechaHora || apt.date
+            if (apt.time && apt.date) {
+                // If we have separate date and time, create a combined ISO string
+                const dateObj = new Date(apt.date)
+                const [hours, minutes] = apt.time.split(':').map(Number)
+                dateObj.setHours(hours, minutes, 0, 0)
+                fechaHora = dateObj.toISOString()
+            }
+            
+            return {
+                id: apt._id || apt.id,
+                patientId: apt.patientId?._id || apt.patientId,
+                nombrePaciente: apt.patientName || apt.nombrePaciente || (apt.patientId?.nombre 
+                    ? `${apt.patientId.nombre} ${apt.patientId.apellido}` 
+                    : 'Paciente'),
+                fechaHora: fechaHora,
+                estado: apt.estado || apt.status,
+                type: apt.type || 'Consulta',
+                riskLevel: apt.riskLevel || 'low',
+                lastSessionNote: apt.lastSessionNote || '',
+                treatmentGoal: apt.treatmentGoal || '',
+                homeworkCompleted: apt.homeworkCompleted || false,
+                ultimaVisita: apt.ultimaVisita || null
+            }
+        })
 }
 
 /**

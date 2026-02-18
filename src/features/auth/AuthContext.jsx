@@ -139,10 +139,15 @@ export const AuthProvider = ({ children }) => {
     return user?.role === 'patient' || user?.role === 'pacient'
   }
 
+  const getToken = () => {
+    return localStorage.getItem('authToken') || sessionStorage.getItem('authToken')
+  }
+
   const value = {
     user,
     loading,
     error,
+    token: getToken(),
     login,
     logout,
     isAuthenticated: !!user,

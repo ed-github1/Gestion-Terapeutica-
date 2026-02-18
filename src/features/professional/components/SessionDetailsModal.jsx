@@ -19,6 +19,8 @@ const getInitials = (name) => {
  */
 const SessionDetailsModal = ({ session, onClose, onJoinVideo, onAddNote, onMessage }) => {
     if (!session) return null
+    
+    console.log('SessionDetailsModal - onJoinVideo prop:', onJoinVideo, 'Type:', typeof onJoinVideo)
 
     const patientName = session.nombrePaciente || session.patient?.name || 'Unknown Patient'
     const riskLevel = session.riskLevel || 'low'
@@ -43,7 +45,11 @@ const SessionDetailsModal = ({ session, onClose, onJoinVideo, onAddNote, onMessa
     const avatarColor = avatarColors[patientName.length % avatarColors.length]
 
     const handleStartSession = () => {
-        if (onJoinVideo) onJoinVideo(session)
+        console.log('handleStartSession called, session:', session)
+        if (onJoinVideo) {
+            console.log('Calling onJoinVideo with session')
+            onJoinVideo(session)
+        }
         onClose()
     }
 

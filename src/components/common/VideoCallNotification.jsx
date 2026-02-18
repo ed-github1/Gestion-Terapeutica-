@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../features/auth'
 
 const VideoCallNotification = ({ invitation, onAccept, onDecline, onClose }) => {
   const [timeLeft, setTimeLeft] = useState(45) // 45 seconds to respond
   const navigate = useNavigate()
+  const { user } = useAuth()
 
   useEffect(() => {
     if (timeLeft <= 0) {
@@ -21,8 +23,15 @@ const VideoCallNotification = ({ invitation, onAccept, onDecline, onClose }) => 
 
   const handleAccept = () => {
     onAccept(invitation)
-    // Navigate to video call page
-    navigate(`/video/join/${invitation.appointmentId}?name=${encodeURIComponent(invitation.patientName)}`)
+    // Navigate to video call page with current user's name
+    // Try multiple possible sources for patient name
+    const patientName = user?.name || 
+                       user?.username || 
+                       invitation.patientName || 
+                       invitation.patient?.name || 
+                       'Paciente'
+    
+    navigate(`/video/join/${invitation.appointmentId}?name=${encodeURIComponent(patientName)}`)
   }
 
   return (
