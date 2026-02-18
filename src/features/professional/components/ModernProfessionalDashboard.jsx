@@ -1109,7 +1109,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                 )}
             </AnimatePresence>
 
-            <style jsx>{`
+            <style>{`
                 @keyframes wave {
                     0%, 100% { transform: rotate(0deg); }
                     25% { transform: rotate(20deg); }

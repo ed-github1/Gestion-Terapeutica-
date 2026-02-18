@@ -20,7 +20,16 @@ const PatientDiary = ({ patientId, patientName, onClose }) => {
         setError(null)
         try {
             const response = await diaryService.getNotes(patientId)
-            setNotes(response.data || [])
+            // Normalize: backend may return { data: [] }, { notes: [] }, or []
+            const raw = response.data
+            const list = Array.isArray(raw)
+                ? raw
+                : Array.isArray(raw?.data)
+                    ? raw.data
+                    : Array.isArray(raw?.notes)
+                        ? raw.notes
+                        : []
+            setNotes(list)
         } catch (error) {
             console.error('Error fetching notes:', error)
             setError('Error al cargar las notas del diario')
@@ -39,9 +48,14 @@ const PatientDiary = ({ patientId, patientName, onClose }) => {
                 text: newNote,
                 author: user?.name || user?.email || 'Professional'
             }
-
             const response = await diaryService.addNote(patientId, noteData)
-            setNotes(prev => [response.data, ...prev])
+            // Backend may return the new note directly or wrapped
+            const newEntry = response.data?.data || response.data
+            if (newEntry && typeof newEntry === 'object' && !Array.isArray(newEntry)) {
+                setNotes(prev => [newEntry, ...prev])
+            } else {
+                await fetchNotes() // fallback: reload all notes
+            }
             setNewNote('')
         } catch (error) {
             console.error('Error adding note:', error)

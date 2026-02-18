@@ -35,7 +35,7 @@ export const appointmentsService = {
   },
 
   getPatientAppointments: () =>
-    apiClient.get('/appointments/patient/my-appointments'),
+    apiClient.get('/appointments'),
 
   getProfessionalAppointments: (professionalId) =>
     apiClient.get(`/appointments/professional/${professionalId}`),

@@ -38,15 +38,24 @@ apiClient.interceptors.response.use(
   (error) => {
     if (error.response) {
       const { status, data } = error.response
-      if (status === 401) {
+      // Only auto-redirect on 401 when outside of auth pages
+      const onAuthPage = ['/login', '/register'].some(p => window.location.pathname.startsWith(p))
+      if (status === 401 && !onAuthPage) {
         localStorage.removeItem('authToken')
         sessionStorage.removeItem('authToken')
         window.location.href = '/login'
       }
-      return Promise.reject(new Error(data?.message || data?.error || `Error ${status}`))
+      // Build error with status preserved so callers can do field-level placement
+      const message = data?.message || data?.error || `Error ${status}`
+      const err = new Error(message)
+      err.status = status
+      err.data = data
+      return Promise.reject(err)
     }
     if (error.request) {
-      return Promise.reject(new Error('No se pudo conectar con el servidor'))
+      const err = new Error('No se pudo conectar con el servidor')
+      err.status = 0
+      return Promise.reject(err)
     }
     return Promise.reject(new Error(error.message || 'Error desconocido'))
   },

@@ -2,14 +2,15 @@
 // Clinical caseload view — not a generic contact list.
 // Displays PHQ-9 sparklines, risk levels, homework status, insurance sessions,
 // treatment goals, and outcome trends for each patient.
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { showToast } from '@components'
 import { patientsService } from '@shared/services/patientsService'
+import { invitationsService } from '@shared/services/invitationsService'
 import PatientForm from './PatientForm'
 import PatientDiary from './PatientDiary'
 import {
-    Users, UserPlus, Search,
+    Users, UserPlus, Search, RefreshCw,
     LayoutGrid, List, ShieldAlert,
     BookOpen, MessageSquare, CalendarPlus,
     ChevronRight, TrendingDown, TrendingUp, Minus,
@@ -65,12 +66,17 @@ const avatarPalette = [
     'bg-violet-100 text-violet-700', 'bg-rose-100 text-rose-700',
     'bg-amber-100 text-amber-700',   'bg-cyan-100 text-cyan-700',
 ]
-const getAvatarColor = (id) => avatarPalette[id % avatarPalette.length]
+const getAvatarColor = (id) => {
+    // id may be a MongoDB ObjectId string — derive a stable numeric index from it
+    const n = typeof id === 'number' ? id : String(id).split('').reduce((acc, c) => acc + c.charCodeAt(0), 0)
+    return avatarPalette[n % avatarPalette.length] || avatarPalette[0]
+}
 
 const statusConfig = {
     active:   { label: 'Activo',    cls: 'bg-emerald-50 text-emerald-700', dot: 'bg-emerald-500' },
     pending:  { label: 'Pendiente', cls: 'bg-amber-50 text-amber-700',     dot: 'bg-amber-400' },
     inactive: { label: 'Inactivo',  cls: 'bg-gray-100 text-gray-500',      dot: 'bg-gray-400' },
+    invited:  { label: 'Invitado',  cls: 'bg-blue-50 text-blue-700',       dot: 'bg-blue-400' },
 }
 
 const phq9Trend = (scores) => {
@@ -364,22 +370,66 @@ const ModernPatientsList = () => {
     const [selectedPatient, setSelectedPatient] = useState(null)
     const [showDiary, setShowDiary]       = useState(false)
 
-    useEffect(() => { loadPatients() }, [])
+    const loadPatients = useCallback(async () => {
+        setLoading(true)
+        let realPatients = []
 
-    const loadPatients = async () => {
+        // ── /patients ────────────────────────────────────────────────────
         try {
-            setLoading(true)
-            const res  = await patientsService.getAll()
-            const raw  = res.data?.data || res.data || []
-            const list = Array.isArray(raw) ? raw.map(normalizePatient) : []
-            setPatients(list.length > 0 ? list : mockPatients)
-        } catch {
-            // backend not reachable — show mock data so UI is never blank
-            setPatients(mockPatients)
-        } finally {
-            setLoading(false)
+            const res = await patientsService.getAll()
+            console.log('[PatientsList] /patients raw response:', res.data)
+            // Handle all common shapes: { data: [...] }, { data: { data: [...] } }, [...]
+            const raw = res.data?.data?.data ?? res.data?.data ?? res.data ?? []
+            realPatients = Array.isArray(raw) ? raw.map(normalizePatient) : []
+            console.log('[PatientsList] normalized patients:', realPatients)
+        } catch (err) {
+            console.error('[PatientsList] /patients error:', err)
         }
-    }
+
+        // ── /invitations (merge any that aren't already in /patients) ────
+        try {
+            const invRes = await invitationsService.getAll()
+            console.log('[PatientsList] /invitations raw response:', invRes.data)
+
+            // Backend may return: { data: [...] } | { data: { invitations: [...] } } | { data: { data: [...] } }
+            const invOuter = invRes.data?.data ?? invRes.data ?? []
+            const invList = Array.isArray(invOuter)
+                ? invOuter
+                : Array.isArray(invOuter.invitations)
+                    ? invOuter.invitations
+                    : Array.isArray(invOuter.data)
+                        ? invOuter.data
+                        : Object.values(invOuter).find(v => Array.isArray(v)) ?? []
+
+            console.log('[PatientsList] invitations list:', invList)
+            const existingEmails = new Set(realPatients.map(p => p.email?.toLowerCase()))
+
+            const fromInvites = invList
+                .filter(inv => !existingEmails.has((inv.patientEmail || inv.email || '').toLowerCase()))
+                .map(inv => normalizePatient({
+                    _id:               inv._id || inv.id || `inv-${inv.patientEmail}`,
+                    firstName:         inv.firstName || inv.patientName?.split(' ')[0] || '',
+                    lastName:          inv.lastName  || inv.patientName?.split(' ').slice(1).join(' ') || '',
+                    email:             inv.patientEmail || inv.email || '',
+                    phone:             inv.phone || null,
+                    status:            (inv.hasRegistered || inv.status === 'accepted') ? 'pending' : 'invited',
+                    presentingConcern: inv.presentingConcern || '',
+                    hasRegistered:     inv.hasRegistered ?? (inv.status === 'accepted'),
+                    _fromInvitation:   true,
+                }))
+
+            console.log('[PatientsList] from invitations (not in /patients):', fromInvites)
+            realPatients = [...realPatients, ...fromInvites]
+        } catch (err) {
+            console.warn('[PatientsList] /invitations error (non-fatal):', err)
+        }
+
+        console.log('[PatientsList] final list to render:', realPatients)
+        setPatients(realPatients)
+        setLoading(false)
+    }, [])
+
+    useEffect(() => { loadPatients() }, [loadPatients])
 
     const handleDelete = async (id) => {
         if (!confirm('¿Eliminar este paciente definitivamente?')) return
@@ -405,6 +455,7 @@ const ModernPatientsList = () => {
             if (sortBy === 'phq9')        { const la = a.phq9?.at(-1) ?? -1, lb = b.phq9?.at(-1) ?? -1; return lb - la }
             return 0
         })
+        console.log('[PatientsList] filtered list:', list.length, 'filterStatus:', filterStatus, 'filterRisk:', filterRisk, 'patients in state:', patients.length)
         return list
     }, [patients, search, filterStatus, filterRisk, sortBy])
 
@@ -433,13 +484,23 @@ const ModernPatientsList = () => {
                         <h1 className="text-xl md:text-2xl font-bold text-gray-900 tracking-tight">Carga de Pacientes</h1>
                         <p className="text-sm text-gray-500 mt-0.5">{active} activos · {total} en total</p>
                     </div>
-                    <button
-                        onClick={() => setShowAddPatient(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-xl text-sm font-semibold hover:bg-gray-700 transition-colors shrink-0"
-                    >
-                        <UserPlus className="w-4 h-4" />
-                        <span className="hidden sm:inline">Nuevo paciente</span>
-                    </button>
+                    <div className="flex items-center gap-2 shrink-0">
+                        <button
+                            onClick={loadPatients}
+                            title="Actualizar lista"
+                            className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+                        >
+                            <RefreshCw className="w-4 h-4" />
+                            <span className="hidden sm:inline">Actualizar</span>
+                        </button>
+                        <button
+                            onClick={() => setShowAddPatient(true)}
+                            className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-xl text-sm font-semibold hover:bg-gray-700 transition-colors"
+                        >
+                            <UserPlus className="w-4 h-4" />
+                            <span className="hidden sm:inline">Nuevo paciente</span>
+                        </button>
+                    </div>
                 </motion.div>
 
                 {/* KPI strip */}
@@ -478,7 +539,7 @@ const ModernPatientsList = () => {
                         />
                     </div>
                     {[
-                        { value: filterStatus, setter: setFilterStatus, options: [['all','Todos los estados'],['active','Activos'],['pending','Pendientes'],['inactive','Inactivos']] },
+                        { value: filterStatus, setter: setFilterStatus, options: [['all','Todos los estados'],['active','Activos'],['pending','Pendientes'],['inactive','Inactivos'],['invited','Invitados']] },
                         { value: filterRisk,   setter: setFilterRisk,   options: [['all','Todos los riesgos'],['high','Alto riesgo'],['medium','Riesgo medio'],['low','Bajo riesgo']] },
                         { value: sortBy,       setter: setSortBy,       options: [['name','Orden: Nombre'],['risk','Orden: Riesgo'],['lastSession','Orden: Última sesión'],['phq9','Orden: PHQ-9']] },
                     ].map(({ value, setter, options }, i) => (
@@ -517,6 +578,15 @@ const ModernPatientsList = () => {
                         <Users className="w-10 h-10 text-gray-300 mx-auto mb-3" />
                         <p className="font-semibold text-gray-700">Sin resultados</p>
                         <p className="text-sm text-gray-400 mt-1">{search ? 'Prueba con otro término.' : 'No hay pacientes con estos filtros.'}</p>
+                        {patients.length > 0 && (filterStatus !== 'all' || filterRisk !== 'all') && (
+                            <button onClick={() => { setSearch(''); setFilterStatus('all'); setFilterRisk('all') }}
+                                className="mt-3 text-sm text-indigo-600 hover:underline">
+                                Limpiar filtros ({patients.length} paciente{patients.length !== 1 ? 's' : ''} en total)
+                            </button>
+                        )}
+                        {patients.length === 0 && !search && (
+                            <p className="text-xs text-gray-300 mt-3">Revisa la consola del navegador (F12) para ver la respuesta de la API</p>
+                        )}
                     </motion.div>
                 )}
 
@@ -524,9 +594,10 @@ const ModernPatientsList = () => {
                 {!loading && viewMode === 'grid' && filtered.length > 0 && (
                     <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                         <AnimatePresence>
-                            {filtered.map((p, i) => (
-                                <PatientCard key={p.id} patient={p} index={i} onOpenDiary={openDiary} onDelete={handleDelete} />
-                            ))}
+                            {filtered.map((p, i) => {
+                                console.log('[PatientsList] rendering card for:', p.nombre, p.apellido, 'id:', p.id, 'status:', p.status)
+                                return <PatientCard key={p.id ?? i} patient={p} index={i} onOpenDiary={openDiary} onDelete={handleDelete} />
+                            })}
                         </AnimatePresence>
                     </motion.div>
                 )}

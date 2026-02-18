@@ -7,9 +7,11 @@ import { motion, AnimatePresence } from 'motion/react'
 
 let _toastHandler = null
 
-/** this anywhere (outside React tree) to fire a toast. */
+/** Call this anywhere (outside React tree) to fire a toast. */
 export const showToast = (message, type = 'success') => {
-  _toastHandler?.(message, type)
+  // Try module-level handler first, fall back to window global
+  const handler = _toastHandler ?? window.__toastHandler
+  handler?.(message, type)
 }
 
 const ICON = {
@@ -35,13 +37,14 @@ const Toast = () => {
       setToasts((prev) => [...prev, { id, message, type }])
       setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3500)
     }
-    return () => { _toastHandler = null }
+    window.__toastHandler = _toastHandler
+    return () => { _toastHandler = null; window.__toastHandler = null }
   }, [])
 
   const remove = (id) => setToasts((prev) => prev.filter((t) => t.id !== id))
 
   return (
-    <div className="fixed top-4 right-4 z-100 flex flex-col gap-2 pointer-events-none">
+    <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none">
       <AnimatePresence>
         {toasts.map(({ id, message, type }) => {
           const c = COLORS[type] || COLORS.info

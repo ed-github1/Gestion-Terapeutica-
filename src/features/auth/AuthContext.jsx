@@ -14,6 +14,7 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [initializing, setInitializing] = useState(true) // only true during startup token check
   const [error, setError] = useState(null)
 
   // Check if user is already logged in on mount
@@ -43,6 +44,7 @@ export const AuthProvider = ({ children }) => {
         sessionStorage.removeItem('userData')
       } finally {
         setLoading(false)
+        setInitializing(false) // startup check is done
       }
     }
 
@@ -146,6 +148,7 @@ export const AuthProvider = ({ children }) => {
   const value = {
     user,
     loading,
+    initializing, // true only during the startup token check, not during login calls
     error,
     token: getToken(),
     login,

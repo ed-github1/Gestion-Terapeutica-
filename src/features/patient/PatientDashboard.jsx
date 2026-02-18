@@ -45,10 +45,10 @@ const PatientDashboard = () => {
   const loadDashboardData = async () => {
     try {
       setError(null)
-      const appointments = await appointmentsService.getPatientAppointments()
-      
+      const response = await appointmentsService.getPatientAppointments()
+      const raw = response?.data ?? response
       // Defensive check - ensure appointments is an array
-      const appointmentsArray = Array.isArray(appointments) ? appointments : []
+      const appointmentsArray = Array.isArray(raw) ? raw : (Array.isArray(raw?.data) ? raw.data : [])
       
       if (appointmentsArray.length === 0) {
         console.log('No appointments returned from API')

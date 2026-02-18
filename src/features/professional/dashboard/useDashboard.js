@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import apiClient from '@shared/api/client'
 
 /**
  * Custom hook for fetching and managing dashboard data
@@ -23,28 +24,21 @@ export const useDashboardData = () => {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
 
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
-    const authToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken')
-
     const fetchPatients = async () => {
         try {
-            const response = await fetch(`${apiUrl}/patients`, {
-                headers: { 'Authorization': `Bearer ${authToken}` }
-            })
+            const response = await apiClient.get('/patients')
+            const { data } = response
 
-            if (response.ok) {
-                const data = await response.json()
-                const patientsList = data.data?.data || data.data || []
-                setPatients(Array.isArray(patientsList) ? patientsList : [])
+            const patientsList = data?.data?.data || data?.data || []
+            setPatients(Array.isArray(patientsList) ? patientsList : [])
 
-                const activePatients = patientsList.filter(p => p.status === 'active').length
+            const activePatients = patientsList.filter(p => p.status === 'active').length
 
-                setStats(prev => ({
-                    ...prev,
-                    totalPatients: patientsList.length,
-                    activeTreatments: activePatients
-                }))
-            }
+            setStats(prev => ({
+                ...prev,
+                totalPatients: patientsList.length,
+                activeTreatments: activePatients
+            }))
         } catch (error) {
             console.error('Error fetching patients:', error)
             throw error
@@ -53,13 +47,9 @@ export const useDashboardData = () => {
 
     const fetchAppointments = async () => {
         try {
-            const response = await fetch(`${apiUrl}/appointments`, {
-                headers: { 'Authorization': `Bearer ${authToken}` }
-            })
-
-            if (response.ok) {
-                const data = await response.json()
-                const appointmentsList = data.data || []
+            const response = await apiClient.get('/appointments')
+            const { data } = response
+            const appointmentsList = data?.data || []
                 setAppointments(Array.isArray(appointmentsList) ? appointmentsList : [])
 
                 // Calculate stats
@@ -96,11 +86,11 @@ export const useDashboardData = () => {
                     pendingNotes: pendingNotes.length,
                     noShowCount: noShows.length
                 }))
-            }
         } catch (error) {
             console.log('Appointments endpoint not available:', error)
         }
     }
+
 
     const loadDashboardData = async () => {
         setLoading(true)

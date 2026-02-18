@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form'
 import { motion, AnimatePresence } from 'motion/react'
 import { invitationsService } from '@shared/services/invitationsService'
-import { showToast } from '@components'
+import { showToast } from '@shared/ui'
 import { X, Send, User, Mail, Phone, Calendar, MessageSquare, Stethoscope } from 'lucide-react'
 
 const SESSION_TYPES = [
@@ -77,7 +77,12 @@ const PatientForm = ({ onClose }) => {
       showToast(`Invitación enviada a ${data.email}`, 'success')
       onClose()
     } catch (err) {
-      showToast(err.message || 'Error al enviar la invitación', 'error')
+      const serverMsg = err?.response?.data?.message || err?.response?.data?.error
+      if (err?.response?.status === 409) {
+        showToast(serverMsg || 'Ya existe una invitación pendiente para este correo electrónico.', 'warning')
+      } else {
+        showToast(serverMsg || err.message || 'Error al enviar la invitación', 'error')
+      }
     }
   }
 

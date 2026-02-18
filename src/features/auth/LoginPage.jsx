@@ -1,26 +1,25 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
-import {  Brain, Mail, Lock, AlertCircle } from 'lucide-react'
+import { Brain, Mail, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from './AuthContext'
 
 const LoginPage = () => {
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
-    defaultValues: {
-      email: '',
-      password: '',
-      rememberMe: false,
-    }
+  const [showPassword, setShowPassword] = useState(false)
+  const [loginError, setLoginError] = useState(null) // always-visible backend error
+
+  const { register, handleSubmit, setError, clearErrors, formState: { errors, isSubmitting } } = useForm({
+    defaultValues: { email: '', password: '', rememberMe: false }
   })
-  
-  const { login, error } = useAuth()
+
+  const { login } = useAuth()
   const navigate = useNavigate()
 
   const onSubmit = async (data) => {
+    setLoginError(null)
+    clearErrors(['email', 'password'])
     try {
       const userData = await login(data.email, data.password, data.rememberMe)
-      
-      // Redirect based on user role
       if (userData.role === 'health_professional' || userData.role === 'professional') {
         navigate('/dashboard/professional')
       } else if (userData.role === 'patient' || userData.role === 'pacient') {
@@ -29,15 +28,27 @@ const LoginPage = () => {
         navigate('/dashboard')
       }
     } catch (err) {
-      console.error('Login error:', err)
+      const message = err?.message || 'Error al iniciar sesión'
+      const status  = err?.status
+
+      // Always show the backend message visibly
+      setLoginError(message)
+
+      // Also pin it to the relevant field so the border highlights
+      if (status === 404) {
+        setError('email', { type: 'server', message })
+      } else {
+        // 401, 400, or unknown — wrong credentials
+        setError('password', { type: 'server', message })
+      }
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Login Card */}
-        <div className="p-8 space-y-6">
+        <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6">
           {/* Header */}
           <div className="text-center space-y-3">
             <div className="flex justify-center">
@@ -51,42 +62,46 @@ const LoginPage = () => {
             </div>
           </div>
 
-          {/* Error Message */}
-          {error && (
-            <div className="flex items-start gap-2 p-3 bg-rose-50 rounded-xl border border-rose-100">
+          {/* Backend error banner — always visible */}
+          {loginError && (
+            <div className="flex items-start gap-2.5 p-3.5 bg-rose-50 rounded-xl border border-rose-200">
               <AlertCircle className="w-4 h-4 text-rose-600 mt-0.5 shrink-0" />
-              <p className="text-sm text-rose-700 leading-relaxed">{error}</p>
+              <p className="text-sm text-rose-700 font-medium leading-snug">{loginError}</p>
             </div>
           )}
 
           {/* Login Form */}
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
             {/* Email Input */}
             <div>
               <label htmlFor="email" className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
                 Correo Electrónico
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Mail className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${errors.email ? 'text-rose-400' : 'text-gray-400'}`} />
                 <input
                   id="email"
                   type="email"
-                  {...register('email', { 
+                  autoComplete="email"
+                  {...register('email', {
                     required: 'El correo electrónico es requerido',
                     pattern: {
                       value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                      message: 'Correo electrónico inválido'
-                    }
+                      message: 'Formato de correo inválido'
+                    },
+                    onChange: () => { clearErrors('email'); setLoginError(null) }
                   })}
                   className={`w-full pl-10 pr-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition outline-none ${
-                    errors.email ? 'border-rose-500' : 'border-gray-200'
+                    errors.email ? 'border-rose-400 bg-rose-50/40' : 'border-gray-200'
                   }`}
                   placeholder="tu@correo.com"
                   disabled={isSubmitting}
                 />
               </div>
               {errors.email && (
-                <p className="mt-1.5 text-xs text-rose-600">{errors.email.message}</p>
+                <p className="mt-1.5 text-xs text-rose-600 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3 shrink-0" /> {errors.email.message}
+                </p>
               )}
             </div>
 
@@ -96,26 +111,34 @@ const LoginPage = () => {
                 Contraseña
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Lock className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${errors.password ? 'text-rose-400' : 'text-gray-400'}`} />
                 <input
                   id="password"
-                  type="password"
-                  {...register('password', { 
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  {...register('password', {
                     required: 'La contraseña es requerida',
-                    minLength: {
-                      value: 6,
-                      message: 'La contraseña debe tener al menos 6 caracteres'
-                    }
+                    onChange: () => { clearErrors('password'); setLoginError(null) }
                   })}
-                  className={`w-full pl-10 pr-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition outline-none ${
-                    errors.password ? 'border-rose-500' : 'border-gray-200'
+                  className={`w-full pl-10 pr-10 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition outline-none ${
+                    errors.password ? 'border-rose-400 bg-rose-50/40' : 'border-gray-200'
                   }`}
                   placeholder="••••••••"
                   disabled={isSubmitting}
                 />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  onClick={() => setShowPassword(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
               {errors.password && (
-                <p className="mt-1.5 text-xs text-rose-600">{errors.password.message}</p>
+                <p className="mt-1.5 text-xs text-rose-600 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3 shrink-0" /> {errors.password.message}
+                </p>
               )}
             </div>
 
@@ -139,7 +162,7 @@ const LoginPage = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:from-indigo-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-linear-to-r from-indigo-600 to-blue-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:from-indigo-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 <span className="flex items-center justify-center gap-2">

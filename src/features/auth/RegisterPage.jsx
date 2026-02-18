@@ -1,52 +1,79 @@
 import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
-import { motion } from 'motion/react'
+import { motion, AnimatePresence } from 'motion/react'
 import { useAuth } from './AuthContext'
 import { authService } from '@shared/services/authService'
 import { showToast } from '@components'
-import { Brain, Mail, Lock, User, Phone, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { Brain, Mail, Lock, User, Phone, ArrowRight, AlertCircle, CheckCircle2, Eye, EyeOff, WifiOff } from 'lucide-react'
+
+// Password strength: returns { score 0-4, label, color }
+const getPasswordStrength = (pwd = '') => {
+    let score = 0
+    if (pwd.length >= 8)                   score++
+    if (/[A-Z]/.test(pwd))                 score++
+    if (/[0-9]/.test(pwd))                 score++
+    if (/[^A-Za-z0-9]/.test(pwd))         score++
+    const levels = [
+        { label: '',        color: 'bg-gray-200'    },
+        { label: 'Débil',   color: 'bg-rose-500'    },
+        { label: 'Regular', color: 'bg-amber-400'   },
+        { label: 'Buena',   color: 'bg-yellow-400'  },
+        { label: 'Fuerte',  color: 'bg-emerald-500' },
+    ]
+    return { score, ...levels[score] }
+}
 
 const RegisterPage = () => {
-    const [apiError, setApiError] = useState('')
+    const [apiError, setApiError] = useState(null) // { field?, message, icon? }
+    const [showPassword, setShowPassword] = useState(false)
+    const [showConfirm, setShowConfirm] = useState(false)
 
-    const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm({
+    const { register, handleSubmit, watch, setError, clearErrors, formState: { errors, isSubmitting } } = useForm({
         defaultValues: {
-            firstName: '',
-            lastName: '',
-            email: '',
-            password: '',
-            confirmPassword: '',
-            role: 'health_professional',
-            terms: false,
+            firstName: '', lastName: '', email: '',
+            password: '', confirmPassword: '',
+            role: 'health_professional', terms: false,
         }
     })
 
     const navigate = useNavigate()
-
     const password = watch('password')
+    const passwordStrength = getPasswordStrength(password)
 
     const onSubmit = async (data) => {
-        setApiError('')
+        setApiError(null)
+        clearErrors(['email', 'password'])
         try {
-            // Register user
-            const response = await authService.register({
+            await authService.register({
                 firstName: data.firstName,
                 lastName: data.lastName,
                 email: data.email,
                 password: data.password,
                 role: data.role
             })
-            showToast('✅ Cuenta creada exitosamente', 'success')
+            showToast('Cuenta creada exitosamente', 'success')
             navigate('/login')
         } catch (err) {
-            setApiError(err.message || 'Error al registrar usuario')
-            showToast(err.message || 'Error al completar registro', 'error')
+            const message = err?.message || 'Error al registrar'
+            const status  = err?.status
+            // Use HTTP status for field placement; show the exact backend message
+            if (status === 409) {
+                // Duplicate email — highlight email field
+                setError('email', { type: 'server', message })
+            } else if (status === 400) {
+                // Validation error from backend — show as banner
+                setApiError({ message })
+            } else if (status === 0) {
+                setApiError({ message, icon: 'wifi' })
+            } else {
+                setApiError({ message })
+            }
         }
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-linear-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 flex items-center justify-center p-4">
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -69,16 +96,22 @@ const RegisterPage = () => {
                     </div>
 
                     {/* Error Message */}
-                    {apiError && (
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            className="flex items-start gap-2 p-3 bg-rose-50 rounded-xl border border-rose-100"
-                        >
-                            <AlertCircle className="w-4 h-4 text-rose-600 mt-0.5 shrink-0" />
-                            <p className="text-sm text-rose-700 leading-relaxed">{apiError}</p>
-                        </motion.div>
-                    )}
+                    <AnimatePresence>
+                        {apiError && (
+                            <motion.div
+                                key="api-err"
+                                initial={{ opacity: 0, y: -6 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0 }}
+                                className="flex items-start gap-2 p-3 bg-rose-50 rounded-xl border border-rose-100"
+                            >
+                                {apiError.icon === 'wifi'
+                                    ? <WifiOff className="w-4 h-4 text-rose-600 mt-0.5 shrink-0" />
+                                    : <AlertCircle className="w-4 h-4 text-rose-600 mt-0.5 shrink-0" />}
+                                <p className="text-sm text-rose-700 leading-relaxed">{apiError.message}</p>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
                     {/* Register Form */}
                     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -108,15 +141,20 @@ const RegisterPage = () => {
                                             message: 'El nombre debe tener al menos 2 caracteres'
                                         }
                                     })}
-                                    className={`w-full pl-10 pr-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition outline-none ${errors.firstName ? 'border-rose-500' : 'border-gray-200'
+                                    className={`w-full pl-10 pr-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition outline-none ${errors.firstName ? 'border-rose-400 bg-rose-50/40' : 'border-gray-200'
                                         }`}
                                     placeholder="Juan"
                                     disabled={isSubmitting}
                                 />
                             </div>
-                            {errors.firstName && (
-                                <p className="mt-1.5 text-xs text-rose-600">{errors.firstName.message}</p>
-                            )}
+                            <AnimatePresence>
+                                {errors.firstName && (
+                                    <motion.p key="fn-err" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                                        className="mt-1.5 text-xs text-rose-600 flex items-center gap-1">
+                                        <AlertCircle className="w-3 h-3 shrink-0" /> {errors.firstName.message}
+                                    </motion.p>
+                                )}
+                            </AnimatePresence>
                         </div>
 
                         {/* Last Name Input */}
@@ -136,15 +174,20 @@ const RegisterPage = () => {
                                             message: 'El apellido debe tener al menos 2 caracteres'
                                         }
                                     })}
-                                    className={`w-full pl-10 pr-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition outline-none ${errors.lastName ? 'border-rose-500' : 'border-gray-200'
+                                    className={`w-full pl-10 pr-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition outline-none ${errors.lastName ? 'border-rose-400 bg-rose-50/40' : 'border-gray-200'
                                         }`}
                                     placeholder="Pérez"
                                     disabled={isSubmitting}
                                 />
                             </div>
-                            {errors.lastName && (
-                                <p className="mt-1.5 text-xs text-rose-600">{errors.lastName.message}</p>
-                            )}
+                            <AnimatePresence>
+                                {errors.lastName && (
+                                    <motion.p key="ln-err" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                                        className="mt-1.5 text-xs text-rose-600 flex items-center gap-1">
+                                        <AlertCircle className="w-3 h-3 shrink-0" /> {errors.lastName.message}
+                                    </motion.p>
+                                )}
+                            </AnimatePresence>
                         </div>
 
                         {/* Email Input */}
@@ -161,18 +204,24 @@ const RegisterPage = () => {
                                         required: 'El correo electrónico es requerido',
                                         pattern: {
                                             value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                                            message: 'Correo electrónico inválido'
-                                        }
+                                            message: 'Formato de correo inválido'
+                                        },
+                                        onChange: () => { clearErrors('email'); setApiError(null) }
                                     })}
-                                    className={`w-full pl-10 pr-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition outline-none ${errors.email ? 'border-rose-500' : 'border-gray-200'
+                                    className={`w-full pl-10 pr-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition outline-none ${errors.email ? 'border-rose-400 bg-rose-50/40' : 'border-gray-200'
                                         }`}
                                     placeholder="tu@correo.com"
                                     disabled={isSubmitting}
                                 />
                             </div>
-                            {errors.email && (
-                                <p className="mt-1.5 text-xs text-rose-600">{errors.email.message}</p>
-                            )}
+                            <AnimatePresence>
+                                {errors.email && (
+                                    <motion.p key="em-err" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                                        className="mt-1.5 text-xs text-rose-600 flex items-center gap-1">
+                                        <AlertCircle className="w-3 h-3 shrink-0" /> {errors.email.message}
+                                    </motion.p>
+                                )}
+                            </AnimatePresence>
                         </div>
 
                         {/* Password Input */}
@@ -181,26 +230,53 @@ const RegisterPage = () => {
                                 Contraseña
                             </label>
                             <div className="relative">
-                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                <Lock className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${errors.password ? 'text-rose-400' : 'text-gray-400'}`} />
                                 <input
                                     id="password"
-                                    type="password"
+                                    type={showPassword ? 'text' : 'password'}
+                                    autoComplete="new-password"
                                     {...register('password', {
                                         required: 'La contraseña es requerida',
-                                        minLength: {
-                                            value: 6,
-                                            message: 'La contraseña debe tener al menos 6 caracteres'
-                                        }
+                                        minLength: { value: 8, message: 'Mínimo 8 caracteres' },
+                                        onChange: () => clearErrors('password')
                                     })}
-                                    className={`w-full pl-10 pr-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition outline-none ${errors.password ? 'border-rose-500' : 'border-gray-200'
+                                    className={`w-full pl-10 pr-10 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition outline-none ${errors.password ? 'border-rose-400 bg-rose-50/40' : 'border-gray-200'
                                         }`}
                                     placeholder="••••••••"
                                     disabled={isSubmitting}
                                 />
+                                <button type="button" tabIndex={-1} onClick={() => setShowPassword(v => !v)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition">
+                                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
                             </div>
-                            {errors.password && (
-                                <p className="mt-1.5 text-xs text-rose-600">{errors.password.message}</p>
+                            {/* Password strength meter */}
+                            {password && (
+                                <div className="mt-2 space-y-1">
+                                    <div className="flex gap-1">
+                                        {[1,2,3,4].map(i => (
+                                            <div key={i} className={`h-1 flex-1 rounded-full transition-colors duration-300 ${
+                                                i <= passwordStrength.score ? passwordStrength.color : 'bg-gray-200'
+                                            }`} />
+                                        ))}
+                                    </div>
+                                    {passwordStrength.label && (
+                                        <p className={`text-[11px] font-medium ${
+                                            passwordStrength.score <= 1 ? 'text-rose-500' :
+                                            passwordStrength.score === 2 ? 'text-amber-500' :
+                                            passwordStrength.score === 3 ? 'text-yellow-600' : 'text-emerald-600'
+                                        }`}>Contraseña {passwordStrength.label.toLowerCase()}</p>
+                                    )}
+                                </div>
                             )}
+                            <AnimatePresence>
+                                {errors.password && (
+                                    <motion.p key="pw-err" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                                        className="mt-1.5 text-xs text-rose-600 flex items-center gap-1">
+                                        <AlertCircle className="w-3 h-3 shrink-0" /> {errors.password.message}
+                                    </motion.p>
+                                )}
+                            </AnimatePresence>
                         </div>
 
                         {/* Confirm Password Input */}
@@ -209,23 +285,33 @@ const RegisterPage = () => {
                                 Confirmar Contraseña
                             </label>
                             <div className="relative">
-                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                <Lock className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${errors.confirmPassword ? 'text-rose-400' : 'text-gray-400'}`} />
                                 <input
                                     id="confirmPassword"
-                                    type="password"
+                                    type={showConfirm ? 'text' : 'password'}
+                                    autoComplete="new-password"
                                     {...register('confirmPassword', {
                                         required: 'Debes confirmar la contraseña',
                                         validate: value => value === password || 'Las contraseñas no coinciden'
                                     })}
-                                    className={`w-full pl-10 pr-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition outline-none ${errors.confirmPassword ? 'border-rose-500' : 'border-gray-200'
+                                    className={`w-full pl-10 pr-10 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition outline-none ${errors.confirmPassword ? 'border-rose-400 bg-rose-50/40' : 'border-gray-200'
                                         }`}
                                     placeholder="••••••••"
                                     disabled={isSubmitting}
                                 />
+                                <button type="button" tabIndex={-1} onClick={() => setShowConfirm(v => !v)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition">
+                                    {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
                             </div>
-                            {errors.confirmPassword && (
-                                <p className="mt-1.5 text-xs text-rose-600">{errors.confirmPassword.message}</p>
-                            )}
+                            <AnimatePresence>
+                                {errors.confirmPassword && (
+                                    <motion.p key="cpw-err" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                                        className="mt-1.5 text-xs text-rose-600 flex items-center gap-1">
+                                        <AlertCircle className="w-3 h-3 shrink-0" /> {errors.confirmPassword.message}
+                                    </motion.p>
+                                )}
+                            </AnimatePresence>
                         </div>
 
                         {/* Terms & Conditions */}
@@ -252,7 +338,9 @@ const RegisterPage = () => {
                             </span>
                         </label>
                         {errors.terms && (
-                            <p className="text-xs text-rose-600 -mt-2">{errors.terms.message}</p>
+                            <p className="text-xs text-rose-600 flex items-center gap-1 -mt-2">
+                                <AlertCircle className="w-3 h-3 shrink-0" /> {errors.terms.message}
+                            </p>
                         )}
 
                         {/* Submit Button */}
@@ -261,7 +349,7 @@ const RegisterPage = () => {
                             disabled={isSubmitting}
                             whileHover={{ scale: isSubmitting ? 1 : 1.02 }}
                             whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
-                            className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:from-indigo-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full bg-linear-to-r from-indigo-600 to-blue-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:from-indigo-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isSubmitting ? (
                                 <span className="flex items-center justify-center gap-2">
