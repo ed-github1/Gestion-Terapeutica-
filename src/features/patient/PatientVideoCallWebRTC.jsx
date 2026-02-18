@@ -6,7 +6,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Mic, MicOff, Video as VideoIcon, VideoOff, MessageSquare, Maximize, Minimize, PhoneOff } from 'lucide-react';
+import { Mic, MicOff, Video as VideoIcon, VideoOff, MessageSquare, PhoneOff } from 'lucide-react';
 import { useWebRTC } from '../../hooks/useWebRTC';
 import { useAuth } from '../auth/AuthContext';
 
@@ -36,13 +36,12 @@ const PatientVideoCallWebRTC = () => {
 
   const [showChat, setShowChat] = useState(false);
   const [chatInput, setChatInput] = useState('');
-  const [callDuration, setCallDuration] = useState(0);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   
   const localVideoRef = useRef(null);
   const remoteVideoRefs = useRef(new Map());
   const callStartTimeRef = useRef(null);
   const durationIntervalRef = useRef(null);
+  const durationDisplayRef = useRef(null);
 
   // Stable ref callback for local video — sets srcObject once
   const setLocalVideoRef = useCallback((el) => {
@@ -68,14 +67,20 @@ const PatientVideoCallWebRTC = () => {
     }
   }, [localStream]);
 
-  // Call duration timer
+  // Call duration timer — updates DOM directly to avoid React re-renders
   useEffect(() => {
     if (isInRoom && !callStartTimeRef.current) {
       callStartTimeRef.current = Date.now();
       
       durationIntervalRef.current = setInterval(() => {
         const elapsed = Math.floor((Date.now() - callStartTimeRef.current) / 1000);
-        setCallDuration(elapsed);
+        if (durationDisplayRef.current) {
+          const hrs = Math.floor(elapsed / 3600);
+          const mins = Math.floor((elapsed % 3600) / 60);
+          const secs = elapsed % 60;
+          durationDisplayRef.current.textContent =
+            `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
       }, 1000);
     }
 
@@ -113,23 +118,6 @@ const PatientVideoCallWebRTC = () => {
       sendMessage(chatInput);
       setChatInput('');
     }
-  };
-
-  const handleToggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen();
-      setIsFullscreen(true);
-    } else {
-      document.exitFullscreen();
-      setIsFullscreen(false);
-    }
-  };
-
-  const formatDuration = (seconds) => {
-    const hrs = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   if (!isInitialized) {
@@ -177,9 +165,9 @@ const PatientVideoCallWebRTC = () => {
   }
 
   return (
-    <div className="fixed inset-0 bg-gray-900 flex flex-col" style={{ height: '100dvh' }}>
+    <div className="fixed inset-0 bg-gray-900 flex flex-col">
       {/* Header - Compact */}
-      <div className="bg-gray-800/90 backdrop-blur-sm border-b border-gray-700/50 px-3 sm:px-6 py-2 flex items-center justify-between shrink-0 z-20">
+      <div className="bg-gray-800/90 border-b border-gray-700/50 px-3 sm:px-6 py-2 flex items-center justify-between shrink-0 z-20">
         <div className="flex items-center gap-2 min-w-0">
           <div className="text-white min-w-0">
             <h1 className="text-xs sm:text-sm font-semibold truncate">Sesión de Terapia</h1>
@@ -191,7 +179,7 @@ const PatientVideoCallWebRTC = () => {
           {isInRoom && (
             <div className="flex items-center gap-1 text-gray-400 shrink-0">
               <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-              <span className="text-[10px] sm:text-xs font-mono">{formatDuration(callDuration)}</span>
+              <span ref={durationDisplayRef} className="text-[10px] sm:text-xs font-mono">00:00:00</span>
             </div>
           )}
         </div>
@@ -241,9 +229,9 @@ const PatientVideoCallWebRTC = () => {
           </div>
         )}
 
-        {/* Local Video (PIP) - small on mobile */}
+        {/* Local Video (PIP) - bottom-right, above controls */}
         <div
-          className="absolute top-2 right-2 w-20 h-[60px] sm:w-36 sm:h-[100px] md:w-44 md:h-[124px] bg-gray-800 rounded-lg overflow-hidden shadow-xl border border-white/15 z-10"
+          className="absolute bottom-2 right-2 w-20 h-[60px] sm:w-36 sm:h-[100px] md:w-44 md:h-[124px] bg-gray-800 rounded-lg overflow-hidden shadow-xl border border-white/15 z-10"
         >
           {localStream ? (
             <>
