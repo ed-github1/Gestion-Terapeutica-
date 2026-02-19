@@ -19,6 +19,11 @@ export const authService = {
       sessionStorage.removeItem('userData')
     }),
 
+  // Fetch the authenticated user's profile — used on session restore
+  // so we never need to cache PHI in localStorage.
+  getMe: () =>
+    apiClient.get('/auth/me'),
+
   validateToken: (token) =>
     apiClient.get('/auth/validate', {
       headers: { Authorization: `Bearer ${token}` },

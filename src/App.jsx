@@ -1,6 +1,6 @@
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider, useAuth, ProtectedRoute, LoginPage, RegisterPage } from '@features/auth'
+import { AuthProvider, useAuth, ProtectedRoute, LoginPage, RegisterPage, Verify2FAPage } from '@features/auth'
 import { ProfessionalDashboard, AppointmentsCalendar } from '@features/professional'
 import PatientsList from '@features/professional/components/PatientsList'
 import ProfessionalProfile from '@features/professional/components/ProfessionalProfile'
@@ -54,6 +54,7 @@ function App() {
           <Route path="/pricing" element={<PricingPlans />} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path={ROUTES.LOGIN} element={<LoginRoute />} />
+          <Route path="/verify-2fa" element={<Verify2FAPage />} />
           <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
           <Route path="/patient/register" element={<PatientRegisterPage />} />
           <Route path="/register/:inviteCode" element={<PatientRegister />} />

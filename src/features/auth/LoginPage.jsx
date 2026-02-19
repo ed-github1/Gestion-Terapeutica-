@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { Brain, Mail, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from './AuthContext'
@@ -14,12 +14,23 @@ const LoginPage = () => {
 
   const { login } = useAuth()
   const navigate = useNavigate()
+  const { state: locationState } = useLocation()
+  const idleExpired = locationState?.reason === 'idle'
 
   const onSubmit = async (data) => {
     setLoginError(null)
     clearErrors(['email', 'password'])
     try {
-      const userData = await login(data.email, data.password, data.rememberMe)
+      const result = await login(data.email, data.password, data.rememberMe)
+
+      // 2FA required — redirect without persisting the real token
+      if (result?.requires2FA === true) {
+        navigate('/verify-2fa', { state: { tempToken: result.tempToken, email: data.email, password: data.password } })
+        return
+      }
+
+      // Normal login — role-based redirect
+      const userData = result
       if (userData.role === 'health_professional' || userData.role === 'professional') {
         navigate('/dashboard/professional')
       } else if (userData.role === 'patient' || userData.role === 'pacient') {
@@ -61,6 +72,16 @@ const LoginPage = () => {
               <p className="text-sm text-gray-500 mt-1">Inicia sesión en tu cuenta</p>
             </div>
           </div>
+
+          {/* Idle-timeout notice */}
+          {idleExpired && (
+            <div className="flex items-start gap-2.5 p-3.5 bg-amber-50 rounded-xl border border-amber-200">
+              <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+              <p className="text-sm text-amber-700 font-medium leading-snug">
+                Tu sesión se cerró por inactividad. Por favor, iniciá sesión nuevamente.
+              </p>
+            </div>
+          )}
 
           {/* Backend error banner — always visible */}
           {loginError && (

@@ -39,7 +39,7 @@ apiClient.interceptors.response.use(
     if (error.response) {
       const { status, data } = error.response
       // Only auto-redirect on 401 when outside of auth pages
-      const onAuthPage = ['/login', '/register'].some(p => window.location.pathname.startsWith(p))
+      const onAuthPage = ['/login', '/register', '/verify-2fa'].some(p => window.location.pathname.startsWith(p))
       if (status === 401 && !onAuthPage) {
         localStorage.removeItem('authToken')
         sessionStorage.removeItem('authToken')
