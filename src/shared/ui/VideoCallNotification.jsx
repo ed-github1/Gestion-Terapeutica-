@@ -1,13 +1,15 @@
 /**
  * shared/ui/VideoCallNotification.jsx
  * Incoming video call banner + manager that polls for invitations.
- * Uses videoCallService for all HTTP calls.
+ * Uses videoCallService for all HTTP calls, with socket fallback for
+ * real-time delivery when the REST /video/send-invitation endpoint is unavailable.
  */
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@features/auth'
 import { videoCallService } from '@shared/services/videoCallService'
+import { socketNotificationService } from '@shared/services/socketNotificationService'
 
 // ── Single invitation card ────────────────────────────────────────────────────
 const VideoCallNotification = ({ invitation, onAccept, onDecline, onClose }) => {
@@ -147,6 +149,10 @@ export const VideoCallNotificationManager = () => {
         if (data?.invitations?.length > 0) {
           setInvitations(data.invitations)
           if (!current) setCurrent(data.invitations[0])
+        } else {
+          // Clear stale state when server returns no active invitations
+          setInvitations((prev) => (prev.length > 0 ? [] : prev))
+          setCurrent((prev) => (prev ? null : prev))
         }
       } catch {
         // ignore polling errors

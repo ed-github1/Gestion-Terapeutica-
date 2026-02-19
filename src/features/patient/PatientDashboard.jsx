@@ -5,6 +5,8 @@ import PatientPersonalDiary from './PatientPersonalDiary'
 import AppointmentRequest from './AppointmentRequest'
 import PatientAppointments from './PatientAppointments'
 import { appointmentsService } from '@shared/services/appointmentsService'
+import { patientsService } from '@shared/services/patientsService'
+import { invitationsService } from '@shared/services/invitationsService'
 import { VideoCallNotificationManager } from '@components'
 import useVideoCallNotifications from '@shared/hooks/useVideoCallNotifications'
 import ChatPanel from '@components/layout/ChatPanel'
@@ -30,6 +32,7 @@ const PatientDashboard = () => {
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [professionalId, setProfessionalId] = useState(null)
 
   // Extract user name with fallback
   const userName = user?.name?.split(' ')[0] || user?.nombre || 'Paciente'
@@ -45,6 +48,53 @@ const PatientDashboard = () => {
   const loadDashboardData = async () => {
     try {
       setError(null)
+
+      // Fetch patient profile to get the linked professionalId
+      // Try multiple sources in order of reliability
+      try {
+        let pid = user?.professionalId || user?.professional_id || user?.professional?._id || null
+
+        if (!pid) {
+          // 1. Try /patients/me
+          try {
+            const profileRes = await patientsService.getMyProfile()
+            const profile = profileRes.data?.data || profileRes.data
+            pid = profile?.professionalId || profile?.professional_id ||
+                  profile?.professional?._id || profile?.professional?.id ||
+                  profile?.assignedProfessional || null
+            console.log('[PatientDashboard] professionalId from /patients/me:', pid)
+          } catch { /* endpoint may not exist */ }
+        }
+
+        if (!pid) {
+          // 2. Try /patients/my-professional
+          try {
+            const profRes = await patientsService.getMyProfessional()
+            const prof = profRes.data?.data || profRes.data
+            pid = prof?._id || prof?.id || null
+            console.log('[PatientDashboard] professionalId from /patients/my-professional:', pid)
+          } catch { /* endpoint may not exist */ }
+        }
+
+        if (!pid) {
+          // 3. Fallback: get professionalId from the patient's accepted invitation
+          try {
+            const invRes = await invitationsService.getAll()
+            const invitations = invRes.data?.data || invRes.data || []
+            const accepted = Array.isArray(invitations)
+              ? invitations.find(i => i.status === 'accepted' || i.status === 'completed' || i.professionalId)
+              : null
+            pid = accepted?.professionalId || accepted?.professional_id || accepted?.professional?._id || null
+            console.log('[PatientDashboard] professionalId from invitation:', pid)
+          } catch { /* endpoint may not exist */ }
+        }
+
+        console.log('[PatientDashboard] final professionalId:', pid)
+        if (pid) setProfessionalId(pid)
+      } catch (profileErr) {
+        console.warn('[PatientDashboard] could not resolve professionalId:', profileErr.message)
+      }
+
       const response = await appointmentsService.getPatientAppointments()
       const raw = response?.data ?? response
       // Defensive check - ensure appointments is an array
@@ -481,6 +531,14 @@ const PatientDashboard = () => {
         {showAppointmentRequest && (
           <AppointmentRequest
             onClose={() => setShowAppointmentRequest(false)}
+            professionalId={
+              professionalId ||
+              user?.professionalId ||
+              user?.professional_id ||
+              user?.professional?._id ||
+              user?.professional?.id ||
+              null
+            }
             onSuccess={() => {
               setShowAppointmentRequest(false)
               loadDashboardData()

@@ -27,6 +27,9 @@ export const useVideoCallNotifications = () => {
         if (data?.invitations?.length > 0) {
           setInvitations(data.invitations)
           if (_notificationCallback) _notificationCallback(data.invitations[0])
+        } else {
+          // Clear stale invitations when server returns none (expired or processed)
+          setInvitations((prev) => (prev.length > 0 ? [] : prev))
         }
       } catch {
         // silently ignore polling errors

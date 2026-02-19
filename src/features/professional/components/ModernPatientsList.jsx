@@ -391,15 +391,28 @@ const ModernPatientsList = () => {
             const invRes = await invitationsService.getAll()
             console.log('[PatientsList] /invitations raw response:', invRes.data)
 
-            // Backend may return: { data: [...] } | { data: { invitations: [...] } } | { data: { data: [...] } }
+            // Deep-log the inner data so we can see the exact backend shape
             const invOuter = invRes.data?.data ?? invRes.data ?? []
-            const invList = Array.isArray(invOuter)
-                ? invOuter
-                : Array.isArray(invOuter.invitations)
-                    ? invOuter.invitations
-                    : Array.isArray(invOuter.data)
-                        ? invOuter.data
-                        : Object.values(invOuter).find(v => Array.isArray(v)) ?? []
+            console.log('[PatientsList] invOuter (stringified):', JSON.stringify(invOuter))
+
+            // Try every known envelope shape, then fall back to scanning all values
+            let invList = []
+            if (Array.isArray(invOuter)) {
+                invList = invOuter
+            } else if (Array.isArray(invOuter?.invitations)) {
+                invList = invOuter.invitations
+            } else if (Array.isArray(invOuter?.data)) {
+                invList = invOuter.data
+            } else if (Array.isArray(invOuter?.items)) {
+                invList = invOuter.items
+            } else if (Array.isArray(invOuter?.results)) {
+                invList = invOuter.results
+            } else {
+                // Last resort: find the first array-valued property anywhere in the object
+                invList = Object.values(invOuter).find(v => Array.isArray(v) && v.length > 0)
+                    ?? Object.values(invOuter).find(v => Array.isArray(v))
+                    ?? []
+            }
 
             console.log('[PatientsList] invitations list:', invList)
             const existingEmails = new Set(realPatients.map(p => p.email?.toLowerCase()))

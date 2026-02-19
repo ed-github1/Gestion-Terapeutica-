@@ -21,36 +21,28 @@ export const getTodayAppointments = (appointments) => {
     }
 
     const now = new Date()
-    const todayYear = now.getFullYear()
+    const todayYear  = now.getFullYear()
     const todayMonth = now.getMonth()
-    const todayDate = now.getDate()
+    const todayDate  = now.getDate()
 
     return appointments
         .filter(apt => {
-            // Support both 'date' and 'fechaHora' fields
             const dateField = apt.fechaHora || apt.date
-            
             if (!dateField) return false
-            
-            // Parse the date - use UTC date parts to avoid timezone conversion issues
+
             try {
-                const aptDateObj = new Date(dateField)
-                
-                if (isNaN(aptDateObj.getTime())) {
-                    return false
-                }
-                
-                // Use LOCAL date parts to compare so the appointment date
-                // matches what the user sees on their device's calendar.
-                const isToday = (
-                    aptDateObj.getFullYear() === todayYear &&
-                    aptDateObj.getMonth() === todayMonth &&
-                    aptDateObj.getDate() === todayDate
+                // Always extract the YYYY-MM-DD portion first (handles both
+                // plain "2026-02-18" and ISO "2026-02-18T00:00:00.000Z").
+                // Parsing just the date part avoids the UTC-vs-local day shift.
+                const dateOnly = String(dateField).slice(0, 10) // "2026-02-18"
+                const [year, month, day] = dateOnly.split('-').map(Number)
+
+                return (
+                    year  === todayYear &&
+                    month === todayMonth + 1 && // slice gives 1-based month
+                    day   === todayDate
                 )
-                
-                return isToday
-                
-            } catch (error) {
+            } catch {
                 return false
             }
         })

@@ -39,6 +39,9 @@ export const useVideoCallNotifications = () => {
               if (notificationCallback) {
                 notificationCallback(data.invitations[0])
               }
+            } else {
+              // Clear stale invitations when server returns none
+              setInvitations((prev) => (prev.length > 0 ? [] : prev))
             }
           }
         } catch (error) {

@@ -49,30 +49,42 @@ export const useDashboardData = () => {
         try {
             const response = await apiClient.get('/appointments')
             const { data } = response
-            const appointmentsList = data?.data || []
-                setAppointments(Array.isArray(appointmentsList) ? appointmentsList : [])
+            console.log('[useDashboard] /appointments raw response:', JSON.stringify(data))
 
-                // Calculate stats
-                const today = new Date().toDateString()
+            // Handle all common backend envelope shapes
+            let appointmentsList =
+                Array.isArray(data)              ? data :
+                Array.isArray(data?.data)        ? data.data :
+                Array.isArray(data?.appointments)? data.appointments :
+                Array.isArray(data?.data?.data)  ? data.data.data :
+                []
+
+            console.log('[useDashboard] appointments resolved:', appointmentsList.length, appointmentsList)
+            setAppointments(Array.isArray(appointmentsList) ? appointmentsList : [])
+
+                // Compare date-only strings to avoid UTC-vs-local day shift
+                const now = new Date()
+                const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
+                // Slice first 10 chars of any date/ISO field to get "YYYY-MM-DD"
+                const toDateStr = (d) => d ? String(d).slice(0, 10) : ''
                 const todayApts = appointmentsList.filter(apt =>
-                    new Date(apt.date).toDateString() === today
+                    toDateStr(apt.date || apt.fechaHora) === todayStr
                 )
 
                 const startOfWeek = new Date()
                 startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay())
                 const weekApts = appointmentsList.filter(apt =>
-                    new Date(apt.date) >= startOfWeek && apt.status !== 'cancelled'
+                    new Date(apt.date || apt.fechaHora) >= startOfWeek && apt.status !== 'cancelled'
                 )
 
                 const completed = appointmentsList.filter(apt =>
-                    new Date(apt.date) >= startOfWeek && apt.status === 'completed'
+                    new Date(apt.date || apt.fechaHora) >= startOfWeek && apt.status === 'completed'
                 )
 
                 const noShows = appointmentsList.filter(apt =>
                     apt.status === 'no-show' || apt.status === 'no_show'
                 )
 
-                // Pending notes = completed sessions that have no sessionNotes field
                 const pendingNotes = appointmentsList.filter(apt =>
                     apt.status === 'completed' && !apt.sessionNotes && !apt.notes
                 )

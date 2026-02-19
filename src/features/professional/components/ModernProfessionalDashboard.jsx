@@ -438,15 +438,22 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
     // Handler for joining video call - memoized to prevent excessive re-renders
     const handleJoinVideo = useCallback(async (appointment) => {
         try {
+            const professionalName = user?.name || user?.nombre || 'Professional'
+            const patientName = appointment.patientName || appointment.patient?.name || 'Paciente'
             // Notify patient about video call
-            await videoCallService.sendVideoInvitation(appointment.id, appointment.patientId)
+            await videoCallService.sendVideoInvitation(
+                appointment.id,
+                appointment.patientId,
+                patientName,
+                professionalName
+            )
             // Navigate to video call page
             navigate(`/professional/video/${appointment.id}`)
         } catch (error) {
             // Still navigate even if notification fails
             navigate(`/professional/video/${appointment.id}`)
         }
-    }, [navigate])
+    }, [navigate, user])
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000)

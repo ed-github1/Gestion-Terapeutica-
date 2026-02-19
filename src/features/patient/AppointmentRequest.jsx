@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import { showToast } from '@components'
 import { appointmentsService } from '@shared/services/appointmentsService'
 
-const AppointmentRequest = ({ onClose, onSuccess }) => {
+const AppointmentRequest = ({ onClose, onSuccess, professionalId = null }) => {
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState(1) // 1: select slot, 2: payment, 3: success
   const [appointmentData, setAppointmentData] = useState(null)
@@ -56,11 +56,21 @@ const AppointmentRequest = ({ onClose, onSuccess }) => {
   const fetchAvailableSlots = async (date) => {
     setLoading(true)
     try {
-      const response = await appointmentsService.getAvailableSlots(date)
-      console.log('✅ Slots from API:', response.data)
-      
-      if (response.data && response.data.length > 0) {
-        setAvailableSlots(response.data)
+      console.log('[AppointmentRequest] fetching slots — date:', date, '| professionalId:', professionalId)
+      const response = await appointmentsService.getAvailableSlots(date, professionalId)
+      console.log('✅ Slots from API raw:', response.data)
+
+      // Backend wraps result as { success, data: [...] } or returns the array directly
+      const slots = Array.isArray(response.data)
+        ? response.data
+        : Array.isArray(response.data?.data)
+          ? response.data.data
+          : []
+
+      console.log('✅ Slots resolved:', slots)
+
+      if (slots.length > 0) {
+        setAvailableSlots(slots)
       } else {
         // API returned empty — fall back to professional's saved availability
         const localSlots = getSlotsFromLocalAvailability(date)
@@ -104,7 +114,8 @@ const AppointmentRequest = ({ onClose, onSuccess }) => {
           type: formData.type,
           reason: formData.reason,
           notes: formData.notes,
-          duration: selectedType?.duration || 60
+          duration: selectedType?.duration || 60,
+          professionalId,
         })
         setAppointmentData(response.data)
         appointmentId = response.data.id || response.data._id

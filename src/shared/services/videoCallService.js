@@ -27,15 +27,15 @@ export const videoCallService = {
     apiClient.get('/rtc/health'),
 
   // Video invitations
-  sendVideoInvitation: (appointmentId, patientId) =>
-    apiClient.post('/video/send-invitation', { appointmentId, patientId }),
+  sendVideoInvitation: (appointmentId, patientId, patientName, professionalName) =>
+    apiClient.post('/video/notify-patient', { appointmentId, patientId, patientName, professionalName }),
 
   getActiveInvitations: () =>
     apiClient.get('/video/active-invitations'),
 
   acceptInvitation: (appointmentId) =>
-    apiClient.post(`/video/accept-invitation/${appointmentId}`),
+    apiClient.post('/video/accept-invitation', { appointmentId }),
 
   rejectInvitation: (appointmentId) =>
-    apiClient.post(`/video/reject-invitation/${appointmentId}`),
+    apiClient.post('/video/decline-invitation', { appointmentId }),
 }

@@ -5,6 +5,14 @@
 import apiClient from '@shared/api/client'
 
 export const patientsService = {
+  // GET /api/patients/me — patient's own profile (includes professionalId link)
+  getMyProfile: () =>
+    apiClient.get('/patients/me'),
+
+  // GET /api/patients/my-professional — returns the professional linked to this patient
+  getMyProfessional: () =>
+    apiClient.get('/patients/my-professional'),
+
   // GET /api/patients?status=active&search=juan&page=1&limit=20
   getAll: ({ status, search, page = 1, limit = 50 } = {}) => {
     const params = { page, limit }
