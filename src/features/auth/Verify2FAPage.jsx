@@ -51,7 +51,19 @@ const Verify2FAPage = () => {
       const data = response.data
 
       if (data.success === true) {
-        const realToken = data.data?.token ?? data.token
+        // Try every known response envelope shape
+        const realToken =
+          data.data?.token ??
+          data.data?.accessToken ??
+          data.token ??
+          data.accessToken ??
+          data.access_token ??
+          null
+        console.debug('[Verify2FA] verify-2fa response:', JSON.stringify(data))
+        if (!realToken) {
+          setError('El servidor no devolvió un token válido. Contactá soporte.')
+          return
+        }
         const userData = await completeLogin(realToken)
         // Role-based navigation
         const role = userData?.role || userData?.rol

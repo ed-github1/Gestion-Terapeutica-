@@ -30,14 +30,26 @@ export const AuthProvider = ({ children }) => {
       try {
         const token =
           localStorage.getItem('authToken') || sessionStorage.getItem('authToken')
-        if (token) {
+        if (token && token !== 'undefined' && token !== 'null') {
           try {
             const res = await authService.getMe()
-            const userData = res.data?.data || res.data?.user || res.data
-            if (userData && !userData.role && userData.rol) userData.role = userData.rol
+            let userData = res.data?.data?.user || res.data?.data || res.data?.user || res.data
+            console.debug('[initAuth] getMe response:', JSON.stringify(res.data))
+            // Normalise every known role field name to `role`
+            if (userData) {
+              userData.role =
+                userData.role ||
+                userData.rol ||
+                userData.userRole ||
+                userData.user_role ||
+                userData.tipo ||
+                userData.type ||
+                undefined
+            }
             setUser(userData)
-          } catch {
+          } catch (err) {
             // Token is invalid / expired — purge it
+            console.warn('[initAuth] getMe failed, purging token:', err.status, err.message)
             localStorage.removeItem('authToken')
             sessionStorage.removeItem('authToken')
           }
@@ -106,6 +118,11 @@ export const AuthProvider = ({ children }) => {
   // Called by Verify2FAPage after the OTP is accepted.
   // Stores the real JWT, fetches user data and populates AuthContext.
   const completeLogin = async (token, rememberMe = false) => {
+    if (!token || token === 'undefined' || token === 'null') {
+      console.error('[completeLogin] received invalid token:', token)
+      throw new Error('Token inválido recibido del servidor. Intentá de nuevo.')
+    }
+    console.debug('[completeLogin] storing token, rememberMe:', rememberMe)
     if (rememberMe) {
       localStorage.setItem('authToken', token)
     } else {

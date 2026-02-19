@@ -77,8 +77,11 @@ const PatientForm = ({ onClose }) => {
       showToast(`Invitación enviada a ${data.email}`, 'success')
       onClose()
     } catch (err) {
-      const serverMsg = err?.response?.data?.message || err?.response?.data?.error
-      if (err?.response?.status === 409) {
+      // The shared axios interceptor transforms errors: err.data holds the response body,
+      // err.status holds the HTTP status. err.response is NOT set by the interceptor.
+      console.debug('[PatientForm] invitation error:', err.status, err.data, err.message)
+      const serverMsg = err?.data?.message || err?.data?.error || err?.response?.data?.message
+      if (err?.status === 409 || err?.response?.status === 409) {
         showToast(serverMsg || 'Ya existe una invitación pendiente para este correo electrónico.', 'warning')
       } else {
         showToast(serverMsg || err.message || 'Error al enviar la invitación', 'error')
