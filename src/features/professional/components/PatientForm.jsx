@@ -2,6 +2,7 @@ import { useForm } from 'react-hook-form'
 import { motion, AnimatePresence } from 'motion/react'
 import { invitationsService } from '@shared/services/invitationsService'
 import { showToast } from '@shared/ui'
+import { useAuth } from '@features/auth'
 import { X, Send, User, Mail, Phone, Calendar, MessageSquare, Stethoscope } from 'lucide-react'
 
 const SESSION_TYPES = [
@@ -44,6 +45,7 @@ const inputCls = (hasError) =>
   }`
 
 const PatientForm = ({ onClose }) => {
+  const { user } = useAuth()
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
     defaultValues: {
       nombre: '', apellido: '', email: '', phone: '',
@@ -54,9 +56,7 @@ const PatientForm = ({ onClose }) => {
 
   const onSubmit = async (data) => {
     try {
-      const userDataStr = localStorage.getItem('userData') || sessionStorage.getItem('userData')
-      const user = JSON.parse(userDataStr || '{}')
-      const professionalId = user.id || user._id || user.userId || user.professionalId
+      const professionalId = user?.id || user?._id || user?.userId || user?.professionalId
       if (!professionalId) {
         showToast('No se encontró el ID del profesional. Vuelve a iniciar sesión.', 'error')
         return
