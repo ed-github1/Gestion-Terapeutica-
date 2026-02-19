@@ -1,242 +1,290 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { diaryService } from '@shared/services/diaryService'
 import { useAuth } from '../../auth'
+import { BookOpen, X, Send, AlertCircle, FileText, Smile, Activity, ClipboardList } from 'lucide-react'
+import HomeworkPanel from './HomeworkPanel'
+
+const MOOD_LABELS = {
+    '😊': 'Bien', '😐': 'Regular', '😔': 'Triste',
+    '😣': 'Dolor', '😴': 'Cansado', '😰': 'Ansioso',
+}
+
+const MOOD_COLORS = {
+    '😊': 'bg-green-100 text-green-700',
+    '😐': 'bg-yellow-100 text-yellow-700',
+    '😔': 'bg-blue-100 text-blue-700',
+    '😣': 'bg-red-100 text-red-700',
+    '😴': 'bg-purple-100 text-purple-700',
+    '😰': 'bg-orange-100 text-orange-700',
+}
+
+function formatRelativeDate(dateString) {
+    const date = new Date(dateString)
+    const diffDays = Math.floor((Date.now() - date) / 86_400_000)
+    const time = date.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })
+    if (diffDays === 0) return `Hoy · ${time}`
+    if (diffDays === 1) return `Ayer · ${time}`
+    if (diffDays < 7) return `Hace ${diffDays} días`
+    return date.toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+// Patient self-entry card (mood/symptoms/activities)
+const PatientEntryCard = ({ entry, index }) => {
+    const moodColor = MOOD_COLORS[entry.mood] || 'bg-gray-100 text-gray-700'
+    const moodLabel = MOOD_LABELS[entry.mood] || ''
+    const isProfNote = !entry.mood && (entry.text || entry.author)
+    if (isProfNote) return null // rendered separately
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.05 }}
+            className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm"
+        >
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border border-transparent " style={{ background: 'transparent' }}>
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${moodColor}`}>
+                        {entry.mood} {moodLabel}
+                    </span>
+                </span>
+                <span className="text-xs text-gray-400 ml-auto">{formatRelativeDate(entry.date || entry.createdAt)}</span>
+            </div>
+            {(entry.symptoms || entry.activities) && (
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                    {entry.symptoms && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-50 border border-red-100 rounded-lg text-xs text-red-700">
+                            <AlertCircle className="w-3 h-3" /> {entry.symptoms}
+                        </span>
+                    )}
+                    {entry.activities && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-50 border border-green-100 rounded-lg text-xs text-green-700">
+                            <Activity className="w-3 h-3" /> {entry.activities}
+                        </span>
+                    )}
+                </div>
+            )}
+            {entry.notes && <p className="text-sm text-gray-700 leading-relaxed border-t border-gray-50 pt-2">{entry.notes}</p>}
+        </motion.div>
+    )
+}
+
+// Professional clinical note card
+const ClinicalNoteCard = ({ note, index }) => (
+    <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.05 }}
+        className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 shadow-sm"
+    >
+        <div className="flex items-center gap-2 mb-2">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full text-xs font-semibold">
+                <FileText className="w-3 h-3" /> Nota clínica
+            </span>
+            <span className="text-xs text-gray-400 ml-auto">{formatRelativeDate(note.createdAt)}</span>
+        </div>
+        <p className="text-xs text-indigo-600 font-medium mb-1">{note.author || 'Profesional'}</p>
+        <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{note.text || note.notes}</p>
+    </motion.div>
+)
 
 const PatientDiary = ({ patientId, patientName, onClose }) => {
     const { user } = useAuth()
-    const [notes, setNotes] = useState([])
+    const [entries, setEntries] = useState([])
     const [newNote, setNewNote] = useState('')
     const [isLoading, setIsLoading] = useState(true)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [error, setError] = useState(null)
+    const [tab, setTab] = useState('all') // 'all' | 'patient' | 'clinical' | 'homework'
 
-    useEffect(() => {
-        fetchNotes()
-    }, [patientId])
-
-    const fetchNotes = async () => {
+    const fetchNotes = useCallback(async () => {
+        if (!patientId) { setIsLoading(false); return }
         setIsLoading(true)
         setError(null)
         try {
             const response = await diaryService.getNotes(patientId)
-            // Normalize: backend may return { data: [] }, { notes: [] }, or []
             const raw = response.data
             const list = Array.isArray(raw)
                 ? raw
-                : Array.isArray(raw?.data)
-                    ? raw.data
-                    : Array.isArray(raw?.notes)
-                        ? raw.notes
-                        : []
-            setNotes(list)
-        } catch (error) {
-            console.error('Error fetching notes:', error)
-            setError('Error al cargar las notas del diario')
+                : Array.isArray(raw?.data) ? raw.data
+                : Array.isArray(raw?.notes) ? raw.notes
+                : []
+            setEntries(list)
+        } catch (err) {
+            console.error('Error fetching diary entries:', err)
+            setError('No se pudieron cargar las entradas del diario.')
         } finally {
             setIsLoading(false)
         }
-    }
+    }, [patientId])
+
+    useEffect(() => { fetchNotes() }, [fetchNotes])
 
     const handleSubmit = async (e) => {
         e.preventDefault()
-        if (!newNote.trim()) return
-
+        if (!newNote.trim() || !patientId) return
         setIsSubmitting(true)
         try {
             const noteData = {
-                text: newNote,
-                author: user?.name || user?.email || 'Professional'
+                text: newNote.trim(),
+                notes: newNote.trim(),
+                author: user?.name || user?.email || 'Profesional',
             }
             const response = await diaryService.addNote(patientId, noteData)
-            // Backend may return the new note directly or wrapped
-            const newEntry = response.data?.data || response.data
-            if (newEntry && typeof newEntry === 'object' && !Array.isArray(newEntry)) {
-                setNotes(prev => [newEntry, ...prev])
+            const saved = response.data?.data ?? response.data
+            if (saved && typeof saved === 'object' && !Array.isArray(saved)) {
+                setEntries(prev => [saved, ...prev])
             } else {
-                await fetchNotes() // fallback: reload all notes
+                await fetchNotes()
             }
             setNewNote('')
-        } catch (error) {
-            console.error('Error adding note:', error)
-            alert('Error al agregar la nota')
+        } catch (err) {
+            console.error('Error adding clinical note:', err)
+            setError('Error al guardar la nota. Intenta de nuevo.')
         } finally {
             setIsSubmitting(false)
         }
     }
 
-    const formatDate = (dateString) => {
-        const date = new Date(dateString)
-        const now = new Date()
-        const diffTime = Math.abs(now - date)
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    // Filtered views
+    const patientEntries = entries.filter(e => e.mood)
+    const clinicalNotes = entries.filter(e => !e.mood && (e.text || e.notes))
+    const visibleEntries =
+        tab === 'patient' ? patientEntries :
+        tab === 'clinical' ? clinicalNotes :
+        entries
 
-        if (diffDays === 0) {
-            return `Hoy a las ${date.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}`
-        } else if (diffDays === 1) {
-            return `Ayer a las ${date.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}`
-        } else if (diffDays < 7) {
-            return `${diffDays} días atrás`
-        } else {
-            return date.toLocaleDateString('es', { year: 'numeric', month: 'long', day: 'numeric' })
-        }
-    }
+    const initials = (patientName || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 
     return (
         <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-60 p-4"
             onClick={onClose}
         >
             <motion.div
-                initial={{ scale: 0.95, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.95, opacity: 0 }}
-                className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col"
-                onClick={(e) => e.stopPropagation()}
+                initial={{ scale: 0.96, opacity: 0, y: 12 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.96, opacity: 0, y: 12 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+                className="bg-gray-50 rounded-3xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden"
+                onClick={e => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="bg-linear-to-r from-purple-600 to-indigo-600 px-6 py-4 flex items-center justify-between text-white">
-                    <div>
-                        <h2 className="text-2xl font-bold">📔 Diario del Paciente</h2>
-                        <p className="text-purple-100 text-sm">{patientName}</p>
+                <div className="bg-linear-to-r from-indigo-600 to-blue-600 px-6 py-5 flex items-center gap-4 text-white shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-bold text-sm shrink-0">
+                        {initials}
                     </div>
-                    <button
-                        onClick={onClose}
-                        className="p-2 hover:bg-white/20 rounded-lg transition"
-                    >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+                    <div className="flex-1 min-w-0">
+                        <h2 className="text-lg font-bold truncate">{patientName}</h2>
+                        <p className="text-blue-100 text-xs mt-0.5">Historial clínico · {entries.length} {entries.length === 1 ? 'entrada' : 'entradas'}</p>
+                    </div>
+                    <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/20 transition shrink-0" aria-label="Cerrar">
+                        <X className="w-5 h-5" />
                     </button>
                 </div>
 
-                {/* Content */}
-                <div className="flex-1 overflow-y-auto p-6">
-                    {/* New Note Form */}
-                    <form onSubmit={handleSubmit} className="mb-6">
-                        <div className="bg-gray-50 rounded-lg p-4 border-2 border-dashed border-gray-300 focus-within:border-purple-500 transition">
-                            <textarea
-                                value={newNote}
-                                onChange={(e) => setNewNote(e.target.value)}
-                                placeholder="Escribe una nueva nota sobre el paciente..."
-                                rows={4}
-                                className="w-full bg-transparent resize-none focus:outline-none text-gray-700 placeholder-gray-400"
-                            />
-                            <div className="flex items-center justify-between mt-3">
-                                <div className="flex items-center text-sm text-gray-500">
-                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                    </svg>
-                                    {user?.name || 'Usuario'}
-                                </div>
-                                <button
-                                    type="submit"
-                                    disabled={isSubmitting || !newNote.trim()}
-                                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                                >
-                                    {isSubmitting ? (
-                                        <>
-                                            <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                            Guardando...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                            </svg>
-                                            Agregar Nota
-                                        </>
-                                    )}
-                                </button>
-                            </div>
-                        </div>
-                    </form>
+                {/* Add clinical note — hidden when on homework tab */}
+                <form onSubmit={handleSubmit} className={`px-5 pt-4 pb-3 bg-white border-b border-gray-100 shrink-0 ${tab === 'homework' ? 'hidden' : ''}`}>
+                    <div className="flex gap-2 items-end">
+                        <textarea
+                            value={newNote}
+                            onChange={e => setNewNote(e.target.value)}
+                            placeholder={`Añadir nota clínica sobre ${patientName?.split(' ')[0] || 'el paciente'}…`}
+                            rows={2}
+                            className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl resize-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent outline-none bg-gray-50"
+                        />
+                        <motion.button
+                            type="submit"
+                            disabled={isSubmitting || !newNote.trim()}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            className="shrink-0 p-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {isSubmitting
+                                ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                                : <Send className="w-4 h-4" />}
+                        </motion.button>
+                    </div>
+                    {error && (
+                        <p className="text-xs text-red-600 mt-1.5 flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" /> {error}
+                            <button type="button" onClick={() => setError(null)} className="ml-auto underline">Cerrar</button>
+                        </p>
+                    )}
+                </form>
 
-                    {/* Notes List */}
+                {/* Tab bar */}
+                <div className="flex gap-1 px-5 py-3 bg-white border-b border-gray-100 shrink-0">
+                    {[['all', 'Todo', entries.length], ['patient', 'Paciente', patientEntries.length], ['clinical', 'Clínicas', clinicalNotes.length], ['homework', 'Tareas', null]].map(([key, label, count]) => (
+                        <button
+                            key={key}
+                            onClick={() => setTab(key)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                                tab === key ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            }`}
+                        >
+                            {key === 'homework' ? <><ClipboardList className="w-3 h-3" /> {label}</> : label}
+                            {count !== null && (
+                                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                                    tab === key ? 'bg-white/30 text-white' : 'bg-gray-200 text-gray-500'
+                                }`}>{count}</span>
+                            )}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Homework tab content */}
+                {tab === 'homework' && (
+                    <div className="flex-1 overflow-y-auto p-5">
+                        <HomeworkPanel patientId={patientId} patientName={patientName} />
+                    </div>
+                )}
+
+                {/* Entries (diary + notes tabs) */}
+                <div className={`flex-1 overflow-y-auto p-5 space-y-3 ${tab === 'homework' ? 'hidden' : ''}`}>
                     {isLoading ? (
-                        <div className="flex items-center justify-center py-12">
-                            <div className="text-center">
-                                <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-purple-600 mb-3"></div>
-                                <p className="text-gray-500">Cargando notas...</p>
+                        <div className="space-y-3">
+                            {[1, 2, 3].map(i => (
+                                <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 animate-pulse">
+                                    <div className="flex gap-2 mb-2">
+                                        <div className="w-16 h-5 bg-gray-200 rounded-full" />
+                                        <div className="w-24 h-4 bg-gray-100 rounded-full ml-auto" />
+                                    </div>
+                                    <div className="w-full h-4 bg-gray-100 rounded" />
+                                </div>
+                            ))}
+                        </div>
+                    ) : visibleEntries.length === 0 ? (
+                        <div className="text-center py-14">
+                            <div className="w-14 h-14 bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                                <BookOpen className="w-7 h-7 text-indigo-400" />
                             </div>
-                        </div>
-                    ) : error ? (
-                        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-                            <p className="text-red-600">{error}</p>
-                            <button
-                                onClick={fetchNotes}
-                                className="mt-2 text-red-700 hover:text-red-800 text-sm underline"
-                            >
-                                Reintentar
-                            </button>
-                        </div>
-                    ) : notes.length === 0 ? (
-                        <div className="text-center py-12">
-                            <svg className="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            <p className="text-gray-500">No hay notas en el diario</p>
-                            <p className="text-gray-400 text-sm mt-1">Agrega la primera nota del paciente</p>
+                            <p className="font-semibold text-gray-700 mb-1">Sin entradas</p>
+                            <p className="text-sm text-gray-400">
+                                {tab === 'patient' ? 'El paciente aún no ha añadido entradas'
+                                : tab === 'clinical' ? 'No hay notas clínicas todavía'
+                                : 'No hay entradas en el diario'}
+                            </p>
                         </div>
                     ) : (
-                        <div className="space-y-4">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                                Historial de Notas ({notes.length})
-                            </h3>
-                            <AnimatePresence>
-                                {notes.map((note, index) => (
-                                    <motion.div
-                                        key={note._id || note.id || index}
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: -20 }}
-                                        transition={{ delay: index * 0.05 }}
-                                        className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition"
-                                    >
-                                        <div className="flex items-start justify-between mb-2">
-                                            <div className="flex items-center">
-                                                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-3">
-                                                    <span className="text-purple-600 font-semibold text-sm">
-                                                        {note.author?.charAt(0)?.toUpperCase() || 'P'}
-                                                    </span>
-                                                </div>
-                                                <div>
-                                                    <p className="font-medium text-gray-900">{note.author || 'Profesional'}</p>
-                                                    <p className="text-xs text-gray-500">
-                                                        {note.createdAt ? formatDate(note.createdAt) : 'Fecha desconocida'}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <p className="text-gray-700 whitespace-pre-wrap leading-relaxed ml-13">
-                                            {note.text}
-                                        </p>
-                                    </motion.div>
-                                ))}
-                            </AnimatePresence>
-                        </div>
+                        visibleEntries.map((entry, i) =>
+                            entry.mood
+                                ? <PatientEntryCard key={entry._id || entry.id || i} entry={entry} index={i} />
+                                : <ClinicalNoteCard key={entry._id || entry.id || i} note={entry} index={i} />
+                        )
                     )}
                 </div>
 
                 {/* Footer */}
-                <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
-                    <div className="flex items-center justify-between text-sm text-gray-600">
-                        <div className="flex items-center">
-                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            Las notas se guardan automáticamente
-                        </div>
-                        <button
-                            onClick={onClose}
-                            className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg transition"
-                        >
-                            Cerrar
-                        </button>
-                    </div>
+                <div className="px-5 py-3 bg-white border-t border-gray-100 shrink-0">
+                    <p className="text-xs text-gray-400 text-center">
+                        {tab === 'homework'
+                            ? '📋 Las tareas son visibles para el paciente'
+                            : '💡 Las notas clínicas son visibles solo para profesionales'}
+                    </p>
                 </div>
             </motion.div>
         </motion.div>

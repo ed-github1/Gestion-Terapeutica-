@@ -32,6 +32,17 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error),
 )
 
+// Expose a setter so AuthContext can update the in-memory token after a silent
+// refresh without needing to re-import apiClient everywhere.
+export function setAuthToken (token) {
+  if (token) {
+    localStorage.setItem('authToken', token)
+  } else {
+    localStorage.removeItem('authToken')
+    sessionStorage.removeItem('authToken')
+  }
+}
+
 // ── Response interceptor ──────────────────────────────────────────────────────
 apiClient.interceptors.response.use(
   (response) => response,

@@ -5,8 +5,16 @@
 import apiClient from '@shared/api/client'
 
 export const authService = {
-  login: (email, password) =>
-    apiClient.post('/auth/login', { email, password }),
+  /**
+   * Standard credential login.
+   * Pass `deviceToken` (from deviceTrust.getTrustToken) so the backend can
+   * skip the 2FA challenge for recognised devices.
+   */
+  login: (email, password, deviceToken = null) => {
+    const headers = {}
+    if (deviceToken) headers['X-Device-Token'] = deviceToken
+    return apiClient.post('/auth/login', { email, password }, { headers })
+  },
 
   register: (userData) =>
     apiClient.post('/auth/register', userData),
@@ -28,6 +36,14 @@ export const authService = {
     apiClient.get('/auth/validate', {
       headers: { Authorization: `Bearer ${token}` },
     }),
+
+  /**
+   * Silently refresh the access token using the current JWT.
+   * Backend should issue a new short-lived token from the existing valid one.
+   * Endpoint: POST /auth/refresh
+   */
+  refresh: () =>
+    apiClient.post('/auth/refresh'),
 
   sendOTP: (phone) =>
     apiClient.post('/auth/send-otp', { phone }),

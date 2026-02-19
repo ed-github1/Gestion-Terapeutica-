@@ -10,7 +10,7 @@ import {
     Clock, FileText, UserPlus, CalendarPlus, Video,
     AlertTriangle, CheckCircle, XCircle, MessageSquare,
     Users, CalendarCheck, TrendingUp, ArrowUpRight, ArrowDownRight, Minus,
-    ChevronRight, DollarSign, BookOpen, Target, BarChart2, UserCheck
+    DollarSign, BookOpen, Target, BarChart2, UserCheck
 } from 'lucide-react'
 import { formatDate, formatTime, getTodayAppointments } from '../dashboard/dashboardUtils'
 import { ROUTES } from '@shared/constants/routes'
@@ -57,136 +57,6 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
     const userName = user?.name?.split(' ')[0] || user?.nombre || 'Doctor'
     const fullName = user?.name || user?.nombre || 'Professional'
     const initials = fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-
-    // const [activePatients, setActivePatients] = useState([
-    //     { id: 1, name: 'Sarah', avatar: 'https://ui-avatars.com/api/?name=Sarah&background=6366f1&color=fff' },
-    //     { id: 2, name: 'Mike', avatar: 'https://ui-avatars.com/api/?name=Mike&background=10b981&color=fff' },
-    //     { id: 3, name: 'Emma', avatar: 'https://ui-avatars.com/api/?name=Emma&background=f59e0b&color=fff' }
-    // ])
-
-    // Mock appointments data
-    const mockAppointments = [
-        {
-            id: 1,
-            nombrePaciente: 'Jemma Linda',
-            fechaHora: new Date(new Date().setHours(8, 0, 0)),
-            ultimaVisita: new Date(new Date().setDate(new Date().getDate() - 7)),
-            riskLevel: 'low',
-            lastSessionNote: 'Progresando bien con el manejo de la ansiedad',
-            treatmentGoal: 'Continuar ejercicios TCC',
-            homeworkCompleted: true
-        },
-        {
-            id: 2,
-            nombrePaciente: 'Andy John',
-            fechaHora: new Date(new Date().setHours(9, 0, 0)),
-            ultimaVisita: new Date(new Date().setDate(new Date().getDate() - 3)),
-            riskLevel: 'medium',
-            lastSessionNote: 'Necesita apoyo con equilibrio trabajo-vida',
-            treatmentGoal: 'Desarrollar estrategias de manejo del estrés',
-            homeworkCompleted: true
-        },
-        {
-            id: 3,
-            nombrePaciente: 'Ariana Jamie',
-            fechaHora: new Date(new Date().setHours(10, 0, 0)),
-            ultimaVisita: new Date(new Date().setDate(new Date().getDate() - 21)),
-            riskLevel: 'low',
-            lastSessionNote: 'Excelente progreso en terapia grupal',
-            treatmentGoal: 'Mantener plan de tratamiento actual',
-            homeworkCompleted: false
-        },
-        {
-            id: 4,
-            nombrePaciente: 'Carlos Rivera',
-            fechaHora: new Date(new Date().setHours(11, 0, 0)),
-            ultimaVisita: new Date(new Date().setDate(new Date().getDate() - 14)),
-            riskLevel: 'medium',
-            lastSessionNote: 'Trabajando en técnicas de regulación emocional',
-            treatmentGoal: 'Reducir episodios de ira',
-            homeworkCompleted: true
-        },
-        {
-            id: 5,
-            nombrePaciente: 'Maria González',
-            fechaHora: new Date(new Date().setHours(12, 0, 0)),
-            ultimaVisita: new Date(new Date().setDate(new Date().getDate() - 10)),
-            riskLevel: 'low',
-            lastSessionNote: 'Mejora significativa en autoestima',
-            treatmentGoal: 'Fortalecer habilidades sociales',
-            homeworkCompleted: true
-        },
-        {
-            id: 6,
-            nombrePaciente: 'Pedro Martínez',
-            fechaHora: new Date(new Date().setHours(13, 0, 0)),
-            ultimaVisita: new Date(new Date().setDate(new Date().getDate() - 4)),
-            riskLevel: 'high',
-            lastSessionNote: 'Requiere seguimiento cercano - ideación pasiva',
-            treatmentGoal: 'Implementar plan de seguridad',
-            homeworkCompleted: false
-        },
-        {
-            id: 7,
-            nombrePaciente: 'Sofia Torres',
-            fechaHora: new Date(new Date().setHours(14, 0, 0)),
-            ultimaVisita: new Date(new Date().setDate(new Date().getDate() - 5)),
-            riskLevel: 'low',
-            lastSessionNote: 'Adaptándose bien a nuevas rutinas',
-            treatmentGoal: 'Mantener progreso en gestión del tiempo',
-            homeworkCompleted: true
-        },
-        {
-            id: 8,
-            nombrePaciente: 'Luis Fernández',
-            fechaHora: new Date(new Date().setHours(15, 0, 0)),
-            ultimaVisita: new Date(new Date().setDate(new Date().getDate() - 8)),
-            riskLevel: 'medium',
-            lastSessionNote: 'Dificultades con el sueño continúan',
-            treatmentGoal: 'Implementar higiene del sueño',
-            homeworkCompleted: false
-        },
-        {
-            id: 9,
-            nombrePaciente: 'Ana Morales',
-            fechaHora: new Date(new Date().setHours(16, 0, 0)),
-            ultimaVisita: new Date(new Date().setDate(new Date().getDate() - 2)),
-            riskLevel: 'low',
-            lastSessionNote: 'Excelente progreso en terapia familiar',
-            treatmentGoal: 'Continuar fortaleciendo comunicación',
-            homeworkCompleted: true
-        },
-        {
-            id: 10,
-            nombrePaciente: 'Roberto Díaz',
-            fechaHora: new Date(new Date().setHours(17, 0, 0)),
-            ultimaVisita: new Date(new Date().setDate(new Date().getDate() - 12)),
-            riskLevel: 'medium',
-            lastSessionNote: 'Trabajando en exposición gradual',
-            treatmentGoal: 'Reducir conductas de evitación',
-            homeworkCompleted: true
-        },
-        {
-            id: 11,
-            nombrePaciente: 'Isabel Ruiz',
-            fechaHora: new Date(new Date().setHours(18, 0, 0)),
-            ultimaVisita: new Date(new Date().setDate(new Date().getDate() - 6)),
-            riskLevel: 'low',
-            lastSessionNote: 'Mejorando autoconfianza y asertividad',
-            treatmentGoal: 'Practicar técnicas de comunicación',
-            homeworkCompleted: true
-        },
-        {
-            id: 12,
-            nombrePaciente: 'Miguel Sánchez',
-            fechaHora: new Date(new Date().setHours(19, 0, 0)),
-            ultimaVisita: new Date(new Date().setDate(new Date().getDate() - 15)),
-            riskLevel: 'high',
-            lastSessionNote: 'Crisis reciente - necesita apoyo adicional',
-            treatmentGoal: 'Reforzar red de apoyo social',
-            homeworkCompleted: false
-        }
-    ]
 
     // Mock activities data
     const mockActivities = [
@@ -271,82 +141,82 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
 
         let todayAppointments = merged
             .sort((a, b) => new Date(a.fechaHora) - new Date(b.fechaHora))
-    
-    // Add availability info to appointments
-    todayAppointments = todayAppointments.map(appointment => {
-        const appointmentDate = new Date(appointment.fechaHora)
-        const dayOfWeek = appointmentDate.getDay()
-        const timeStr = `${appointmentDate.getHours().toString().padStart(2, '0')}:${appointmentDate.getMinutes().toString().padStart(2, '0')}`
-        
-        const dayAvailability = availability[dayOfWeek] || []
-        const isInAvailableSlot = dayAvailability.includes(timeStr)
-        
-        return {
-            ...appointment,
-            isInAvailableSlot
-        }
-    })
-    
-    // Generate pills for time slots WITHOUT appointments (either unavailable or break time)
-    const unavailableSlotsToday = []
-    const today = new Date()
-    const todayDayOfWeek = today.getDay()
-    const todayAvailability = availability[todayDayOfWeek] || []
-    
-    // Get times of existing appointments
-    const appointmentTimes = new Set(
-        todayAppointments.map(apt => {
-            const date = new Date(apt.fechaHora)
-            return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+
+        // Add availability info to appointments
+        todayAppointments = todayAppointments.map(appointment => {
+            const appointmentDate = new Date(appointment.fechaHora)
+            const dayOfWeek = appointmentDate.getDay()
+            const timeStr = `${appointmentDate.getHours().toString().padStart(2, '0')}:${appointmentDate.getMinutes().toString().padStart(2, '0')}`
+
+            const dayAvailability = availability[dayOfWeek] || []
+            const isInAvailableSlot = dayAvailability.includes(timeStr)
+
+            return {
+                ...appointment,
+                isInAvailableSlot
+            }
         })
-    )
-    
-    // Generate all possible time slots for the day (7:00 AM - 8:00 PM)
-    const allPossibleSlots = []
-    for (let hour = 7; hour <= 20; hour++) {
-        allPossibleSlots.push(`${hour.toString().padStart(2, '0')}:00`)
-        if (hour < 20) {
-            allPossibleSlots.push(`${hour.toString().padStart(2, '0')}:30`)
-        }
-    }
-    
-    // Create "unavailable" or "break" entries for slots without appointments
-    allPossibleSlots.forEach(timeSlot => {
-        if (!appointmentTimes.has(timeSlot)) {
-            // Check if this slot is in availability
-            const isInAvailability = todayAvailability.includes(timeSlot)
-            const [hours, minutes] = timeSlot.split(':')
-            
-            // Create date for TODAY with the specific time
-            const slotDate = new Date()
-            slotDate.setHours(parseInt(hours), parseInt(minutes), 0, 0)
-            
-            // Only show pill for slots NOT in availability
-            if (!isInAvailability) {
-                unavailableSlotsToday.push({
-                    id: `unavailable-${timeSlot}`,
-                    fechaHora: slotDate,
-                    isUnavailable: true,
-                    timeSlot: timeSlot
-                })
+
+        // Generate pills for time slots WITHOUT appointments (either unavailable or break time)
+        const unavailableSlotsToday = []
+        const today = new Date()
+        const todayDayOfWeek = today.getDay()
+        const todayAvailability = availability[todayDayOfWeek] || []
+
+        // Get times of existing appointments
+        const appointmentTimes = new Set(
+            todayAppointments.map(apt => {
+                const date = new Date(apt.fechaHora)
+                return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+            })
+        )
+
+        // Generate all possible time slots for the day (7:00 AM - 8:00 PM)
+        const allPossibleSlots = []
+        for (let hour = 7; hour <= 20; hour++) {
+            allPossibleSlots.push(`${hour.toString().padStart(2, '0')}:00`)
+            if (hour < 20) {
+                allPossibleSlots.push(`${hour.toString().padStart(2, '0')}:30`)
             }
         }
-    })
-    
-    // Merge appointments and unavailable slots, sort chronologically (earliest first)
-    const allDaySlots = [...todayAppointments, ...unavailableSlotsToday]
-        .sort((a, b) => {
-            const timeA = new Date(a.fechaHora).getTime()
-            const timeB = new Date(b.fechaHora).getTime()
-            return timeA - timeB
+
+        // Create "unavailable" or "break" entries for slots without appointments
+        allPossibleSlots.forEach(timeSlot => {
+            if (!appointmentTimes.has(timeSlot)) {
+                // Check if this slot is in availability
+                const isInAvailability = todayAvailability.includes(timeSlot)
+                const [hours, minutes] = timeSlot.split(':')
+
+                // Create date for TODAY with the specific time
+                const slotDate = new Date()
+                slotDate.setHours(parseInt(hours), parseInt(minutes), 0, 0)
+
+                // Only show pill for slots NOT in availability
+                if (!isInAvailability) {
+                    unavailableSlotsToday.push({
+                        id: `unavailable-${timeSlot}`,
+                        fechaHora: slotDate,
+                        isUnavailable: true,
+                        timeSlot: timeSlot
+                    })
+                }
+            }
         })
-    
-    // Get upcoming patient info from first appointment
-    const upcomingPatient = todayAppointments[0]
-    
-    return { todayAppointments, allDaySlots, upcomingPatient }
+
+        // Merge appointments and unavailable slots, sort chronologically (earliest first)
+        const allDaySlots = [...todayAppointments, ...unavailableSlotsToday]
+            .sort((a, b) => {
+                const timeA = new Date(a.fechaHora).getTime()
+                const timeB = new Date(b.fechaHora).getTime()
+                return timeA - timeB
+            })
+
+        // Get upcoming patient info from first appointment
+        const upcomingPatient = todayAppointments[0]
+
+        return { todayAppointments, allDaySlots, upcomingPatient }
     }, [appointments, availability]) // Only recalculate when appointments or availability change
-    
+
     const dashboardActivities = activities && activities.length > 0 ? activities : mockActivities
     const monthGrowth = Math.round((stats.totalPatients / Math.max(stats.totalPatients - 10, 1)) * 100) - 100
 
@@ -408,11 +278,11 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
 
     // 2. Outcome tracking — PHQ-9 scores per patient (mock)
     const mockOutcomes = [
-        { initials: 'JL', name: 'Jemma Linda',    scores: [14, 12, 10, 8, 7],   trend: 'improving' },
+        { initials: 'JL', name: 'Jemma Linda', scores: [14, 12, 10, 8, 7], trend: 'improving' },
         { initials: 'PM', name: 'Pedro Martínez', scores: [18, 19, 17, 20, 22], trend: 'concerning' },
-        { initials: 'AJ', name: 'Andy John',      scores: [12, 11, 10, 9, 8],   trend: 'improving' },
-        { initials: 'MG', name: 'Maria González', scores: [10, 9, 8, 6, 5],     trend: 'improving' },
-        { initials: 'CR', name: 'Carlos Rivera',  scores: [15, 14, 14, 13, 12], trend: 'stable' },
+        { initials: 'AJ', name: 'Andy John', scores: [12, 11, 10, 9, 8], trend: 'improving' },
+        { initials: 'MG', name: 'Maria González', scores: [10, 9, 8, 6, 5], trend: 'improving' },
+        { initials: 'CR', name: 'Carlos Rivera', scores: [15, 14, 14, 13, 12], trend: 'stable' },
     ]
 
     // 3. Waitlist count (mock)
@@ -430,7 +300,45 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
     const prevNoShowRate = 18
 
     // 5. Next upcoming session (for prep card)
-    const nextUpcomingSession = todayAppointments.find(a => new Date(a.fechaHora) > new Date())
+    // Priority: (1) a future slot from today, (2) the nearest future appointment overall,
+    // (3) a mock fallback so the card is always visible during development.
+    const nextUpcomingSession = (() => {
+        const now = new Date()
+        // From today's schedule (already merged real + localStorage)
+        const fromToday = todayAppointments.find(a => new Date(a.fechaHora) > now)
+        if (fromToday) return fromToday
+        // From the full appointments list (could be tomorrow or later)
+        if (Array.isArray(appointments) && appointments.length > 0) {
+            const future = [...appointments]
+                .filter(a => new Date(a.fechaHora || a.date) > now)
+                .sort((a, b) => new Date(a.fechaHora || a.date) - new Date(b.fechaHora || b.date))
+            if (future.length > 0) {
+                const apt = future[0]
+                return {
+                    id: apt._id || apt.id,
+                    nombrePaciente: apt.patientName || apt.nombrePaciente || 'Paciente',
+                    fechaHora: apt.fechaHora || apt.date,
+                    riskLevel: apt.riskLevel || 'low',
+                    treatmentGoal: apt.treatmentGoal || '',
+                    lastSessionNote: apt.lastSessionNote || '',
+                    homeworkCompleted: apt.homeworkCompleted || false,
+                }
+            }
+        }
+        // Mock fallback — keep card visible when no real data is available
+        const tomorrow = new Date(now)
+        tomorrow.setDate(tomorrow.getDate() + 1)
+        tomorrow.setHours(10, 0, 0, 0)
+        return {
+            id: 'mock-next',
+            nombrePaciente: 'María González',
+            fechaHora: tomorrow.toISOString(),
+            riskLevel: 'medium',
+            treatmentGoal: 'Manejo de ansiedad generalizada',
+            lastSessionNote: 'Progresando bien con técnicas de respiración y registro cognitivo.',
+            homeworkCompleted: true,
+        }
+    })()
 
     // 7. CPD / Supervision hours (mock — replace with real CPD service)
     const mockCPD = { completed: 18, required: 30, deadline: 'Jun 2026', supervised: 6, supervisedRequired: 10 }
@@ -480,16 +388,16 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
             }
         }
         loadAvailability()
-        
+
         // Listen for availability changes (when modal closes)
         const handleStorageChange = () => {
             loadAvailability()
         }
         window.addEventListener('storage', handleStorageChange)
-        
+
         // Also listen for custom event when availability is saved
         window.addEventListener('availabilityUpdated', handleStorageChange)
-        
+
         return () => {
             window.removeEventListener('storage', handleStorageChange)
             window.removeEventListener('availabilityUpdated', handleStorageChange)
@@ -573,15 +481,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                 <CalendarPlus className="w-3.5 h-3.5" />
                                 Agendar cita
                             </button>
-                            {upcomingPatient && (
-                                <button
-                                    onClick={() => handleJoinVideo(upcomingPatient)}
-                                    className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
-                                >
-                                    <Video className="w-3.5 h-3.5" />
-                                    Iniciar sesión
-                                </button>
-                            )}
+
                             {stats.pendingNotes > 0 && (
                                 <span className="flex items-center gap-1.5 px-3 py-2 bg-amber-50 border border-amber-200 text-amber-700 rounded-lg text-sm font-medium">
                                     <AlertTriangle className="w-3.5 h-3.5" />
@@ -599,6 +499,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                             {[
                                 {
                                     label: 'Pacientes activos',
+                                    labelShort: 'Pacientes',
                                     value: stats.totalPatients || 0,
                                     sub: 'total en carga',
                                     icon: Users,
@@ -609,6 +510,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                 },
                                 {
                                     label: 'Sesiones hoy',
+                                    labelShort: 'Hoy',
                                     value: todayAppointments.length,
                                     sub: `${todayAppointments.filter(a => new Date(a.fechaHora) > new Date()).length} restantes`,
                                     icon: CalendarCheck,
@@ -618,7 +520,8 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                     delay: 0.15
                                 },
                                 {
-                                    label: 'Completadas esta semana',
+                                    label: 'Completadas semana',
+                                    labelShort: 'Semana',
                                     value: stats.completedThisWeek || 0,
                                     sub: `de ${stats.weekAppointments || 0} programadas`,
                                     icon: TrendingUp,
@@ -631,6 +534,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                 },
                                 {
                                     label: 'Notas pendientes',
+                                    labelShort: 'Notas',
                                     value: stats.pendingNotes || 0,
                                     sub: stats.pendingNotes > 0 ? 'requiere atención' : 'al día',
                                     icon: FileText,
@@ -642,8 +546,9 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                 },
                                 {
                                     label: 'Tareas completadas',
+                                    labelShort: 'Tareas',
                                     value: `${homeworkRate}%`,
-                                    sub: 'cumplimiento esta semana',
+                                    sub: 'cumplimiento semana',
                                     icon: Target,
                                     iconColor: homeworkRate >= 70 ? 'text-emerald-600' : 'text-orange-500',
                                     iconBg: homeworkRate >= 70 ? 'bg-emerald-50' : 'bg-orange-50',
@@ -652,8 +557,9 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                 },
                                 {
                                     label: 'Tasa no-show',
+                                    labelShort: 'No-show',
                                     value: `${noShowRateVal}%`,
-                                    sub: `era ${prevNoShowRate}% mes anterior`,
+                                    sub: `era ${prevNoShowRate}% anterior`,
                                     icon: BarChart2,
                                     iconColor: noShowRateVal < prevNoShowRate ? 'text-emerald-600' : 'text-rose-500',
                                     iconBg: noShowRateVal < prevNoShowRate ? 'bg-emerald-50' : 'bg-rose-50',
@@ -666,23 +572,21 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                     initial={{ opacity: 0, y: 8 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: card.delay, duration: 0.3 }}
-                                    className={`bg-white rounded-2xl p-5 border flex flex-col gap-3 hover:shadow-md transition-shadow cursor-default ${
-                                        card.alert ? 'border-amber-200' : 'border-gray-100'
-                                    }`}
+                                    className={`bg-white rounded-2xl p-3 sm:p-4 md:p-5 border flex flex-col gap-2 md:gap-3 hover:shadow-md transition-shadow cursor-default ${card.alert ? 'border-amber-200' : 'border-gray-100'
+                                        }`}
                                 >
                                     <div className="flex items-center justify-between">
-                                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${card.iconBg}`}>
-                                            <card.icon className={`w-4.5 h-4.5 ${card.iconColor}`} strokeWidth={2} />
+                                        <div className={`w-8 h-8 md:w-9 md:h-9 rounded-xl flex items-center justify-center shrink-0 ${card.iconBg}`}>
+                                            <card.icon className={`w-4 h-4 ${card.iconColor}`} strokeWidth={2} />
                                         </div>
                                         {card.trend !== null && card.trend !== undefined && (
-                                            <span className={`flex items-center gap-0.5 text-xs font-semibold ${
-                                                card.trend > 0 ? 'text-emerald-600' : card.trend < 0 ? 'text-rose-500' : 'text-gray-400'
-                                            }`}>
+                                            <span className={`flex items-center gap-0.5 text-[10px] sm:text-xs font-semibold ${card.trend > 0 ? 'text-emerald-600' : card.trend < 0 ? 'text-rose-500' : 'text-gray-400'
+                                                }`}>
                                                 {card.trend > 0
-                                                    ? <ArrowUpRight className="w-3.5 h-3.5" />
+                                                    ? <ArrowUpRight className="w-3 h-3" />
                                                     : card.trend < 0
-                                                    ? <ArrowDownRight className="w-3.5 h-3.5" />
-                                                    : <Minus className="w-3.5 h-3.5" />
+                                                        ? <ArrowDownRight className="w-3 h-3" />
+                                                        : <Minus className="w-3 h-3" />
                                                 }
                                                 {Math.abs(card.trend)}%
                                             </span>
@@ -694,11 +598,14 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                         )}
                                     </div>
                                     <div>
-                                        <p className="text-2xl md:text-3xl font-bold text-gray-900 leading-none mb-1">
+                                        <p className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 leading-none mb-1">
                                             {card.value}
                                         </p>
-                                        <p className="text-[13px] font-medium text-gray-900">{card.label}</p>
-                                        <p className="text-xs text-gray-400 mt-0.5">{card.sub}</p>
+                                        <p className="text-[11px] sm:text-[12px] md:text-[13px] font-medium text-gray-900 leading-tight">
+                                            <span className="sm:hidden">{card.labelShort}</span>
+                                            <span className="hidden sm:inline">{card.label}</span>
+                                        </p>
+                                        <p className="hidden sm:block text-xs text-gray-400 mt-0.5 leading-tight">{card.sub}</p>
                                     </div>
                                 </motion.div>
                             ))}
@@ -723,11 +630,10 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                         </p>
                                     </div>
                                     <div className="flex flex-col items-end gap-2 shrink-0">
-                                        <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${
-                                            nextUpcomingSession.riskLevel === 'high' ? 'bg-rose-500/30 text-rose-100' :
-                                            nextUpcomingSession.riskLevel === 'medium' ? 'bg-amber-400/30 text-amber-100' :
-                                            'bg-emerald-400/20 text-emerald-100'
-                                        }`}>
+                                        <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${nextUpcomingSession.riskLevel === 'high' ? 'bg-rose-500/30 text-rose-100' :
+                                                nextUpcomingSession.riskLevel === 'medium' ? 'bg-amber-400/30 text-amber-100' :
+                                                    'bg-emerald-400/20 text-emerald-100'
+                                            }`}>
                                             Riesgo {nextUpcomingSession.riskLevel === 'high' ? 'alto' : nextUpcomingSession.riskLevel === 'medium' ? 'medio' : 'bajo'}
                                         </span>
                                         <button
@@ -739,7 +645,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                         </button>
                                     </div>
                                 </div>
-                                <div className="mt-4 grid grid-cols-3 gap-3">
+                                <div className="mt-4 grid grid-cols-1 min-[420px]:grid-cols-3 gap-2 md:gap-3">
                                     <div className="bg-white/10 rounded-xl p-3">
                                         <p className="text-blue-200 text-[10px] uppercase tracking-wide mb-1">Última nota</p>
                                         <p className="text-white text-xs leading-snug line-clamp-2">
@@ -824,17 +730,16 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                             <p className="text-sm font-medium text-gray-900 truncate">{p.name}</p>
                                             <p className="text-xs text-gray-400">Último: <span className="font-semibold text-gray-600">{p.scores[p.scores.length - 1]}</span> / 27</p>
                                         </div>
-                                        <div className="shrink-0">
+                                        <div className="hidden sm:block shrink-0">
                                             <Sparkline
                                                 scores={p.scores}
                                                 color={p.trend === 'improving' ? '#10b981' : p.trend === 'concerning' ? '#f43f5e' : '#94a3b8'}
                                             />
                                         </div>
-                                        <span className={`shrink-0 text-[10px] font-semibold px-2 py-1 rounded-full ${
-                                            p.trend === 'improving' ? 'bg-emerald-50 text-emerald-600' :
-                                            p.trend === 'concerning' ? 'bg-rose-50 text-rose-600' :
-                                            'bg-gray-100 text-gray-500'
-                                        }`}>
+                                        <span className={`shrink-0 text-[10px] font-semibold px-2 py-1 rounded-full ${p.trend === 'improving' ? 'bg-emerald-50 text-emerald-600' :
+                                                p.trend === 'concerning' ? 'bg-rose-50 text-rose-600' :
+                                                    'bg-gray-100 text-gray-500'
+                                            }`}>
                                             {p.trend === 'improving' ? 'Mejorando' : p.trend === 'concerning' ? 'Alerta' : 'Estable'}
                                         </span>
                                     </div>
@@ -873,12 +778,11 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                             key={action.id || idx}
                                             className="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50/60 transition-colors"
                                         >
-                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                                                action.type === 'crisis' ? 'bg-rose-50' :
-                                                action.type === 'pending_note' ? 'bg-amber-50' :
-                                                action.type === 'appointment_request' ? 'bg-blue-50' :
-                                                'bg-gray-100'
-                                            }`}>
+                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${action.type === 'crisis' ? 'bg-rose-50' :
+                                                    action.type === 'pending_note' ? 'bg-amber-50' :
+                                                        action.type === 'appointment_request' ? 'bg-blue-50' :
+                                                            'bg-gray-100'
+                                                }`}>
                                                 {action.type === 'crisis' && <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />}
                                                 {action.type === 'pending_note' && <FileText className="w-3.5 h-3.5 text-amber-600" />}
                                                 {action.type === 'appointment_request' && <CalendarPlus className="w-3.5 h-3.5 text-blue-600" />}
@@ -888,11 +792,10 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                                 <p className="text-sm font-medium text-gray-900 truncate">{action.title}</p>
                                                 <p className="text-xs text-gray-400 truncate">{action.subtitle}</p>
                                             </div>
-                                            <button className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${
-                                                action.type === 'crisis'
+                                            <button className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${action.type === 'crisis'
                                                     ? 'bg-rose-50 text-rose-600 hover:bg-rose-100'
                                                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                            }`}>
+                                                }`}>
                                                 {action.cta}
                                             </button>
                                         </div>
@@ -900,6 +803,208 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                 </div>
                             )}
                         </motion.div>
+
+                        {/* ── Sidebar widgets – visible only below xl ── */}
+                        <div className="xl:hidden mt-6 space-y-4">
+
+                            {/* Revenue */}
+                            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                                <div className="flex items-center justify-between mb-3">
+                                    <h4 className="font-bold text-gray-900 flex items-center gap-2 text-sm">
+                                        <DollarSign className="w-4 h-4 text-emerald-600" />
+                                        Ingresos del Mes
+                                    </h4>
+                                    <span className={`flex items-center gap-0.5 text-xs font-semibold ${revenueGrowth > 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
+                                        {revenueGrowth > 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                                        {Math.abs(revenueGrowth)}%
+                                    </span>
+                                </div>
+                                <p className="text-2xl font-bold text-gray-900">${mockRevenue.thisMonth.toLocaleString()}</p>
+                                <p className="text-xs text-gray-400 mt-0.5 mb-3">vs ${mockRevenue.lastMonth.toLocaleString()} el mes pasado</p>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="bg-amber-50 rounded-xl p-3">
+                                        <p className="text-[10px] text-amber-600 font-semibold uppercase tracking-wide">Pendiente cobro</p>
+                                        <p className="text-lg font-bold text-amber-700 mt-0.5">${mockRevenue.outstanding}</p>
+                                    </div>
+                                    <div className="bg-blue-50 rounded-xl p-3">
+                                        <p className="text-[10px] text-blue-600 font-semibold uppercase tracking-wide">Reclamos activos</p>
+                                        <p className="text-lg font-bold text-blue-700 mt-0.5">{mockRevenue.pendingClaims}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Progreso semanal + CPD – side by side on sm+ */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {/* Weekly progress */}
+                                <div className="bg-linear-to-br from-emerald-50 to-teal-50 rounded-2xl p-5 border border-emerald-100">
+                                    <h4 className="font-bold text-gray-900 flex items-center gap-2 text-sm mb-4">
+                                        <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                        </svg>
+                                        Progreso Semanal
+                                    </h4>
+                                    <div className="space-y-3">
+                                        <div>
+                                            <div className="flex items-center justify-between text-xs mb-1.5">
+                                                <span className="font-medium text-gray-700">Sesiones Completadas</span>
+                                                <span className="font-bold text-emerald-600">{stats.completedThisWeek || 0}/12</span>
+                                            </div>
+                                            <div className="w-full h-2 bg-white rounded-full overflow-hidden">
+                                                <div className="h-full bg-linear-to-r from-emerald-500 to-teal-500 rounded-full" style={{ width: `${((stats.completedThisWeek || 0) / 12) * 100}%` }} />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center justify-between text-xs mb-1.5">
+                                                <span className="font-medium text-gray-700">Metas de Tratamiento</span>
+                                                <span className="font-bold text-blue-600">8/10</span>
+                                            </div>
+                                            <div className="w-full h-2 bg-white rounded-full overflow-hidden">
+                                                <div className="h-full bg-linear-to-r from-blue-500 to-indigo-500 rounded-full" style={{ width: '80%' }} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* CPD */}
+                                <div className="bg-linear-to-br from-violet-50 to-purple-50 rounded-2xl p-5 border border-violet-100">
+                                    <h4 className="font-bold text-gray-900 flex items-center gap-2 text-sm mb-4">
+                                        <BookOpen className="w-4 h-4 text-violet-600" />
+                                        Horas CPD
+                                    </h4>
+                                    <div className="space-y-3">
+                                        <div>
+                                            <div className="flex items-center justify-between text-xs mb-1.5">
+                                                <span className="font-medium text-gray-700">Formación</span>
+                                                <span className="font-bold text-violet-600">{mockCPD.completed}/{mockCPD.required} h</span>
+                                            </div>
+                                            <div className="w-full h-2 bg-white rounded-full overflow-hidden">
+                                                <div className="h-full bg-linear-to-r from-violet-500 to-purple-500 rounded-full" style={{ width: `${Math.min((mockCPD.completed / mockCPD.required) * 100, 100)}%` }} />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center justify-between text-xs mb-1.5">
+                                                <span className="font-medium text-gray-700">Supervisión</span>
+                                                <span className="font-bold text-indigo-600">{mockCPD.supervised}/{mockCPD.supervisedRequired} h</span>
+                                            </div>
+                                            <div className="w-full h-2 bg-white rounded-full overflow-hidden">
+                                                <div className="h-full bg-linear-to-r from-indigo-500 to-blue-500 rounded-full" style={{ width: `${Math.min((mockCPD.supervised / mockCPD.supervisedRequired) * 100, 100)}%` }} />
+                                            </div>
+                                        </div>
+                                        <p className="text-[10px] text-gray-400">Renovación: <span className="font-semibold text-gray-600">{mockCPD.deadline}</span></p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Messages */}
+                            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                                    <h4 className="font-bold text-gray-900 flex items-center gap-2 text-sm">
+                                        <MessageSquare className="w-4 h-4 text-blue-600" />
+                                        Mensajes
+                                    </h4>
+                                    <div className="flex items-center gap-2">
+                                        {stats.unreadMessages > 0 && (
+                                            <span className="w-5 h-5 bg-blue-600 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                                                {stats.unreadMessages}
+                                            </span>
+                                        )}
+                                        <button className="text-xs text-blue-600 font-semibold">Ver Todo</button>
+                                    </div>
+                                </div>
+                                <div className="divide-y divide-gray-50">
+                                    {mockMessages.map((msg) => (
+                                        <div key={msg.id} className="flex items-start gap-3 px-5 py-3.5">
+                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${msg.unread ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
+                                                {msg.initials}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-1.5 mb-0.5">
+                                                    <p className={`text-sm truncate ${msg.unread ? 'font-semibold text-gray-900' : 'font-medium text-gray-700'}`}>{msg.name}</p>
+                                                    {msg.unread && <span className="w-1.5 h-1.5 bg-blue-600 rounded-full shrink-0" />}
+                                                </div>
+                                                <p className="text-xs text-gray-500 truncate">{msg.preview}</p>
+                                            </div>
+                                            <p className="text-[10px] text-gray-400 shrink-0">{msg.time}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Quick Notes + Crisis – side by side on sm+ */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {/* Quick Notes */}
+                                <div className="bg-linear-to-br from-indigo-50 to-blue-50 rounded-2xl p-5 border border-indigo-100">
+                                    <h4 className="font-bold text-gray-900 flex items-center gap-2 text-sm mb-3">
+                                        <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                        </svg>
+                                        Notas Rápidas
+                                    </h4>
+                                    <textarea
+                                        placeholder="Anota observaciones de la sesión..."
+                                        className="w-full h-28 p-3 bg-white rounded-xl border border-indigo-100 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    />
+                                    <button className="w-full mt-3 py-2 bg-gray-900 text-white rounded-xl text-sm font-semibold hover:bg-gray-800 transition-colors">
+                                        Guardar Nota
+                                    </button>
+                                </div>
+
+                                {/* Crisis Resources */}
+                                <div className="bg-linear-to-br from-rose-50 to-red-50 rounded-2xl p-5 border border-rose-200">
+                                    <h4 className="font-bold text-gray-900 flex items-center gap-2 text-sm mb-3">
+                                        <svg className="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                        </svg>
+                                        Recursos de Crisis
+                                    </h4>
+                                    <div className="space-y-2">
+                                        <div className="flex items-center gap-3 p-3 bg-white rounded-xl">
+                                            <div className="w-9 h-9 bg-rose-100 rounded-full flex items-center justify-center shrink-0">
+                                                <svg className="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-semibold text-gray-900">Línea de Crisis</p>
+                                                <p className="text-sm font-bold text-rose-600">988</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3 p-3 bg-white rounded-xl">
+                                            <div className="w-9 h-9 bg-amber-100 rounded-full flex items-center justify-center shrink-0">
+                                                <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-semibold text-gray-900">Apoyo por Texto</p>
+                                                <p className="text-xs text-gray-600">Envía CASA al 741741</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Self-Care */}
+                            <div className="bg-linear-to-br from-amber-50 to-orange-50 rounded-2xl p-5 border border-amber-100">
+                                <div className="flex items-start gap-3">
+                                    <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center shrink-0">
+                                        <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                        </svg>
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className="font-bold text-gray-900 text-sm mb-1">Toma un Descanso</h4>
+                                        <p className="text-xs text-gray-600 leading-relaxed">Has tenido 3 sesiones hoy. Considera un breve descanso de atención plena antes de tu próxima cita.</p>
+                                        <button className="mt-3 text-xs font-semibold text-amber-600 hover:text-amber-700">
+                                            Iniciar ejercicio de respiración 5-min →
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                        {/* ── end sidebar widgets ── */}
+
                     </div>
 
                     {/* Barra Lateral Derecha - Herramientas Clínicas */}
@@ -912,9 +1017,8 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                     <DollarSign className="w-4 h-4 text-emerald-600" />
                                     Ingresos del Mes
                                 </h4>
-                                <span className={`flex items-center gap-0.5 text-xs font-semibold ${
-                                    revenueGrowth > 0 ? 'text-emerald-600' : 'text-rose-500'
-                                }`}>
+                                <span className={`flex items-center gap-0.5 text-xs font-semibold ${revenueGrowth > 0 ? 'text-emerald-600' : 'text-rose-500'
+                                    }`}>
                                     {revenueGrowth > 0 ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
                                     {Math.abs(revenueGrowth)}%
                                 </span>

@@ -22,6 +22,7 @@ const ACTIVITY_EVENTS = ['mousemove', 'keydown', 'mousedown', 'touchstart', 'scr
  * @param {{ onIdle: () => void, enabled?: boolean }} options
  * @returns {{ showWarning: boolean, secondsLeft: number, extend: () => void }}
  */
+
 export const useIdleTimeout = ({ onIdle, enabled = true }) => {
   const [showWarning, setShowWarning] = useState(false)
   const [secondsLeft, setSecondsLeft] = useState(60)

@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import PatientPersonalDiary from './PatientPersonalDiary'
 import AppointmentRequest from './AppointmentRequest'
 import PatientAppointments from './PatientAppointments'
+import PatientHomeworkView from './components/PatientHomeworkView'
 import { appointmentsService } from '@shared/services/appointmentsService'
 import { patientsService } from '@shared/services/patientsService'
 import { invitationsService } from '@shared/services/invitationsService'
@@ -20,6 +21,7 @@ const PatientDashboard = () => {
   const { user } = useAuth()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [showDiary, setShowDiary] = useState(false)
+  const [showHomework, setShowHomework] = useState(false)
   const [showAppointmentRequest, setShowAppointmentRequest] = useState(false)
   const [showAppointments, setShowAppointments] = useState(false)
   const [nextAppointment, setNextAppointment] = useState(null)
@@ -435,6 +437,16 @@ const PatientDashboard = () => {
               <QuickActionCard
                 icon={
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                  </svg>
+                }
+                title="Mis Tareas"
+                color="from-violet-500 to-purple-600"
+                onClick={() => setShowHomework(true)}
+              />
+              <QuickActionCard
+                icon={
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                   </svg>
                 }
@@ -526,6 +538,41 @@ const PatientDashboard = () => {
       <AnimatePresence>
         {showDiary && (
           <PatientPersonalDiary onClose={() => setShowDiary(false)} />
+        )}
+
+        {showHomework && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            onClick={() => setShowHomework(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.96, opacity: 0, y: 12 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.96, opacity: 0, y: 12 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
+                <h2 className="text-lg font-bold text-gray-900">Mis Tareas Terapéuticas</h2>
+                <button
+                  onClick={() => setShowHomework(false)}
+                  className="p-2 rounded-xl hover:bg-gray-100 transition"
+                  aria-label="Cerrar"
+                >
+                  <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-6">
+                <PatientHomeworkView />
+              </div>
+            </motion.div>
+          </motion.div>
         )}
 
         {showAppointmentRequest && (

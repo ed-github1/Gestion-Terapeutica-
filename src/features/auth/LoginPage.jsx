@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { Brain, Mail, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from './AuthContext'
+import { getTrustToken } from '@utils/deviceTrust'
 
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false)
@@ -15,13 +16,17 @@ const LoginPage = () => {
   const { login } = useAuth()
   const navigate = useNavigate()
   const { state: locationState } = useLocation()
-  const idleExpired = locationState?.reason === 'idle'
+  const idleExpired    = locationState?.reason === 'idle'
+  const sessionExpired = locationState?.reason === 'session_expired'
 
   const onSubmit = async (data) => {
     setLoginError(null)
     clearErrors(['email', 'password'])
     try {
-      const result = await login(data.email, data.password, data.rememberMe)
+      // Send any stored device trust token so the backend can skip 2FA
+      // for recognised devices.
+      const deviceToken = getTrustToken(data.email)
+      const result = await login(data.email, data.password, data.rememberMe, deviceToken)
 
       // 2FA required — redirect without persisting the real token
       if (result?.requires2FA === true) {
@@ -79,6 +84,16 @@ const LoginPage = () => {
               <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
               <p className="text-sm text-amber-700 font-medium leading-snug">
                 Tu sesión se cerró por inactividad. Por favor, iniciá sesión nuevamente.
+              </p>
+            </div>
+          )}
+
+          {/* Session-expired notice (JWT expired while locked) */}
+          {sessionExpired && (
+            <div className="flex items-start gap-2.5 p-3.5 bg-amber-50 rounded-xl border border-amber-200">
+              <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+              <p className="text-sm text-amber-700 font-medium leading-snug">
+                Tu sesión expiró. Por favor, iniciá sesión nuevamente.
               </p>
             </div>
           )}

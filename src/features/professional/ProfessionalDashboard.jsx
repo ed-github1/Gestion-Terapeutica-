@@ -1,6 +1,5 @@
-
 import { useState } from 'react'
-import { motion } from 'motion/react'
+import { motion, AnimatePresence } from 'motion/react'
 import ModernProfessionalDashboard from './components/ModernProfessionalDashboard'
 import AppointmentsCalendar from './components/AppointmentsCalendar'
 import PatientDiary from './components/PatientDiary'
@@ -13,15 +12,11 @@ const ProfessionalDashboardWrapper = () => {
     const [showCalendar, setShowCalendar] = useState(false)
     const [diaryPatient, setDiaryPatient] = useState(null)
 
-    // Show patient diary if selected
-    if (diaryPatient) {
-        return (
-            <PatientDiary
-                patientId={diaryPatient.id}
-                patientName={diaryPatient.name}
-                onClose={() => setDiaryPatient(null)}
-            />
-        )
+    // Map session/appointment object → { id, name } for the diary
+    const handleViewDiary = (session) => {
+        const id = session?.patientId || session?.patient?._id || session?.patient?.id || session?.id
+        const name = session?.nombrePaciente || session?.patient?.name || session?.patientName || session?.name || 'Paciente'
+        if (id) setDiaryPatient({ id, name })
     }
 
     // Show calendar if selected
@@ -46,15 +41,24 @@ const ProfessionalDashboardWrapper = () => {
         )
     }
 
-    // Show main dashboard
+    // Show main dashboard (diary overlays it as a modal)
     return (
-        <ModernProfessionalDashboard 
-            setShowCalendar={setShowCalendar} 
-            setDiaryPatient={setDiaryPatient} 
-        />
+        <>
+            <ModernProfessionalDashboard
+                setShowCalendar={setShowCalendar}
+                setDiaryPatient={handleViewDiary}
+            />
+            <AnimatePresence>
+                {diaryPatient && (
+                    <PatientDiary
+                        patientId={diaryPatient.id}
+                        patientName={diaryPatient.name}
+                        onClose={() => setDiaryPatient(null)}
+                    />
+                )}
+            </AnimatePresence>
+        </>
     )
 }
 
 export default ProfessionalDashboardWrapper
-
-

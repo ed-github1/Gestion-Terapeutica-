@@ -8,7 +8,7 @@ import { showToast } from '@components'
 import { patientsService } from '@shared/services/patientsService'
 import { invitationsService } from '@shared/services/invitationsService'
 import PatientForm from './PatientForm'
-import PatientDiary from './PatientDiary'
+import PatientClinicalFile from './PatientClinicalFile'
 import {
     Users, UserPlus, Search, RefreshCw,
     LayoutGrid, List, ShieldAlert,
@@ -477,17 +477,8 @@ const ModernPatientsList = () => {
     const highRisk = patients.filter(p => p.riskLevel === 'high').length
     const pendingHW = patients.filter(p => p.homeworkCompleted === false).length
 
-    if (showDiary && selectedPatient) {
-        return (
-            <PatientDiary
-                patientId={selectedPatient.id}
-                patientName={`${selectedPatient.nombre} ${selectedPatient.apellido}`}
-                onClose={() => { setShowDiary(false); setSelectedPatient(null) }}
-            />
-        )
-    }
-
     return (
+        <>
         <div className="min-h-screen bg-gray-50">
             <div className="p-4 md:p-6 lg:p-8 max-w-screen-2xl mx-auto">
 
@@ -643,6 +634,17 @@ const ModernPatientsList = () => {
                 )}
             </AnimatePresence>
         </div>
+
+        {/* Clinical file drawer */}
+        <AnimatePresence>
+            {showDiary && selectedPatient && (
+                <PatientClinicalFile
+                    patient={selectedPatient}
+                    onClose={() => { setShowDiary(false); setSelectedPatient(null) }}
+                />
+            )}
+        </AnimatePresence>
+        </>
     )
 }
 

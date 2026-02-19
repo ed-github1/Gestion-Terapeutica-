@@ -1,9 +1,12 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react'
 import { flushSync } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { authService } from '@shared/services/authService'
 import { auditLog } from '@shared/services/auditService'
 import { useIdleTimeout } from '@hooks/useIdleTimeout'
+import { setAuthToken } from '@shared/api/client'
+import { revokeTrustToken, getTrustToken } from '@utils/deviceTrust'
+import SessionLockOverlay from '@components/common/SessionLockOverlay'
 
 const AuthContext = createContext(null)
 
@@ -21,6 +24,15 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true)
   const [initializing, setInitializing] = useState(true)
   const [error, setError] = useState(null)
+  const [locked, setLocked] = useState(false)
+
+  // Ref to the currently logged-in user's email — used by lock/unlock without
+  // needing the closure to capture a stale `user` value.
+  const userEmailRef = useRef(null)
+  useEffect(() => { userEmailRef.current = user?.email ?? null }, [user])
+
+  // Ref used by proactive token refresh so the timer always has the latest handler
+  const refreshTimerRef = useRef(null)
 
   // ── Session restore ───────────────────────────────────────────────────────
   // Only the JWT is persisted — never user/PHI data.
@@ -62,12 +74,43 @@ export const AuthProvider = ({ children }) => {
     initAuth()
   }, [])
 
+  // ── Proactive token refresh ───────────────────────────────────────────────
+  // Decodes the JWT exp claim (no library needed) and schedules a silent
+  // refresh 5 min before expiry.  If /auth/refresh doesn't exist yet on the
+  // backend the call fails silently — no user disruption.
+  const scheduleTokenRefresh = useCallback((token) => {
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current)
+    if (!token) return
+    try {
+      const payload  = JSON.parse(atob(token.split('.')[1]))
+      const expiresAt = payload.exp * 1_000                   // ms
+      const refreshAt = expiresAt - 5 * 60 * 1_000            // 5 min before expiry
+      const delay     = refreshAt - Date.now()
+      if (delay <= 0) return                                   // already expired
+      refreshTimerRef.current = setTimeout(async () => {
+        try {
+          const res      = await authService.refresh()
+          const newToken =
+            res.data?.data?.token ?? res.data?.token ?? res.data?.accessToken ?? null
+          if (newToken) {
+            setAuthToken(newToken)
+            scheduleTokenRefresh(newToken)                     // chain next refresh
+          }
+        } catch {
+          // Endpoint not yet available or token revoked — silently ignore
+        }
+      }, delay)
+    } catch {
+      // JWT decode failed — non-standard token shape, skip scheduling
+    }
+  }, [])
+
   // ── Login ─────────────────────────────────────────────────────────────────
-  const login = async (email, password, rememberMe = false) => {
+  const login = async (email, password, rememberMe = false, deviceToken = null) => {
     try {
       setError(null)
       setLoading(true)
-      const response = await authService.login(email, password)
+      const response = await authService.login(email, password, deviceToken)
       const responseData = response.data
 
       // 2FA gate — return early without storing anything
@@ -105,6 +148,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       setUser(userData)
+      scheduleTokenRefresh(token)
       auditLog('LOGIN', { userId: userData.id || userData._id, role: userData.role, rememberMe })
       return userData
     } catch (err) {
@@ -123,11 +167,8 @@ export const AuthProvider = ({ children }) => {
       throw new Error('Token inválido recibido del servidor. Intentá de nuevo.')
     }
     console.debug('[completeLogin] storing token, rememberMe:', rememberMe)
-    if (rememberMe) {
-      localStorage.setItem('authToken', token)
-    } else {
-      localStorage.setItem('authToken', token) // default to localStorage so session survives tab
-    }
+    // Always use localStorage so the session survives a tab refresh
+    setAuthToken(token)
     try {
       const res = await authService.getMe()
       // Unwrap various backend response shapes:
@@ -151,29 +192,103 @@ export const AuthProvider = ({ children }) => {
       // flushSync forces the state update to commit synchronously so that
       // ProtectedRoute sees isAuthenticated=true before navigate() fires.
       flushSync(() => setUser(userData))
+      scheduleTokenRefresh(token)
       auditLog('LOGIN_2FA', { userId: userData?.id || userData?._id, role: userData?.role })
       return userData
     } catch (err) {
       // Token might be invalid — purge it
-      localStorage.removeItem('authToken')
-      sessionStorage.removeItem('authToken')
+      setAuthToken(null)
       throw err
     }
   }
   // ── Logout ────────────────────────────────────────────────────────────────
   const logout = useCallback(async (reason = 'user_initiated') => {
     auditLog('LOGOUT', { userId: user?.id || user?._id, reason })
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current)
+
+    // Revoke device trust only on explicit / admin logout — NOT on idle lock
+    if (reason === 'user_initiated' || reason === 'admin') {
+      revokeTrustToken(userEmailRef.current)
+    }
+
     try { await authService.logout() } catch { /* ignore network errors */ }
     setUser(null)
-    localStorage.removeItem('authToken')
-    sessionStorage.removeItem('authToken')
+    setLocked(false)
+    setAuthToken(null)
   }, [user])
 
+  // ── Session lock (replaces full logout on idle) ───────────────────────────
+  // HIPAA §164.312(a)(2)(iii) — "automatic logoff" is satisfied by locking the
+  // screen so no data is visible. A full logout is NOT required.
+  const lockSession = useCallback(() => {
+    auditLog('SESSION_LOCKED', { userId: user?.id || user?._id, reason: 'idle_timeout' })
+    setLocked(true)
+  }, [user])
+
+  /**
+   * Unlock the session by verifying the user's password.
+   *
+   * Strategy
+   * ────────
+   * 1. Call POST /auth/login with email + password + device token.
+   * 2a. Backend returns a new JWT (no 2FA) → store it, unlock.
+   * 2b. Backend says requires2FA but the existing JWT is still valid (getMe
+   *     succeeds) AND the device is trusted → treat as verified, unlock.
+   * 2c. Anything else → throw so the overlay can show an error.
+   */
+  const unlockSession = useCallback(async (password) => {
+    const email  = userEmailRef.current
+    if (!email)  throw new Error('No hay sesión activa.')
+
+    const deviceToken = getTrustToken(email)
+    const response    = await authService.login(email, password, deviceToken)
+    const data        = response.data
+
+    const requires2FA =
+      data.requires2FA === true || data.data?.requires2FA === true
+
+    if (!requires2FA) {
+      // Happy path: backend issued a fresh token (device was recognised)
+      const newToken =
+        data.data?.token ?? data.data?.accessToken ??
+        data.token       ?? data.accessToken       ?? null
+      if (newToken) {
+        setAuthToken(newToken)
+        scheduleTokenRefresh(newToken)
+      }
+      auditLog('SESSION_UNLOCKED', { userId: user?.id || user?._id })
+      setLocked(false)
+      return
+    }
+
+    // Backend still wants 2FA on this device — but the existing JWT is still
+    // valid, so we verify it silently and skip the email challenge.
+    // This is safe because:
+    //  (a) the user just proved they know the password (login credentials accepted),
+    //  (b) the device has a valid trust token (set at initial 2FA completion),
+    //  (c) the existing session JWT is still accepted by the server.
+    if (deviceToken) {
+      try {
+        await authService.getMe()   // verifies existing JWT is still valid
+        auditLog('SESSION_UNLOCKED', { userId: user?.id || user?._id, note: 'device_trust' })
+        setLocked(false)
+        return
+      } catch {
+        // JWT expired — fall through to error
+      }
+    }
+
+    // Device not trusted and/or JWT expired — user must do a full login
+    throw Object.assign(
+      new Error('Se requiere verificación completa. Por favor iniciá sesión nuevamente.'),
+      { requiresFullLogin: true },
+    )
+  }, [user, scheduleTokenRefresh])
+
   // ── Idle timeout (HIPAA §164.312(a)(2)(iii)) ──────────────────────────────
-  const handleIdle = useCallback(async () => {
-    await logout('idle_timeout')
-    navigate('/login', { state: { reason: 'idle' }, replace: true })
-  }, [logout, navigate])
+  const handleIdle = useCallback(() => {
+    lockSession()
+  }, [lockSession])
 
   const { showWarning, secondsLeft, extend } = useIdleTimeout({
     onIdle: handleIdle,
@@ -202,15 +317,41 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated: !!user,
     isHealthProfessional,
     isPatient,
+    locked,
+    lockSession,
+    unlockSession,
   }
 
   return (
     <AuthContext.Provider value={value}>
       {children}
 
-      {/* HIPAA idle-timeout warning modal */}
-      {showWarning && user && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      {/* ── Session lock overlay (HIPAA §164.312(a)(2)(iii)) ─────────────── */}
+      {locked && user && (
+        <SessionLockOverlay
+          user={user}
+          onUnlock={async (password) => {
+            try {
+              await unlockSession(password)
+            } catch (err) {
+              if (err.requiresFullLogin) {
+                await logout('session_expired')
+                navigate('/login', { state: { reason: 'session_expired' }, replace: true })
+                return
+              }
+              throw err
+            }
+          }}
+          onFullLogout={() => {
+            logout('user_initiated')
+            navigate('/login', { replace: true })
+          }}
+        />
+      )}
+
+      {/* ── Idle warning (while session is still active) ─────────────────── */}
+      {showWarning && user && !locked && (
+        <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/60 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full mx-4 text-center space-y-5">
             <div className="w-14 h-14 bg-amber-100 rounded-full flex items-center justify-center mx-auto">
               <svg className="w-7 h-7 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -221,7 +362,7 @@ export const AuthProvider = ({ children }) => {
             <div>
               <h2 className="text-lg font-bold text-gray-900">¿Seguís ahí?</h2>
               <p className="text-sm text-gray-500 mt-1">
-                Tu sesión cerrará automáticamente en{' '}
+                Tu sesión se bloqueará en{' '}
                 <span className="font-bold text-amber-600">{secondsLeft}s</span>{' '}
                 por inactividad.
               </p>

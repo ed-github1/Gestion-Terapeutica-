@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { Brain, ShieldCheck, AlertCircle, RefreshCw } from 'lucide-react'
 import apiClient from '@shared/api/client'
 import { useAuth } from './AuthContext'
+import { storeTrustToken } from '@utils/deviceTrust'
 
 const Verify2FAPage = () => {
   const navigate = useNavigate()
@@ -65,6 +66,12 @@ const Verify2FAPage = () => {
           return
         }
         const userData = await completeLogin(realToken)
+
+        // ── Device trust: mark this browser as trusted so future logins
+        //   from this device won't require a new 2FA email challenge.
+        const emailForTrust = state?.email ?? userData?.email
+        if (emailForTrust) storeTrustToken(emailForTrust)
+
         // Role-based navigation
         const role = userData?.role || userData?.rol
         if (role === 'health_professional' || role === 'professional') {
