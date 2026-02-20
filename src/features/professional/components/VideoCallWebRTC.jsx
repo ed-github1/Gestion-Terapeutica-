@@ -105,13 +105,13 @@ const ProfessionalVideoCallWebRTC = () => {
 
   const handleLeaveRoom = () => {
     leaveRoom();
-    navigate('/professional/appointments');
+    navigate('/dashboard/professional');
   };
 
   const handleEndSession = async () => {
     try {
       await endRoom(appointmentId);
-      navigate('/professional/appointments', {
+      navigate('/dashboard/professional', {
         state: {
           sessionCompleted: true,
           duration: callDurationRef.current,
