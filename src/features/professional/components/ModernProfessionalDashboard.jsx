@@ -10,7 +10,8 @@ import {
     Clock, FileText, UserPlus, CalendarPlus, Video,
     AlertTriangle, CheckCircle, XCircle, MessageSquare,
     Users, CalendarCheck, TrendingUp, ArrowUpRight, ArrowDownRight, Minus,
-    DollarSign, BookOpen, Target, BarChart2, UserCheck
+    DollarSign, BookOpen, Target, BarChart2, UserCheck,
+    AlertCircle, Hash
 } from 'lucide-react'
 import { formatDate, formatTime, getTodayAppointments } from '../dashboard/dashboardUtils'
 import { ROUTES } from '@shared/constants/routes'
@@ -58,31 +59,43 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
     const fullName = user?.name || user?.nombre || 'Professional'
     const initials = fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 
-    // Mock activities data
+    // Mock activities data (fallback when no real data is available)
     const mockActivities = [
         {
             id: 1,
             type: 'mood_log',
             patientName: 'Sarah Mitchell',
-            description: 'Registro de ánimo enviado - Nivel de ansiedad disminuyó',
-            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+            title: 'Registro de ánimo',
+            description: 'Registro de ánimo enviado — nivel de ansiedad disminuyó',
+            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
             priority: 'normal'
         },
         {
             id: 2,
             type: 'homework_complete',
             patientName: 'Mike Johnson',
-            description: 'Tarea completada',
-            timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4 hours ago
+            title: 'Tarea completada',
+            description: 'Mike Johnson completó los ejercicios de respiración asignados',
+            timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000),
             priority: 'normal'
         },
         {
             id: 3,
             type: 'appointment_cancelled',
             patientName: 'Emma Davis',
-            description: 'Canceló la cita de mañana',
-            timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
+            title: 'Cita cancelada',
+            description: 'Emma Davis canceló la cita de mañana',
+            timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000),
             priority: 'high'
+        },
+        {
+            id: 4,
+            type: 'outcome_improvement',
+            patientName: 'Carlos Rivera',
+            title: 'Nuevo paciente registrado',
+            description: 'Carlos Rivera se registró como nuevo paciente',
+            timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+            priority: 'normal'
         }
     ]
 
@@ -93,6 +106,85 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
         { id: 3, name: 'Maria González', initials: 'MG', preview: 'Gracias por la sesión de hoy 🙏', time: 'Ayer', unread: false },
         { id: 4, name: 'Carlos Rivera', initials: 'CR', preview: 'Completé los ejercicios de respiración', time: 'Ayer', unread: false },
     ]
+
+    // ── Mock today sessions (shown when no real data is available) ────────────
+    const mockTodaySessions = useMemo(() => {
+        const t = (offsetMins) => {
+            const d = new Date()
+            d.setSeconds(0, 0)
+            d.setMinutes(d.getMinutes() + offsetMins)
+            return d.toISOString()
+        }
+        return [
+            {
+                id: 'mock-s1',
+                nombrePaciente: 'Jemma Linda',
+                fechaHora: t(-150),
+                estado: 'completed',
+                riskLevel: 'low',
+                homeworkCompleted: true,
+                totalSessions: 7,
+                ultimaVisita: t(-150 - 60 * 24 * 7),
+                treatmentGoal: 'Terapia cognitiva — ansiedad',
+            },
+            {
+                id: 'mock-s2',
+                nombrePaciente: 'Pedro Martínez',
+                fechaHora: t(-90),
+                estado: 'completed',
+                riskLevel: 'high',
+                homeworkCompleted: false,
+                totalSessions: 3,
+                ultimaVisita: t(-90 - 60 * 24 * 14),
+                treatmentGoal: 'Manejo crisis — depresión severa',
+            },
+            {
+                id: 'mock-s3',
+                nombrePaciente: 'Sara Alcázar',
+                fechaHora: t(-30),
+                estado: 'completed',
+                riskLevel: 'medium',
+                homeworkCompleted: true,
+                totalSessions: 12,
+                ultimaVisita: t(-30 - 60 * 24 * 7),
+                treatmentGoal: 'EMDR — trauma',
+            },
+            {
+                id: 'mock-next',
+                nombrePaciente: 'María González',
+                fechaHora: t(18),
+                estado: 'reserved',
+                riskLevel: 'medium',
+                homeworkCompleted: true,
+                totalSessions: 5,
+                ultimaVisita: t(18 - 60 * 24 * 7),
+                treatmentGoal: 'Manejo de ansiedad generalizada',
+                lastSessionNote: 'Progresando con técnicas de respiración y registro cognitivo.',
+            },
+            {
+                id: 'mock-s5',
+                nombrePaciente: 'Carlos Rivera',
+                fechaHora: t(90),
+                estado: 'reserved',
+                riskLevel: 'low',
+                homeworkCompleted: false,
+                totalSessions: 9,
+                ultimaVisita: t(90 - 60 * 24 * 7),
+                treatmentGoal: 'Gestión del estrés laboral',
+            },
+            {
+                id: 'mock-s6',
+                nombrePaciente: 'Ana Torres',
+                fechaHora: t(180),
+                estado: 'reserved',
+                riskLevel: 'low',
+                homeworkCompleted: true,
+                totalSessions: 2,
+                ultimaVisita: null,
+                treatmentGoal: 'Evaluación inicial — duelo',
+            },
+        ]
+    }, [])
 
     // Memoize expensive calculations to prevent re-running on every render
     const { todayAppointments, allDaySlots, upcomingPatient } = useMemo(() => {
@@ -132,10 +224,15 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
             console.warn('Could not read localStorage appointments', e)
         }
 
-        // Merge: real backend + localStorage, deduplicate by id
+        // Merge: real backend + localStorage + mock fallback (mock only when no real data)
         const seenIds = new Set(realTodayAppointments.map(a => String(a.id)))
         const merged = [...realTodayAppointments]
         localStorageAppointments.forEach(apt => {
+            if (!seenIds.has(String(apt.id))) merged.push(apt)
+        })
+        // Always inject mock sessions so the timeline is populated during development.
+        // Real data takes precedence — mocks with duplicate IDs are skipped.
+        mockTodaySessions.forEach(apt => {
             if (!seenIds.has(String(apt.id))) merged.push(apt)
         })
 
@@ -158,11 +255,15 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
         })
 
         // Generate pills for time slots WITHOUT appointments (either unavailable or break time)
+        // Skip entirely when no availability is configured — avoids flooding the timeline with
+        // 27 "No Disponible" pills that bury the real session cards.
         const unavailableSlotsToday = []
         const today = new Date()
         const todayDayOfWeek = today.getDay()
         const todayAvailability = availability[todayDayOfWeek] || []
+        const hasAvailabilityData = Object.values(availability).some(slots => Array.isArray(slots) && slots.length > 0)
 
+        if (hasAvailabilityData) {
         // Get times of existing appointments
         const appointmentTimes = new Set(
             todayAppointments.map(apt => {
@@ -202,6 +303,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                 }
             }
         })
+        } // end hasAvailabilityData
 
         // Merge appointments and unavailable slots, sort chronologically (earliest first)
         const allDaySlots = [...todayAppointments, ...unavailableSlotsToday]
@@ -215,7 +317,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
         const upcomingPatient = todayAppointments[0]
 
         return { todayAppointments, allDaySlots, upcomingPatient }
-    }, [appointments, availability]) // Only recalculate when appointments or availability change
+    }, [appointments, availability, mockTodaySessions]) // Only recalculate when appointments or availability change
 
     const dashboardActivities = activities && activities.length > 0 ? activities : mockActivities
     const monthGrowth = Math.round((stats.totalPatients / Math.max(stats.totalPatients - 10, 1)) * 100) - 100
@@ -300,12 +402,17 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
     const prevNoShowRate = 18
 
     // 5. Next upcoming session (for prep card)
-    // Priority: (1) a future slot from today, (2) the nearest future appointment overall,
+    // Priority: (1) an ongoing or future slot from today, (2) the nearest future appointment overall,
     // (3) a mock fallback so the card is always visible during development.
     const nextUpcomingSession = (() => {
         const now = new Date()
-        // From today's schedule (already merged real + localStorage)
-        const fromToday = todayAppointments.find(a => new Date(a.fechaHora) > now)
+        // From today's schedule — include sessions that have started within the last 60 min
+        // (still in progress) so the join button stays visible for the full session duration.
+        const fromToday = todayAppointments.find(a => {
+            const t = new Date(a.fechaHora)
+            const minsAgo = (now - t) / 60000
+            return t > now || (minsAgo >= 0 && minsAgo < 60)
+        })
         if (fromToday) return fromToday
         // From the full appointments list (could be tomorrow or later)
         if (Array.isArray(appointments) && appointments.length > 0) {
@@ -325,19 +432,10 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                 }
             }
         }
-        // Mock fallback — keep card visible when no real data is available
-        const tomorrow = new Date(now)
-        tomorrow.setDate(tomorrow.getDate() + 1)
-        tomorrow.setHours(10, 0, 0, 0)
-        return {
-            id: 'mock-next',
-            nombrePaciente: 'María González',
-            fechaHora: tomorrow.toISOString(),
-            riskLevel: 'medium',
-            treatmentGoal: 'Manejo de ansiedad generalizada',
-            lastSessionNote: 'Progresando bien con técnicas de respiración y registro cognitivo.',
-            homeworkCompleted: true,
-        }
+        // Mock fallback — use mock-next from today's mock sessions so it matches the timeline
+        const mockNext = mockTodaySessions.find(s => s.id === 'mock-next')
+        if (mockNext) return mockNext
+        return null
     })()
 
     // 7. CPD / Supervision hours (mock — replace with real CPD service)
@@ -610,82 +708,53 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                 </motion.div>
                             ))}
                         </div>
-                        {/* Feature 5: Next Session Prep Card */}
-                        {nextUpcomingSession && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 12 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.28 }}
-                                className="mb-6 bg-linear-to-r from-blue-600 to-indigo-600 rounded-2xl p-5 text-white"
-                            >
-                                <div className="flex items-start justify-between gap-4">
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-blue-200 text-xs font-medium mb-1 uppercase tracking-wide">Próxima sesión</p>
-                                        <h3 className="text-lg font-bold truncate">
-                                            {nextUpcomingSession.nombrePaciente || nextUpcomingSession.patient?.name}
-                                        </h3>
-                                        <p className="text-blue-200 text-sm mt-0.5">
-                                            {formatTime(new Date(nextUpcomingSession.fechaHora))} &nbsp;·&nbsp;
-                                            {nextUpcomingSession.treatmentGoal || 'Sin objetivo registrado'}
-                                        </p>
-                                    </div>
-                                    <div className="flex flex-col items-end gap-2 shrink-0">
-                                        <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${nextUpcomingSession.riskLevel === 'high' ? 'bg-rose-500/30 text-rose-100' :
-                                                nextUpcomingSession.riskLevel === 'medium' ? 'bg-amber-400/30 text-amber-100' :
-                                                    'bg-emerald-400/20 text-emerald-100'
-                                            }`}>
-                                            Riesgo {nextUpcomingSession.riskLevel === 'high' ? 'alto' : nextUpcomingSession.riskLevel === 'medium' ? 'medio' : 'bajo'}
-                                        </span>
-                                        <button
-                                            onClick={() => setDiaryPatient(nextUpcomingSession)}
-                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/15 hover:bg-white/25 rounded-lg text-xs font-medium transition-colors text-blue-100"
-                                        >
-                                            <FileText className="w-3 h-3" />
-                                            Ver expediente
-                                        </button>
-                                    </div>
-                                </div>
-                                <div className="mt-4 grid grid-cols-1 min-[420px]:grid-cols-3 gap-2 md:gap-3">
-                                    <div className="bg-white/10 rounded-xl p-3">
-                                        <p className="text-blue-200 text-[10px] uppercase tracking-wide mb-1">Última nota</p>
-                                        <p className="text-white text-xs leading-snug line-clamp-2">
-                                            {nextUpcomingSession.lastSessionNote || 'Sin nota previa'}
-                                        </p>
-                                    </div>
-                                    <div className="bg-white/10 rounded-xl p-3">
-                                        <p className="text-blue-200 text-[10px] uppercase tracking-wide mb-1">Objetivo</p>
-                                        <p className="text-white text-xs leading-snug line-clamp-2">
-                                            {nextUpcomingSession.treatmentGoal || 'Sin objetivo'}
-                                        </p>
-                                    </div>
-                                    <div className="bg-white/10 rounded-xl p-3">
-                                        <p className="text-blue-200 text-[10px] uppercase tracking-wide mb-1">Tarea previa</p>
-                                        <p className={`text-xs font-semibold ${nextUpcomingSession.homeworkCompleted ? 'text-emerald-300' : 'text-rose-300'}`}>
-                                            {nextUpcomingSession.homeworkCompleted ? '✓ Completada' : '✗ Pendiente'}
-                                        </p>
-                                    </div>
-                                </div>
-                            </motion.div>
-                        )}
-
                         {/* Today's Sessions & Recent Activity */}
+                        {(() => {
+                            const _nextTime      = nextUpcomingSession ? new Date(nextUpcomingSession.fechaHora) : null
+                            const _minsUntil     = _nextTime ? Math.round((_nextTime - Date.now()) / 60000) : null
+                            const _nextIsNow      = _minsUntil !== null && _minsUntil <= 0
+                            const _nextIsImminent = _minsUntil !== null && _minsUntil >= 0 && _minsUntil <= 15
+                            const _nextCountdown  = _nextIsNow      ? 'Ahora'
+                                                  : _minsUntil !== null && _minsUntil < 60   ? `${_minsUntil} min`
+                                                  : _minsUntil !== null && _minsUntil < 1440 ? `${Math.floor(_minsUntil / 60)}h ${_minsUntil % 60}m`
+                                                  : _nextTime ? formatTime(_nextTime) : null
+                            // Use timestamp (ms) for matching — avoids _id vs id type mismatches
+                            const _nextTimestamp  = _nextTime ? _nextTime.getTime() : null
+                            return (
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
                             {/* Today's Sessions */}
                             <motion.div
                                 initial={{ opacity: 0, y: 16 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.3 }}
+                                transition={{ delay: 0.28 }}
                                 className="bg-white rounded-2xl p-5 md:p-6 border border-gray-100"
                             >
                                 <div className="flex items-center justify-between mb-5">
                                     <h2 className="text-[15px] font-semibold text-gray-900">Sesiones de hoy</h2>
-                                    <span className="text-xs text-gray-400">{todayAppointments.length} citas</span>
+                                    <div className="flex items-center gap-2">
+                                        {_nextCountdown && (
+                                            <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full ${
+                                                _nextIsNow || _nextIsImminent
+                                                    ? 'bg-emerald-50 text-emerald-700'
+                                                    : 'bg-indigo-50 text-indigo-600'
+                                            }`}>
+                                                <span className={`w-1.5 h-1.5 rounded-full ${
+                                                    _nextIsNow || _nextIsImminent ? 'bg-emerald-500' : 'bg-indigo-400'
+                                                }`} />
+                                                Próxima: {_nextCountdown}
+                                            </span>
+                                        )}
+                                        <span className="text-xs text-gray-400">{todayAppointments.length} citas</span>
+                                    </div>
                                 </div>
                                 <TodaysSessions
                                     sessions={allDaySlots}
                                     loading={loading}
                                     onJoinVideo={handleJoinVideo}
                                     onViewDiary={setDiaryPatient}
+                                    nextSessionTime={_nextTimestamp}
+                                    nextSessionCountdown={_nextCountdown}
+                                    nextIsImminent={_nextIsImminent || _nextIsNow}
                                 />
                             </motion.div>
 
@@ -693,11 +762,19 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                             <motion.div
                                 initial={{ opacity: 0, y: 16 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.35 }}
+                                transition={{ delay: 0.33 }}
                                 className="bg-white rounded-2xl p-5 md:p-6 border border-gray-100"
                             >
                                 <div className="flex items-center justify-between mb-5">
-                                    <h2 className="text-[15px] font-semibold text-gray-900">Actividad reciente</h2>
+                                    <div className="flex items-center gap-2">
+                                        <h2 className="text-[15px] font-semibold text-gray-900">Actividad reciente</h2>
+                                        {!loading && dashboardActivities.length > 0 && (
+                                            <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-full">
+                                                {dashboardActivities.length}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <span className="text-xs text-gray-400">Últimos 30 días</span>
                                 </div>
                                 <ActivityFeed
                                     activities={dashboardActivities}
@@ -705,6 +782,8 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                 />
                             </motion.div>
                         </div>
+                            )
+                        })()}
 
                         {/* Feature 2: Outcome Tracking (PHQ-9 trends) */}
                         <motion.div

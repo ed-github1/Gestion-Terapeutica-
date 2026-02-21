@@ -2,9 +2,109 @@ import { useState, useEffect } from 'react'
 import apiClient from '@shared/api/client'
 
 /**
+ * Derive a recent-activity feed from already-fetched appointments and patients.
+ * Returns up to 15 items sorted newest-first, covering the last 30 days.
+ *
+ * @param {Array} appointments
+ * @param {Array} patients
+ * @returns {Array}
+ */
+const buildActivitiesFromData = (appointments = [], patients = []) => {
+    const activities = []
+    const now = new Date()
+    const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000)
+
+    // ── From appointments ──────────────────────────────────────────────────────
+    appointments.forEach(apt => {
+        const aptDate = new Date(apt.fechaHora || apt.date)
+        if (isNaN(aptDate) || aptDate < thirtyDaysAgo) return
+
+        const patientName =
+            apt.nombrePaciente ||
+            apt.patientName ||
+            apt.patient?.name ||
+            apt.patient?.nombre ||
+            'Paciente'
+
+        if (apt.status === 'completed') {
+            activities.push({
+                id: `session-${apt.id}`,
+                type: 'homework_complete',
+                patientName,
+                title: 'Sesión completada',
+                description: `Sesión completada con ${patientName}`,
+                timestamp: aptDate,
+                priority: 'normal',
+            })
+        } else if (apt.status === 'cancelled') {
+            activities.push({
+                id: `cancel-${apt.id}`,
+                type: 'appointment_cancelled',
+                patientName,
+                title: 'Cita cancelada',
+                description: `${patientName} canceló la cita`,
+                timestamp: aptDate,
+                priority: 'medium',
+            })
+        } else if (apt.status === 'no-show' || apt.status === 'no_show') {
+            activities.push({
+                id: `noshow-${apt.id}`,
+                type: 'crisis_alert',
+                patientName,
+                title: 'Paciente no se presentó',
+                description: `${patientName} no asistió a la sesión programada`,
+                timestamp: aptDate,
+                priority: 'high',
+            })
+        } else if (apt.status === 'confirmed' || apt.status === 'reserved') {
+            // Only show upcoming confirmations from the last 3 days
+            const threeDaysAgo = new Date(now - 3 * 24 * 60 * 60 * 1000)
+            if (aptDate >= threeDaysAgo && aptDate >= now) {
+                activities.push({
+                    id: `confirm-${apt.id}`,
+                    type: 'mood_log',
+                    patientName,
+                    title: 'Cita confirmada',
+                    description: `${patientName} confirmó su próxima cita`,
+                    timestamp: new Date(apt.updatedAt || apt.createdAt || aptDate),
+                    priority: 'normal',
+                })
+            }
+        }
+    })
+
+    // ── From patients – new registrations ────────────────────────────────────
+    patients.forEach(patient => {
+        const createdAt = new Date(patient.createdAt || patient.created_at || patient.fechaRegistro)
+        if (isNaN(createdAt) || createdAt < thirtyDaysAgo) return
+
+        const patientName =
+            patient.name ||
+            patient.nombre ||
+            `${patient.firstName || ''} ${patient.lastName || ''}`.trim() ||
+            `${patient.nombre || ''} ${patient.apellido || ''}`.trim() ||
+            'Nuevo paciente'
+
+        activities.push({
+            id: `patient-${patient.id}`,
+            type: 'outcome_improvement',
+            patientName,
+            title: 'Nuevo paciente registrado',
+            description: `${patientName} se registró como nuevo paciente`,
+            timestamp: createdAt,
+            priority: 'normal',
+        })
+    })
+
+    // Sort newest first, cap at 15
+    activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+    return activities.slice(0, 15)
+}
+
+/**
  * Custom hook for fetching and managing dashboard data
- * Handles patients, appointments, and stats calculation
- * 
+ * Handles patients, appointments, stats and activity feed
+ *
  * @returns {Object} Dashboard data and loading states
  */
 export const useDashboardData = () => {
@@ -21,6 +121,7 @@ export const useDashboardData = () => {
     })
     const [patients, setPatients] = useState([])
     const [appointments, setAppointments] = useState([])
+    const [activities, setActivities] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
 
@@ -30,15 +131,18 @@ export const useDashboardData = () => {
             const { data } = response
 
             const patientsList = data?.data?.data || data?.data || []
-            setPatients(Array.isArray(patientsList) ? patientsList : [])
+            const list = Array.isArray(patientsList) ? patientsList : []
+            setPatients(list)
 
-            const activePatients = patientsList.filter(p => p.status === 'active').length
+            const activePatients = list.filter(p => p.status === 'active').length
 
             setStats(prev => ({
                 ...prev,
-                totalPatients: patientsList.length,
+                totalPatients: list.length,
                 activeTreatments: activePatients
             }))
+
+            return list
         } catch (error) {
             console.error('Error fetching patients:', error)
             throw error
@@ -98,8 +202,11 @@ export const useDashboardData = () => {
                     pendingNotes: pendingNotes.length,
                     noShowCount: noShows.length
                 }))
+
+            return appointmentsList
         } catch (error) {
             console.log('Appointments endpoint not available:', error)
+            return []
         }
     }
 
@@ -109,7 +216,14 @@ export const useDashboardData = () => {
         setError(null)
         
         try {
-            await Promise.all([fetchPatients(), fetchAppointments()])
+            const [fetchedPatients, fetchedAppointments] = await Promise.all([
+                fetchPatients().catch(() => []),
+                fetchAppointments().catch(() => []),
+            ])
+            setActivities(buildActivitiesFromData(
+                Array.isArray(fetchedAppointments) ? fetchedAppointments : [],
+                Array.isArray(fetchedPatients)     ? fetchedPatients     : []
+            ))
         } catch (error) {
             console.error('Error loading dashboard data:', error)
             setError('No se pudo cargar la información. Mostrando datos locales.')
@@ -126,7 +240,7 @@ export const useDashboardData = () => {
         stats,
         patients,
         appointments,
-        activities: [],
+        activities,
         loading,
         error,
         setError,

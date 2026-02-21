@@ -1,5 +1,5 @@
-import { motion, AnimatePresence } from 'motion/react'
-import { Calendar, Clock, Video, AlertCircle, CheckCircle2, FileText, Target } from 'lucide-react'
+import { motion, AnimatePresence, LayoutGroup } from 'motion/react'
+import { Calendar, Clock, Video } from 'lucide-react'
 import { formatTime } from '../dashboard/dashboardUtils'
 import { useState } from 'react'
 import SessionDetailsModal from './SessionDetailsModal'
@@ -30,35 +30,18 @@ const getTimeAgo = (lastSession) => {
 }
 
 /**
- * Get risk level styling
- */
-const getRiskStyling = (riskLevel) => {
-    switch (riskLevel) {
-        case 'high':
-            return { border: 'border-l-4 border-rose-500', glow: 'shadow-rose-100' }
-        case 'medium':
-            return { border: 'border-l-4 border-amber-500', glow: 'shadow-amber-100' }
-        case 'low':
-        default:
-            return { border: '', glow: '' }
-    }
-}
-
-/**
  * SessionCard Component
  * Read-only card — click opens the SessionDetailsModal which contains all actions (join, note, message).
+ * When isNext=true the card is visually elevated with an indigo treatment, countdown badge,
+ * and (when isImminent=true) an inline fast-path join button.
  */
-const SessionCard = ({ appointment, index, onClick }) => {
+const SessionCard = ({ appointment, index, isNext = false, countdown = null, isImminent = false, onJoinVideo, onClick }) => {
     const patientName = appointment.nombrePaciente || appointment.patient?.name || 'Paciente Desconocido'
     const startTime = new Date(appointment.fechaHora)
     
     // Clinical data
     const riskLevel = appointment.riskLevel || 'low'
-    const lastNote = appointment.lastSessionNote || 'Sin notas previas'
-    const todayGoal = appointment.treatmentGoal || 'Continuar plan de tratamiento'
-    const insuranceSessions = appointment.insuranceSessionsRemaining || null
-    const homeworkComplete = appointment.homeworkCompleted !== false // Default true if not specified
-    const riskStyling = getRiskStyling(riskLevel)
+    const homeworkComplete = appointment.homeworkCompleted !== false
     const endTime = new Date(startTime.getTime() + 60 * 60 * 1000)
     const hours = startTime.getHours()
     const minutes = startTime.getMinutes()
@@ -75,17 +58,17 @@ const SessionCard = ({ appointment, index, onClick }) => {
     const timeRange = `${timeStr} - ${endTimeStr}`
     const lastVisit = appointment.ultimaVisita || appointment.lastSession
 
-    // Rotating background colors matching reference
+    // Rotating background colors — overridden by indigo when this is the next session
     const backgrounds = [
-        'bg-orange-50/80', // warm peach like Jemma Linda
-        'bg-white',        // plain white like Andy John
-        'bg-blue-50/80',   // light blue like Ariana Jamie
+        'bg-orange-50/80',
+        'bg-white',
+        'bg-blue-50/80',
         'bg-emerald-50/80',
         'bg-pink-50/80'
     ]
-    const bgColor = backgrounds[index % backgrounds.length]
+    const bgColor = isNext ? 'bg-indigo-50/80' : backgrounds[index % backgrounds.length]
 
-    // Avatar colors
+    // Avatar colors — solid indigo for the next session so it stands out immediately
     const avatarColors = [
         'bg-orange-200 text-orange-900',
         'bg-indigo-200 text-indigo-900',
@@ -93,12 +76,15 @@ const SessionCard = ({ appointment, index, onClick }) => {
         'bg-pink-200 text-pink-900',
         'bg-purple-200 text-purple-900'
     ]
-    const avatarColor = avatarColors[index % avatarColors.length]
+    const avatarColor = isNext ? 'bg-indigo-600 text-white' : avatarColors[index % avatarColors.length]
 
-    // iMessage-style positioning - strict alternation left/right
-    const isRightAligned = index % 2 === 1 // Odd indexes go right, even go left
-    
-    // Simpler responsive width - let it flow naturally
+    // Ring styling — indigo for next session, rose for high-risk, none otherwise
+    const ringClass = isNext
+        ? 'ring-2 ring-indigo-300'
+        : riskLevel === 'high' ? 'ring-2 ring-rose-200' : ''
+
+    // iMessage-style alternating alignment
+    const isRightAligned = index % 2 === 1
     const position = isRightAligned ? 'ml-auto max-w-[85%]' : 'mr-auto max-w-[85%]'
 
     return (
@@ -106,62 +92,104 @@ const SessionCard = ({ appointment, index, onClick }) => {
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.06, duration: 0.3 }}
-            className="flex items-center gap-1 group"
+            className="flex flex-col gap-0.5"
         >
-            {/* Time column */}
-            <div className="w-8 md:w-10 shrink-0 text-right">
-                <div className="text-[10px] font-bold text-gray-400 leading-none">{timeStr}</div>
-                <div className="text-[10px]  text-gray-400 font-medium uppercase mt-0.5">{ampm}</div>
-            </div>
-
-            {/* Dashed line */}
-            <div className="w-4 md:w-6 border-t border-dashed border-gray-300 shrink-0"></div>
-
-            {/* Card container with full dashed line */}
-            <div className={`flex-1 flex items-center ${isRightAligned ? 'justify-end' : 'justify-start'}`}>
-                {/* Leading dashed line for right-aligned cards */}
-                {isRightAligned && <div className="flex-1 border-t border-dashed border-gray-300"></div>}
-                
-                {/* Card - Clean design with click handler */}
-                <div 
-                    className={`${position} relative shrink-0 cursor-pointer min-w-0 w-full`}
-                    onClick={() => onClick(appointment)}
-                >
-                    <div className={`flex items-center gap-1.5 md:gap-2 ${bgColor} ${riskLevel === 'high' ? 'ring-2 ring-rose-200' : ''} rounded-xl md:rounded-2xl px-2 md:px-3 py-1.5 md:py-2 transition-all hover:shadow-md hover:scale-[1.02] min-w-0 w-full`}>
-                        {/* Avatar */}
-                        <div className={`w-7 h-7 md:w-9 md:h-9 rounded-full ${avatarColor} flex items-center justify-center font-bold text-[9px] md:text-xs shrink-0 shadow-sm relative`}>
-                            {getInitials(patientName)}
-                            {/* Homework completion badge - subtle */}
-                            {homeworkComplete && (
-                                <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 md:w-2.5 md:h-2.5 bg-emerald-500 rounded-full border border-white"></div>
-                            )}
-                        </div>
-
-                        {/* Info - with proper flex and truncation */}
-                        <div className="flex-1 min-w-0 overflow-hidden">
-                            <div className="flex items-center gap-1 mb-0.5">
-                                <Video className="w-2.5 h-2.5 md:w-3 md:h-3 text-indigo-500 shrink-0" />
-                                <h3 className="font-bold text-gray-900 text-[10px] md:text-xs leading-tight truncate">{patientName}</h3>
-                            </div>
-                            <div className="flex items-center gap-1 text-[8px] md:text-[9px] text-gray-400">
-                                <Clock className="w-2 h-2 md:w-2.5 md:h-2.5 shrink-0" />
-                                <span className="truncate">{timeRange}</span>
-                            </div>
-                        </div>
-
-                        {/* Last visit badge */}
-                        <div className="hidden xl:flex bg-white/70 border border-gray-200 rounded-full px-1.5 md:px-2 py-0.5 text-[8px] md:text-[9px] text-gray-400 font-medium italic whitespace-nowrap shrink-0">
-                            {getTimeAgo(lastVisit)}
-                        </div>
-                    </div>
+            {/* ── PRÓXIMA label — floats above the card row ───── */}
+            {isNext && (
+                <div className={`flex ${isRightAligned ? 'justify-end pr-1' : 'justify-start pl-14 md:pl-18'} mb-0.5`}>
+                    <span className={`inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-[0.15em] ${
+                        isImminent ? 'text-emerald-600' : 'text-indigo-500'
+                    }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${
+                            isImminent ? 'bg-emerald-500 animate-pulse' : 'bg-indigo-400'
+                        }`} />
+                        Próxima sesión
+                    </span>
                 </div>
-                
-                {/* Trailing dashed line for left-aligned cards */}
-                {!isRightAligned && <div className="flex-1 border-t border-dashed border-gray-300"></div>}
-            </div>
+            )}
 
-            {/* Dashed line trailing */}
-            <div className="hidden lg:block w-4 md:w-6 border-t border-dashed border-gray-300 shrink-0"></div>
+            {/* ── Main timeline row ───────────────────────────── */}
+            <div className="flex items-center gap-1 group">
+                {/* Time column */}
+                <div className="w-8 md:w-10 shrink-0 text-right">
+                    <div className="text-[10px] font-bold text-gray-400 leading-none">{timeStr}</div>
+                    <div className="text-[10px] text-gray-400 font-medium uppercase mt-0.5">{ampm}</div>
+                </div>
+
+                {/* Dashed line */}
+                <div className="w-4 md:w-6 border-t border-dashed border-gray-300 shrink-0"></div>
+
+                {/* Card container */}
+                <div className={`flex-1 flex items-center ${isRightAligned ? 'justify-end' : 'justify-start'}`}>
+                    {isRightAligned && <div className="flex-1 border-t border-dashed border-gray-300"></div>}
+
+                    {/* Clickable card */}
+                    <div
+                        className={`${position} relative shrink-0 cursor-pointer min-w-0 w-full`}
+                        onClick={() => onClick(appointment)}
+                    >
+                        <motion.div
+                            layoutId={`session-pill-${appointment.id || appointment.fechaHora}`}
+                            className={`flex items-center gap-1.5 md:gap-2 ${bgColor} ${ringClass} rounded-xl md:rounded-2xl px-2 md:px-3 py-1.5 md:py-2 min-w-0 w-full`}
+                            whileHover={{ scale: 1.02, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
+                            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                        >
+                            {/* Avatar */}
+                            <div className={`w-7 h-7 md:w-9 md:h-9 rounded-full ${avatarColor} flex items-center justify-center font-bold text-[9px] md:text-xs shrink-0 shadow-sm relative`}>
+                                {getInitials(patientName)}
+                                {homeworkComplete && (
+                                    <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 md:w-2.5 md:h-2.5 bg-emerald-500 rounded-full border border-white"></div>
+                                )}
+                            </div>
+
+                            {/* Info */}
+                            <div className="flex-1 min-w-0 overflow-hidden">
+                                <div className="flex items-center gap-1 mb-0.5">
+                                    <Video className={`w-2.5 h-2.5 md:w-3 md:h-3 shrink-0 ${isNext ? 'text-indigo-600' : 'text-indigo-500'}`} />
+                                    <h3 className={`font-bold text-[10px] md:text-xs leading-tight truncate ${isNext ? 'text-indigo-900' : 'text-gray-900'}`}>{patientName}</h3>
+                                </div>
+                                <div className="flex items-center gap-1 text-[8px] md:text-[9px] text-gray-400">
+                                    <Clock className="w-2 h-2 md:w-2.5 md:h-2.5 shrink-0" />
+                                    <span className="truncate">{timeRange}</span>
+                                </div>
+                            </div>
+
+                            {/* Countdown badge (next session) OR last-visit label (other sessions) */}
+                            {isNext && countdown ? (
+                                <span className={`inline-flex items-center gap-1 shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                    isImminent
+                                        ? 'bg-emerald-100 text-emerald-700'
+                                        : 'bg-indigo-100 text-indigo-700'
+                                }`}>
+                                    <span className={`w-1.5 h-1.5 rounded-full ${
+                                        isImminent ? 'bg-emerald-500 animate-pulse' : 'bg-indigo-400'
+                                    }`} />
+                                    {countdown}
+                                </span>
+                            ) : (
+                                <div className="hidden xl:flex bg-white/70 border border-gray-200 rounded-full px-1.5 md:px-2 py-0.5 text-[8px] md:text-[9px] text-gray-400 font-medium italic whitespace-nowrap shrink-0">
+                                    {getTimeAgo(lastVisit)}
+                                </div>
+                            )}
+                        </motion.div>
+
+                        {/* ── Imminent fast-path join button ───────── */}
+                        {isNext && isImminent && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onJoinVideo && onJoinVideo(appointment) }}
+                                className="mt-1.5 w-full flex items-center justify-center gap-1.5 py-2 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white rounded-xl text-[11px] font-bold transition-all shadow-sm"
+                            >
+                                <Video className="w-3 h-3" />
+                                Unirse ahora
+                            </button>
+                        )}
+                    </div>
+
+                    {!isRightAligned && <div className="flex-1 border-t border-dashed border-gray-300"></div>}
+                </div>
+
+                <div className="hidden lg:block w-4 md:w-6 border-t border-dashed border-gray-300 shrink-0"></div>
+            </div>
         </motion.div>
     )
 }
@@ -303,20 +331,28 @@ const SessionsSkeleton = () => (
 /**
  * TodaysSessions Component
  */
-const TodaysSessions = ({ sessions = [], loading, onJoinVideo, onViewDiary, onViewProfile }) => {
+const TodaysSessions = ({
+    sessions = [],
+    loading,
+    onJoinVideo,
+    onViewDiary,
+    onViewProfile,
+    nextSessionTime = null,   // ms timestamp — matches by fechaHora, not fragile ID
+    nextSessionCountdown = null,
+    nextIsImminent = false,
+}) => {
     const [selectedSession, setSelectedSession] = useState(null)
 
-    // Use sessions as-is - they're already sorted from parent
+    // Use sessions as-is — already sorted from parent
     const sortedSessions = sessions
 
     return (
+        <LayoutGroup>
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
         >
-        
-
             {loading ? (
                 <SessionsSkeleton />
             ) : sessions.length === 0 ? (
@@ -324,8 +360,10 @@ const TodaysSessions = ({ sessions = [], loading, onJoinVideo, onViewDiary, onVi
             ) : (
                 <div className="space-y-1 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
                     <AnimatePresence mode="popLayout">
-                        {sortedSessions.map((item, index) =>
-                            item.isBreak ? (
+                        {sortedSessions.map((item, index) => {
+                            const itemTs = item.fechaHora ? new Date(item.fechaHora).getTime() : null
+                            const isNext = nextSessionTime !== null && itemTs !== null && itemTs === nextSessionTime
+                            return item.isBreak ? (
                                 <BreakCard
                                     key={`break-${index}`}
                                     time={item.time}
@@ -333,35 +371,42 @@ const TodaysSessions = ({ sessions = [], loading, onJoinVideo, onViewDiary, onVi
                                 />
                             ) : item.isUnavailable ? (
                                 <AvailableSlotCard
-                                    key={item.id || index}
+                                    key={itemTs || index}
                                     slot={item}
                                     index={index}
                                 />
                             ) : (
                                 <SessionCard
-                                    key={item.id || index}
+                                    key={itemTs || index}
                                     appointment={item}
                                     index={index}
+                                    isNext={isNext}
+                                    countdown={isNext ? nextSessionCountdown : null}
+                                    isImminent={isNext ? nextIsImminent : false}
+                                    onJoinVideo={onJoinVideo}
                                     onClick={setSelectedSession}
                                 />
                             )
-                        )}
+                        })}
                     </AnimatePresence>
                 </div>
             )}
             
             {/* Session Details Modal */}
-            {selectedSession && (
-                <SessionDetailsModal
-                    session={selectedSession}
-                    onClose={() => setSelectedSession(null)}
-                    onJoinVideo={onJoinVideo}
-                    onViewDiary={onViewDiary}
-                    onAddNote={(session) => console.log('Add note for:', session)}
-                    onMessage={(session) => console.log('Message:', session)}
-                />
-            )}
+            <AnimatePresence>
+                {selectedSession && (
+                    <SessionDetailsModal
+                        session={selectedSession}
+                        onClose={() => setSelectedSession(null)}
+                        onJoinVideo={onJoinVideo}
+                        onViewDiary={onViewDiary}
+                        onAddNote={(session) => console.log('Add note for:', session)}
+                        onMessage={(session) => console.log('Message:', session)}
+                    />
+                )}
+            </AnimatePresence>
         </motion.div>
+        </LayoutGroup>
     )
 }
 

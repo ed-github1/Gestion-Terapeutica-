@@ -1,5 +1,5 @@
-import { motion, AnimatePresence } from 'motion/react'
-import { X, Video, FileText, MessageSquare, Clock, Target, AlertTriangle, BookOpen } from 'lucide-react'
+import { motion } from 'motion/react'
+import { X, FileText, MessageSquare, Clock, Target, AlertTriangle, BookOpen } from 'lucide-react'
 
 /**
  * Get patient initials from name
@@ -67,21 +67,32 @@ const SessionDetailsModal = ({ session, onClose, onJoinVideo, onAddNote, onMessa
     }
 
     return (
-        <AnimatePresence>
+        <>
+            {/* Backdrop — fades independently */}
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                transition={{ duration: 0.2 }}
+                className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
                 onClick={onClose}
-            >
+            />
+
+            {/* Centering shell — no pointer events so backdrop click still works */}
+            <div className="fixed inset-0 flex items-center justify-center z-50 p-4 pointer-events-none">
+                {/* Panel — shared layout element that morphs from the pill card */}
                 <motion.div
-                    initial={{ scale: 0.95, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.95, opacity: 0 }}
-                    transition={{ type: "spring", duration: 0.3, bounce: 0.2 }}
-                    className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
+                    layoutId={`session-pill-${session.id || session.fechaHora}`}
+                    transition={{ type: 'spring', stiffness: 320, damping: 30 }}
+                    className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden pointer-events-auto"
                     onClick={(e) => e.stopPropagation()}
+                >
+                {/* Inner content fades in after the layout morph begins */}
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.18, delay: 0.08 }}
                 >
                     {/* Header */}
                     <div className="relative p-6 pb-5 border-b border-gray-100">
@@ -119,25 +130,23 @@ const SessionDetailsModal = ({ session, onClose, onJoinVideo, onAddNote, onMessa
 
                     {/* Content */}
                     <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-                        {/* Action Buttons */}
-                        {/* Primary: video call — full width, dominant */}
-                        <motion.button
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={handleStartSession}
-                            className="w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold text-sm transition-colors shadow-sm"
-                        >
-                            <Video className="w-4 h-4" />
-                            Iniciar videollamada
-                        </motion.button>
-
-                        {/* Secondary actions — equal weight, labeled */}
+                        {/* Prep actions — equal weight, full row */}
                         <div className="grid grid-cols-3 gap-2">
                             <motion.button
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
+                                onClick={handleViewDiary}
+                                className="flex flex-col items-center gap-1.5 py-3.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl transition-colors"
+                            >
+                                <BookOpen className="w-4 h-4" />
+                                <span className="text-[11px] font-semibold">Expediente</span>
+                            </motion.button>
+
+                            <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
                                 onClick={handleAddNote}
-                                className="flex flex-col items-center gap-1.5 py-3 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-xl transition-colors"
+                                className="flex flex-col items-center gap-1.5 py-3.5 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-xl transition-colors"
                             >
                                 <FileText className="w-4 h-4 text-gray-500" />
                                 <span className="text-[11px] font-medium">Añadir nota</span>
@@ -146,18 +155,8 @@ const SessionDetailsModal = ({ session, onClose, onJoinVideo, onAddNote, onMessa
                             <motion.button
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
-                                onClick={handleViewDiary}
-                                className="flex flex-col items-center gap-1.5 py-3 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-xl transition-colors"
-                            >
-                                <BookOpen className="w-4 h-4 text-gray-500" />
-                                <span className="text-[11px] font-medium">Diario</span>
-                            </motion.button>
-
-                            <motion.button
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
                                 onClick={handleMessage}
-                                className="flex flex-col items-center gap-1.5 py-3 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-xl transition-colors"
+                                className="flex flex-col items-center gap-1.5 py-3.5 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-xl transition-colors"
                             >
                                 <MessageSquare className="w-4 h-4 text-gray-500" />
                                 <span className="text-[11px] font-medium">Mensaje</span>
@@ -216,8 +215,9 @@ const SessionDetailsModal = ({ session, onClose, onJoinVideo, onAddNote, onMessa
                         )}
                     </div>
                 </motion.div>
-            </motion.div>
-        </AnimatePresence>
+                </motion.div>
+            </div>
+        </>
     )
 }
 

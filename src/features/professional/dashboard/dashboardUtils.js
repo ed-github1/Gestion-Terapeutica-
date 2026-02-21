@@ -50,11 +50,13 @@ export const getTodayAppointments = (appointments) => {
             // Combine date and time fields if they exist separately
             let fechaHora = apt.fechaHora || apt.date
             if (apt.time && apt.date) {
-                // If we have separate date and time, create a combined ISO string
-                const dateObj = new Date(apt.date)
+                // Parse the YYYY-MM-DD portion directly to avoid UTC→local day shift.
+                // e.g. "2026-02-20T00:00:00.000Z" slice(0,10) → "2026-02-20"
+                // Using new Date(isoString) in UTC-6 gives Feb 19, not Feb 20.
+                const dateOnly = String(apt.date).slice(0, 10)
+                const [yr, mo, dy] = dateOnly.split('-').map(Number)
                 const [hours, minutes] = apt.time.split(':').map(Number)
-                dateObj.setHours(hours, minutes, 0, 0)
-                fechaHora = dateObj.toISOString()
+                fechaHora = new Date(yr, mo - 1, dy, hours, minutes, 0, 0).toISOString()
             }
             
             return {

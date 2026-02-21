@@ -6,15 +6,18 @@
  *
  * Uses rich mock data when real API data is unavailable (offline-first).
  */
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import {
   X, BookOpen, ClipboardList, FileText, TrendingDown, TrendingUp, Minus,
   CheckCircle2, Circle, ShieldAlert, Calendar, Clock, Target, Brain,
   Activity, Smile, Frown, Meh, AlertCircle, ChevronLeft, ChevronRight,
   Hash, MessageSquare, Dumbbell, Star, Pencil, User, Mail, Phone,
-  BarChart2, Zap, Heart, Wind, Moon, Sun, Coffee,
+  BarChart2, Zap, Heart, Wind, Moon, Sun, Coffee, Send,
 } from 'lucide-react'
+import { useAuth } from '../../auth'
+import { diaryService } from '@shared/services/diaryService'
+import { homeworkService } from '@shared/services/homeworkService'
 
 // ─── Palette helpers ──────────────────────────────────────────────────────────
 const avatarPalette = [
@@ -344,16 +347,90 @@ const phq9Severity = (score) => {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 const PatientClinicalFile = ({ patient, onClose }) => {
-  const [tab, setTab] = useState('summary')
-  const mock = useMemo(() => buildMockData(patient), [patient])
-  const { diaryEntries, clinicalNotes, homeworkTasks, sessionHistory, phq9History } = mock
+  const { user } = useAuth()
+  const [tab, setTab]                   = useState('summary')
+  const [entries, setEntries]           = useState([])
+  const [hwTasks, setHwTasks]           = useState([])
+  const [isLoading, setIsLoading]       = useState(true)
+  const [error, setError]               = useState(null)
+  const [newNote, setNewNote]           = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const grad = getGradient(patient.id)
-  const initials = getInitials(patient.nombre, patient.apellido)
-  const lastPHQ = phq9History[phq9History.length - 1]
-  const severity = phq9Severity(lastPHQ)
-  const completedHW = homeworkTasks.filter(t => t.completed).length
-  const totalHW = homeworkTasks.length
+  const patientId = patient?.id || patient?._id
+
+  const fetchData = useCallback(async () => {
+    if (!patientId) { setIsLoading(false); return }
+    setIsLoading(true); setError(null)
+    try {
+      const [notesRes, hwRes] = await Promise.all([
+        diaryService.getNotes(patientId),
+        homeworkService.getAll(patientId),
+      ])
+      const rawNotes = notesRes.data
+      setEntries(
+        Array.isArray(rawNotes) ? rawNotes
+        : Array.isArray(rawNotes?.data) ? rawNotes.data
+        : Array.isArray(rawNotes?.notes) ? rawNotes.notes
+        : []
+      )
+      const rawHw = hwRes.data
+      setHwTasks(
+        Array.isArray(rawHw) ? rawHw
+        : Array.isArray(rawHw?.data) ? rawHw.data
+        : []
+      )
+    } catch (err) {
+      console.error('Error fetching clinical file:', err)
+      setError('No se pudieron cargar los datos del expediente.')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [patientId])
+
+  useEffect(() => { fetchData() }, [fetchData])
+
+  const handleAddNote = async (e) => {
+    e.preventDefault()
+    if (!newNote.trim() || !patientId || isSubmitting) return
+    setIsSubmitting(true)
+    try {
+      const res = await diaryService.addNote(patientId, {
+        text: newNote.trim(),
+        notes: newNote.trim(),
+        author: user?.name || user?.email || 'Profesional',
+      })
+      const saved = res.data?.data ?? res.data
+      if (saved && typeof saved === 'object' && !Array.isArray(saved)) {
+        setEntries(prev => [saved, ...prev])
+      } else {
+        await fetchData()
+      }
+      setNewNote('')
+    } catch (err) {
+      console.error('Error adding note:', err)
+      setError('Error al guardar la nota. Inténtalo de nuevo.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // ── Derived from real data
+  const diaryEntries  = entries.filter(e => e.mood)
+  const clinicalNotes = entries.filter(e => !e.mood && (e.text || e.notes))
+
+  // ── Keep mock only for PHQ-9 trend + session history (no API yet)
+  const mock = useMemo(() => buildMockData(patient), [patient])
+  const { sessionHistory, phq9History } = mock
+
+  const grad      = getGradient(patient.id)
+  const initials  = getInitials(
+    patient.nombre || patient.name?.split(' ')[0],
+    patient.apellido || patient.name?.split(' ').slice(1).join(' ')
+  )
+  const lastPHQ   = phq9History[phq9History.length - 1]
+  const severity  = phq9Severity(lastPHQ)
+  const completedHW = hwTasks.filter(t => t.completed).length
+  const totalHW     = Math.max(hwTasks.length, 1)
 
   return (
     <AnimatePresence>
@@ -367,10 +444,10 @@ const PatientClinicalFile = ({ patient, onClose }) => {
       >
         <motion.div
           key="panel"
-          initial={{ x: '100%', opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          exit={{ x: '100%', opacity: 0 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 32 }}
+          initial={{ x: '100%' }}
+          animate={{ x: 0 }}
+          exit={{ x: '100%' }}
+          transition={{ type: 'spring', stiffness: 500, damping: 42, mass: 0.9 }}
           onClick={e => e.stopPropagation()}
           className="relative bg-gray-50 shadow-2xl flex flex-col overflow-hidden"
           style={{ width: 'min(860px, 100vw)', height: '100dvh' }}
@@ -452,18 +529,41 @@ const PatientClinicalFile = ({ patient, onClose }) => {
 
           {/* ── Tab content ────────────────────────────────────────────── */}
           <div className="flex-1 overflow-y-auto">
-            <AnimatePresence mode="wait">
+            <AnimatePresence mode="popLayout">
               <motion.div
                 key={tab}
-                initial={{ opacity: 0, y: 8 }}
+                initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -4 }}
-                transition={{ duration: 0.18 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.1 }}
                 className="p-5 md:p-7"
               >
                 {/* ── SUMMARY ─────────────────────────────────────────── */}
-                {tab === 'summary' && (
+                {/* Global loading skeleton */}
+                {isLoading && (
+                  <div className="space-y-3 p-5">
+                    {[1,2,3].map(i => (
+                      <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 animate-pulse">
+                        <div className="flex gap-3">
+                          <div className="w-8 h-8 rounded-xl bg-gray-200" />
+                          <div className="flex-1 space-y-2">
+                            <div className="h-4 bg-gray-200 rounded w-1/3" />
+                            <div className="h-3 bg-gray-100 rounded w-2/3" />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {tab === 'summary' && !isLoading && (
                   <div className="space-y-6">
+                    {error && (
+                      <div className="flex items-center gap-2 p-3 bg-rose-50 border border-rose-100 rounded-xl text-sm text-rose-700">
+                        <AlertCircle className="w-4 h-4 shrink-0" /> {error}
+                        <button onClick={() => { setError(null); fetchData() }} className="ml-auto text-xs underline">Reintentar</button>
+                      </div>
+                    )}
                     {/* Metrics row */}
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       {[
@@ -480,17 +580,16 @@ const PatientClinicalFile = ({ patient, onClose }) => {
                           Icon: Calendar, bg: 'bg-indigo-50', color: 'text-indigo-600',
                         },
                         {
-                          label: 'Tareas completas', value: `${completedHW}/${totalHW}`,
-                          sub: `${Math.round((completedHW / totalHW) * 100)}% adherencia`,
+                          label: 'Tareas completas', value: hwTasks.length ? `${completedHW}/${hwTasks.length}` : '—',
+                          sub: hwTasks.length ? `${Math.round((completedHW / totalHW) * 100)}% adherencia` : 'Sin tareas',
                           Icon: CheckCircle2, bg: 'bg-emerald-50', color: 'text-emerald-600',
                         },
                         {
-                          label: 'Seguro restante',
-                          value: patient.insuranceRemaining != null ? patient.insuranceRemaining : '∞',
-                          sub: patient.insuranceRemaining != null && patient.insuranceRemaining <= 3 ? '⚠ Pocas sesiones' : null,
-                          Icon: Heart,
-                          bg: patient.insuranceRemaining != null && patient.insuranceRemaining <= 3 ? 'bg-amber-50' : 'bg-blue-50',
-                          color: patient.insuranceRemaining != null && patient.insuranceRemaining <= 3 ? 'text-amber-600' : 'text-blue-600',
+                          label: 'Entradas diario', value: diaryEntries.length || '—',
+                          sub: clinicalNotes.length ? `${clinicalNotes.length} notas clínicas` : null,
+                          Icon: BookOpen,
+                          bg: 'bg-violet-50',
+                          color: 'text-violet-600',
                         },
                       ].map(({ label, value, sub, Icon, bg, color }) => (
                         <div key={label} className="bg-white rounded-2xl border border-gray-100 p-4 flex flex-col gap-2">
@@ -580,63 +679,128 @@ const PatientClinicalFile = ({ patient, onClose }) => {
                 )}
 
                 {/* ── DIARY ───────────────────────────────────────────── */}
-                {tab === 'diary' && (
+                {tab === 'diary' && !isLoading && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <h3 className="font-bold text-gray-900">Entradas del diario</h3>
-                      <span className="text-xs text-gray-400">{diaryEntries.length} entradas</span>
+                      <span className="text-xs text-gray-400">{diaryEntries.length} {diaryEntries.length === 1 ? 'entrada' : 'entradas'}</span>
                     </div>
-                    {diaryEntries.map((entry, i) => (
-                      <DiaryCard key={entry.id} entry={entry} index={i} expanded />
-                    ))}
+                    {diaryEntries.length === 0 ? (
+                      <div className="text-center py-14">
+                        <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                          <BookOpen className="w-7 h-7 text-indigo-300" />
+                        </div>
+                        <p className="font-semibold text-gray-600">Sin entradas</p>
+                        <p className="text-sm text-gray-400 mt-1">El paciente aún no ha escrito en su diario</p>
+                      </div>
+                    ) : (
+                      diaryEntries.map((entry, i) => (
+                        <DiaryCard key={entry._id || entry.id || i} entry={entry} index={i} expanded />
+                      ))
+                    )}
                   </div>
                 )}
 
                 {/* ── HOMEWORK ─────────────────────────────────────────── */}
-                {tab === 'homework' && (
+                {tab === 'homework' && !isLoading && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <h3 className="font-bold text-gray-900">Tareas terapéuticas</h3>
-                      <span className="text-xs font-semibold text-emerald-600">
-                        {completedHW}/{totalHW} completadas
-                      </span>
+                      {hwTasks.length > 0 && (
+                        <span className="text-xs font-semibold text-emerald-600">
+                          {completedHW}/{hwTasks.length} completadas
+                        </span>
+                      )}
                     </div>
-                    {/* Progress bar */}
-                    <div className="bg-white rounded-2xl border border-gray-100 p-4">
-                      <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
-                        <span>Adherencia general</span>
-                        <span className="font-bold text-gray-900">{Math.round((completedHW / totalHW) * 100)}%</span>
+                    {hwTasks.length === 0 ? (
+                      <div className="text-center py-14">
+                        <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                          <ClipboardList className="w-7 h-7 text-emerald-300" />
+                        </div>
+                        <p className="font-semibold text-gray-600">Sin tareas asignadas</p>
+                        <p className="text-sm text-gray-400 mt-1">Las tareas aparecerán aquí cuando las asignes</p>
                       </div>
-                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${(completedHW / totalHW) * 100}%` }}
-                          transition={{ duration: 0.6, delay: 0.1 }}
-                          className="h-full bg-emerald-500 rounded-full"
-                        />
-                      </div>
-                    </div>
-                    {homeworkTasks.map((task, i) => (
-                      <HomeworkCard key={task.id} task={task} index={i} />
-                    ))}
+                    ) : (
+                      <>
+                        {/* Progress bar */}
+                        <div className="bg-white rounded-2xl border border-gray-100 p-4">
+                          <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
+                            <span>Adherencia general</span>
+                            <span className="font-bold text-gray-900">{Math.round((completedHW / totalHW) * 100)}%</span>
+                          </div>
+                          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${(completedHW / totalHW) * 100}%` }}
+                              transition={{ duration: 0.3 }}
+                              className="h-full bg-emerald-500 rounded-full"
+                            />
+                          </div>
+                        </div>
+                        {hwTasks.map((task, i) => (
+                          <HomeworkCard key={task._id || task.id || i} task={task} index={i} />
+                        ))}
+                      </>
+                    )}
                   </div>
                 )}
 
                 {/* ── CLINICAL NOTES ───────────────────────────────────── */}
-                {tab === 'notes' && (
+                {tab === 'notes' && !isLoading && (
                   <div className="space-y-4">
+                    {/* Add note form */}
+                    <form onSubmit={handleAddNote} className="bg-white rounded-2xl border border-gray-100 p-4">
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Nueva nota clínica</p>
+                      <div className="flex gap-2 items-end">
+                        <textarea
+                          value={newNote}
+                          onChange={e => setNewNote(e.target.value)}
+                          placeholder={`Añadir nota sobre ${patient.nombre || patient.name?.split(' ')[0] || 'el paciente'}…`}
+                          rows={2}
+                          className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl resize-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent outline-none bg-gray-50"
+                        />
+                        <motion.button
+                          type="submit"
+                          disabled={isSubmitting || !newNote.trim()}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          className="shrink-0 p-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isSubmitting
+                            ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                            : <Send className="w-4 h-4" />}
+                        </motion.button>
+                      </div>
+                      {error && (
+                        <p className="text-xs text-rose-600 mt-1.5 flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" /> {error}
+                          <button type="button" onClick={() => setError(null)} className="ml-auto underline">Cerrar</button>
+                        </p>
+                      )}
+                    </form>
+
                     <div className="flex items-center justify-between">
                       <h3 className="font-bold text-gray-900">Notas clínicas</h3>
-                      <span className="text-xs text-gray-400">{clinicalNotes.length} notas</span>
+                      <span className="text-xs text-gray-400">{clinicalNotes.length} {clinicalNotes.length === 1 ? 'nota' : 'notas'}</span>
                     </div>
-                    {clinicalNotes.map((note, i) => (
-                      <ClinicalNoteCard key={note.id} note={note} index={i} />
-                    ))}
+                    {clinicalNotes.length === 0 ? (
+                      <div className="text-center py-10">
+                        <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                          <FileText className="w-7 h-7 text-indigo-300" />
+                        </div>
+                        <p className="font-semibold text-gray-600">Sin notas clínicas</p>
+                        <p className="text-sm text-gray-400 mt-1">Usa el formulario de arriba para añadir la primera nota</p>
+                      </div>
+                    ) : (
+                      clinicalNotes.map((note, i) => (
+                        <ClinicalNoteCard key={note._id || note.id || i} note={note} index={i} />
+                      ))
+                    )}
                   </div>
                 )}
 
                 {/* ── SESSION HISTORY ───────────────────────────────────── */}
-                {tab === 'sessions' && (
+                {tab === 'sessions' && !isLoading && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <h3 className="font-bold text-gray-900">Historial de sesiones</h3>
@@ -665,9 +829,9 @@ const DiaryCard = ({ entry, index = 0, expanded = false }) => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
+      transition={{ duration: 0.15, delay: Math.min(index, 3) * 0.04 }}
       className="bg-white rounded-2xl border border-gray-100 overflow-hidden"
     >
       <button
@@ -742,9 +906,9 @@ const HomeworkCard = ({ task, index }) => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
+      transition={{ duration: 0.15, delay: Math.min(index, 3) * 0.04 }}
       className={`bg-white rounded-2xl border p-4 ${
         task.completed ? 'border-emerald-100 opacity-75' :
         isOverdue      ? 'border-rose-200'                :
@@ -797,9 +961,9 @@ const HomeworkCard = ({ task, index }) => {
 
 const ClinicalNoteCard = ({ note, index }) => (
   <motion.div
-    initial={{ opacity: 0, y: 10 }}
+    initial={{ opacity: 0, y: 6 }}
     animate={{ opacity: 1, y: 0 }}
-    transition={{ delay: index * 0.05 }}
+    transition={{ duration: 0.15, delay: Math.min(index, 3) * 0.04 }}
     className="bg-white rounded-2xl border border-indigo-100 p-5"
   >
     <div className="flex items-start justify-between gap-3 mb-3">
@@ -832,9 +996,9 @@ const SessionRow = ({ session, index }) => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: -8 }}
+      initial={{ opacity: 0, x: -6 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: index * 0.04 }}
+      transition={{ duration: 0.15, delay: Math.min(index, 3) * 0.03 }}
       className="bg-white rounded-2xl border border-gray-100 px-5 py-3.5 flex items-center gap-4"
     >
       <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-xs font-black text-indigo-600 shrink-0">

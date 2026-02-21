@@ -25,15 +25,15 @@ const getTimeAgo = (timestamp) => {
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
     const diffWeeks = Math.floor(diffDays / 7)
-    
-    if (diffMins < 1) return 'Just now'
-    if (diffMins < 60) return `${diffMins}m ago`
-    if (diffHours === 1) return '1h ago'
-    if (diffHours < 24) return `${diffHours}h ago`
-    if (diffDays === 1) return 'Yesterday'
-    if (diffDays < 7) return `${diffDays}d ago`
-    if (diffWeeks === 1) return '1w ago'
-    return `${diffWeeks}w ago`
+
+    if (diffMins < 1) return 'Ahora mismo'
+    if (diffMins < 60) return `hace ${diffMins}m`
+    if (diffHours === 1) return 'hace 1h'
+    if (diffHours < 24) return `hace ${diffHours}h`
+    if (diffDays === 1) return 'Ayer'
+    if (diffDays < 7) return `hace ${diffDays}d`
+    if (diffWeeks === 1) return 'hace 1 sem'
+    return `hace ${diffWeeks} sem`
 }
 
 /**
@@ -141,14 +141,9 @@ const ActivityItem = ({ activity, index, total }) => {
                         <h3 className="font-bold text-gray-900 text-xs leading-tight">{activity.title}</h3>
                         <span className="text-[10px] text-gray-400 font-medium shrink-0">{timeAgo}</span>
                     </div>
-                    <p className="text-[11px] text-gray-600 leading-snug break-words">
+                    <p className="text-[11px] text-gray-600 leading-snug wrap-break-word">
                         {activity.description}
                     </p>
-                </div>
-
-                {/* Time ago badge */}
-                <div className="text-[10px] text-gray-400 font-medium shrink-0 opacity-60">
-                    {getTimeAgo(activity.timestamp)}
                 </div>
             </motion.div>
         </div>
@@ -164,8 +159,8 @@ const EmptyState = () => (
         <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <TrendingUp className="w-8 h-8 text-gray-400" />
         </div>
-        <p className="text-gray-500 font-medium mb-1">No recent activity</p>
-        <p className="text-sm text-gray-400">Activity will appear here</p>
+        <p className="text-gray-500 font-medium mb-1">Sin actividad reciente</p>
+        <p className="text-sm text-gray-400">La actividad aparecerá aquí</p>
     </div>
 )
 

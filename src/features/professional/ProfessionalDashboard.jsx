@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import ModernProfessionalDashboard from './components/ModernProfessionalDashboard'
 import AppointmentsCalendar from './components/AppointmentsCalendar'
-import PatientDiary from './components/PatientDiary'
+import PatientClinicalFile from './components/PatientClinicalFile'
 
 /**
  * Wrapper component to switch between dashboard, calendar, and diary views
@@ -12,11 +12,14 @@ const ProfessionalDashboardWrapper = () => {
     const [showCalendar, setShowCalendar] = useState(false)
     const [diaryPatient, setDiaryPatient] = useState(null)
 
-    // Map session/appointment object → { id, name } for the diary
+    // Map session/appointment object → patient shape for PatientClinicalFile
     const handleViewDiary = (session) => {
         const id = session?.patientId || session?.patient?._id || session?.patient?.id || session?.id
-        const name = session?.nombrePaciente || session?.patient?.name || session?.patientName || session?.name || 'Paciente'
-        if (id) setDiaryPatient({ id, name })
+        const fullName = session?.nombrePaciente || session?.patient?.name || session?.patientName || session?.name || 'Paciente'
+        const parts = fullName.trim().split(' ')
+        const nombre   = parts[0] || 'Paciente'
+        const apellido = parts.slice(1).join(' ') || ''
+        if (id) setDiaryPatient({ id, nombre, apellido, name: fullName })
     }
 
     // Show calendar if selected
@@ -50,9 +53,8 @@ const ProfessionalDashboardWrapper = () => {
             />
             <AnimatePresence>
                 {diaryPatient && (
-                    <PatientDiary
-                        patientId={diaryPatient.id}
-                        patientName={diaryPatient.name}
+                    <PatientClinicalFile
+                        patient={diaryPatient}
                         onClose={() => setDiaryPatient(null)}
                     />
                 )}
