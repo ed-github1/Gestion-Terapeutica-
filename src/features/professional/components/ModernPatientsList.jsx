@@ -1,26 +1,26 @@
 // ─── REDESIGNED: ModernPatientsList ──────────────────────────────────────────
 // Clinical caseload view — not a generic contact list.
-// Displays PHQ-9 sparklines, risk levels, homework status, insurance sessions,
+// Displays risk levels, homework status, insurance sessions,
 // treatment goals, and outcome trends for each patient.
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { showToast } from '@components'
 import { patientsService } from '@shared/services/patientsService'
 import { invitationsService } from '@shared/services/invitationsService'
-import PatientForm from './PatientForm'
+import PatientInvitation from './PatientInvitation'
 import PatientClinicalFile from './PatientClinicalFile'
 import {
     Users, UserPlus, Search, RefreshCw,
     LayoutGrid, List, ShieldAlert,
     BookOpen, MessageSquare, CalendarPlus,
-    ChevronRight, TrendingDown, TrendingUp, Minus,
+    ChevronRight, Minus,
     Clock, MoreHorizontal, CheckCircle2,
     XCircle, TimerOff
 } from 'lucide-react'
 
 // ─── Normalize backend patient → UI shape ────────────────────────────────────
 // Backend uses firstName/lastName/_id; UI uses nombre/apellido/id.
-// Clinical fields (phq9, riskLevel, etc.) not yet on backend default to null.
+// Clinical fields (riskLevel, etc.) not yet on backend default to null.
 const normalizePatient = (p) => ({
     id:                p._id || p.id,
     nombre:            p.firstName  || p.nombre  || '',
@@ -32,7 +32,6 @@ const normalizePatient = (p) => ({
     nextSession:       p.nextSession || null,
     totalSessions:     p.totalSessions ?? 0,
     riskLevel:         p.riskLevel   || 'low',
-    phq9:              p.phq9        || [],
     treatmentGoal:     p.presentingConcern || p.treatmentGoal || '',
     homeworkCompleted: p.homeworkCompleted ?? null,
     diagnosis:         p.diagnosis  || (p.status === 'pending' ? 'Pendiente' : '—'),
@@ -45,25 +44,25 @@ const normalizePatient = (p) => ({
 
 // ─── Mock patients (fallback while backend has no clinical data) ────────────────
 const mockPatients = [
-    { id: 1,  nombre: 'María',   apellido: 'González',  email: 'maria.gonzalez@email.com',  telefono: '+34 612 345 678', status: 'active',   lastSession: '2026-02-10', nextSession: '2026-02-19', totalSessions: 14, riskLevel: 'low',    phq9: [14,12,10,8,7],  treatmentGoal: 'Manejo de ansiedad generalizada',               homeworkCompleted: true,  diagnosis: 'TAG',     insuranceRemaining: 6,    age: 34 },
-    { id: 2,  nombre: 'Carlos',  apellido: 'Rodríguez', email: 'carlos.rodriguez@email.com', telefono: '+34 623 456 789', status: 'active',   lastSession: '2026-02-08', nextSession: '2026-02-20', totalSessions: 7,  riskLevel: 'high',   phq9: [18,19,17,20,22],treatmentGoal: 'Reducir ideación pasiva — plan de seguridad activo', homeworkCompleted: false, diagnosis: 'TDM',     insuranceRemaining: 2,    age: 42 },
-    { id: 3,  nombre: 'Ana',     apellido: 'Martínez',  email: 'ana.martinez@email.com',     telefono: '+34 634 567 890', status: 'pending',  lastSession: null,         nextSession: '2026-02-21', totalSessions: 0,  riskLevel: 'low',    phq9: [],              treatmentGoal: 'Evaluación inicial pendiente',                    homeworkCompleted: null,  diagnosis: 'Pendiente',insuranceRemaining: 10,   age: 28 },
-    { id: 4,  nombre: 'David',   apellido: 'López',     email: 'david.lopez@email.com',      telefono: '+34 645 678 901', status: 'active',   lastSession: '2026-02-12', nextSession: '2026-02-22', totalSessions: 22, riskLevel: 'medium', phq9: [15,14,14,13,12],treatmentGoal: 'Regulación emocional — episodios de ira',          homeworkCompleted: true,  diagnosis: 'TEL',     insuranceRemaining: null, age: 38 },
-    { id: 5,  nombre: 'Laura',   apellido: 'Sánchez',   email: 'laura.sanchez@email.com',    telefono: '+34 656 789 012', status: 'inactive', lastSession: '2026-01-15', nextSession: null,         totalSessions: 5,  riskLevel: 'low',    phq9: [10,9,8],        treatmentGoal: 'Alta temporal — pausó tratamiento',               homeworkCompleted: null,  diagnosis: 'TA',      insuranceRemaining: 8,    age: 29 },
-    { id: 6,  nombre: 'Miguel',  apellido: 'Fernández', email: 'miguel.fernandez@email.com', telefono: '+34 667 890 123', status: 'active',   lastSession: '2026-02-11', nextSession: '2026-02-18', totalSessions: 31, riskLevel: 'low',    phq9: [12,10,8,6,5],   treatmentGoal: 'Consolidar habilidades sociales',                 homeworkCompleted: true,  diagnosis: 'TP-E',    insuranceRemaining: null, age: 25 },
-    { id: 7,  nombre: 'Isabel',  apellido: 'García',    email: 'isabel.garcia@email.com',    telefono: '+34 678 901 234', status: 'pending',  lastSession: null,         nextSession: '2026-02-24', totalSessions: 0,  riskLevel: 'medium', phq9: [],              treatmentGoal: 'Evaluación de duelo complicado',                  homeworkCompleted: null,  diagnosis: 'Pendiente',insuranceRemaining: 12,   age: 55 },
-    { id: 8,  nombre: 'Javier',  apellido: 'Díaz',      email: 'javier.diaz@email.com',      telefono: '+34 689 012 345', status: 'active',   lastSession: '2026-02-09', nextSession: '2026-02-20', totalSessions: 9,  riskLevel: 'medium', phq9: [16,15,14,13],   treatmentGoal: 'Protocolo de exposición — fobia social',          homeworkCompleted: false, diagnosis: 'FS',      insuranceRemaining: 4,    age: 31 },
-    { id: 9,  nombre: 'Carmen',  apellido: 'Ruiz',      email: 'carmen.ruiz@email.com',      telefono: '+34 690 123 456', status: 'active',   lastSession: '2026-02-13', nextSession: '2026-02-25', totalSessions: 18, riskLevel: 'low',    phq9: [8,7,6,5,4],     treatmentGoal: 'Mantenimiento — habilidades de afrontamiento',    homeworkCompleted: true,  diagnosis: 'TDA',     insuranceRemaining: null, age: 45 },
-    { id: 10, nombre: 'Pablo',   apellido: 'Torres',    email: 'pablo.torres@email.com',     telefono: '+34 601 234 567', status: 'inactive', lastSession: '2026-01-20', nextSession: null,         totalSessions: 3,  riskLevel: 'high',   phq9: [20,22,19],      treatmentGoal: 'Perdió seguimiento — requiere recontacto urgente', homeworkCompleted: null,  diagnosis: 'TDM',     insuranceRemaining: 5,    age: 48 },
-    { id: 11, nombre: 'Elena',   apellido: 'Ramírez',   email: 'elena.ramirez@email.com',    telefono: '+34 612 345 789', status: 'pending',  lastSession: null,         nextSession: '2026-02-26', totalSessions: 0,  riskLevel: 'low',    phq9: [],              treatmentGoal: 'Primera consulta programada',                     homeworkCompleted: null,  diagnosis: 'Pendiente',insuranceRemaining: 10,   age: 22 },
-    { id: 12, nombre: 'Roberto', apellido: 'Moreno',    email: 'roberto.moreno@email.com',   telefono: '+34 623 456 890', status: 'active',   lastSession: '2026-02-07', nextSession: '2026-02-21', totalSessions: 11, riskLevel: 'medium', phq9: [13,12,11,10],   treatmentGoal: 'Protocolo de duelo — 6 meses',                    homeworkCompleted: true,  diagnosis: 'TD',      insuranceRemaining: 3,    age: 60 },
+    { id: 1,  nombre: 'María',   apellido: 'González',  email: 'maria.gonzalez@email.com',  telefono: '+34 612 345 678', status: 'active',   lastSession: '2026-02-10', nextSession: '2026-02-19', totalSessions: 14, riskLevel: 'low',    treatmentGoal: 'Manejo de ansiedad generalizada',               homeworkCompleted: true,  diagnosis: 'TAG',     insuranceRemaining: 6,    age: 34 },
+    { id: 2,  nombre: 'Carlos',  apellido: 'Rodríguez', email: 'carlos.rodriguez@email.com', telefono: '+34 623 456 789', status: 'active',   lastSession: '2026-02-08', nextSession: '2026-02-20', totalSessions: 7,  riskLevel: 'high',   treatmentGoal: 'Reducir ideación pasiva — plan de seguridad activo', homeworkCompleted: false, diagnosis: 'TDM',     insuranceRemaining: 2,    age: 42 },
+    { id: 3,  nombre: 'Ana',     apellido: 'Martínez',  email: 'ana.martinez@email.com',     telefono: '+34 634 567 890', status: 'pending',  lastSession: null,         nextSession: '2026-02-21', totalSessions: 0,  riskLevel: 'low',    treatmentGoal: 'Evaluación inicial pendiente',                    homeworkCompleted: null,  diagnosis: 'Pendiente',insuranceRemaining: 10,   age: 28 },
+    { id: 4,  nombre: 'David',   apellido: 'López',     email: 'david.lopez@email.com',      telefono: '+34 645 678 901', status: 'active',   lastSession: '2026-02-12', nextSession: '2026-02-22', totalSessions: 22, riskLevel: 'medium', treatmentGoal: 'Regulación emocional — episodios de ira',          homeworkCompleted: true,  diagnosis: 'TEL',     insuranceRemaining: null, age: 38 },
+    { id: 5,  nombre: 'Laura',   apellido: 'Sánchez',   email: 'laura.sanchez@email.com',    telefono: '+34 656 789 012', status: 'inactive', lastSession: '2026-01-15', nextSession: null,         totalSessions: 5,  riskLevel: 'low',    treatmentGoal: 'Alta temporal — pausó tratamiento',               homeworkCompleted: null,  diagnosis: 'TA',      insuranceRemaining: 8,    age: 29 },
+    { id: 6,  nombre: 'Miguel',  apellido: 'Fernández', email: 'miguel.fernandez@email.com', telefono: '+34 667 890 123', status: 'active',   lastSession: '2026-02-11', nextSession: '2026-02-18', totalSessions: 31, riskLevel: 'low',    treatmentGoal: 'Consolidar habilidades sociales',                 homeworkCompleted: true,  diagnosis: 'TP-E',    insuranceRemaining: null, age: 25 },
+    { id: 7,  nombre: 'Isabel',  apellido: 'García',    email: 'isabel.garcia@email.com',    telefono: '+34 678 901 234', status: 'pending',  lastSession: null,         nextSession: '2026-02-24', totalSessions: 0,  riskLevel: 'medium', treatmentGoal: 'Evaluación de duelo complicado',                  homeworkCompleted: null,  diagnosis: 'Pendiente',insuranceRemaining: 12,   age: 55 },
+    { id: 8,  nombre: 'Javier',  apellido: 'Díaz',      email: 'javier.diaz@email.com',      telefono: '+34 689 012 345', status: 'active',   lastSession: '2026-02-09', nextSession: '2026-02-20', totalSessions: 9,  riskLevel: 'medium', treatmentGoal: 'Protocolo de exposición — fobia social',          homeworkCompleted: false, diagnosis: 'FS',      insuranceRemaining: 4,    age: 31 },
+    { id: 9,  nombre: 'Carmen',  apellido: 'Ruiz',      email: 'carmen.ruiz@email.com',      telefono: '+34 690 123 456', status: 'active',   lastSession: '2026-02-13', nextSession: '2026-02-25', totalSessions: 18, riskLevel: 'low',    treatmentGoal: 'Mantenimiento — habilidades de afrontamiento',    homeworkCompleted: true,  diagnosis: 'TDA',     insuranceRemaining: null, age: 45 },
+    { id: 10, nombre: 'Pablo',   apellido: 'Torres',    email: 'pablo.torres@email.com',     telefono: '+34 601 234 567', status: 'inactive', lastSession: '2026-01-20', nextSession: null,         totalSessions: 3,  riskLevel: 'high',   treatmentGoal: 'Perdió seguimiento — requiere recontacto urgente', homeworkCompleted: null,  diagnosis: 'TDM',     insuranceRemaining: 5,    age: 48 },
+    { id: 11, nombre: 'Elena',   apellido: 'Ramírez',   email: 'elena.ramirez@email.com',    telefono: '+34 612 345 789', status: 'pending',  lastSession: null,         nextSession: '2026-02-26', totalSessions: 0,  riskLevel: 'low',    treatmentGoal: 'Primera consulta programada',                     homeworkCompleted: null,  diagnosis: 'Pendiente',insuranceRemaining: 10,   age: 22 },
+    { id: 12, nombre: 'Roberto', apellido: 'Moreno',    email: 'roberto.moreno@email.com',   telefono: '+34 623 456 890', status: 'active',   lastSession: '2026-02-07', nextSession: '2026-02-21', totalSessions: 11, riskLevel: 'medium', treatmentGoal: 'Protocolo de duelo — 6 meses',                    homeworkCompleted: true,  diagnosis: 'TD',      insuranceRemaining: 3,    age: 60 },
 ]
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const getInitials = (n, a) => `${n?.[0] || ''}${a?.[0] || ''}`.toUpperCase()
 const avatarPalette = [
-    'bg-indigo-100 text-indigo-700', 'bg-emerald-100 text-emerald-700',
-    'bg-violet-100 text-violet-700', 'bg-rose-100 text-rose-700',
+    'bg-sky-100 text-blue-800', 'bg-emerald-100 text-emerald-700',
+    'bg-sky-100 text-sky-600', 'bg-rose-100 text-rose-700',
     'bg-amber-100 text-amber-700',   'bg-cyan-100 text-cyan-700',
 ]
 const getAvatarColor = (id) => {
@@ -79,42 +78,12 @@ const statusConfig = {
     invited:  { label: 'Invitado',  cls: 'bg-blue-50 text-blue-700',       dot: 'bg-blue-400' },
 }
 
-const phq9Trend = (scores) => {
-    if (!scores || scores.length < 2) return null
-    const delta = scores[scores.length - 1] - scores[0]
-    if (delta < -3) return { dir: 'improving', label: 'Mejorando', Icon: TrendingDown, color: 'text-emerald-600' }
-    if (delta > 3)  return { dir: 'worsening', label: 'Empeorando', Icon: TrendingUp,  color: 'text-rose-600' }
-    return             { dir: 'stable',    label: 'Estable',    Icon: Minus,        color: 'text-gray-400' }
-}
-
 const daysSince = (dateStr) => {
     if (!dateStr) return null
     const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000)
     if (diff === 0) return 'Hoy'
     if (diff === 1) return 'Ayer'
     return `Hace ${diff}d`
-}
-
-// ─── Mini sparkline ───────────────────────────────────────────────────────────
-const Sparkline = ({ scores, color = '#6366f1' }) => {
-    if (!scores || scores.length < 2) return <span className="text-[10px] text-gray-300 italic">Sin datos</span>
-    const max = Math.max(...scores), min = Math.min(...scores), range = max - min || 1
-    const w = 56, h = 22, pad = 3
-    const pts = scores.map((v, i) => {
-        const x = pad + (i / (scores.length - 1)) * (w - pad * 2)
-        const y = pad + (1 - (v - min) / range) * (h - pad * 2)
-        return `${x},${y}`
-    }).join(' ')
-    return (
-        <svg width={w} height={h}>
-            <polyline points={pts} fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-            {scores.map((v, i) => {
-                const x = pad + (i / (scores.length - 1)) * (w - pad * 2)
-                const y = pad + (1 - (v - min) / range) * (h - pad * 2)
-                return i === scores.length - 1 ? <circle key={i} cx={x} cy={y} r="2.5" fill={color} /> : null
-            })}
-        </svg>
-    )
 }
 
 // ─── Alert Banner ─────────────────────────────────────────────────────────────
@@ -150,9 +119,6 @@ const AlertBanner = ({ patients }) => {
 const PatientCard = ({ patient, onOpenDiary, onDelete, index }) => {
     const [menuOpen, setMenuOpen] = useState(false)
     const status = statusConfig[patient.status] || statusConfig.inactive
-    const trend = phq9Trend(patient.phq9)
-    const lastScore = patient.phq9?.length ? patient.phq9[patient.phq9.length - 1] : null
-    const trendColor = trend?.dir === 'improving' ? '#10b981' : trend?.dir === 'worsening' ? '#f43f5e' : '#94a3b8'
 
     return (
         <motion.div
@@ -226,29 +192,6 @@ const PatientCard = ({ patient, onOpenDiary, onDelete, index }) => {
                     {patient.treatmentGoal || 'Sin objetivo de tratamiento definido'}
                 </p>
 
-                {/* PHQ-9 */}
-                <div className="flex items-center justify-between">
-                    <div>
-                        <p className="text-[9px] text-gray-400 uppercase tracking-wide font-semibold mb-1">PHQ-9</p>
-                        <div className="flex items-center gap-1.5">
-                            {lastScore !== null ? (
-                                <>
-                                    <span className="text-lg font-bold text-gray-900 leading-none">{lastScore}</span>
-                                    <span className="text-[9px] text-gray-400">/27</span>
-                                    {trend && (
-                                        <span className={`flex items-center gap-0.5 text-[10px] font-semibold ${trend.color}`}>
-                                            <trend.Icon className="w-3 h-3" /> {trend.label}
-                                        </span>
-                                    )}
-                                </>
-                            ) : (
-                                <span className="text-xs text-gray-300">Sin evaluación</span>
-                            )}
-                        </div>
-                    </div>
-                    <Sparkline scores={patient.phq9} color={trendColor} />
-                </div>
-
                 {/* Stats */}
                 <div className="grid grid-cols-3 gap-2">
                     <div className="bg-gray-50 rounded-xl p-2.5 text-center">
@@ -295,9 +238,6 @@ const PatientCard = ({ patient, onOpenDiary, onDelete, index }) => {
 // ─── Patient Row (table) ──────────────────────────────────────────────────────
 const PatientRow = ({ patient, onOpenDiary, onDelete }) => {
     const status = statusConfig[patient.status] || statusConfig.inactive
-    const trend = phq9Trend(patient.phq9)
-    const lastScore = patient.phq9?.length ? patient.phq9[patient.phq9.length - 1] : null
-    const trendColor = trend?.dir === 'improving' ? '#10b981' : trend?.dir === 'worsening' ? '#f43f5e' : '#94a3b8'
 
     return (
         <tr className="group hover:bg-gray-50/60 transition-colors">
@@ -321,17 +261,6 @@ const PatientRow = ({ patient, onOpenDiary, onDelete }) => {
                 </span>
             </td>
             <td className="px-5 py-3.5">
-                <div className="flex items-center gap-2">
-                    <Sparkline scores={patient.phq9} color={trendColor} />
-                    {lastScore !== null && (
-                        <div>
-                            <p className="text-sm font-bold text-gray-900 leading-none">{lastScore}</p>
-                            {trend && <p className={`text-[9px] font-semibold ${trend.color}`}>{trend.label}</p>}
-                        </div>
-                    )}
-                </div>
-            </td>
-            <td className="px-5 py-3.5">
                 <p className="text-sm font-semibold text-gray-800">{patient.totalSessions}</p>
                 <p className="text-[10px] text-gray-400">{daysSince(patient.lastSession) || 'Sin sesiones'}</p>
             </td>
@@ -347,7 +276,7 @@ const PatientRow = ({ patient, onOpenDiary, onDelete }) => {
             </td>
             <td className="px-5 py-3.5">
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => onOpenDiary(patient)} title="Ver expediente" className="p-1.5 hover:bg-indigo-50 rounded-lg transition-colors text-gray-400 hover:text-indigo-600"><BookOpen className="w-4 h-4" /></button>
+                    <button onClick={() => onOpenDiary(patient)} title="Ver expediente" className="p-1.5 hover:bg-sky-50 rounded-lg transition-colors text-gray-400 hover:text-blue-700"><BookOpen className="w-4 h-4" /></button>
                     <button title="Agendar" className="p-1.5 hover:bg-emerald-50 rounded-lg transition-colors text-gray-400 hover:text-emerald-600"><CalendarPlus className="w-4 h-4" /></button>
                     <button title="Mensaje" className="p-1.5 hover:bg-blue-50 rounded-lg transition-colors text-gray-400 hover:text-blue-600"><MessageSquare className="w-4 h-4" /></button>
                     <button onClick={() => onDelete(patient.id)} title="Eliminar" className="p-1.5 hover:bg-rose-50 rounded-lg transition-colors text-gray-400 hover:text-rose-600"><XCircle className="w-4 h-4" /></button>
@@ -465,7 +394,6 @@ const ModernPatientsList = () => {
             if (sortBy === 'name')        return `${a.nombre} ${a.apellido}`.localeCompare(`${b.nombre} ${b.apellido}`)
             if (sortBy === 'risk')        { const o = { high: 0, medium: 1, low: 2 }; return (o[a.riskLevel] ?? 3) - (o[b.riskLevel] ?? 3) }
             if (sortBy === 'lastSession') return new Date(b.lastSession || 0) - new Date(a.lastSession || 0)
-            if (sortBy === 'phq9')        { const la = a.phq9?.at(-1) ?? -1, lb = b.phq9?.at(-1) ?? -1; return lb - la }
             return 0
         })
         console.log('[PatientsList] filtered list:', list.length, 'filterStatus:', filterStatus, 'filterRisk:', filterRisk, 'patients in state:', patients.length)
@@ -479,14 +407,15 @@ const ModernPatientsList = () => {
 
     return (
         <>
-        <div className="min-h-screen bg-gray-50">
+        <div className="bg-transparent">
             <div className="p-4 md:p-6 lg:p-8 max-w-screen-2xl mx-auto">
 
                 {/* Header */}
                 <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between gap-4 mb-6">
-                    <div>
-                        <h1 className="text-xl md:text-2xl font-bold text-gray-900 tracking-tight">Carga de Pacientes</h1>
-                        <p className="text-sm text-gray-500 mt-0.5">{active} activos · {total} en total</p>
+                    <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4 text-sky-500" />
+                        <h1 className="text-sm font-bold text-gray-800">Carga de Pacientes</h1>
+                        <span className="text-[10px] text-gray-400">· {active} activos · {total} en total</span>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                         <button
@@ -539,16 +468,16 @@ const ModernPatientsList = () => {
                         <input
                             type="text" placeholder="Buscar por nombre, diagnóstico..." value={search}
                             onChange={e => setSearch(e.target.value)}
-                            className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
+                            className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-blue-500"
                         />
                     </div>
                     {[
                         { value: filterStatus, setter: setFilterStatus, options: [['all','Todos los estados'],['active','Activos'],['pending','Pendientes'],['inactive','Inactivos'],['invited','Invitados']] },
                         { value: filterRisk,   setter: setFilterRisk,   options: [['all','Todos los riesgos'],['high','Alto riesgo'],['medium','Riesgo medio'],['low','Bajo riesgo']] },
-                        { value: sortBy,       setter: setSortBy,       options: [['name','Orden: Nombre'],['risk','Orden: Riesgo'],['lastSession','Orden: Última sesión'],['phq9','Orden: PHQ-9']] },
+                        { value: sortBy,       setter: setSortBy,       options: [['name','Orden: Nombre'],['risk','Orden: Riesgo'],['lastSession','Orden: Última sesión']] },
                     ].map(({ value, setter, options }, i) => (
                         <select key={i} value={value} onChange={e => setter(e.target.value)}
-                            className="text-xs font-medium border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+                            className="text-xs font-medium border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-sky-500/20">
                             {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                         </select>
                     ))}
@@ -567,7 +496,7 @@ const ModernPatientsList = () => {
                     {filtered.length} paciente{filtered.length !== 1 ? 's' : ''}
                     {(filterStatus !== 'all' || filterRisk !== 'all' || search) && (
                         <button onClick={() => { setSearch(''); setFilterStatus('all'); setFilterRisk('all') }}
-                            className="ml-2 text-indigo-500 hover:text-indigo-700 font-medium">
+                            className="ml-2 text-sky-500 hover:text-blue-800 font-medium">
                             Limpiar filtros
                         </button>
                     )}
@@ -584,7 +513,7 @@ const ModernPatientsList = () => {
                         <p className="text-sm text-gray-400 mt-1">{search ? 'Prueba con otro término.' : 'No hay pacientes con estos filtros.'}</p>
                         {patients.length > 0 && (filterStatus !== 'all' || filterRisk !== 'all') && (
                             <button onClick={() => { setSearch(''); setFilterStatus('all'); setFilterRisk('all') }}
-                                className="mt-3 text-sm text-indigo-600 hover:underline">
+                                className="mt-3 text-sm text-blue-700 hover:underline">
                                 Limpiar filtros ({patients.length} paciente{patients.length !== 1 ? 's' : ''} en total)
                             </button>
                         )}
@@ -612,7 +541,7 @@ const ModernPatientsList = () => {
                         <table className="w-full min-w-[780px] text-left">
                             <thead>
                                 <tr className="border-b border-gray-100">
-                                    {['Paciente','Estado','PHQ-9','Sesiones','Tarea','Próxima',''].map(h => (
+                                    {['Paciente','Estado','Sesiones','Tarea','Próxima',''].map(h => (
                                         <th key={h} className="px-5 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{h}</th>
                                     ))}
                                 </tr>
@@ -630,7 +559,10 @@ const ModernPatientsList = () => {
             {/* Add patient modal */}
             <AnimatePresence>
                 {showAddPatient && (
-                    <PatientForm onClose={() => { setShowAddPatient(false); loadPatients() }} />
+                    <PatientInvitation 
+                        onClose={() => { setShowAddPatient(false); loadPatients() }} 
+                        onSuccess={() => { setShowAddPatient(false); loadPatients() }}
+                    />
                 )}
             </AnimatePresence>
         </div>

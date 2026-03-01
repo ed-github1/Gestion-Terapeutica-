@@ -140,7 +140,7 @@ const SessionLockOverlay = ({
       <div className="w-full max-w-sm mx-4 bg-white rounded-2xl shadow-2xl overflow-hidden">
 
         {/* ── Top accent bar ─────────────────────────────────────── */}
-        <div className="h-1 bg-linear-to-r from-indigo-500 to-purple-600" />
+        <div className="h-1 bg-linear-to-r from-blue-700 to-sky-400" />
 
         <div className="p-8 space-y-6">
 
@@ -148,14 +148,14 @@ const SessionLockOverlay = ({
           <div className="text-center space-y-3">
             {/* Branding mark */}
             <div className="flex justify-center mb-1">
-              <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
-                <Brain className="w-5 h-5 text-indigo-600" />
+              <div className="w-10 h-10 bg-sky-50 rounded-xl flex items-center justify-center">
+                <Brain className="w-5 h-5 text-blue-700" />
               </div>
             </div>
 
             {/* User avatar */}
             <div className="relative inline-flex">
-              <div className="w-16 h-16 rounded-full bg-linear-to-br from-indigo-400 to-purple-500
+              <div className="w-16 h-16 rounded-full bg-linear-to-br from-blue-500 to-sky-400
                               flex items-center justify-center text-white text-xl font-bold shadow-lg">
                 {getInitials()}
               </div>
@@ -198,7 +198,7 @@ const SessionLockOverlay = ({
                 autoComplete="current-password"
                 disabled={loading || cooldown > 0}
                 className="w-full pl-4 pr-10 py-2.5 text-sm border border-gray-200 rounded-lg
-                           focus:ring-2 focus:ring-indigo-500 focus:border-transparent
+                           focus:ring-2 focus:ring-sky-500 focus:border-transparent
                            outline-none transition disabled:bg-gray-50 disabled:text-gray-400"
               />
               <button
@@ -215,10 +215,10 @@ const SessionLockOverlay = ({
             <button
               type="submit"
               disabled={!password.trim() || loading || cooldown > 0}
-              className="w-full bg-linear-to-r from-indigo-600 to-blue-600 text-white
+              className="w-full bg-linear-to-r from-blue-700 to-blue-600 text-white
                          py-2.5 rounded-lg text-sm font-semibold
-                         hover:from-indigo-700 hover:to-blue-700
-                         focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2
+                         hover:from-blue-800 hover:to-blue-700
+                         focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2
                          transition shadow-md hover:shadow-lg
                          disabled:opacity-50 disabled:cursor-not-allowed"
             >

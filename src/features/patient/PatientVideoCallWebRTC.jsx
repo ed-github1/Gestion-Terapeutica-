@@ -122,9 +122,9 @@ const PatientVideoCallWebRTC = () => {
 
   if (!isInitialized) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-sky-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-700 mx-auto mb-4"></div>
           <p className="text-gray-600">Inicializando videollamada...</p>
         </div>
       </div>
@@ -133,9 +133,9 @@ const PatientVideoCallWebRTC = () => {
 
   if (isConnecting) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-sky-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-700 mx-auto mb-4"></div>
           <p className="text-gray-600">Conectando a la sesión...</p>
         </div>
       </div>
@@ -144,7 +144,7 @@ const PatientVideoCallWebRTC = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-sky-100 flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -155,7 +155,7 @@ const PatientVideoCallWebRTC = () => {
           <p className="text-gray-600 mb-6">{error.message}</p>
           <button
             onClick={() => navigate('/dashboard/patient')}
-            className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors"
+            className="bg-blue-700 text-white px-6 py-3 rounded-lg hover:bg-blue-800 transition-colors"
           >
             Volver al Dashboard
           </button>
@@ -220,7 +220,7 @@ const PatientVideoCallWebRTC = () => {
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center">
-              <div className="w-16 h-16 bg-indigo-600/50 rounded-full flex items-center justify-center mx-auto mb-3">
+              <div className="w-16 h-16 bg-blue-700/50 rounded-full flex items-center justify-center mx-auto mb-3">
                 <span className="text-2xl">👤</span>
               </div>
               <p className="text-white text-sm">Esperando al profesional...</p>
@@ -270,11 +270,11 @@ const PatientVideoCallWebRTC = () => {
               transition={{ type: 'spring', damping: 20 }}
               className="absolute top-0 right-0 w-80 h-full bg-white shadow-2xl flex flex-col z-10"
             >
-              <div className="bg-indigo-600 text-white px-4 py-3 flex items-center justify-between">
+              <div className="bg-blue-700 text-white px-4 py-3 flex items-center justify-between">
                 <h3 className="font-semibold">Chat</h3>
                 <button
                   onClick={() => setShowChat(false)}
-                  className="hover:bg-indigo-700 p-1 rounded"
+                  className="hover:bg-blue-800 p-1 rounded"
                 >
                   ✕
                 </button>
@@ -289,7 +289,7 @@ const PatientVideoCallWebRTC = () => {
                     <div
                       className={`max-w-[70%] rounded-lg px-3 py-2 ${
                         msg.isOwn
-                          ? 'bg-indigo-600 text-white'
+                          ? 'bg-blue-700 text-white'
                           : 'bg-gray-200 text-gray-800'
                       }`}
                     >
@@ -315,11 +315,11 @@ const PatientVideoCallWebRTC = () => {
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
                     placeholder="Escribe un mensaje..."
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
                   />
                   <button
                     type="submit"
-                    className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+                    className="bg-blue-700 text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition-colors"
                   >
                     Enviar
                   </button>
@@ -364,7 +364,7 @@ const PatientVideoCallWebRTC = () => {
           >
             <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
             {chatMessages.length > 0 && !showChat && (
-              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-indigo-500 rounded-full text-[9px] flex items-center justify-center font-bold">
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-sky-500 rounded-full text-[9px] flex items-center justify-center font-bold">
                 {chatMessages.length > 9 ? '9+' : chatMessages.length}
               </span>
             )}

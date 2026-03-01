@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react'
-import { Brain } from 'lucide-react'
+import logoSymbol from '@/assets/SIMBOLO_LOGO_TOTALMENTE.png'
 
 /**
  * SidebarHeader Component
@@ -11,10 +11,9 @@ import { Brain } from 'lucide-react'
  * @param {string} props.userRole - Current user role ('professional' or 'patient')
  */
 const SidebarHeader = ({ isCollapsed, userRole }) => {
-    const subtitle = userRole === 'professional' ? 'Espacio Profesional' : 'Tu Espacio Seguro'
 
     return (
-        <div className="h-20 px-5 flex items-center justify-between border-b border-gray-200 bg-white">
+        <div className="h-20 px-4 flex items-center border-b border-white/50 bg-transparent">
             <AnimatePresence mode="wait">
                 {!isCollapsed ? (
                     <motion.div
@@ -22,18 +21,16 @@ const SidebarHeader = ({ isCollapsed, userRole }) => {
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -10 }}
-                        className="flex items-center gap-3"
+                        className="flex items-center gap-2.5"
                     >
-                        <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-md">
-                            <Brain className="w-6 h-6 text-white" strokeWidth={2.5} />
-                        </div>
-                        <div>
-                            <h1 className="text-base font-bold text-blue-600 tracking-tight">
-                                TotalMente
-                            </h1>
-                            <p className="text-xs text-gray-500 font-medium">
-                                {subtitle}
-                            </p>
+                        <img src={logoSymbol} alt="" className="h-9 w-9 object-contain shrink-0" />
+                        <div className="flex flex-col leading-tight">
+                            <span className="text-[17px] text-[#4A5568] tracking-tight">
+                                <span className="font-normal">Total</span><span className="font-bold">Mente</span>
+                            </span>
+                            <span className="text-[8px] font-semibold text-gray-500 tracking-wider uppercase">
+                                Acompaña·Transforma·Gestiona
+                            </span>
                         </div>
                     </motion.div>
                 ) : (
@@ -42,9 +39,9 @@ const SidebarHeader = ({ isCollapsed, userRole }) => {
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.8 }}
-                        className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-md mx-auto"
+                        className="w-full flex items-center justify-center"
                     >
-                        <Brain className="w-6 h-6 text-white" strokeWidth={2.5} />
+                        <img src={logoSymbol} alt="TotalMente" className="h-9 w-9 object-contain" />
                     </motion.div>
                 )}
             </AnimatePresence>

@@ -19,7 +19,7 @@ const CircularProgress = ({ percentage, size = 80, strokeWidth = 6, delay = 0 })
                 stroke="currentColor"
                 strokeWidth={strokeWidth}
                 fill="none"
-                className="text-gray-100"
+                className="text-white/20"
             />
             {/* Progress circle */}
             <motion.circle
@@ -30,10 +30,10 @@ const CircularProgress = ({ percentage, size = 80, strokeWidth = 6, delay = 0 })
                 strokeWidth={strokeWidth}
                 fill="none"
                 strokeLinecap="round"
-                className="text-indigo-500"
+                className="text-white"
                 initial={{ strokeDashoffset: circumference }}
                 animate={{ strokeDashoffset: offset }}
-                transition={{ delay, duration: 1, ease: [0.16, 1, 0.3, 1] }}
+                transition={{ delay, duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
                 style={{
                     strokeDasharray: circumference,
                 }}
@@ -51,7 +51,7 @@ const AnimatedCounter = ({ value, delay = 0 }) => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay, duration: 0.5 }}
-            className="text-3xl md:text-4xl font-bold text-gray-900 tabular-nums"
+            className="text-3xl md:text-4xl font-bold text-white tabular-nums leading-none"
         >
             {value}
         </motion.span>
@@ -64,9 +64,9 @@ const AnimatedCounter = ({ value, delay = 0 }) => {
 const TrendIndicator = ({ current, previous }) => {
     if (!previous || current === previous) {
         return (
-            <div className="flex items-center gap-1 text-gray-400">
-                <Minus className="w-3 h-3" />
-                <span className="text-xs font-medium">No change</span>
+            <div className="flex items-center gap-1 bg-white/20 rounded-full px-2.5 py-1">
+                <Minus className="w-3 h-3 text-white/70" />
+                <span className="text-[10px] font-semibold text-white/70">—</span>
             </div>
         )
     }
@@ -76,60 +76,64 @@ const TrendIndicator = ({ current, previous }) => {
     const percentage = Math.abs((diff / previous) * 100).toFixed(0)
 
     return (
-        <div className={`flex items-center gap-1 ${isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
+        <div className={`flex items-center gap-1 rounded-full px-2.5 py-1 ${isPositive ? 'bg-white/25 text-white' : 'bg-black/20 text-white/80'}`}>
             {isPositive ? (
                 <TrendingUp className="w-3 h-3" />
             ) : (
                 <TrendingDown className="w-3 h-3" />
             )}
-            <span className="text-xs font-semibold">{percentage}%</span>
+            <span className="text-[10px] font-semibold">{percentage}%</span>
         </div>
     )
 }
 
 /**
- * StatCard Component - Reimagined with circular progress and gradients
+ * StatCard Component — vivid gradient card with white text and circular progress
  */
 const StatCard = ({ icon: Icon, value, label, previous, progress, gradient, delay = 0 }) => (
     <motion.div
-        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        initial={{ opacity: 0, scale: 0.92, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ delay, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        whileHover={{ scale: 1.03, y: -4 }}
+        whileHover={{ scale: 1.02, y: -4 }}
         className="relative group cursor-pointer"
     >
-        {/* Gradient background blob */}
-        <div className={`absolute inset-0 ${gradient} opacity-10 rounded-3xl blur-2xl group-hover:opacity-20 transition-opacity duration-500`}></div>
-        
-        {/* Card content */}
-        <div className="relative bg-white rounded-2xl p-5 md:p-6 shadow-sm border border-gray-100 overflow-hidden group-hover:shadow-lg transition-all duration-300">
-            {/* Top section: Icon and trend */}
-            <div className="flex items-start justify-between mb-4">
-                <div className={`p-2.5 rounded-xl ${gradient} bg-opacity-10`}>
-                    <Icon className="w-5 h-5 text-indigo-600" strokeWidth={2.5} />
+        {/* Outer glow on hover */}
+        <div className={`absolute inset-0 ${gradient} opacity-0 group-hover:opacity-40 rounded-2xl blur-xl transition-opacity duration-500 -z-10`} />
+
+        {/* Card */}
+        <div className={`relative ${gradient} rounded-2xl p-5 md:p-6 shadow-lg overflow-hidden`}>
+            {/* Decorative background circles */}
+            <div className="absolute -top-10 -right-10 w-36 h-36 bg-white/10 rounded-full pointer-events-none" />
+            <div className="absolute -bottom-8 -left-8 w-28 h-28 bg-white/10 rounded-full pointer-events-none" />
+
+            {/* Top: Icon + Trend badge */}
+            <div className="relative flex items-start justify-between mb-5">
+                <div className="p-2.5 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
+                    <Icon className="w-5 h-5 text-white" strokeWidth={2.5} />
                 </div>
                 <TrendIndicator current={value} previous={previous} />
             </div>
 
-            {/* Middle: Circular progress with value */}
-            <div className="flex items-center justify-between mb-3">
-                <div>
+            {/* Middle: Value + Circular progress */}
+            <div className="relative flex items-end justify-between">
+                <div className="flex flex-col gap-1">
                     <AnimatedCounter value={value} delay={delay + 0.2} />
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mt-1">
+                    <p className="text-[11px] font-semibold text-white/65 uppercase tracking-widest mt-0.5">
                         {label}
                     </p>
                 </div>
-                
+
                 {progress !== undefined && (
-                    <div className="relative">
-                        <CircularProgress 
-                            percentage={progress} 
-                            size={60} 
-                            strokeWidth={5}
+                    <div className="relative mb-0.5">
+                        <CircularProgress
+                            percentage={progress}
+                            size={54}
+                            strokeWidth={4}
                             delay={delay + 0.3}
                         />
                         <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="text-xs font-bold text-gray-700">{progress}%</span>
+                            <span className="text-[10px] font-bold text-white">{progress}%</span>
                         </div>
                     </div>
                 )}
@@ -141,15 +145,12 @@ const StatCard = ({ icon: Icon, value, label, previous, progress, gradient, dela
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: delay + 0.5 }}
-                    className="text-xs text-gray-400 flex items-center gap-1"
+                    className="relative mt-4 pt-3 border-t border-white/20 flex items-center gap-1.5 text-[11px] text-white/60"
                 >
-                    <span>vs last period:</span>
-                    <span className="font-semibold text-gray-600">{previous}</span>
+                    <span>vs previous:</span>
+                    <span className="font-bold text-white/85">{previous}</span>
                 </motion.div>
             )}
-
-            {/* Hover glow effect */}
-            <div className={`absolute -inset-1 ${gradient} opacity-0 group-hover:opacity-20 rounded-3xl blur-xl transition-opacity duration-500 -z-10`}></div>
         </div>
     </motion.div>
 )
@@ -161,17 +162,22 @@ const StatCard = ({ icon: Icon, value, label, previous, progress, gradient, dela
  * Loading placeholder for stat cards
  */
 const StatCardSkeleton = () => (
-    <div className="animate-pulse bg-white rounded-2xl p-6 border border-gray-100">
-        <div className="flex items-center justify-between mb-4">
-            <div className="w-10 h-10 bg-gray-100 rounded-xl"></div>
-            <div className="w-12 h-4 bg-gray-100 rounded"></div>
+    <div className="animate-pulse bg-gradient-to-br from-gray-200 to-gray-300 rounded-2xl p-5 md:p-6 overflow-hidden relative">
+        <div className="absolute -top-8 -right-8 w-32 h-32 bg-white/20 rounded-full" />
+        <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-white/20 rounded-full" />
+        <div className="flex items-start justify-between mb-5">
+            <div className="w-10 h-10 bg-white/30 rounded-xl"></div>
+            <div className="w-14 h-6 bg-white/30 rounded-full"></div>
         </div>
-        <div className="flex items-center justify-between">
+        <div className="flex items-end justify-between">
             <div>
-                <div className="w-20 h-10 bg-gray-100 rounded mb-2"></div>
-                <div className="w-24 h-3 bg-gray-100 rounded"></div>
+                <div className="w-16 h-9 bg-white/30 rounded mb-2"></div>
+                <div className="w-24 h-2.5 bg-white/30 rounded"></div>
             </div>
-            <div className="w-14 h-14 rounded-full bg-gray-100"></div>
+            <div className="w-[54px] h-[54px] rounded-full bg-white/20"></div>
+        </div>
+        <div className="mt-4 pt-3 border-t border-white/20">
+            <div className="w-28 h-2.5 bg-white/30 rounded"></div>
         </div>
     </div>
 )
@@ -214,7 +220,7 @@ const DashboardStats = ({ stats, loading }) => {
                 label="Active Caseload"
                 previous={stats.previousActivePatients}
                 progress={Math.round(activePatientsProgress)}
-                gradient="bg-gradient-to-br from-blue-400 to-indigo-600"
+                gradient="bg-gradient-to-br from-blue-400 to-blue-700"
                 delay={0.1}
             />
             <StatCard
@@ -223,7 +229,7 @@ const DashboardStats = ({ stats, loading }) => {
                 label="Today's Sessions"
                 previous={stats.completedToday || 0}
                 progress={Math.round(sessionsProgress)}
-                gradient="bg-gradient-to-br from-purple-400 to-pink-600"
+                gradient="bg-gradient-to-br from-sky-300 to-teal-500"
                 delay={0.2}
             />
             <StatCard

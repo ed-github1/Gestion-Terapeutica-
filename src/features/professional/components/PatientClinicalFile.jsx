@@ -1,19 +1,18 @@
 /**
  * PatientClinicalFile.jsx
  * Full-featured clinical file drawer for a professional to review
- * a patient's diary entries, homework tasks, PHQ-9 trend graph,
- * session notes, and treatment summary.
+ * a patient's diary entries, homework tasks, session notes, and treatment summary.
  *
  * Uses rich mock data when real API data is unavailable (offline-first).
  */
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import {
-  X, BookOpen, ClipboardList, FileText, TrendingDown, TrendingUp, Minus,
-  CheckCircle2, Circle, ShieldAlert, Calendar, Clock, Target, Brain,
+  X, BookOpen, ClipboardList, FileText,
+  CheckCircle2, Circle, ShieldAlert, Calendar, Clock, Target,
   Activity, Smile, Frown, Meh, AlertCircle, ChevronLeft, ChevronRight,
   Hash, MessageSquare, Dumbbell, Star, Pencil, User, Mail, Phone,
-  BarChart2, Zap, Heart, Wind, Moon, Sun, Coffee, Send,
+  BarChart2, Zap, Heart, Wind, Moon, Sun, Coffee, Send, Plus,
 } from 'lucide-react'
 import { useAuth } from '../../auth'
 import { diaryService } from '@shared/services/diaryService'
@@ -21,9 +20,9 @@ import { homeworkService } from '@shared/services/homeworkService'
 
 // ─── Palette helpers ──────────────────────────────────────────────────────────
 const avatarPalette = [
-  'from-indigo-500 to-indigo-600',
+  'from-sky-500 to-blue-700',
   'from-emerald-500 to-emerald-600',
-  'from-violet-500 to-violet-600',
+  'from-sky-500 to-sky-600',
   'from-rose-500 to-rose-600',
   'from-amber-400 to-amber-500',
   'from-cyan-500 to-cyan-600',
@@ -41,14 +40,14 @@ const MOOD_META = {
   '😐': { label: 'Regular',  bg: 'bg-yellow-100',   text: 'text-yellow-700',  score: 5 },
   '😔': { label: 'Triste',   bg: 'bg-blue-100',     text: 'text-blue-700',    score: 3 },
   '😣': { label: 'Dolor',    bg: 'bg-red-100',      text: 'text-red-700',     score: 2 },
-  '😴': { label: 'Cansado',  bg: 'bg-purple-100',   text: 'text-purple-700',  score: 4 },
+  '😴': { label: 'Cansado',  bg: 'bg-sky-100',   text: 'text-sky-600',  score: 4 },
   '😰': { label: 'Ansioso',  bg: 'bg-orange-100',   text: 'text-orange-700',  score: 3 },
 }
 
 const HOMEWORK_TYPES = {
   exercise:   { label: 'Ejercicio',  icon: Dumbbell, bg: 'bg-emerald-100 text-emerald-700' },
   reading:    { label: 'Lectura',    icon: BookOpen,  bg: 'bg-blue-100 text-blue-700' },
-  journaling: { label: 'Diario',     icon: Pencil,    bg: 'bg-purple-100 text-purple-700' },
+  journaling: { label: 'Diario',     icon: Pencil,    bg: 'bg-sky-100 text-sky-600' },
   reflection: { label: 'Reflexión',  icon: Star,      bg: 'bg-amber-100 text-amber-700' },
   breathing:  { label: 'Respiración',icon: Wind,      bg: 'bg-cyan-100 text-cyan-700'   },
   other:      { label: 'Otro',       icon: ClipboardList, bg: 'bg-gray-100 text-gray-700' },
@@ -64,16 +63,6 @@ const buildMockData = (patient) => {
   const seed = typeof patient.id === 'number'
     ? patient.id
     : String(patient.id).charCodeAt(0) + String(patient.id).charCodeAt(1 ) || 7
-
-  // PHQ-9 history (12 data points ≈ 3 months of biweekly)
-  const basePHQ = patient.phq9?.length
-    ? [...patient.phq9]
-    : Array.from({ length: 6 }, (_, i) => Math.max(0, seededInt(seed + i, 6, 20)))
-  // Extend to 10 points if needed
-  while (basePHQ.length < 10) {
-    const last = basePHQ[basePHQ.length - 1]
-    basePHQ.push(Math.max(0, Math.min(27, last + seededInt(seed + basePHQ.length, -3, 2))))
-  }
 
   // Diary entries (patient-side)
   const moods = Object.keys(MOOD_META)
@@ -145,8 +134,8 @@ const buildMockData = (patient) => {
       id: 'n3', type: 'clinical',
       date: new Date(Date.now() - 86400000 * 16).toISOString(),
       author: 'Profesional', sessionNumber: Math.max(1, (patient.totalSessions || 4) - 2),
-      text: `Evaluación inicial con PHQ-9 y GAD-7. Diagnóstico provisional. Se plantean objetivos terapéuticos y se explica el modelo cognitivo-conductual.`,
-      tags: ['Evaluación', 'PHQ-9', 'GAD-7', 'Psicoeducación'],
+      text: `Evaluación inicial. Diagnóstico provisional. Se plantean objetivos terapéuticos y se explica el modelo cognitivo-conductual.`,
+      tags: ['Evaluación', 'GAD-7', 'Psicoeducación'],
     },
   ]
 
@@ -207,88 +196,10 @@ const buildMockData = (patient) => {
     date: new Date(Date.now() - 86400000 * 7 * (i + 1)).toISOString(),
     duration: [50, 55, 60][i % 3],
     type: ['Presencial', 'Videollamada', 'Presencial'][i % 3],
-    phq9: basePHQ[basePHQ.length - 1 - i] ?? null,
     mood: seededInt(seed + i, 3, 9),
   }))
 
-  return { diaryEntries, clinicalNotes, homeworkTasks, sessionHistory, phq9History: basePHQ }
-}
-
-// ─── PHQ-9 Area Chart ─────────────────────────────────────────────────────────
-const PHQ9Chart = ({ scores }) => {
-  if (!scores || scores.length < 2) return null
-  const w = 400, h = 120, padX = 28, padY = 14
-  const max = 27
-  const pts = scores.map((v, i) => {
-    const x = padX + (i / (scores.length - 1)) * (w - padX * 2)
-    const y = padY + (1 - v / max) * (h - padY * 2)
-    return [x, y]
-  })
-  const linePath = pts.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x},${y}`).join(' ')
-  const areaPath = `${linePath} L${pts[pts.length - 1][0]},${h - padY} L${pts[0][0]},${h - padY} Z`
-
-  // Severity bands
-  const bands = [
-    { y: padY + (1 - 19/27) * (h - padY * 2), label: 'Severo',    color: '#fecaca' },
-    { y: padY + (1 - 14/27) * (h - padY * 2), label: 'Moderado-s',color: '#fed7aa' },
-    { y: padY + (1 - 9/27)  * (h - padY * 2), label: 'Moderado',  color: '#fef08a' },
-    { y: padY + (1 - 4/27)  * (h - padY * 2), label: 'Leve',      color: '#bbf7d0' },
-  ]
-
-  const lastScore = scores[scores.length - 1]
-  const firstScore = scores[0]
-  const delta = lastScore - firstScore
-  const isImproving = delta < -2
-  const isWorsening = delta > 2
-
-  return (
-    <div className="relative">
-      <svg viewBox={`0 0 ${w} ${h}`} className="w-full" style={{ height: 120 }}>
-        {/* Severity band fills */}
-        {bands.map((b, i) => {
-          const nextY = i + 1 < bands.length ? bands[i + 1].y : h - padY
-          return (
-            <rect key={i} x={padX} y={b.y} width={w - padX * 2} height={nextY - b.y}
-              fill={b.color} opacity={0.25} />
-          )
-        })}
-        {/* Horizontal threshold lines */}
-        {bands.map((b, i) => (
-          <line key={i} x1={padX} x2={w - padX} y1={b.y} y2={b.y}
-            stroke="#e5e7eb" strokeWidth="0.8" strokeDasharray="3 3" />
-        ))}
-        {/* Area fill */}
-        <path d={areaPath} fill="#6366f1" opacity={0.1} />
-        {/* Line */}
-        <path d={linePath} fill="none" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        {/* Dots */}
-        {pts.map(([x, y], i) => (
-          <circle key={i} cx={x} cy={y} r={i === pts.length - 1 ? 4 : 2.5}
-            fill={i === pts.length - 1 ? '#6366f1' : '#a5b4fc'}
-            stroke="white" strokeWidth="1.5"
-          />
-        ))}
-        {/* Y axis labels */}
-        {[0, 5, 10, 15, 20, 27].map(v => {
-          const y = padY + (1 - v / max) * (h - padY * 2)
-          return (
-            <text key={v} x={padX - 4} y={y + 3} textAnchor="end"
-              fontSize="8" fill="#9ca3af">{v}</text>
-          )
-        })}
-      </svg>
-      {/* Delta badge */}
-      <div className={`absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-        isImproving ? 'bg-emerald-100 text-emerald-700' :
-        isWorsening ? 'bg-rose-100 text-rose-700' : 'bg-gray-100 text-gray-500'
-      }`}>
-        {isImproving ? <TrendingDown className="w-3 h-3" /> :
-         isWorsening ? <TrendingUp   className="w-3 h-3" /> :
-                       <Minus        className="w-3 h-3" />}
-        {Math.abs(delta)} pts {isImproving ? 'mejoría' : isWorsening ? 'empeora' : 'estable'}
-      </div>
-    </div>
-  )
+  return { diaryEntries, clinicalNotes, homeworkTasks, sessionHistory }
 }
 
 // ─── Mood Bar ─────────────────────────────────────────────────────────────────
@@ -317,7 +228,8 @@ const rel = (iso) => {
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
 const TABS = [
-  { key: 'summary',  label: 'Resumen',       icon: BarChart2   },
+  { key: 'caratula', label: 'Carátula',       icon: User        },
+  { key: 'summary',  label: 'Evolución',      icon: BarChart2   },
   { key: 'diary',    label: 'Diario',         icon: BookOpen    },
   { key: 'homework', label: 'Tareas',          icon: ClipboardList },
   { key: 'notes',    label: 'Notas clínicas', icon: FileText    },
@@ -336,19 +248,10 @@ const TypeBadge = ({ type }) => {
 }
 
 // ─── Severity label ───────────────────────────────────────────────────────────
-const phq9Severity = (score) => {
-  if (score === null || score === undefined) return null
-  if (score >= 20) return { label: 'Severo',        color: 'text-rose-700',   bg: 'bg-rose-100'   }
-  if (score >= 15) return { label: 'Mod. severo',   color: 'text-orange-700', bg: 'bg-orange-100' }
-  if (score >= 10) return { label: 'Moderado',      color: 'text-amber-700',  bg: 'bg-amber-100'  }
-  if (score >= 5)  return { label: 'Leve',          color: 'text-yellow-700', bg: 'bg-yellow-100' }
-  return                   { label: 'Sin depresión', color: 'text-emerald-700',bg: 'bg-emerald-100'}
-}
-
 // ─── Main component ───────────────────────────────────────────────────────────
 const PatientClinicalFile = ({ patient, onClose }) => {
   const { user } = useAuth()
-  const [tab, setTab]                   = useState('summary')
+  const [tab, setTab]                   = useState('caratula')
   const [entries, setEntries]           = useState([])
   const [hwTasks, setHwTasks]           = useState([])
   const [isLoading, setIsLoading]       = useState(true)
@@ -418,17 +321,15 @@ const PatientClinicalFile = ({ patient, onClose }) => {
   const diaryEntries  = entries.filter(e => e.mood)
   const clinicalNotes = entries.filter(e => !e.mood && (e.text || e.notes))
 
-  // ── Keep mock only for PHQ-9 trend + session history (no API yet)
+  // ── Keep mock only for session history (no API yet)
   const mock = useMemo(() => buildMockData(patient), [patient])
-  const { sessionHistory, phq9History } = mock
+  const { sessionHistory, clinicalNotes: mockClinicalNotes } = mock
 
   const grad      = getGradient(patient.id)
   const initials  = getInitials(
     patient.nombre || patient.name?.split(' ')[0],
     patient.apellido || patient.name?.split(' ').slice(1).join(' ')
   )
-  const lastPHQ   = phq9History[phq9History.length - 1]
-  const severity  = phq9Severity(lastPHQ)
   const completedHW = hwTasks.filter(t => t.completed).length
   const totalHW     = Math.max(hwTasks.length, 1)
 
@@ -499,7 +400,6 @@ const PatientClinicalFile = ({ patient, onClose }) => {
                 {[
                   { value: patient.totalSessions ?? sessionHistory.length, label: 'Sesiones' },
                   { value: `${completedHW}/${totalHW}`, label: 'Tareas' },
-                  { value: lastPHQ ?? '—', label: 'PHQ-9' },
                 ].map(({ value, label }) => (
                   <div key={label} className="text-center">
                     <p className="text-lg font-black text-white leading-none">{value}</p>
@@ -556,6 +456,80 @@ const PatientClinicalFile = ({ patient, onClose }) => {
                   </div>
                 )}
 
+                {/* ── CARÁTULA ──────────────────────────────────────────── */}
+                {tab === 'caratula' && !isLoading && (
+                  <div className="space-y-5">
+                    {/* Datos del paciente */}
+                    <div className="bg-white rounded-2xl border border-gray-100 p-5">
+                      <div className="flex items-start justify-between mb-5">
+                        <h3 className="font-bold text-gray-900">Datos del paciente</h3>
+                        <button
+                          onClick={() => setTab('notes')}
+                          className="flex items-center gap-1.5 px-4 py-2 bg-emerald-400 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl transition-colors"
+                        >
+                          <Plus className="w-3.5 h-3.5" /> Nueva sesión
+                        </button>
+                      </div>
+                      <div className="space-y-3 divide-y divide-gray-50">
+                        {[
+                          { label: 'Nombre',                 value: `${patient.nombre || patient.name?.split(' ')[0] || ''} ${patient.apellido || patient.name?.split(' ').slice(1).join(' ') || ''}`.trim() || '—' },
+                          { label: 'Edad',                   value: patient.age ? `${patient.age} años` : '—' },
+                          { label: 'Género',                 value: patient.gender || '—' },
+                          { label: 'Email',                  value: patient.email || '—' },
+                          { label: 'Teléfono',               value: patient.telefono || '—' },
+                          { label: 'Contacto de emergencia', value: patient.emergencyContact || '—' },
+                          { label: 'Motivo de consulta',     value: patient.treatmentGoal || '—' },
+                          { label: 'Diagnóstico',            value: patient.diagnosis && patient.diagnosis !== 'Pendiente' ? patient.diagnosis : '—' },
+                        ].filter(({ value }) => value !== '—' || true).map(({ label, value }) => (
+                          <div key={label} className="grid grid-cols-[160px_1fr] gap-3 items-baseline pt-2.5 first:pt-0">
+                            <span className="text-xs text-gray-400 font-medium shrink-0">{label}:</span>
+                            <span className="text-sm text-gray-800 leading-relaxed">{value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Notas recientes */}
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="font-bold text-gray-900">Notas recientes</h3>
+                        <button
+                          onClick={() => setTab('notes')}
+                          className="text-xs text-blue-700 hover:underline flex items-center gap-0.5"
+                        >
+                          Ver todas <ChevronRight className="w-3 h-3" />
+                        </button>
+                      </div>
+                      {(clinicalNotes.length > 0 ? clinicalNotes : mockClinicalNotes).slice(0, 3).map((note, i) => {
+                        const dateStr = note.date || note.createdAt
+                        return (
+                          <div key={note._id || note.id || i} className="bg-white rounded-2xl border border-gray-100 p-4 mb-3 last:mb-0">
+                            {dateStr && (
+                              <p className="text-[11px] text-gray-400 mb-1.5">
+                                {new Date(dateStr).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}
+                              </p>
+                            )}
+                            <p className="text-sm text-gray-700 leading-relaxed">{note.text || note.notes}</p>
+                            {note.tags?.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5 mt-2.5">
+                                {note.tags.map(t => (
+                                  <span key={t} className="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full font-medium">{t}</span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                      {clinicalNotes.length === 0 && mockClinicalNotes.length === 0 && (
+                        <div className="text-center py-10">
+                          <FileText className="w-8 h-8 text-gray-200 mx-auto mb-2" />
+                          <p className="text-sm text-gray-400">Sin notas clínicas aún</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {tab === 'summary' && !isLoading && (
                   <div className="space-y-6">
                     {error && (
@@ -568,16 +542,9 @@ const PatientClinicalFile = ({ patient, onClose }) => {
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       {[
                         {
-                          label: 'PHQ-9 actual', value: lastPHQ ?? '—',
-                          sub: severity?.label,
-                          Icon: Brain,
-                          bg: severity?.bg ?? 'bg-gray-100',
-                          color: severity?.color ?? 'text-gray-700',
-                        },
-                        {
                           label: 'Sesiones totales', value: patient.totalSessions ?? sessionHistory.length,
                           sub: patient.lastSession ? `Última: ${rel(patient.lastSession)}` : null,
-                          Icon: Calendar, bg: 'bg-indigo-50', color: 'text-indigo-600',
+                          Icon: Calendar, bg: 'bg-sky-50', color: 'text-blue-700',
                         },
                         {
                           label: 'Tareas completas', value: hwTasks.length ? `${completedHW}/${hwTasks.length}` : '—',
@@ -588,8 +555,8 @@ const PatientClinicalFile = ({ patient, onClose }) => {
                           label: 'Entradas diario', value: diaryEntries.length || '—',
                           sub: clinicalNotes.length ? `${clinicalNotes.length} notas clínicas` : null,
                           Icon: BookOpen,
-                          bg: 'bg-violet-50',
-                          color: 'text-violet-600',
+                          bg: 'bg-sky-50',
+                          color: 'text-sky-600',
                         },
                       ].map(({ label, value, sub, Icon, bg, color }) => (
                         <div key={label} className="bg-white rounded-2xl border border-gray-100 p-4 flex flex-col gap-2">
@@ -605,29 +572,11 @@ const PatientClinicalFile = ({ patient, onClose }) => {
                       ))}
                     </div>
 
-                    {/* PHQ-9 chart */}
-                    <div className="bg-white rounded-2xl border border-gray-100 p-5">
-                      <div className="flex items-center justify-between mb-4">
-                        <div>
-                          <h3 className="font-bold text-gray-900 text-sm">Evolución PHQ-9</h3>
-                          <p className="text-xs text-gray-400 mt-0.5">Últimas {phq9History.length} evaluaciones</p>
-                        </div>
-                        <div className="flex gap-2 text-[10px]">
-                          {[['bg-rose-100','Severo'],['bg-amber-100','Moderado'],['bg-emerald-100','Leve']].map(([c,l]) => (
-                            <span key={l} className="flex items-center gap-1 text-gray-500">
-                              <span className={`w-2 h-2 rounded-sm ${c}`} /> {l}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                      <PHQ9Chart scores={phq9History} />
-                    </div>
-
                     {/* Treatment goal + contact */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="bg-white rounded-2xl border border-gray-100 p-5">
                         <div className="flex items-center gap-2 mb-3">
-                          <Target className="w-4 h-4 text-indigo-500" />
+                          <Target className="w-4 h-4 text-sky-500" />
                           <h3 className="font-bold text-gray-900 text-sm">Objetivo terapéutico</h3>
                         </div>
                         <p className="text-sm text-gray-700 leading-relaxed">
@@ -636,7 +585,7 @@ const PatientClinicalFile = ({ patient, onClose }) => {
                       </div>
                       <div className="bg-white rounded-2xl border border-gray-100 p-5">
                         <div className="flex items-center gap-2 mb-3">
-                          <User className="w-4 h-4 text-indigo-500" />
+                          <User className="w-4 h-4 text-sky-500" />
                           <h3 className="font-bold text-gray-900 text-sm">Datos de contacto</h3>
                         </div>
                         <div className="space-y-2">
@@ -665,10 +614,10 @@ const PatientClinicalFile = ({ patient, onClose }) => {
                       <div className="bg-white rounded-2xl border border-gray-100 p-5">
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-2">
-                            <BookOpen className="w-4 h-4 text-indigo-500" />
+                            <BookOpen className="w-4 h-4 text-sky-500" />
                             <h3 className="font-bold text-gray-900 text-sm">Última entrada del diario</h3>
                           </div>
-                          <button onClick={() => setTab('diary')} className="text-xs text-indigo-600 hover:underline flex items-center gap-0.5">
+                          <button onClick={() => setTab('diary')} className="text-xs text-blue-700 hover:underline flex items-center gap-0.5">
                             Ver todo <ChevronRight className="w-3 h-3" />
                           </button>
                         </div>
@@ -687,8 +636,8 @@ const PatientClinicalFile = ({ patient, onClose }) => {
                     </div>
                     {diaryEntries.length === 0 ? (
                       <div className="text-center py-14">
-                        <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                          <BookOpen className="w-7 h-7 text-indigo-300" />
+                        <div className="w-14 h-14 bg-sky-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                          <BookOpen className="w-7 h-7 text-sky-300" />
                         </div>
                         <p className="font-semibold text-gray-600">Sin entradas</p>
                         <p className="text-sm text-gray-400 mt-1">El paciente aún no ha escrito en su diario</p>
@@ -757,14 +706,14 @@ const PatientClinicalFile = ({ patient, onClose }) => {
                           onChange={e => setNewNote(e.target.value)}
                           placeholder={`Añadir nota sobre ${patient.nombre || patient.name?.split(' ')[0] || 'el paciente'}…`}
                           rows={2}
-                          className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl resize-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent outline-none bg-gray-50"
+                          className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50"
                         />
                         <motion.button
                           type="submit"
                           disabled={isSubmitting || !newNote.trim()}
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
-                          className="shrink-0 p-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="shrink-0 p-2.5 bg-blue-700 text-white rounded-xl hover:bg-blue-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {isSubmitting
                             ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
@@ -785,8 +734,8 @@ const PatientClinicalFile = ({ patient, onClose }) => {
                     </div>
                     {clinicalNotes.length === 0 ? (
                       <div className="text-center py-10">
-                        <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                          <FileText className="w-7 h-7 text-indigo-300" />
+                        <div className="w-14 h-14 bg-sky-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                          <FileText className="w-7 h-7 text-sky-300" />
                         </div>
                         <p className="font-semibold text-gray-600">Sin notas clínicas</p>
                         <p className="text-sm text-gray-400 mt-1">Usa el formulario de arriba para añadir la primera nota</p>
@@ -964,12 +913,12 @@ const ClinicalNoteCard = ({ note, index }) => (
     initial={{ opacity: 0, y: 6 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.15, delay: Math.min(index, 3) * 0.04 }}
-    className="bg-white rounded-2xl border border-indigo-100 p-5"
+    className="bg-white rounded-2xl border border-sky-100 p-5"
   >
     <div className="flex items-start justify-between gap-3 mb-3">
       <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center">
-          <FileText className="w-4 h-4 text-indigo-500" />
+        <div className="w-8 h-8 rounded-xl bg-sky-50 flex items-center justify-center">
+          <FileText className="w-4 h-4 text-sky-500" />
         </div>
         <div>
           <p className="text-xs font-bold text-gray-800">Sesión #{note.sessionNumber}</p>
@@ -982,7 +931,7 @@ const ClinicalNoteCard = ({ note, index }) => (
     {note.tags?.length > 0 && (
       <div className="flex flex-wrap gap-1.5 mt-3">
         {note.tags.map(tag => (
-          <span key={tag} className="flex items-center gap-0.5 text-[10px] font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+          <span key={tag} className="flex items-center gap-0.5 text-[10px] font-medium text-blue-700 bg-sky-50 px-2 py-0.5 rounded-full">
             <Hash className="w-2.5 h-2.5" /> {tag}
           </span>
         ))}
@@ -991,17 +940,14 @@ const ClinicalNoteCard = ({ note, index }) => (
   </motion.div>
 )
 
-const SessionRow = ({ session, index }) => {
-  const sev = phq9Severity(session.phq9)
-
-  return (
+const SessionRow = ({ session, index }) => (
     <motion.div
       initial={{ opacity: 0, x: -6 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.15, delay: Math.min(index, 3) * 0.03 }}
       className="bg-white rounded-2xl border border-gray-100 px-5 py-3.5 flex items-center gap-4"
     >
-      <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-xs font-black text-indigo-600 shrink-0">
+      <div className="w-9 h-9 rounded-xl bg-sky-50 flex items-center justify-center text-xs font-black text-blue-700 shrink-0">
         #{session.number}
       </div>
       <div className="flex-1 min-w-0">
@@ -1015,19 +961,10 @@ const SessionRow = ({ session, index }) => {
         </div>
         <p className="text-xs text-gray-400 mt-0.5">{session.duration} min</p>
       </div>
-      {session.phq9 !== null && (
-        <div className="text-right shrink-0">
-          <p className="text-sm font-bold text-gray-900">{session.phq9}</p>
-          {sev && (
-            <span className={`text-[10px] font-semibold ${sev.color}`}>{sev.label}</span>
-          )}
-        </div>
-      )}
       <div className="w-8 h-8 rounded-xl bg-gray-50 flex items-center justify-center shrink-0">
         <p className="text-sm font-bold text-gray-700">{session.mood}</p>
       </div>
     </motion.div>
-  )
-}
+)
 
 export default PatientClinicalFile

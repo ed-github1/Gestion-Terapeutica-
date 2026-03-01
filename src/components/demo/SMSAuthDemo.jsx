@@ -60,7 +60,7 @@ const SMSAuthDemo = () => {
 
             {/* Step 3 */}
             <div className="flex items-start space-x-4">
-              <div className="shrink-0 w-10 h-10 bg-purple-500 text-white rounded-full flex items-center justify-center font-bold">
+              <div className="shrink-0 w-10 h-10 bg-sky-400 text-white rounded-full flex items-center justify-center font-bold">
                 3
               </div>
               <div className="flex-1">
@@ -116,7 +116,7 @@ const SMSAuthDemo = () => {
 
             {/* Step 6 */}
             <div className="flex items-start space-x-4">
-              <div className="shrink-0 w-10 h-10 bg-indigo-500 text-white rounded-full flex items-center justify-center font-bold">
+              <div className="shrink-0 w-10 h-10 bg-sky-500 text-white rounded-full flex items-center justify-center font-bold">
                 6
               </div>
               <div className="flex-1">
@@ -265,7 +265,7 @@ const SMSAuthDemo = () => {
         </div>
 
         {/* Quick Links */}
-        <div className="bg-linear-to-r from-blue-500 to-indigo-600 rounded-2xl shadow-lg p-8 text-white">
+        <div className="bg-linear-to-r from-blue-500 to-blue-700 rounded-2xl shadow-lg p-8 text-white">
           <h2 className="text-2xl font-bold mb-4">📚 Documentation</h2>
           <div className="grid md:grid-cols-3 gap-4">
             <div className="bg-white/10 backdrop-blur rounded-lg p-4">

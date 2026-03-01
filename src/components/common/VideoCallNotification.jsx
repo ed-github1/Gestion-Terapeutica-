@@ -45,9 +45,9 @@ const VideoCallNotification = ({ invitation, onAccept, onDecline, onClose }) => 
         md:left-auto md:top-auto md:translate-x-0 md:translate-y-0
         flex items-center justify-center"
     >
-      <div className="bg-white rounded-3xl shadow-2xl border-2 border-purple-500 overflow-hidden">
+      <div className="bg-white rounded-3xl shadow-2xl border-2 border-sky-400 overflow-hidden">
         {/* Header with pulse animation */}
-        <div className="bg-linear-to-r from-purple-500 to-pink-500 p-4 relative overflow-hidden">
+        <div className="bg-linear-to-r from-sky-400 to-teal-400 p-4 relative overflow-hidden">
           <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
           <div className="relative flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -75,8 +75,8 @@ const VideoCallNotification = ({ invitation, onAccept, onDecline, onClose }) => 
         {/* Content */}
         <div className="p-6">
           <div className="flex items-center gap-4 mb-6">
-            <div className="w-16 h-16 bg-linear-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center">
-              <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-16 h-16 bg-linear-to-br from-sky-100 to-teal-100 rounded-full flex items-center justify-center">
+              <svg className="w-8 h-8 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             </div>

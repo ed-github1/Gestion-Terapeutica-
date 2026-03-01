@@ -111,7 +111,7 @@ export const PLAN_PRICING = {
     description: 'Para clínicas y equipos grandes',
     popular: false,
     color: 'indigo',
-    gradient: 'from-indigo-500 to-purple-600',
+    gradient: 'from-blue-700 to-sky-400',
     customPricing: true,
   },
 }

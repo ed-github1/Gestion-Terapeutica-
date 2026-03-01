@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Brain, ShieldCheck, AlertCircle, RefreshCw } from 'lucide-react'
+import { ShieldCheck, AlertCircle, RefreshCw } from 'lucide-react'
 import apiClient from '@shared/api/client'
 import { useAuth } from './AuthContext'
+import { BrandLogo } from '@shared/ui'
 import { storeTrustToken } from '@utils/deviceTrust'
 
 const Verify2FAPage = () => {
@@ -139,15 +140,13 @@ const Verify2FAPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-sky-50/20 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6">
           {/* Header */}
           <div className="text-center space-y-3">
             <div className="flex justify-center">
-              <div className="w-14 h-14 bg-indigo-50 rounded-xl flex items-center justify-center">
-                <ShieldCheck className="w-7 h-7 text-indigo-600" />
-              </div>
+              <BrandLogo symbolOnly size="h-16 w-16" />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Verificación en dos pasos</h1>
@@ -194,7 +193,7 @@ const Verify2FAPage = () => {
                   setInfo(null)
                   setCode(e.target.value.replace(/\D/g, '').slice(0, 6))
                 }}
-                className="w-full text-center text-2xl font-bold tracking-[0.5em] px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
+                className="w-full text-center text-2xl font-bold tracking-[0.5em] px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent outline-none transition"
                 placeholder="······"
                 disabled={submitting}
                 autoFocus
@@ -204,7 +203,7 @@ const Verify2FAPage = () => {
             <button
               type="submit"
               disabled={submitting || code.length !== 6}
-              className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:from-indigo-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-gradient-to-r from-blue-700 to-blue-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:from-blue-800 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? (
                 <span className="flex items-center justify-center gap-2">
@@ -227,7 +226,7 @@ const Verify2FAPage = () => {
               type="button"
               onClick={handleResend}
               disabled={resending || !email}
-              className="inline-flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-700 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-1.5 text-xs text-blue-700 hover:text-blue-800 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${resending ? 'animate-spin' : ''}`} />
               {resending ? 'Reenviando...' : 'Reenviar código'}

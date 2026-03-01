@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from 'motion/react'
 import { useAuth } from './AuthContext'
 import { authService } from '@shared/services/authService'
 import { showToast } from '@components'
-import { Brain, Mail, Lock, User, Phone, ArrowRight, AlertCircle, CheckCircle2, Eye, EyeOff, WifiOff } from 'lucide-react'
+import { Mail, Lock, User, Phone, ArrowRight, AlertCircle, CheckCircle2, Eye, EyeOff, WifiOff } from 'lucide-react'
+import { BrandLogo } from '@shared/ui'
 
 // Password strength: returns { score 0-4, label, color }
 const getPasswordStrength = (pwd = '') => {
@@ -73,7 +74,7 @@ const RegisterPage = () => {
     }
 
     return (
-        <div className="min-h-screen bg-linear-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-linear-to-br from-slate-50 via-blue-50/30 to-sky-50/20 flex items-center justify-center p-4">
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -85,9 +86,7 @@ const RegisterPage = () => {
                     {/* Header */}
                     <div className="text-center space-y-3">
                         <div className="flex justify-center">
-                            <div className="w-14 h-14  rounded-xl flex items-center justify-center">
-                                <Brain className="w-7 h-7 text-blue-600" />
-                            </div>
+                            <BrandLogo symbolOnly size="h-16 w-16" />
                         </div>
                         <div>
                             <h1 className="text-2xl font-bold text-gray-900">Crear Cuenta</h1>
@@ -118,9 +117,9 @@ const RegisterPage = () => {
                         <input type="hidden" {...register('role')} value="health_professional" />
 
                         {/* Professional Registration Info */}
-                        <div className="bg-linear-to-r from-indigo-50 to-blue-50 rounded-xl p-4 border border-indigo-100">
+                        <div className="bg-linear-to-r from-sky-50 to-blue-50 rounded-xl p-4 border border-sky-100">
                             <p className="text-xs text-gray-600 leading-relaxed">
-                                <span className="font-semibold text-indigo-700">Registro de Profesional</span> - Como profesional de salud, podrás gestionar pacientes y sus tratamientos.
+                                <span className="font-semibold text-blue-800">Registro de Profesional</span> - Como profesional de salud, podrás gestionar pacientes y sus tratamientos.
                             </p>
                         </div>
 
@@ -141,7 +140,7 @@ const RegisterPage = () => {
                                             message: 'El nombre debe tener al menos 2 caracteres'
                                         }
                                     })}
-                                    className={`w-full pl-10 pr-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition outline-none ${errors.firstName ? 'border-rose-400 bg-rose-50/40' : 'border-gray-200'
+                                    className={`w-full pl-10 pr-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent transition outline-none ${errors.firstName ? 'border-rose-400 bg-rose-50/40' : 'border-gray-200'
                                         }`}
                                     placeholder="Juan"
                                     disabled={isSubmitting}
@@ -174,7 +173,7 @@ const RegisterPage = () => {
                                             message: 'El apellido debe tener al menos 2 caracteres'
                                         }
                                     })}
-                                    className={`w-full pl-10 pr-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition outline-none ${errors.lastName ? 'border-rose-400 bg-rose-50/40' : 'border-gray-200'
+                                    className={`w-full pl-10 pr-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent transition outline-none ${errors.lastName ? 'border-rose-400 bg-rose-50/40' : 'border-gray-200'
                                         }`}
                                     placeholder="Pérez"
                                     disabled={isSubmitting}
@@ -208,7 +207,7 @@ const RegisterPage = () => {
                                         },
                                         onChange: () => { clearErrors('email'); setApiError(null) }
                                     })}
-                                    className={`w-full pl-10 pr-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition outline-none ${errors.email ? 'border-rose-400 bg-rose-50/40' : 'border-gray-200'
+                                    className={`w-full pl-10 pr-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent transition outline-none ${errors.email ? 'border-rose-400 bg-rose-50/40' : 'border-gray-200'
                                         }`}
                                     placeholder="tu@correo.com"
                                     disabled={isSubmitting}
@@ -240,7 +239,7 @@ const RegisterPage = () => {
                                         minLength: { value: 8, message: 'Mínimo 8 caracteres' },
                                         onChange: () => clearErrors('password')
                                     })}
-                                    className={`w-full pl-10 pr-10 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition outline-none ${errors.password ? 'border-rose-400 bg-rose-50/40' : 'border-gray-200'
+                                    className={`w-full pl-10 pr-10 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent transition outline-none ${errors.password ? 'border-rose-400 bg-rose-50/40' : 'border-gray-200'
                                         }`}
                                     placeholder="••••••••"
                                     disabled={isSubmitting}
@@ -294,7 +293,7 @@ const RegisterPage = () => {
                                         required: 'Debes confirmar la contraseña',
                                         validate: value => value === password || 'Las contraseñas no coinciden'
                                     })}
-                                    className={`w-full pl-10 pr-10 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition outline-none ${errors.confirmPassword ? 'border-rose-400 bg-rose-50/40' : 'border-gray-200'
+                                    className={`w-full pl-10 pr-10 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent transition outline-none ${errors.confirmPassword ? 'border-rose-400 bg-rose-50/40' : 'border-gray-200'
                                         }`}
                                     placeholder="••••••••"
                                     disabled={isSubmitting}
@@ -322,17 +321,17 @@ const RegisterPage = () => {
                                 {...register('terms', {
                                     validate: value => value === true || 'Debes aceptar los términos y condiciones'
                                 })}
-                                className={`w-3.5 h-3.5 mt-0.5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 ${errors.terms ? 'border-rose-500' : ''
+                                className={`w-3.5 h-3.5 mt-0.5 text-blue-700 border-gray-300 rounded focus:ring-sky-500 ${errors.terms ? 'border-rose-500' : ''
                                     }`}
                                 disabled={isSubmitting}
                             />
                             <span className="text-xs text-gray-600 leading-relaxed">
                                 Acepto los{' '}
-                                <a href="#" onClick={(e) => e.preventDefault()} className="text-indigo-600 hover:text-indigo-700 font-medium">
+                                <a href="#" onClick={(e) => e.preventDefault()} className="text-blue-700 hover:text-blue-800 font-medium">
                                     Términos
                                 </a>{' '}
                                 y{' '}
-                                <a href="#" onClick={(e) => e.preventDefault()} className="text-indigo-600 hover:text-indigo-700 font-medium">
+                                <a href="#" onClick={(e) => e.preventDefault()} className="text-blue-700 hover:text-blue-800 font-medium">
                                     Políticas de Privacidad
                                 </a>
                             </span>
@@ -349,7 +348,7 @@ const RegisterPage = () => {
                             disabled={isSubmitting}
                             whileHover={{ scale: isSubmitting ? 1 : 1.02 }}
                             whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
-                            className="w-full bg-linear-to-r from-indigo-600 to-blue-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:from-indigo-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full bg-linear-to-r from-blue-700 to-blue-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:from-blue-800 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isSubmitting ? (
                                 <span className="flex items-center justify-center gap-2">
@@ -373,7 +372,7 @@ const RegisterPage = () => {
                     <div className="text-center pt-4 border-t border-gray-100">
                         <p className="text-xs text-gray-600">
                             ¿Ya tienes una cuenta?{' '}
-                            <Link to="/login" className="text-indigo-600 hover:text-indigo-700 font-semibold">
+                            <Link to="/login" className="text-blue-700 hover:text-blue-800 font-semibold">
                                 Iniciar Sesión
                             </Link>
                         </p>

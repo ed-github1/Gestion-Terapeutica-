@@ -64,7 +64,7 @@ const ProfessionalProfile = () => {
                     >
                         <div className="bg-white rounded-3xl p-8 shadow-sm text-center">
                             {/* Avatar */}
-                            <div className="inline-flex items-center justify-center w-32 h-32 rounded-full bg-linear-to-br from-indigo-500 to-purple-600 text-white text-4xl font-bold mb-4 shadow-xl">
+                            <div className="inline-flex items-center justify-center w-32 h-32 rounded-full bg-linear-to-br from-blue-700 to-sky-400 text-white text-4xl font-bold mb-4 shadow-xl">
                                 {initials}
                             </div>
 
@@ -145,7 +145,7 @@ const ProfessionalProfile = () => {
                                         value={profileData.name}
                                         onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
                                         disabled={!isEditing}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:opacity-60 disabled:cursor-not-allowed"
                                     />
                                 </div>
 
@@ -160,7 +160,7 @@ const ProfessionalProfile = () => {
                                         value={profileData.email}
                                         onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
                                         disabled={!isEditing}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:opacity-60 disabled:cursor-not-allowed"
                                     />
                                 </div>
 
@@ -175,7 +175,7 @@ const ProfessionalProfile = () => {
                                         value={profileData.phone}
                                         onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
                                         disabled={!isEditing}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:opacity-60 disabled:cursor-not-allowed"
                                     />
                                 </div>
 
@@ -190,7 +190,7 @@ const ProfessionalProfile = () => {
                                         value={profileData.specialty}
                                         onChange={(e) => setProfileData({ ...profileData, specialty: e.target.value })}
                                         disabled={!isEditing}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:opacity-60 disabled:cursor-not-allowed"
                                     />
                                 </div>
 
@@ -205,7 +205,7 @@ const ProfessionalProfile = () => {
                                         value={profileData.licenseNumber}
                                         onChange={(e) => setProfileData({ ...profileData, licenseNumber: e.target.value })}
                                         disabled={!isEditing}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:opacity-60 disabled:cursor-not-allowed"
                                     />
                                 </div>
 
@@ -220,7 +220,7 @@ const ProfessionalProfile = () => {
                                         value={profileData.address}
                                         onChange={(e) => setProfileData({ ...profileData, address: e.target.value })}
                                         disabled={!isEditing}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:opacity-60 disabled:cursor-not-allowed"
                                     />
                                 </div>
                             </div>

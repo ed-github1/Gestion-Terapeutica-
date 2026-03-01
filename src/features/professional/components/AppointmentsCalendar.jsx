@@ -1,5 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
+import { format } from 'date-fns'
 import { motion, AnimatePresence } from 'motion/react'
+import { Calendar, Clock, CheckCircle2 } from 'lucide-react'
 import VideoCallLauncher from './VideoCall'
 import { showToast } from '@components'
 import { appointmentsService } from '@shared/services/appointmentsService'
@@ -476,8 +478,8 @@ const AppointmentsCalendar = () => {
     return () => clearInterval(interval)
   }, [])
 
-  const handleSelectSlot = useCallback(() => {
-    setSelectedSlot({ start: new Date(), end: new Date() })
+  const handleSelectSlot = useCallback((date) => {
+    setSelectedSlot({ start: date || new Date(), end: date || new Date() })
     setSelectedAppointment(null)
     setIsModalOpen(true)
   }, [])
@@ -485,6 +487,17 @@ const AppointmentsCalendar = () => {
   const handleSelectEvent = useCallback((event) => {
     setSelectedAppointment(event)
     setIsModalOpen(true)
+  }, [])
+
+  const handleEventDrop = useCallback(async ({ revert, start, end, ...apt }) => {
+    try {
+      const id = apt._id || apt.id
+      await appointmentsService.updateStatus(id, apt.status || 'reserved')
+      showToast('✅ Cita reagendada', 'success')
+    } catch {
+      revert?.()
+      showToast('❌ No se pudo reagendar la cita', 'error')
+    }
   }, [])
 
   const handleSaveAppointment = (appointmentData) => {
@@ -522,109 +535,69 @@ const AppointmentsCalendar = () => {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-purple-50 via-white to-blue-50 p-4 md:p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Stat Cards - match patient dashboard */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
-          <div className="bg-white p-4 md:p-6 rounded-lg shadow border border-gray-200 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs md:text-sm text-gray-600 font-medium">Próximas Citas</p>
-                <p className="text-xl md:text-2xl font-bold text-gray-900 mt-1 md:mt-2">{loading ? '...' : stats.upcomingAppointments}</p>
-                <p className="text-xs text-gray-500 mt-1">Agendadas</p>
-              </div>
-              <div className="bg-blue-100 p-2 md:p-3 rounded-lg">
-                <svg className="w-5 h-5 md:w-6 md:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white p-4 md:p-6 rounded-lg shadow border border-gray-200 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs md:text-sm text-gray-600 font-medium">Sesiones Completadas</p>
-                <p className="text-xl md:text-2xl font-bold text-gray-900 mt-1 md:mt-2">{loading ? '...' : stats.completedSessions}</p>
-                <p className="text-xs text-gray-500 mt-1">Histórico</p>
-              </div>
-              <div className="bg-green-100 p-2 md:p-3 rounded-lg">
-                <svg className="w-5 h-5 md:w-6 md:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white p-4 md:p-6 rounded-lg shadow border border-gray-200 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs md:text-sm text-gray-600 font-medium">Total Citas</p>
-                <p className="text-xl md:text-2xl font-bold text-gray-900 mt-1 md:mt-2">{loading ? '...' : stats.totalAppointments}</p>
-                <p className="text-xs text-gray-500 mt-1">En el sistema</p>
-              </div>
-              <div className="bg-gray-100 p-2 md:p-3 rounded-lg">
-                <svg className="w-5 h-5 md:w-6 md:h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white p-4 md:p-6 rounded-lg shadow border border-gray-200 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs md:text-sm text-gray-600 font-medium">Sesiones Activas</p>
-                <p className="text-xl md:text-2xl font-bold text-gray-900 mt-1 md:mt-2">{loading ? '...' : stats.upcomingAppointments}</p>
-                <p className="text-xs text-gray-500 mt-1">En curso</p>
-              </div>
-              <div className="bg-purple-100 p-2 md:p-3 rounded-lg">
-                <svg className="w-5 h-5 md:w-6 md:h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-          </div>
-        </div>
-        {/* Availability Manager Button */}
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }}
+    <div className="bg-transparent">
+      <div className="p-3 md:p-6 lg:p-8 max-w-screen-2xl mx-auto">
+        {/* Page header */}
+        <motion.div
+          initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-4 md:mb-6 flex justify-end"
+          className="flex items-center justify-between gap-4 mb-5"
         >
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setShowAvailabilityManager(true)}
-            className="flex items-center px-4 md:px-6 py-2.5 md:py-3 bg-white text-indigo-600 rounded-xl md:rounded-2xl hover:bg-indigo-50 transition shadow-md border-2 border-indigo-200 font-semibold text-xs md:text-sm"
-          >
-            <svg className="w-4 h-4 md:w-5 md:h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span className="hidden sm:inline">Gestionar Mi Disponibilidad</span>
-            <span className="sm:hidden">Disponibilidad</span>
-          </motion.button>
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-sky-500" />
+            <h1 className="text-sm font-bold text-gray-800">Agenda</h1>
+            <span className="text-[10px] text-gray-400">
+              {loading ? '' : `· ${stats.upcomingAppointments} próximas · ${stats.totalAppointments} en total`}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setShowAvailabilityManager(true)}
+              className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+            >
+              <Clock className="w-4 h-4" />
+              <span className="hidden sm:inline">Disponibilidad</span>
+            </button>
+          </div>
         </motion.div>
 
+        {/* Compact KPI strip */}
+        <div className="bg-stone-50 rounded-2xl border border-stone-200 px-5 py-3 shadow-sm mb-5 flex items-center divide-x divide-stone-200">
+          {[
+            { value: loading ? '…' : stats.upcomingAppointments, Icon: Calendar,      label: 'Próximas',    color: 'text-sky-600',     bg: 'bg-sky-50' },
+            { value: loading ? '…' : stats.completedSessions,    Icon: CheckCircle2,  label: 'Completadas', color: 'text-emerald-600', bg: 'bg-emerald-50' },
+            { value: loading ? '…' : stats.totalAppointments,    Icon: Clock,         label: 'Total citas', color: 'text-gray-500',    bg: 'bg-gray-100' },
+          ].map(({ value, Icon, label, color, bg }, i) => (
+            <div key={label} className={`flex-1 flex items-center gap-3 px-4 ${i > 0 ? '' : ''}`}>
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${bg}`}>
+                <Icon className={`w-4 h-4 ${color}`} />
+              </div>
+              <div>
+                <p className="text-[15px] font-bold text-gray-900 leading-none">{value}</p>
+                <p className="text-[11px] text-gray-400 leading-none mt-0.5">{label}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
         {/* Calendar */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.1 }}
         >
           {loading ? (
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-200 p-12 flex items-center justify-center">
+            <div className="bg-white rounded-2xl border border-gray-100 p-12 flex items-center justify-center">
               <div className="text-center">
-                <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent mb-4"></div>
-                <p className="text-gray-900 font-semibold text-lg">Cargando citas...</p>
-                <p className="text-sm text-gray-500 mt-2">Total citas: {appointments.length}</p>
+                <div className="inline-block animate-spin rounded-full h-10 w-10 border-[3px] border-gray-900 border-t-transparent mb-4" />
+                <p className="text-gray-700 font-semibold">Cargando agenda…</p>
               </div>
             </div>
           ) : (
             <ModernAppointmentsCalendar
-              appointments={appointments}
-              onSelectAppointment={handleSelectEvent}
-              onAddNew={() => {
-                setSelectedAppointment(null)
-                setIsModalOpen(true)
-              }}
+              onSelectEvent={handleSelectEvent}
+              onDateClick={handleSelectSlot}
+              onEventDrop={handleEventDrop}
             />
           )}
         </motion.div>

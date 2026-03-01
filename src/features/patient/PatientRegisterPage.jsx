@@ -5,6 +5,22 @@ import { motion } from 'motion/react'
 import { authService } from '@shared/services/authService'
 import apiClient from '@shared/api/client'
 
+const SESSION_TYPES = [
+  { value: 'individual', label: 'Individual' },
+  { value: 'couples', label: 'Pareja' },
+  { value: 'family', label: 'Familia' },
+  { value: 'group', label: 'Grupo' },
+]
+
+const REFERRAL_SOURCES = [
+  { value: 'self', label: 'Propia iniciativa' },
+  { value: 'gp', label: 'Médico de cabecera' },
+  { value: 'insurance', label: 'Seguro médico' },
+  { value: 'referral', label: 'Derivación profesional' },
+  { value: 'social', label: 'Redes sociales' },
+  { value: 'other', label: 'Otro' },
+]
+
 const PatientRegisterPage = () => {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
@@ -13,59 +29,91 @@ const PatientRegisterPage = () => {
   const [error, setError] = useState(null)
   
   const token = searchParams.get('token')
-  const patientId = searchParams.get('patientId')
+  const inviteCode = searchParams.get('code')
 
   const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm({
     defaultValues: {
       email: '',
       password: '',
       confirmPassword: '',
+      phone: '',
+      dateOfBirth: '',
+      sessionType: 'individual',
+      presentingConcern: '',
+      referralSource: 'self',
+      emergencyContactName: '',
+      emergencyContactPhone: '',
+      address: '',
     }
   })
 
   const password = watch('password')
 
   useEffect(() => {
-    // Verify invitation token and get patient info
-    const verifyToken = async () => {
-      if (!token || !patientId) {
+    // Verify invitation token/code and get patient info
+    const verifyInvitation = async () => {
+      if (!inviteCode && !token) {
         setError('Link de invitación inválido')
         setIsLoading(false)
         return
       }
 
       try {
-        // TODO: Call backend to verify token and get patient basic info
-        // const response = await authAPI.get(`/patients/invitation/${patientId}?token=${token}`)
-        // setPatientInfo(response.data)
+        // Verify the invitation code or token
+        const code = inviteCode || token
+        const response = await apiClient.get(`/invitations/verify/${code}`)
         
-        // For now, simulate patient info
+        // Set patient info from invitation
         setPatientInfo({
-          nombre: 'Paciente',
-          apellido: 'Invitado',
-          id: patientId
+          firstName: response.data.firstName || '',
+          lastName: response.data.lastName || '',
+          phone: response.data.phone || '',
+          email: response.data.email || '',
+          invitationId: response.data.id || response.data._id,
+          professionalId: response.data.professionalId
         })
         setIsLoading(false)
       } catch (error) {
-        console.error('Error verifying token:', error)
+        console.error('Error verifying invitation:', error)
         setError('Link de invitación inválido o expirado')
         setIsLoading(false)
       }
     }
 
-    verifyToken()
-  }, [token, patientId])
+    verifyInvitation()
+  }, [token, inviteCode])
 
   const onSubmit = async (data) => {
     try {
       setError(null)
       
-      // Complete patient registration
+      // Complete patient registration with all data
       const registrationData = {
+        // Invitation info
+        invitationId: patientInfo.invitationId,
+        inviteCode: inviteCode || token,
+        
+        // Basic credentials
         email: data.email,
         password: data.password,
-        patientId: patientId,
-        token: token
+        
+        // Personal information
+        firstName: patientInfo.firstName,
+        lastName: patientInfo.lastName,
+        phone: data.phone || patientInfo.phone,
+        dateOfBirth: data.dateOfBirth,
+        address: data.address,
+        
+        // Clinical information
+        sessionType: data.sessionType,
+        presentingConcern: data.presentingConcern,
+        referralSource: data.referralSource,
+        
+        // Emergency contact
+        emergencyContact: {
+          name: data.emergencyContactName,
+          phone: data.emergencyContactPhone,
+        }
       }
 
       await apiClient.post('/patients/complete-registration', registrationData)
@@ -80,7 +128,7 @@ const PatientRegisterPage = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-blue-50 via-cyan-50 to-indigo-50 flex items-center justify-center">
+      <div className="min-h-screen bg-linear-to-br from-blue-50 via-cyan-50 to-sky-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Verificando invitación...</p>
@@ -91,7 +139,7 @@ const PatientRegisterPage = () => {
 
   if (error && !patientInfo) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-blue-50 via-cyan-50 to-indigo-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-linear-to-br from-blue-50 via-cyan-50 to-sky-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -112,7 +160,7 @@ const PatientRegisterPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-blue-50 via-cyan-50 to-indigo-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-blue-50 via-cyan-50 to-sky-50 flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -127,10 +175,10 @@ const PatientRegisterPage = () => {
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Completa tu Registro</h1>
           <p className="text-gray-600">
-            Bienvenido {patientInfo?.nombre} {patientInfo?.apellido}
+            Bienvenido/a {patientInfo?.firstName} {patientInfo?.lastName}
           </p>
           <p className="text-sm text-gray-500 mt-2">
-            Crea tus credenciales para acceder al portal de pacientes
+            Completa tu información para acceder al portal de pacientes
           </p>
         </div>
 
@@ -155,87 +203,268 @@ const PatientRegisterPage = () => {
         )}
 
         {/* Registration Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-          {/* Email Input */}
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-              Correo Electrónico *
-            </label>
-            <input
-              id="email"
-              type="email"
-              {...register('email', { 
-                required: 'El correo electrónico es requerido',
-                pattern: {
-                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                  message: 'Correo electrónico inválido'
-                }
-              })}
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 outline-none ${
-                errors.email ? 'border-red-500' : 'border-gray-300'
-              }`}
-              placeholder="tu@correo.com"
-              disabled={isSubmitting}
-            />
-            {errors.email && (
-              <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
-            )}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          {/* Section 1: Credenciales */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2">
+              Credenciales de Acceso
+            </h3>
+            
+            {/* Email Input */}
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                Correo Electrónico *
+              </label>
+              <input
+                id="email"
+                type="email"
+                {...register('email', { 
+                  required: 'El correo electrónico es requerido',
+                  pattern: {
+                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                    message: 'Correo electrónico inválido'
+                  }
+                })}
+                defaultValue={patientInfo?.email || ''}
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 outline-none ${
+                  errors.email ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="tu@correo.com"
+                disabled={isSubmitting}
+              />
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+              )}
+            </div>
+
+            {/* Password Input */}
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                Contraseña *
+              </label>
+              <input
+                id="password"
+                type="password"
+                {...register('password', { 
+                  required: 'La contraseña es requerida',
+                  minLength: {
+                    value: 8,
+                    message: 'La contraseña debe tener al menos 8 caracteres'
+                  },
+                  pattern: {
+                    value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+                    message: 'Debe incluir mayúsculas, minúsculas y números'
+                  }
+                })}
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 outline-none ${
+                  errors.password ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="••••••••"
+                disabled={isSubmitting}
+              />
+              {errors.password && (
+                <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+              )}
+              <p className="mt-2 text-xs text-gray-500">
+                Mínimo 8 caracteres, con mayúsculas, minúsculas y números
+              </p>
+            </div>
+
+            {/* Confirm Password Input */}
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                Confirmar Contraseña *
+              </label>
+              <input
+                id="confirmPassword"
+                type="password"
+                {...register('confirmPassword', { 
+                  required: 'Confirma tu contraseña',
+                  validate: value => value === password || 'Las contraseñas no coinciden'
+                })}
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 outline-none ${
+                  errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="••••••••"
+                disabled={isSubmitting}
+              />
+              {errors.confirmPassword && (
+                <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
+              )}
+            </div>
           </div>
 
-          {/* Password Input */}
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-              Contraseña *
-            </label>
-            <input
-              id="password"
-              type="password"
-              {...register('password', { 
-                required: 'La contraseña es requerida',
-                minLength: {
-                  value: 8,
-                  message: 'La contraseña debe tener al menos 8 caracteres'
-                },
-                pattern: {
-                  value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-                  message: 'Debe incluir mayúsculas, minúsculas y números'
-                }
-              })}
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 outline-none ${
-                errors.password ? 'border-red-500' : 'border-gray-300'
-              }`}
-              placeholder="••••••••"
-              disabled={isSubmitting}
-            />
-            {errors.password && (
-              <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
-            )}
-            <p className="mt-2 text-xs text-gray-500">
-              Mínimo 8 caracteres, con mayúsculas, minúsculas y números
-            </p>
+          {/* Section 2: Información Personal */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2">
+              Información Personal
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Phone */}
+              <div>
+                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                  Teléfono *
+                </label>
+                <input
+                  id="phone"
+                  type="tel"
+                  {...register('phone', { 
+                    required: 'El teléfono es requerido',
+                  })}
+                  defaultValue={patientInfo?.phone || ''}
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 outline-none ${
+                    errors.phone ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder="+52 123 456 7890"
+                  disabled={isSubmitting}
+                />
+                {errors.phone && (
+                  <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>
+                )}
+              </div>
+
+              {/* Date of Birth */}
+              <div>
+                <label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-700 mb-2">
+                  Fecha de Nacimiento *
+                </label>
+                <input
+                  id="dateOfBirth"
+                  type="date"
+                  {...register('dateOfBirth', { 
+                    required: 'La fecha de nacimiento es requerida',
+                  })}
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 outline-none ${
+                    errors.dateOfBirth ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  disabled={isSubmitting}
+                />
+                {errors.dateOfBirth && (
+                  <p className="mt-1 text-sm text-red-600">{errors.dateOfBirth.message}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Address */}
+            <div>
+              <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-2">
+                Dirección
+              </label>
+              <input
+                id="address"
+                type="text"
+                {...register('address')}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 outline-none"
+                placeholder="Calle, número, colonia, ciudad"
+                disabled={isSubmitting}
+              />
+            </div>
           </div>
 
-          {/* Confirm Password Input */}
-          <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-              Confirmar Contraseña *
-            </label>
-            <input
-              id="confirmPassword"
-              type="password"
-              {...register('confirmPassword', { 
-                required: 'Confirma tu contraseña',
-                validate: value => value === password || 'Las contraseñas no coinciden'
-              })}
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 outline-none ${
-                errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
-              }`}
-              placeholder="••••••••"
-              disabled={isSubmitting}
-            />
-            {errors.confirmPassword && (
-              <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
-            )}
+          {/* Section 3: Información Clínica */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2">
+              Información Clínica
+            </h3>
+
+            {/* Session Type */}
+            <div>
+              <label htmlFor="sessionType" className="block text-sm font-medium text-gray-700 mb-2">
+                Tipo de Sesión *
+              </label>
+              <select
+                id="sessionType"
+                {...register('sessionType', { required: 'Selecciona el tipo de sesión' })}
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 outline-none ${
+                  errors.sessionType ? 'border-red-500' : 'border-gray-300'
+                }`}
+                disabled={isSubmitting}
+              >
+                {SESSION_TYPES.map(({ value, label }) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
+              {errors.sessionType && (
+                <p className="mt-1 text-sm text-red-600">{errors.sessionType.message}</p>
+              )}
+            </div>
+
+            {/* Presenting Concern */}
+            <div>
+              <label htmlFor="presentingConcern" className="block text-sm font-medium text-gray-700 mb-2">
+                Motivo de Consulta
+              </label>
+              <textarea
+                id="presentingConcern"
+                {...register('presentingConcern')}
+                rows={3}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 outline-none resize-none"
+                placeholder="Describe brevemente el motivo por el que buscas ayuda profesional"
+                disabled={isSubmitting}
+              />
+            </div>
+
+            {/* Referral Source */}
+            <div>
+              <label htmlFor="referralSource" className="block text-sm font-medium text-gray-700 mb-2">
+                ¿Cómo nos conociste? *
+              </label>
+              <select
+                id="referralSource"
+                {...register('referralSource', { required: 'Selecciona una opción' })}
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 outline-none ${
+                  errors.referralSource ? 'border-red-500' : 'border-gray-300'
+                }`}
+                disabled={isSubmitting}
+              >
+                {REFERRAL_SOURCES.map(({ value, label }) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
+              {errors.referralSource && (
+                <p className="mt-1 text-sm text-red-600">{errors.referralSource.message}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Section 4: Contacto de Emergencia */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide border-b pb-2">
+              Contacto de Emergencia
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Emergency Contact Name */}
+              <div>
+                <label htmlFor="emergencyContactName" className="block text-sm font-medium text-gray-700 mb-2">
+                  Nombre
+                </label>
+                <input
+                  id="emergencyContactName"
+                  type="text"
+                  {...register('emergencyContactName')}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 outline-none"
+                  placeholder="Nombre del contacto"
+                  disabled={isSubmitting}
+                />
+              </div>
+
+              {/* Emergency Contact Phone */}
+              <div>
+                <label htmlFor="emergencyContactPhone" className="block text-sm font-medium text-gray-700 mb-2">
+                  Teléfono
+                </label>
+                <input
+                  id="emergencyContactPhone"
+                  type="tel"
+                  {...register('emergencyContactPhone')}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 outline-none"
+                  placeholder="+52 123 456 7890"
+                  disabled={isSubmitting}
+                />
+              </div>
+            </div>
           </div>
 
           {/* Submit Button */}

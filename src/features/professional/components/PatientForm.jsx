@@ -40,7 +40,7 @@ const Field = ({ label, icon: Icon, error, children }) => (
 )
 
 const inputCls = (hasError) =>
-  `w-full px-3.5 py-2.5 rounded-xl border text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-400 ${
+  `w-full px-3.5 py-2.5 rounded-xl border text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500/25 focus:border-blue-500 ${
     hasError ? 'border-rose-300 bg-rose-50' : 'border-gray-200 bg-gray-50 hover:bg-white'
   }`
 
@@ -172,9 +172,9 @@ const PatientForm = ({ onClose }) => {
             </select>
           </Field>
 
-          <div className="flex items-start gap-2.5 p-3 bg-indigo-50 rounded-xl border border-indigo-100">
-            <Mail className="w-4 h-4 text-indigo-500 shrink-0 mt-0.5" />
-            <p className="text-[11px] text-indigo-700 leading-relaxed">
+          <div className="flex items-start gap-2.5 p-3 bg-sky-50 rounded-xl border border-sky-100">
+            <Mail className="w-4 h-4 text-sky-500 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-blue-800 leading-relaxed">
               Se enviará un enlace de registro seguro. El paciente creará su contraseña y completará su historial médico, consentimientos y datos de seguro de forma independiente.
             </p>
           </div>
@@ -187,7 +187,7 @@ const PatientForm = ({ onClose }) => {
             Cancelar
           </button>
           <button type="button" onClick={handleSubmit(onSubmit)} disabled={isSubmitting}
-            className="flex items-center gap-2 px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm shadow-indigo-200">
+            className="flex items-center gap-2 px-5 py-2 bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm shadow-sky-200">
             {isSubmitting
               ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               : <Send className="w-4 h-4" />}

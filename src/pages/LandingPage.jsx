@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
+import BrandLogo from '@/shared/ui/BrandLogo';
 import { 
   Brain,
   Video, 
@@ -50,7 +51,7 @@ const LandingPage = () => {
       icon: Lock,
       title: 'Cumplimiento Total',
       description: 'Certificación HIPAA y protección de datos conforme a normativas internacionales.',
-      gradient: 'from-rose-500 to-pink-500'
+      gradient: 'from-rose-500 to-teal-400'
     },
     {
       icon: TrendingUp,
@@ -201,12 +202,8 @@ const LandingPage = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center">
-                <Brain className="w-5 h-5 text-blue-600" />
-              </div>
-              <span className="text-2xl font-bold bg-linear-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-                TotalMente
-              </span>
+              {/* Use BrandLogo to match sidebar logo */}
+              <BrandLogo />
             </motion.div>
             
             <motion.div 

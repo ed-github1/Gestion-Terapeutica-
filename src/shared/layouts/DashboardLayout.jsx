@@ -4,9 +4,10 @@
  */
 import { useState } from 'react'
 import {
-  User, Brain, Bell, Home, Calendar, MessageCircle,
-  Users, FileText, Plus, Settings, X, Video, BookOpen, MoreHorizontal,
+  User, Bell, Home, Calendar, MessageCircle,
+  Users, FileText, Settings, X, BookOpen, MoreHorizontal,
 } from 'lucide-react'
+import logoSymbol from '@/assets/SIMBOLO_LOGO_TOTALMENTE.png'
 import { motion, AnimatePresence } from 'motion/react'
 import DashboardSidebar from '@components/layout/DashboardSidebar'
 import { useAuth } from '@features/auth'
@@ -31,15 +32,13 @@ const DashboardLayout = ({ children, userRole }) => {
   }
 
   return (
-    <div className="h-screen bg-indigo-50 flex flex-col overflow-hidden">
+    <div className="h-screen tm-bg flex flex-col overflow-hidden">
       {/* Mobile Top Bar */}
-      <div className="md:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-center shadow-md fixed top-0 left-0 right-0 z-50 shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-linear-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center shadow-sm">
-            <Brain className="w-5 h-5 text-white" />
-          </div>
-          <span className="text-lg font-semibold text-gray-900">TotalMente</span>
-        </div>
+      <div className="md:hidden glass-topbar px-4 py-3 flex items-center justify-center gap-2 shadow-sm fixed top-0 left-0 right-0 z-50 shrink-0">
+        <img src={logoSymbol} alt="" className="h-8 w-8 object-contain" />
+        <span className="text-[18px] text-[#4A5568] tracking-tight leading-none">
+          <span className="font-normal">Total</span><span className="font-bold">Mente</span>
+        </span>
       </div>
 
       {/* Main Container */}
@@ -47,7 +46,7 @@ const DashboardLayout = ({ children, userRole }) => {
         <div className="hidden md:block md:relative md:h-full">
           <DashboardSidebar userRole={userRole} onClose={() => {}} />
         </div>
-        <div className="flex-1 h-full overflow-y-auto overflow-x-hidden bg-white md:bg-transparent relative touch-pan-y pb-20 md:pb-0">
+        <div className="flex-1 h-full overflow-y-auto overflow-x-hidden bg-transparent relative touch-pan-y pb-[68px] md:pb-0">
           {children}
         </div>
       </div>
@@ -65,7 +64,6 @@ const DashboardLayout = ({ children, userRole }) => {
             <>
               <NavBtn path={`/dashboard/${userRole}`} exact label="Inicio" Icon={Home} />
               <NavBtn path={`/dashboard/${userRole}/appointments`} label="Agenda" Icon={Calendar} />
-              <FabBtn label="CITA" Icon={Plus} onClick={() => navigate(`/dashboard/${userRole}/appointments/new`)} />
               <NavBtn path={`/dashboard/${userRole}/patients`} label="Pacientes" Icon={Users} />
               <MoreBtn badge onClick={() => setShowNotifications(!showNotifications)} />
             </>
@@ -73,7 +71,6 @@ const DashboardLayout = ({ children, userRole }) => {
             <>
               <NavBtn path={`/dashboard/${userRole}`} exact label="Inicio" Icon={Home} />
               <NavBtn path={`/dashboard/${userRole}/appointments`} label="Citas" Icon={Calendar} />
-              <FabBtn label="SESIÓN" Icon={Video} onClick={() => navigate(`/dashboard/${userRole}/appointments/request`)} />
               <NavBtn path={`/dashboard/${userRole}/messages`} label="Chat" Icon={MessageCircle} badge />
               <MoreBtn badge onClick={() => setShowNotifications(!showNotifications)} />
             </>
@@ -97,7 +94,7 @@ const DashboardLayout = ({ children, userRole }) => {
               style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 5rem)' }}
             >
               {/* Header */}
-              <div className="sticky top-0 bg-linear-to-br from-indigo-600 to-blue-600 px-6 py-6 rounded-t-3xl z-10">
+              <div className="sticky top-0 bg-linear-to-br from-blue-700 to-blue-600 px-6 py-6 rounded-t-3xl z-10">
                 <button
                   onClick={() => setShowNotifications(false)}
                   className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white"
@@ -183,26 +180,15 @@ const NavBtn = ({ path, exact, label, Icon, badge }) => {
     <motion.button
       whileTap={{ scale: 0.9 }}
       onClick={() => navigate(path)}
-      className={`relative flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-2xl transition-all ${active ? 'bg-indigo-100 text-indigo-600' : 'text-gray-500'}`}
+      className={`relative flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-2xl transition-all ${active ? 'bg-sky-100 text-blue-700' : 'text-gray-500'}`}
     >
-      {active && <motion.div layoutId="activeTab" className="absolute -top-1 w-1 h-1 bg-indigo-600 rounded-full" />}
+      {active && <motion.div layoutId="activeTab" className="absolute -top-1 w-1 h-1 bg-blue-700 rounded-full" />}
       <Icon className="w-5 h-5" strokeWidth={2.5} />
       <span className="text-[10px] font-semibold">{label}</span>
       {badge && <span className="absolute top-0.5 right-2 w-2 h-2 bg-red-500 rounded-full border border-white" />}
     </motion.button>
   )
 }
-
-const FabBtn = ({ label, Icon, onClick }) => (
-  <motion.button
-    whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }}
-    onClick={onClick}
-    className="w-14 h-14 -mt-6 bg-linear-to-br from-indigo-600 to-blue-600 rounded-2xl shadow-xl shadow-indigo-500/30 flex flex-col items-center justify-center text-white"
-  >
-    <Icon className="w-6 h-6" strokeWidth={2.5} />
-    <span className="text-[8px] font-semibold mt-0.5">{label}</span>
-  </motion.button>
-)
 
 const MoreBtn = ({ badge, onClick }) => (
   <motion.button whileTap={{ scale: 0.9 }} onClick={onClick} className="relative flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-2xl transition-all text-gray-500">
@@ -217,7 +203,7 @@ const MenuOption = ({ icon: Icon, label, badge, onClick }) => (
     whileTap={{ scale: 0.98 }} onClick={onClick}
     className="w-full flex items-center gap-4 p-4 rounded-2xl bg-gray-50 hover:bg-gray-100 transition-colors text-left"
   >
-    <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-indigo-600 shrink-0">
+    <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-blue-700 shrink-0">
       <Icon className="w-5 h-5" strokeWidth={2} />
     </div>
     <span className="flex-1 font-semibold text-gray-900">{label}</span>
@@ -228,10 +214,10 @@ const MenuOption = ({ icon: Icon, label, badge, onClick }) => (
 const NotificationItem = ({ title, message, time, unread }) => (
   <motion.div
     whileTap={{ scale: 0.98 }}
-    className={`p-4 rounded-2xl border ${unread ? 'bg-indigo-50 border-indigo-100' : 'bg-gray-50 border-gray-100'} cursor-pointer hover:shadow-md transition-all`}
+    className={`p-4 rounded-2xl border ${unread ? 'bg-sky-50 border-sky-100' : 'bg-gray-50 border-gray-100'} cursor-pointer hover:shadow-md transition-all`}
   >
     <div className="flex items-start gap-3">
-      <div className={`w-2 h-2 rounded-full mt-2 shrink-0 ${unread ? 'bg-indigo-600' : 'bg-transparent'}`} />
+      <div className={`w-2 h-2 rounded-full mt-2 shrink-0 ${unread ? 'bg-blue-700' : 'bg-transparent'}`} />
       <div className="flex-1 min-w-0">
         <h4 className="font-semibold text-gray-900 text-sm mb-1">{title}</h4>
         <p className="text-xs text-gray-600 leading-relaxed">{message}</p>

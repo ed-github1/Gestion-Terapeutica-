@@ -20,7 +20,7 @@ const SidebarNav = ({
 }) => {
     return (
         <nav 
-            className="flex-1 py-6 px-2 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent"
+            className="flex-1 py-6 px-3 overflow-y-auto scrollbar-thin scrollbar-thumb-sky-200 scrollbar-track-transparent"
             aria-label="Navegación principal"
         >
             <div className="space-y-1.5">

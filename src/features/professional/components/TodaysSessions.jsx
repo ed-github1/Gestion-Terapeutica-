@@ -1,412 +1,445 @@
-import { motion, AnimatePresence, LayoutGroup } from 'motion/react'
-import { Calendar, Clock, Video } from 'lucide-react'
-import { formatTime } from '../dashboard/dashboardUtils'
-import { useState } from 'react'
-import SessionDetailsModal from './SessionDetailsModal'
+import { motion, AnimatePresence } from 'motion/react'
+import { Calendar, Clock, Video, FileText, MessageSquare, CheckCircle2, XCircle, Target } from 'lucide-react'
 
-/**
- * Get patient initials from name
- */
+/* ─────────────────────────────────────────────────────────────────────────────
+   Helpers
+───────────────────────────────────────────────────────────────────────────── */
 const getInitials = (name) => {
     if (!name) return '?'
     const parts = name.split(' ')
-    if (parts.length >= 2) {
-        return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+    return parts.length >= 2
+        ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+        : name.substring(0, 2).toUpperCase()
+}
+
+const getTimeComponents = (date) => {
+    const h = date.getHours()
+    const m = date.getMinutes()
+    const ampm = h >= 12 ? 'PM' : 'AM'
+    const dh = h % 12 || 12
+    return {
+        timeStr: `${String(dh).padStart(2, '0')}:${String(m).padStart(2, '0')}`,
+        ampm,
     }
-    return name.substring(0, 2).toUpperCase()
 }
 
-/**
- * Get time ago text
- */
-const getTimeAgo = (lastSession) => {
-    if (!lastSession) return 'Primera Visita'
+const getRelativeTime = (dateStr) => {
+    if (!dateStr) return null
     const now = new Date()
-    const last = new Date(lastSession)
-    const weeks = Math.floor((now - last) / (7 * 24 * 60 * 60 * 1000))
-    if (weeks === 0) return 'Esta Semana'
-    if (weeks === 1) return 'Visitado Hace 1 Semana'
-    return `Visitado Hace ${weeks} Semanas`
+    const then = new Date(dateStr)
+    const diffMs = now - then
+    if (diffMs < 0) return null
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+    if (diffDays === 0) return 'Hoy'
+    if (diffDays === 1) return 'Ayer'
+    if (diffDays < 7) return `Hace ${diffDays} días`
+    const weeks = Math.floor(diffDays / 7)
+    if (weeks < 4) return `Hace ${weeks} sem.`
+    const months = Math.floor(diffDays / 30)
+    return months <= 1 ? 'Hace 1 mes' : `Hace ${months} meses`
 }
 
-/**
- * SessionCard Component
- * Read-only card — click opens the SessionDetailsModal which contains all actions (join, note, message).
- * When isNext=true the card is visually elevated with an indigo treatment, countdown badge,
- * and (when isImminent=true) an inline fast-path join button.
- */
-const SessionCard = ({ appointment, index, isNext = false, countdown = null, isImminent = false, onJoinVideo, onClick }) => {
-    const patientName = appointment.nombrePaciente || appointment.patient?.name || 'Paciente Desconocido'
-    const startTime = new Date(appointment.fechaHora)
-    
-    // Clinical data
-    const riskLevel = appointment.riskLevel || 'low'
-    const homeworkComplete = appointment.homeworkCompleted !== false
-    const endTime = new Date(startTime.getTime() + 60 * 60 * 1000)
-    const hours = startTime.getHours()
-    const minutes = startTime.getMinutes()
-    const ampm = hours >= 12 ? 'PM' : 'AM'
-    const displayHours = hours % 12 || 12
-    const timeStr = `${String(displayHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
-    
-    const endHours = endTime.getHours()
-    const endMinutes = endTime.getMinutes()
-    const endAmpm = endHours >= 12 ? 'PM' : 'AM'
-    const endDisplayHours = endHours % 12 || 12
-    const endTimeStr = `${String(endDisplayHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')} ${endAmpm}`
+const SESSION_TYPE_STYLES = {
+    Consulta:    'bg-blue-100/70 text-blue-700',
+    Seguimiento: 'bg-violet-100/70 text-violet-700',
+    Evaluación:  'bg-amber-100/70 text-amber-700',
+    Primera:     'bg-teal-100/70 text-teal-700',
+    default:     'bg-gray-100 text-gray-600',
+}
 
-    const timeRange = `${timeStr} - ${endTimeStr}`
-    const lastVisit = appointment.ultimaVisita || appointment.lastSession
+/* ─────────────────────────────────────────────────────────────────────────────
+   SessionCard — pill with inline action tray (no modal)
+───────────────────────────────────────────────────────────────────────────── */
+const SessionCard = ({
+    appointment,
+    index,
+    isNext = false,
+    countdown = null,
+    isImminent = false,
+    onJoinVideo,
+    onViewDiary,
+    onMessage,
+}) => {
+    const patientName   = appointment.nombrePaciente || appointment.patient?.name || 'Paciente Desconocido'
+    const startTime      = new Date(appointment.fechaHora)
+    const endTime        = new Date(startTime.getTime() + 60 * 60 * 1000)
+    const riskLevel      = appointment.riskLevel || 'low'
+    const homeworkOk     = appointment.homeworkCompleted !== false
+    const sessionType    = appointment.type || 'Consulta'
+    const treatmentGoal  = appointment.treatmentGoal || ''
+    const lastVisit      = getRelativeTime(appointment.ultimaVisita)
 
-    // Rotating background colors — overridden by indigo when this is the next session
-    const backgrounds = [
-        'bg-orange-50/80',
-        'bg-white',
-        'bg-blue-50/80',
-        'bg-emerald-50/80',
-        'bg-pink-50/80'
+    const { timeStr, ampm }     = getTimeComponents(startTime)
+    const { timeStr: endStr, ampm: endAmpm } = getTimeComponents(endTime)
+    const timeRange = `${timeStr} – ${endStr} ${endAmpm}`
+    const typeStyle = SESSION_TYPE_STYLES[sessionType] || SESSION_TYPE_STYLES.default
+
+    /* visual tokens ── next session gets indigo, risk gets rose, default cycles */
+    const bgPalette = [
+        'bg-white border border-gray-100',
+        'bg-orange-50/70 border border-orange-100/60',
+        'bg-sky-50/70 border border-sky-100/60',
+        'bg-emerald-50/70 border border-emerald-100/60',
+        'bg-sky-50/70 border border-sky-100/60',
     ]
-    const bgColor = isNext ? 'bg-indigo-50/80' : backgrounds[index % backgrounds.length]
-
-    // Avatar colors — solid indigo for the next session so it stands out immediately
-    const avatarColors = [
+    const avatarPalette = [
+        'bg-gray-200 text-gray-800',
         'bg-orange-200 text-orange-900',
-        'bg-indigo-200 text-indigo-900',
+        'bg-sky-200 text-sky-900',
         'bg-emerald-200 text-emerald-900',
-        'bg-pink-200 text-pink-900',
-        'bg-purple-200 text-purple-900'
+        'bg-sky-200 text-sky-800',
     ]
-    const avatarColor = isNext ? 'bg-indigo-600 text-white' : avatarColors[index % avatarColors.length]
 
-    // Ring styling — indigo for next session, rose for high-risk, none otherwise
-    const ringClass = isNext
-        ? 'ring-2 ring-indigo-300'
-        : riskLevel === 'high' ? 'ring-2 ring-rose-200' : ''
+    const bgClass = isNext
+        ? 'bg-sky-50 border border-sky-200/80'
+        : riskLevel === 'high'
+            ? 'bg-rose-50/70 border border-rose-100/70'
+            : bgPalette[index % bgPalette.length]
 
-    // iMessage-style alternating alignment
-    const isRightAligned = index % 2 === 1
-    const position = isRightAligned ? 'ml-auto max-w-[85%]' : 'mr-auto max-w-[85%]'
+    const avatarClass = isNext
+        ? 'bg-blue-700 text-white'
+        : riskLevel === 'high'
+            ? 'bg-rose-200 text-rose-900'
+            : avatarPalette[index % avatarPalette.length]
 
     return (
         <motion.div
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.06, duration: 0.3 }}
-            className="flex flex-col gap-0.5"
+            transition={{ delay: index * 0.055, duration: 0.28 }}
+            className="min-w-0 w-full"
         >
-            {/* ── PRÓXIMA label — floats above the card row ───── */}
+            {/* ── PRÓXIMA label ─────────────────────────────── */}
             {isNext && (
-                <div className={`flex ${isRightAligned ? 'justify-end pr-1' : 'justify-start pl-14 md:pl-18'} mb-0.5`}>
-                    <span className={`inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-[0.15em] ${
-                        isImminent ? 'text-emerald-600' : 'text-indigo-500'
-                    }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${
-                            isImminent ? 'bg-emerald-500 animate-pulse' : 'bg-indigo-400'
-                        }`} />
+                <div className="flex items-center gap-1.5 pl-12 mb-1">
+                    <span className={`w-1.5 h-1.5 rounded-full ${isImminent ? 'bg-emerald-500 animate-pulse' : 'bg-blue-500'}`} />
+                    <span className={`text-[9px] font-bold uppercase tracking-widest ${isImminent ? 'text-emerald-600' : 'text-sky-500'}`}>
                         Próxima sesión
                     </span>
                 </div>
             )}
 
-            {/* ── Main timeline row ───────────────────────────── */}
-            <div className="flex items-center gap-1 group">
-                {/* Time column */}
-                <div className="w-8 md:w-10 shrink-0 text-right">
+            {/* ── Timeline row ──────────────────────────────── */}
+            <div className="flex items-start gap-2">
+                {/* Time stamp */}
+                <div className="w-9 shrink-0 text-right pt-2.5">
                     <div className="text-[10px] font-bold text-gray-400 leading-none">{timeStr}</div>
-                    <div className="text-[10px] text-gray-400 font-medium uppercase mt-0.5">{ampm}</div>
+                    <div className="text-[9px] text-gray-400 uppercase mt-0.5">{ampm}</div>
                 </div>
 
-                {/* Dashed line */}
-                <div className="w-4 md:w-6 border-t border-dashed border-gray-300 shrink-0"></div>
+                {/* Connector */}
+                <div className="flex flex-col items-center pt-3 shrink-0">
+                    <div className={`w-2 h-2 rounded-full shrink-0 ${isNext ? 'bg-sky-500' : 'bg-gray-300'}`} />
+                    <div className="w-px flex-1 bg-gray-200 mt-1 min-h-6" />
+                </div>
 
-                {/* Card container */}
-                <div className={`flex-1 flex items-center ${isRightAligned ? 'justify-end' : 'justify-start'}`}>
-                    {isRightAligned && <div className="flex-1 border-t border-dashed border-gray-300"></div>}
-
-                    {/* Clickable card */}
-                    <div
-                        className={`${position} relative shrink-0 cursor-pointer min-w-0 w-full`}
-                        onClick={() => onClick(appointment)}
-                    >
-                        <motion.div
-                            layoutId={`session-pill-${appointment.id || appointment.fechaHora}`}
-                            className={`flex items-center gap-1.5 md:gap-2 ${bgColor} ${ringClass} rounded-xl md:rounded-2xl px-2 md:px-3 py-1.5 md:py-2 min-w-0 w-full`}
-                            whileHover={{ scale: 1.02, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
-                            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                        >
+                {/* Card */}
+                <div className="flex-1 pb-1.5">
+                    {/* Pill — 3-line layout with inline actions */}
+                    <div className={`w-full ${bgClass} rounded-xl px-3 py-2.5`}>
+                        {/* Row 1: avatar + name + action icons */}
+                        <div className="flex items-center gap-2.5">
                             {/* Avatar */}
-                            <div className={`w-7 h-7 md:w-9 md:h-9 rounded-full ${avatarColor} flex items-center justify-center font-bold text-[9px] md:text-xs shrink-0 shadow-sm relative`}>
+                            <div className={`w-8 h-8 rounded-full ${avatarClass} flex items-center justify-center font-bold text-[10px] shrink-0 shadow-sm`}>
                                 {getInitials(patientName)}
-                                {homeworkComplete && (
-                                    <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 md:w-2.5 md:h-2.5 bg-emerald-500 rounded-full border border-white"></div>
+                            </div>
+
+                            {/* Name */}
+                            <div className="flex-1 min-w-0">
+                                <p className={`font-semibold text-xs leading-tight truncate ${isNext ? 'text-blue-950' : 'text-gray-900'}`}>
+                                    {patientName}
+                                </p>
+                            </div>
+
+                            {/* Badges + action icons */}
+                            <div className="shrink-0 flex items-center gap-1">
+                                {isNext && countdown ? (
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 mr-0.5 ${
+                                        isImminent ? 'bg-emerald-100 text-emerald-700' : 'bg-sky-100 text-blue-800'
+                                    }`}>
+                                        <span className={`w-1.5 h-1.5 rounded-full ${isImminent ? 'bg-emerald-500 animate-pulse' : 'bg-blue-500'}`} />
+                                        {countdown}
+                                    </span>
+                                ) : riskLevel === 'high' ? (
+                                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-600 mr-0.5">Alto riesgo</span>
+                                ) : null}
+
+                                <button
+                                    type="button"
+                                    title="Mensaje"
+                                    onClick={() => onMessage && onMessage(appointment)}
+                                    className="w-7 h-7 flex items-center justify-center rounded-full bg-white/80 border border-gray-200 text-gray-400 hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50 active:scale-90 transition-all shadow-sm"
+                                >
+                                    <MessageSquare className="w-3.5 h-3.5" />
+                                </button>
+
+                                <button
+                                    type="button"
+                                    title={isImminent ? 'Iniciar videollamada' : 'Videollamada'}
+                                    onClick={() => onJoinVideo && onJoinVideo(appointment)}
+                                    className={`w-7 h-7 flex items-center justify-center rounded-full active:scale-90 transition-all shadow-sm ${
+                                        isImminent
+                                            ? 'bg-emerald-500 hover:bg-emerald-600 text-white border border-emerald-400'
+                                            : 'bg-white/80 border border-gray-200 text-gray-400 hover:text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50'
+                                    }`}
+                                >
+                                    <Video className="w-3.5 h-3.5" />
+                                </button>
+
+                                <button
+                                    type="button"
+                                    title="Expediente"
+                                    onClick={() => onViewDiary && onViewDiary(appointment)}
+                                    className="w-7 h-7 flex items-center justify-center rounded-full bg-blue-700 hover:bg-blue-800 text-white active:scale-90 transition-all shadow-sm border border-blue-600"
+                                >
+                                    <FileText className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Row 2: time range + session type tag */}
+                        <div className="flex items-center gap-1.5 mt-1.5 pl-10.5">
+                            <Clock className="w-2.5 h-2.5 text-gray-400 shrink-0" />
+                            <span className="text-[9px] text-gray-400">{timeRange}</span>
+                            <span className="text-gray-300">·</span>
+                            <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${typeStyle}`}>
+                                {sessionType}
+                            </span>
+                        </div>
+
+                        {/* Row 3: treatment goal · last visit · homework chip */}
+                        {(treatmentGoal || lastVisit || true) && (
+                            <div className="flex items-center gap-1.5 mt-1 pl-10.5 flex-wrap">
+                                {treatmentGoal && (
+                                    <span className="flex items-center gap-1 text-[9px] text-gray-500 truncate max-w-[45%]" title={treatmentGoal}>
+                                        <Target className="w-2.5 h-2.5 text-gray-400 shrink-0" />
+                                        {treatmentGoal}
+                                    </span>
+                                )}
+                                {treatmentGoal && lastVisit && <span className="text-gray-300 text-[9px]">·</span>}
+                                {lastVisit && (
+                                    <span className="text-[9px] text-gray-400">
+                                        {lastVisit}
+                                    </span>
+                                )}
+                                {(treatmentGoal || lastVisit) && <span className="text-gray-300 text-[9px]">·</span>}
+                                {homeworkOk ? (
+                                    <span className="inline-flex items-center gap-0.5 text-[9px] font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
+                                        <CheckCircle2 className="w-2.5 h-2.5" />
+                                        Tarea
+                                    </span>
+                                ) : (
+                                    <span className="inline-flex items-center gap-0.5 text-[9px] font-medium text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded-full">
+                                        <XCircle className="w-2.5 h-2.5" />
+                                        Tarea
+                                    </span>
                                 )}
                             </div>
-
-                            {/* Info */}
-                            <div className="flex-1 min-w-0 overflow-hidden">
-                                <div className="flex items-center gap-1 mb-0.5">
-                                    <Video className={`w-2.5 h-2.5 md:w-3 md:h-3 shrink-0 ${isNext ? 'text-indigo-600' : 'text-indigo-500'}`} />
-                                    <h3 className={`font-bold text-[10px] md:text-xs leading-tight truncate ${isNext ? 'text-indigo-900' : 'text-gray-900'}`}>{patientName}</h3>
-                                </div>
-                                <div className="flex items-center gap-1 text-[8px] md:text-[9px] text-gray-400">
-                                    <Clock className="w-2 h-2 md:w-2.5 md:h-2.5 shrink-0" />
-                                    <span className="truncate">{timeRange}</span>
-                                </div>
-                            </div>
-
-                            {/* Countdown badge (next session) OR last-visit label (other sessions) */}
-                            {isNext && countdown ? (
-                                <span className={`inline-flex items-center gap-1 shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                    isImminent
-                                        ? 'bg-emerald-100 text-emerald-700'
-                                        : 'bg-indigo-100 text-indigo-700'
-                                }`}>
-                                    <span className={`w-1.5 h-1.5 rounded-full ${
-                                        isImminent ? 'bg-emerald-500 animate-pulse' : 'bg-indigo-400'
-                                    }`} />
-                                    {countdown}
-                                </span>
-                            ) : (
-                                <div className="hidden xl:flex bg-white/70 border border-gray-200 rounded-full px-1.5 md:px-2 py-0.5 text-[8px] md:text-[9px] text-gray-400 font-medium italic whitespace-nowrap shrink-0">
-                                    {getTimeAgo(lastVisit)}
-                                </div>
-                            )}
-                        </motion.div>
-
-                        {/* ── Imminent fast-path join button ───────── */}
-                        {isNext && isImminent && (
-                            <button
-                                onClick={(e) => { e.stopPropagation(); onJoinVideo && onJoinVideo(appointment) }}
-                                className="mt-1.5 w-full flex items-center justify-center gap-1.5 py-2 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white rounded-xl text-[11px] font-bold transition-all shadow-sm"
-                            >
-                                <Video className="w-3 h-3" />
-                                Unirse ahora
-                            </button>
                         )}
                     </div>
-
-                    {!isRightAligned && <div className="flex-1 border-t border-dashed border-gray-300"></div>}
                 </div>
-
-                <div className="hidden lg:block w-4 md:w-6 border-t border-dashed border-gray-300 shrink-0"></div>
             </div>
         </motion.div>
     )
 }
 
-/**
- * BreakCard Component
- * Dark pill-shaped break indicator with diagonal stripes
- */
+/* ─────────────────────────────────────────────────────────────────────────────
+   BreakCard
+───────────────────────────────────────────────────────────────────────────── */
 const BreakCard = ({ time, index }) => {
-    const parts = time.split(' ')
-    const timeStr = parts[0] || '09:00'
-    const ampm = parts[1] || 'AM'
+    const [h, m, meridiem] = (time + ' ').split(/[\s:]/)
+    const timeStr = `${String(h).padStart(2, '0')}:${String(m || '00').padStart(2, '0')}`
+    const ampm = meridiem || (parseInt(h) >= 12 ? 'PM' : 'AM')
 
     return (
         <motion.div
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.06, duration: 0.3 }}
-            className="flex items-center gap-1 my-1"
+            transition={{ delay: index * 0.055, duration: 0.28 }}
+            className="flex items-start gap-2 my-1"
         >
-            {/* Time column */}
-            <div className="w-8 md:w-10 shrink-0 text-right">
+            <div className="w-9 shrink-0 text-right pt-2.5">
                 <div className="text-[10px] font-bold text-gray-400 leading-none">{timeStr}</div>
-                <div className="text-[10px] text-gray-400 font-medium uppercase mt-0.5">{ampm}</div>
+                <div className="text-[9px] text-gray-400 uppercase mt-0.5">{ampm}</div>
             </div>
-
-            {/* Dashed line */}
-            <div className="w-4 md:w-6 border-t border-dashed border-gray-300 shrink-0"></div>
-
-            {/* Break container - full width */}
-            <div className="flex-1 flex items-center">
-                {/* Break pill - full width */}
-                <div className="flex-1 relative overflow-hidden bg-blue-600 rounded-full px-3 md:px-4 py-2 md:py-2.5 flex items-center justify-center">
-                    {/* Diagonal stripes overlay */}
-                    <div 
-                        className="absolute inset-0 opacity-10"
-                        style={{
-                            backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 3px, white 3px, white 5px)'
-                        }}
-                    ></div>
-                    <span className="relative text-white font-bold text-xs md:text-sm">Hora de Descanso</span>
+            <div className="flex flex-col items-center pt-3 shrink-0">
+                <div className="w-2 h-2 rounded-full bg-blue-300 shrink-0" />
+                <div className="w-px flex-1 bg-gray-200 mt-1 min-h-6" />
+            </div>
+            <div className="flex-1 pb-1.5">
+                <div className="relative overflow-hidden bg-blue-600/90 rounded-xl px-4 py-2.5 flex items-center justify-center">
+                    <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'repeating-linear-gradient(45deg,transparent,transparent 4px,white 4px,white 7px)' }} />
+                    <span className="relative text-white font-semibold text-xs">Hora de Descanso</span>
                 </div>
             </div>
-
-            {/* Trailing dash */}
-            <div className="hidden lg:block w-4 md:w-6 border-t border-dashed border-gray-300 shrink-0"></div>
         </motion.div>
     )
 }
 
-/**
- * AvailableSlotCard Component
- * Gray/blue pill showing unavailable time slot (not in schedule) or break time
- */
+/* ─────────────────────────────────────────────────────────────────────────────
+   AvailableSlotCard — "No disponible" stripe
+───────────────────────────────────────────────────────────────────────────── */
 const AvailableSlotCard = ({ slot, index }) => {
     const startTime = new Date(slot.fechaHora)
-    const hours = startTime.getHours()
-    const minutes = startTime.getMinutes()
-    const ampm = hours >= 12 ? 'PM' : 'AM'
-    const displayHours = hours % 12 || 12
-    const timeStr = `${String(displayHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+    const { timeStr, ampm } = getTimeComponents(startTime)
 
     return (
         <motion.div
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.06, duration: 0.3 }}
-            className="flex items-center gap-1 my-1"
+            transition={{ delay: index * 0.055, duration: 0.28 }}
+            className="flex items-start gap-2 my-1"
         >
-            {/* Time column */}
-            <div className="w-8 md:w-10 shrink-0 text-right">
+            <div className="w-9 shrink-0 text-right pt-2.5">
                 <div className="text-[10px] font-bold text-gray-400 leading-none">{timeStr}</div>
-                <div className="text-[10px] text-gray-400 font-medium uppercase mt-0.5">{ampm}</div>
+                <div className="text-[9px] text-gray-400 uppercase mt-0.5">{ampm}</div>
             </div>
-
-            {/* Dashed line */}
-            <div className="w-4 md:w-6 border-t border-dashed border-gray-300 shrink-0"></div>
-
-            {/* Unavailable slot container - full width */}
-            <div className="flex-1 flex items-center">
-                {/* Unavailable pill - full width with stripes */}
-                <div className="flex-1 relative overflow-hidden bg-gray-400/60 rounded-full px-3 md:px-4 py-2 md:py-2.5 flex items-center justify-center">
-                    {/* Diagonal stripes overlay */}
-                    <div 
-                        className="absolute inset-0 opacity-20"
-                        style={{
-                            backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 3px, white 3px, white 5px)'
-                        }}
-                    ></div>
-                    <span className="relative text-white font-semibold text-xs md:text-sm">No Disponible</span>
+            <div className="flex flex-col items-center pt-3 shrink-0">
+                <div className="w-2 h-2 rounded-full bg-gray-300 shrink-0" />
+                <div className="w-px flex-1 bg-gray-200 mt-1 min-h-6" />
+            </div>
+            <div className="flex-1 pb-1.5">
+                <div className="relative overflow-hidden bg-gray-400/50 rounded-xl px-4 py-2.5 flex items-center justify-center">
+                    <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'repeating-linear-gradient(45deg,transparent,transparent 4px,white 4px,white 7px)' }} />
+                    <span className="relative text-white font-semibold text-xs">No Disponible</span>
                 </div>
             </div>
-
-            {/* Trailing dash */}
-            <div className="hidden lg:block w-4 md:w-6 border-t border-dashed border-gray-300 shrink-0"></div>
         </motion.div>
     )
 }
 
-/**
- * EmptyState Component
- */
+/* ─────────────────────────────────────────────────────────────────────────────
+   EmptyState
+───────────────────────────────────────────────────────────────────────────── */
 const EmptyState = () => (
     <div className="text-center py-12">
-        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Calendar className="w-8 h-8 text-gray-400" />
+        <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+            <Calendar className="w-7 h-7 text-gray-400" />
         </div>
-        <p className="text-gray-500 font-medium mb-1">No hay sesiones hoy</p>
-        <p className="text-sm text-gray-400">Tu agenda está libre hoy</p>
+        <p className="text-gray-500 font-medium mb-1 text-sm">No hay sesiones hoy</p>
+        <p className="text-xs text-gray-400">Tu agenda está libre</p>
     </div>
 )
 
-/**
- * SessionsSkeleton Component
- */
-const SessionsSkeleton = () => (
-    <div className="space-y-3">
-        {[...Array(3)].map((_, i) => (
-            <div key={i} className="flex items-center gap-2 animate-pulse">
-                <div className="w-10 shrink-0 text-right">
-                    <div className="w-8 h-3 bg-gray-200 rounded ml-auto mb-1"></div>
-                    <div className="w-5 h-2 bg-gray-100 rounded ml-auto"></div>
-                </div>
-                <div className="w-6 border-t border-dashed border-gray-200 shrink-0"></div>
-                <div className="flex-1 flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-2.5">
-                    <div className="w-10 h-10 bg-gray-200 rounded-full shrink-0"></div>
-                    <div className="flex-1">
-                        <div className="w-24 h-3 bg-gray-200 rounded mb-1.5"></div>
-                        <div className="w-16 h-2 bg-gray-200 rounded"></div>
-                    </div>
-                    <div className="hidden lg:block w-20 h-4 bg-gray-200 rounded-full"></div>
-                </div>
-                <div className="hidden lg:block w-6 border-t border-dashed border-gray-200 shrink-0"></div>
+/* ─────────────────────────────────────────────────────────────────────────────
+   SessionsSkeleton
+───────────────────────────────────────────────────────────────────────────── */
+
+/** Width variants so skeleton rows look natural, not identical */
+const SKELETON_WIDTHS = [
+    { name: 'w-24', detail: 'w-20', badge: 'w-14' },
+    { name: 'w-28', detail: 'w-16', badge: 'w-12' },
+    { name: 'w-20', detail: 'w-24', badge: 'w-16' },
+    { name: 'w-32', detail: 'w-14', badge: 'w-10' },
+]
+
+const SessionCardSkeleton = ({ index }) => {
+    const w = SKELETON_WIDTHS[index % SKELETON_WIDTHS.length]
+    const isFirst = index === 0
+    return (
+        <div
+            className="flex items-start gap-2 animate-pulse"
+            style={{ animationDelay: `${index * 80}ms` }}
+        >
+            {/* Time stamp column */}
+            <div className="w-9 shrink-0 text-right pt-2.5 space-y-1">
+                <div className="w-8 h-3 bg-gray-200 rounded ml-auto" />
+                <div className="w-5 h-2 bg-gray-100 rounded ml-auto" />
             </div>
+
+            {/* Timeline track */}
+            <div className="flex flex-col items-center pt-3 shrink-0">
+                <div className={`w-2 h-2 rounded-full shrink-0 ${isFirst ? 'bg-sky-200' : 'bg-gray-200'}`} />
+                <div className="w-px flex-1 bg-gray-100 mt-1 min-h-10" />
+            </div>
+
+            {/* Card body */}
+            <div
+                className={`flex-1 rounded-2xl px-3 py-3 mb-1.5 ${
+                    isFirst ? 'bg-sky-50/60 border border-sky-100/80' : 'bg-gray-50 border border-gray-100'
+                }`}
+            >
+                <div className="flex items-center gap-3">
+                    {/* Avatar */}
+                    <div className={`w-9 h-9 rounded-full shrink-0 ${isFirst ? 'bg-sky-200' : 'bg-gray-200'}`} />
+
+                    {/* Text lines */}
+                    <div className="flex-1 space-y-2">
+                        <div className={`h-3 ${w.name} bg-gray-200 rounded`} />
+                        <div className={`h-2 ${w.detail} bg-gray-100 rounded`} />
+                    </div>
+
+                    {/* Action pill */}
+                    <div className={`h-6 ${w.badge} bg-gray-200 rounded-full shrink-0`} />
+                </div>
+            </div>
+        </div>
+    )
+}
+
+const SessionsSkeleton = () => (
+    <div className="space-y-0 pr-1">
+        {[...Array(4)].map((_, i) => (
+            <SessionCardSkeleton key={i} index={i} />
         ))}
     </div>
 )
 
-/**
- * TodaysSessions Component
- */
+/* ─────────────────────────────────────────────────────────────────────────────
+   TodaysSessions — main export
+───────────────────────────────────────────────────────────────────────────── */
 const TodaysSessions = ({
     sessions = [],
     loading,
     onJoinVideo,
     onViewDiary,
-    onViewProfile,
-    nextSessionTime = null,   // ms timestamp — matches by fechaHora, not fragile ID
+    onMessage,
+    nextSessionTime = null,
     nextSessionCountdown = null,
     nextIsImminent = false,
 }) => {
-    const [selectedSession, setSelectedSession] = useState(null)
-
-    // Use sessions as-is — already sorted from parent
-    const sortedSessions = sessions
-
     return (
-        <LayoutGroup>
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
+            className="min-w-0 xl:flex xl:flex-col xl:flex-1 xl:min-h-0"
         >
             {loading ? (
                 <SessionsSkeleton />
             ) : sessions.length === 0 ? (
                 <EmptyState />
             ) : (
-                <div className="space-y-1 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
+                <div className="space-y-0 xl:flex-1 xl:min-h-0 overflow-y-auto overflow-x-hidden pr-1 custom-scrollbar">
                     <AnimatePresence mode="popLayout">
-                        {sortedSessions.map((item, index) => {
+                        {sessions.map((item, index) => {
                             const itemTs = item.fechaHora ? new Date(item.fechaHora).getTime() : null
                             const isNext = nextSessionTime !== null && itemTs !== null && itemTs === nextSessionTime
-                            return item.isBreak ? (
-                                <BreakCard
-                                    key={`break-${index}`}
-                                    time={item.time}
-                                    index={index}
-                                />
-                            ) : item.isUnavailable ? (
-                                <AvailableSlotCard
-                                    key={itemTs || index}
-                                    slot={item}
-                                    index={index}
-                                />
-                            ) : (
+
+                            if (item.isBreak) {
+                                return <BreakCard key={`break-${index}`} time={item.time} index={index} />
+                            }
+                            if (item.isUnavailable) {
+                                return <AvailableSlotCard key={itemTs || index} slot={item} index={index} />
+                            }
+                            return (
                                 <SessionCard
                                     key={itemTs || index}
                                     appointment={item}
                                     index={index}
                                     isNext={isNext}
                                     countdown={isNext ? nextSessionCountdown : null}
-                                    isImminent={isNext ? nextIsImminent : false}
+                                    isImminent={isNext && nextIsImminent}
                                     onJoinVideo={onJoinVideo}
-                                    onClick={setSelectedSession}
+                                    onViewDiary={onViewDiary}
+                                    onMessage={onMessage}
                                 />
                             )
                         })}
                     </AnimatePresence>
                 </div>
             )}
-            
-            {/* Session Details Modal */}
-            <AnimatePresence>
-                {selectedSession && (
-                    <SessionDetailsModal
-                        session={selectedSession}
-                        onClose={() => setSelectedSession(null)}
-                        onJoinVideo={onJoinVideo}
-                        onViewDiary={onViewDiary}
-                        onAddNote={(session) => console.log('Add note for:', session)}
-                        onMessage={(session) => console.log('Message:', session)}
-                    />
-                )}
-            </AnimatePresence>
         </motion.div>
-        </LayoutGroup>
     )
 }
 

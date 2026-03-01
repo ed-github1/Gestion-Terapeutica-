@@ -1,0 +1,7 @@
+export { default as Sparkline }             from './Sparkline'
+export { default as DashboardHeader }       from './DashboardHeader'
+export { default as StatsCards }            from './StatsCards'
+export { default as SessionsCalendarPanel, MiniCalendarWidget, KpiChip, KpiChipSkeleton, CalendarGridSkeleton } from './SessionsCalendarPanel'
+export { default as QuickActions }          from './QuickActions'
+export { default as SidebarWidgets }        from './SidebarWidgets'
+export { default as GeneralNotes }          from './GeneralNotes'

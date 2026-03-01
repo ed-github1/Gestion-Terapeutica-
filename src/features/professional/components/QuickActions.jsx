@@ -65,25 +65,25 @@ const QuickActions = ({
                 <QuickActionButton
                     icon={Users}
                     title="Ver Pacientes"
-                    bgColor="bg-indigo-50"
-                    iconColor="text-indigo-600"
-                    hoverColor="hover:bg-indigo-100"
+                    bgColor="bg-sky-50"
+                    iconColor="text-blue-700"
+                    hoverColor="hover:bg-sky-100"
                     onClick={onViewPatients}
                 />
                 <QuickActionButton
                     icon={BookOpen}
                     title="Diarios"
-                    bgColor="bg-purple-50"
-                    iconColor="text-purple-600"
-                    hoverColor="hover:bg-purple-100"
+                    bgColor="bg-sky-50"
+                    iconColor="text-sky-500"
+                    hoverColor="hover:bg-sky-100"
                     onClick={onViewDiaries}
                 />
                 <QuickActionButton
                     icon={Video}
                     title="Videollamadas"
-                    bgColor="bg-pink-50"
-                    iconColor="text-pink-600"
-                    hoverColor="hover:bg-pink-100"
+                    bgColor="bg-teal-50"
+                    iconColor="text-teal-500"
+                    hoverColor="hover:bg-teal-100"
                     onClick={onVideoCall}
                 />
                 <QuickActionButton

@@ -5,7 +5,8 @@ import {
   MessageSquare,
   FileText,
   TrendingUp,
-  BookOpen
+  BookOpen,
+  BarChart2
 } from 'lucide-react'
 
 /**
@@ -34,6 +35,13 @@ export const professionalMenuItems = [
     label: 'Citas',
     description: 'Sesiones y citas',
     ariaLabel: 'Citas y sesiones programadas'
+  },
+  {
+    icon: BarChart2,
+    path: '/dashboard/professional/stats',
+    label: 'Estadísticas',
+    description: 'Crecimiento y métricas',
+    ariaLabel: 'Estadísticas de tu consulta'
   }
 ]
 

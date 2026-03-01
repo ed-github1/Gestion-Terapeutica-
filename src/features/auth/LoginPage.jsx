@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
-import { Brain, Mail, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react'
+import { Mail, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from './AuthContext'
 import { getTrustToken } from '@utils/deviceTrust'
+import { BrandLogo } from '@shared/ui'
 
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false)
@@ -61,16 +62,14 @@ const LoginPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-slate-50 via-blue-50/30 to-sky-50/20 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Login Card */}
         <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6">
           {/* Header */}
           <div className="text-center space-y-3">
             <div className="flex justify-center">
-              <div className="w-14 h-14  rounded-xl flex items-center justify-center">
-                <Brain className="w-7 h-7 text-blue-600" />
-              </div>
+              <BrandLogo symbolOnly size="h-16 w-16" />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Bienvenido</h1>
@@ -127,7 +126,7 @@ const LoginPage = () => {
                     },
                     onChange: () => { clearErrors('email'); setLoginError(null) }
                   })}
-                  className={`w-full pl-10 pr-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition outline-none ${
+                  className={`w-full pl-10 pr-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent transition outline-none ${
                     errors.email ? 'border-rose-400 bg-rose-50/40' : 'border-gray-200'
                   }`}
                   placeholder="tu@correo.com"
@@ -156,7 +155,7 @@ const LoginPage = () => {
                     required: 'La contraseña es requerida',
                     onChange: () => { clearErrors('password'); setLoginError(null) }
                   })}
-                  className={`w-full pl-10 pr-10 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition outline-none ${
+                  className={`w-full pl-10 pr-10 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent transition outline-none ${
                     errors.password ? 'border-rose-400 bg-rose-50/40' : 'border-gray-200'
                   }`}
                   placeholder="••••••••"
@@ -184,12 +183,12 @@ const LoginPage = () => {
                 <input
                   type="checkbox"
                   {...register('rememberMe')}
-                  className="w-3.5 h-3.5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                  className="w-3.5 h-3.5 text-blue-700 border-gray-300 rounded focus:ring-sky-500"
                   disabled={isSubmitting}
                 />
                 <span className="text-xs text-gray-600">Recordarme</span>
               </label>
-              <a href="#" className="text-xs text-indigo-600 hover:text-indigo-700 font-medium">
+              <a href="#" className="text-xs text-blue-700 hover:text-blue-800 font-medium">
                 ¿Olvidaste tu contraseña?
               </a>
             </div>
@@ -198,7 +197,7 @@ const LoginPage = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-linear-to-r from-indigo-600 to-blue-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:from-indigo-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-linear-to-r from-blue-700 to-blue-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:from-blue-800 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 <span className="flex items-center justify-center gap-2">
@@ -218,7 +217,7 @@ const LoginPage = () => {
           <div className="text-center pt-4 border-t border-gray-100">
             <p className="text-xs text-gray-600">
               ¿No tienes una cuenta?{' '}
-              <a href="/register" className="text-indigo-600 hover:text-indigo-700 font-semibold">
+              <a href="/register" className="text-blue-700 hover:text-blue-800 font-semibold">
                 Regístrate
               </a>
             </p>

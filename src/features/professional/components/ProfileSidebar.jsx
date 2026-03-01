@@ -18,7 +18,7 @@ const ActivePatientCard = ({ patient, onClick }) => {
             className="w-full flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors text-left"
         >
             <div className="relative">
-                <div className="w-10 h-10 bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center font-semibold text-sm">
+                <div className="w-10 h-10 bg-sky-100 text-blue-800 rounded-full flex items-center justify-center font-semibold text-sm">
                     {initials}
                 </div>
                 {unreadCount > 0 && (
@@ -62,7 +62,7 @@ const ProfileSidebar = ({ user, activePatients = [], onPatientClick, onOpenChat 
             {/* User Profile Card */}
             <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
                 <div className="flex flex-col items-center">
-                    <div className="w-20 h-20 bg-linear-to-br from-indigo-500 to-purple-600 text-white rounded-full flex items-center justify-center font-bold text-2xl mb-3 shadow-lg">
+                    <div className="w-20 h-20 bg-linear-to-br from-blue-700 to-sky-400 text-white rounded-full flex items-center justify-center font-bold text-2xl mb-3 shadow-lg">
                         {userInitials}
                     </div>
                     <h3 className="font-semibold text-gray-900 text-center mb-1">
@@ -100,7 +100,7 @@ const ProfileSidebar = ({ user, activePatients = [], onPatientClick, onOpenChat 
             <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="font-semibold text-gray-900">Active Patients</h3>
-                    <span className="px-2 py-1 bg-indigo-50 text-indigo-700 text-xs font-medium rounded-full">
+                    <span className="px-2 py-1 bg-sky-50 text-blue-800 text-xs font-medium rounded-full">
                         {activePatients.length}
                     </span>
                 </div>
@@ -123,7 +123,7 @@ const ProfileSidebar = ({ user, activePatients = [], onPatientClick, onOpenChat 
                 )}
 
                 {activePatients.length > 8 && (
-                    <button className="w-full mt-3 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors">
+                    <button className="w-full mt-3 py-2 text-sm font-medium text-blue-700 hover:text-blue-800 hover:bg-sky-50 rounded-lg transition-colors">
                         View All Patients
                     </button>
                 )}
@@ -138,7 +138,7 @@ const ProfileSidebar = ({ user, activePatients = [], onPatientClick, onOpenChat 
                         onClick={onOpenChat}
                         className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors text-left"
                     >
-                        <MessageCircle className="w-4 h-4 text-indigo-600" />
+                        <MessageCircle className="w-4 h-4 text-blue-700" />
                         <span>Messages</span>
                     </motion.button>
                     <motion.button
@@ -152,7 +152,7 @@ const ProfileSidebar = ({ user, activePatients = [], onPatientClick, onOpenChat 
                         whileHover={{ x: 4 }}
                         className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors text-left"
                     >
-                        <FileText className="w-4 h-4 text-purple-600" />
+                        <FileText className="w-4 h-4 text-sky-500" />
                         <span>Reports</span>
                     </motion.button>
                 </div>

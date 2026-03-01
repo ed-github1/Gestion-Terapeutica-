@@ -30,7 +30,7 @@ function moodColor(emoji) {
     '😐': 'bg-yellow-100 text-yellow-700',
     '😔': 'bg-blue-100 text-blue-700',
     '😣': 'bg-red-100 text-red-700',
-    '😴': 'bg-purple-100 text-purple-700',
+    '😴': 'bg-sky-100 text-sky-600',
     '😰': 'bg-orange-100 text-orange-700',
   }
   return map[emoji] || 'bg-gray-100 text-gray-700'
@@ -151,7 +151,7 @@ const PatientPersonalDiary = ({ onClose }) => {
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="bg-linear-to-r from-blue-500 to-indigo-600 px-6 py-5 flex items-center justify-between text-white shrink-0">
+        <div className="bg-linear-to-r from-blue-500 to-blue-700 px-6 py-5 flex items-center justify-between text-white shrink-0">
           <div>
             <h2 className="text-xl font-bold tracking-tight">Mi Diario de Salud</h2>
             <p className="text-blue-100 text-xs mt-0.5">Registra cómo te sientes cada día</p>

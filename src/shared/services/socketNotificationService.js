@@ -46,6 +46,20 @@ class SocketNotificationService {
       this._emit('call-invitation', data)
     })
 
+    // Appointment lifecycle events
+    this.socket.on('appointment-booked', (data) => {
+      this._emit('appointment-booked', data)
+    })
+    this.socket.on('appointment-confirmed', (data) => {
+      this._emit('appointment-confirmed', data)
+    })
+    this.socket.on('appointment-cancelled', (data) => {
+      this._emit('appointment-cancelled', data)
+    })
+    this.socket.on('appointment-rescheduled', (data) => {
+      this._emit('appointment-rescheduled', data)
+    })
+
     this.socket.on('disconnect', () => {
       console.debug('[SocketNotificationService] disconnected')
     })

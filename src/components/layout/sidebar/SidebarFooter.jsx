@@ -23,17 +23,17 @@ const SidebarFooter = ({
     }`
 
     return (
-        <div className="p-3 border-t border-gray-200 bg-white space-y-1.5">
+        <div className="p-3 border-t border-sky-100 bg-white/80 space-y-1.5">
             {/* Settings Button */}
             <motion.button
                 onClick={onSettings}
                 whileHover={prefersReducedMotion ? {} : { x: isCollapsed ? 0 : 3 }}
                 whileTap={prefersReducedMotion ? {} : { scale: 0.98 }}
                 aria-label="Configuración"
-                className={`${buttonBaseClass} text-blue-600 hover:bg-gray-50 hover:shadow-sm focus-visible:ring-blue-500`}
+                className={`${buttonBaseClass} text-gray-600 hover:bg-sky-50 hover:text-blue-700 hover:shadow-sm focus-visible:ring-sky-500`}
             >
                 <Settings 
-                    className="w-5 h-5 text-blue-600 group-hover:text-blue-700 transition-colors" 
+                    className="w-5 h-5 text-gray-400 group-hover:text-sky-500 transition-colors" 
                     strokeWidth={2} 
                 />
                 {!isCollapsed && (
@@ -47,10 +47,10 @@ const SidebarFooter = ({
                 whileHover={prefersReducedMotion ? {} : { x: isCollapsed ? 0 : 3 }}
                 whileTap={prefersReducedMotion ? {} : { scale: 0.98 }}
                 aria-label="Cerrar sesión"
-                className={`${buttonBaseClass} text-blue-600 hover:bg-rose-50 hover:text-rose-700 hover:shadow-sm focus-visible:ring-rose-500`}
+                className={`${buttonBaseClass} text-gray-600 hover:bg-red-50 hover:text-red-600 hover:shadow-sm focus-visible:ring-rose-500`}
             >
                 <LogOut 
-                    className="w-5 h-5 text-blue-600 group-hover:text-rose-600 transition-colors" 
+                    className="w-5 h-5 text-gray-400 group-hover:text-red-500 transition-colors" 
                     strokeWidth={2} 
                 />
                 {!isCollapsed && (

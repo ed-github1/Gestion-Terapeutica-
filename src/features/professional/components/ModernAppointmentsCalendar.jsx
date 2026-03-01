@@ -1,335 +1,160 @@
-import { useState } from 'react'
-import { motion, AnimatePresence } from 'motion/react'
-import { format, startOfMonth, getDaysInMonth, getDay, isSameDay, isToday, addMonths, subMonths } from 'date-fns'
-import { es } from 'date-fns/locale'
-import { Calendar, List, CalendarOff, Sparkles } from 'lucide-react'
-
-const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
-const MONTHS = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-]
+/**
+ * ModernAppointmentsCalendar — FullCalendar v6 implementation.
+ * Self-fetches via appointmentsService.getCalendarEvents on every view/range change.
+ * Supports event click, date click, and drag-and-drop rescheduling.
+ */
+import { useRef, useCallback } from 'react'
+import FullCalendar from '@fullcalendar/react'
+import dayGridPlugin     from '@fullcalendar/daygrid'
+import timeGridPlugin    from '@fullcalendar/timegrid'
+import interactionPlugin from '@fullcalendar/interaction'
+import listPlugin        from '@fullcalendar/list'
+import { appointmentsService } from '@shared/services/appointmentsService'
 
 const TYPE_COLORS = {
-  consultation: { bg: '#EEF2FF', border: '#6366F1', text: '#6366F1', label: 'Consulta' },
-  therapy: { bg: '#FAF5FF', border: '#A855F7', text: '#A855F7', label: 'Terapia' },
-  followup: { bg: '#ECFDF5', border: '#10B981', text: '#10B981', label: 'Seguimiento' },
-  emergency: { bg: '#FEF2F2', border: '#EF4444', text: '#EF4444', label: 'Emergencia' }
+    consultation: { bg: '#EEF2FF', border: '#6366F1', text: '#4338CA' },
+    therapy:      { bg: '#FAF5FF', border: '#A855F7', text: '#7E22CE' },
+    followup:     { bg: '#ECFDF5', border: '#10B981', text: '#065F46' },
+    emergency:    { bg: '#FEF2F2', border: '#EF4444', text: '#991B1B' },
+    default:      { bg: '#F3F4F6', border: '#6B7280', text: '#374151' },
 }
 
-export default function ModernAppointmentsCalendar({ 
-  appointments = [], 
-  onSelectAppointment,
-  onAddNew 
-}) {
-  const today = new Date()
-  const [currentDate, setCurrentDate] = useState(today)
-  const [selectedDate, setSelectedDate] = useState(today)
-  const [view, setView] = useState('calendar') // 'calendar' | 'list'
-
-  const year = currentDate.getFullYear()
-  const month = currentDate.getMonth()
-  const daysInMonth = getDaysInMonth(currentDate)
-  const firstDayOfMonth = getDay(startOfMonth(currentDate))
-
-  // Build calendar grid
-  const cells = []
-  for (let i = 0; i < firstDayOfMonth; i++) cells.push(null)
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d)
-
-  const getAppointmentsForDay = (day) => {
-    if (!day) return []
-    const targetDate = new Date(year, month, day)
-    return appointments.filter(apt => isSameDay(new Date(apt.start), targetDate))
-  }
-
-  const selectedDayAppointments = getAppointmentsForDay(selectedDate.getDate())
-    .sort((a, b) => new Date(a.start) - new Date(b.start))
-
-  const allUpcoming = appointments
-    .filter(apt => new Date(apt.start) >= today)
-    .sort((a, b) => new Date(a.start) - new Date(b.start))
-
-  const hasAppointments = (day) => getAppointmentsForDay(day).length > 0
-
-  const isDayToday = (day) => {
-    if (!day) return false
-    return isToday(new Date(year, month, day))
-  }
-
-  const isDaySelected = (day) => {
-    if (!day) return false
-    return isSameDay(new Date(year, month, day), selectedDate)
-  }
-
-  const handleDayClick = (day) => {
-    if (day) {
-      setSelectedDate(new Date(year, month, day))
+function normalizeEvent(apt) {
+    const colors = TYPE_COLORS[apt.type] || TYPE_COLORS.default
+    let start = apt.fechaHora || apt.start
+    if (apt.date && apt.time) {
+        const [yr, mo, dy] = String(apt.date).slice(0, 10).split('-').map(Number)
+        const [h, m]       = String(apt.time).split(':').map(Number)
+        start = new Date(yr, mo - 1, dy, h, m, 0)
     }
-  }
-
-  const prevMonth = () => {
-    setCurrentDate(subMonths(currentDate, 1))
-  }
-
-  const nextMonth = () => {
-    setCurrentDate(addMonths(currentDate, 1))
-  }
-
-  return (
-    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="p-6 border-b border-gray-100 flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <div className="text-xs font-bold tracking-wider text-gray-400 uppercase mb-1">Agenda</div>
-          <div className="text-2xl font-bold text-gray-900">Mis Citas</div>
-        </div>
-        
-        {/* View Toggle */}
-        <div className="flex gap-2">
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setView('calendar')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition ${
-              view === 'calendar' 
-                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' 
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            <Calendar className="w-4 h-4" />
-            <span>Calendario</span>
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setView('list')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition ${
-              view === 'list' 
-                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' 
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            <List className="w-4 h-4" />
-            <span>Lista</span>
-          </motion.button>
-        </div>
-
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={onAddNew}
-          className="w-11 h-11 rounded-full bg-indigo-600 text-white text-2xl font-light flex items-center justify-center shadow-lg shadow-indigo-600/40 hover:bg-indigo-700 transition"
-        >
-          +
-        </motion.button>
-      </div>
-
-      <AnimatePresence mode="wait">
-        {view === 'calendar' ? (
-          <motion.div
-            key="calendar"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="p-6"
-          >
-            {/* Month Navigation */}
-            <div className="flex items-center justify-between mb-6">
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={prevMonth}
-                className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 font-bold transition"
-              >
-                ‹
-              </motion.button>
-              
-              <div className="text-base font-bold text-gray-900">
-                {MONTHS[month]} {year}
-              </div>
-              
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={nextMonth}
-                className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 font-bold transition"
-              >
-                ›
-              </motion.button>
-            </div>
-
-            {/* Day Headers */}
-            <div className="grid grid-cols-7 gap-2 mb-3">
-              {DAYS.map(day => (
-                <div key={day} className="text-center text-xs font-bold text-gray-400 tracking-wide">
-                  {day}
-                </div>
-              ))}
-            </div>
-
-            {/* Calendar Grid */}
-            <div className="grid grid-cols-7 gap-2 mb-6">
-              {cells.map((day, idx) => {
-                const hasApts = hasAppointments(day)
-                const isSelectedDay = isDaySelected(day)
-                const isTodayDay = isDayToday(day)
-
-                return (
-                  <motion.div
-                    key={idx}
-                    whileHover={day ? { scale: 1.05 } : {}}
-                    whileTap={day ? { scale: 0.95 } : {}}
-                    onClick={() => handleDayClick(day)}
-                    className={`
-                      relative aspect-square rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all
-                      ${day ? 'hover:shadow-md' : ''}
-                      ${isSelectedDay 
-                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/40' 
-                        : 'bg-white hover:bg-gray-50'
-                      }
-                    `}
-                  >
-                    {day && (
-                      <>
-                        <div className={`
-                          text-sm font-semibold
-                          ${isSelectedDay 
-                            ? 'text-white' 
-                            : isTodayDay 
-                              ? 'text-indigo-600 font-bold' 
-                              : 'text-gray-700'
-                          }
-                        `}>
-                          {day}
-                        </div>
-                        {hasApts && (
-                          <div className={`
-                            w-1 h-1 rounded-full mt-1
-                            ${isSelectedDay ? 'bg-white' : 'bg-indigo-600'}
-                          `} />
-                        )}
-                      </>
-                    )}
-                  </motion.div>
-                )
-              })}
-            </div>
-
-            {/* Selected Day Appointments */}
-            <div className="border-t border-gray-100 pt-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="text-sm font-semibold text-gray-600">
-                  {selectedDate.getDate()} de {MONTHS[selectedDate.getMonth()]}
-                </div>
-                <div className="text-xs text-gray-400">
-                  {selectedDayAppointments.length} cita{selectedDayAppointments.length !== 1 ? 's' : ''}
-                </div>
-              </div>
-
-              {selectedDayAppointments.length === 0 ? (
-                <div className="text-center py-12 bg-gray-50 rounded-2xl">
-                  <CalendarOff className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                  <div className="text-sm text-gray-500">Sin citas este día</div>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {selectedDayAppointments.map(apt => (
-                    <AppointmentCard 
-                      key={apt.id} 
-                      appointment={apt} 
-                      onClick={() => onSelectAppointment(apt)}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="list"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="p-6"
-          >
-            <div className="text-sm font-semibold text-gray-600 mb-4">Próximas citas</div>
-            
-            {allUpcoming.length === 0 ? (
-              <div className="text-center py-16">
-                <Sparkles className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                <div className="text-sm text-gray-500">No tienes citas próximas</div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {allUpcoming.map((apt, idx) => {
-                  const aptDate = new Date(apt.start)
-                  const prevDate = idx > 0 ? new Date(allUpcoming[idx - 1].start) : null
-                  const showDateHeader = !prevDate || !isSameDay(aptDate, prevDate)
-
-                  return (
-                    <div key={apt.id}>
-                      {showDateHeader && (
-                        <div className="text-xs font-bold text-gray-400 mt-4 mb-2">
-                          {format(aptDate, 'd MMMM yyyy', { locale: es })}
-                        </div>
-                      )}
-                      <AppointmentCard 
-                        appointment={apt} 
-                        onClick={() => onSelectAppointment(apt)}
-                      />
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  )
+    const durationMs = (Number(apt.duration) || 60) * 60_000
+    const end = apt.end || (start ? new Date(new Date(start).getTime() + durationMs) : undefined)
+    return {
+        id:              String(apt._id || apt.id || Math.random()),
+        title:           apt.patientName || apt.nombrePaciente || 'Paciente',
+        start,
+        end,
+        backgroundColor: colors.bg,
+        borderColor:     colors.border,
+        textColor:       colors.text,
+        extendedProps:   apt,
+    }
 }
 
-function AppointmentCard({ appointment, onClick }) {
-  const typeInfo = TYPE_COLORS[appointment.type] || TYPE_COLORS.consultation
-  const time = format(new Date(appointment.start), 'HH:mm')
+function normalizeEvents(raw = []) {
+    return (Array.isArray(raw) ? raw : []).map(normalizeEvent)
+}
 
-  return (
-    <motion.div
-      whileHover={{ scale: 1.02, y: -2 }}
-      whileTap={{ scale: 0.98 }}
-      onClick={onClick}
-      className="flex items-center gap-4 bg-white border-2 border-gray-100 rounded-2xl p-4 cursor-pointer hover:shadow-md transition-all"
-      style={{ borderLeftColor: typeInfo.border, borderLeftWidth: '4px' }}
-    >
-      <div className="text-center min-w-12.5">
-        <div className="text-base font-bold" style={{ color: typeInfo.text }}>
-          {time}
-        </div>
-      </div>
-      
-      <div className="flex-1 min-w-0">
-        <div className="text-sm font-semibold text-gray-900 mb-1 truncate">
-          {appointment.patientName}
-        </div>
-        <div 
-          className="inline-block text-xs font-bold px-2 py-1 rounded-full uppercase tracking-wide"
-          style={{ 
-            backgroundColor: typeInfo.bg, 
-            color: typeInfo.text 
-          }}
-        >
-          {typeInfo.label}
-        </div>
-      </div>
+// Scoped CSS — keeps FullCalendar chrome harmonised with Tailwind design tokens
+const FC_STYLES = `
+.fc { font-family: inherit; }
+.fc .fc-toolbar-title           { font-size: 1rem; font-weight: 700; color: #111827; }
+.fc .fc-button                  { background: #f3f4f6 !important; border: none !important; color: #374151 !important;
+                                  font-size: .75rem !important; font-weight: 600 !important;
+                                  border-radius: .5rem !important; padding: .35rem .75rem !important;
+                                  box-shadow: none !important; transition: background .15s; }
+.fc .fc-button:hover            { background: #e5e7eb !important; }
+.fc .fc-button-active,
+.fc .fc-button-primary:not(:disabled).fc-button-active
+                                { background: #111827 !important; color: #fff !important; }
+.fc .fc-button:focus            { box-shadow: 0 0 0 2px #6366f1 !important; outline: none !important; }
+.fc .fc-col-header-cell-cushion { font-size: .68rem; font-weight: 700; text-transform: uppercase;
+                                  letter-spacing: .06em; color: #6b7280; text-decoration: none; }
+.fc .fc-timegrid-slot-label     { font-size: .68rem; color: #9ca3af; font-weight: 500; }
+.fc .fc-timegrid-now-indicator-line { border-color: #6366f1 !important; border-width: 2px; }
+.fc .fc-timegrid-now-indicator-arrow { border-top-color: #6366f1 !important; }
+.fc-event                       { border-radius: .5rem !important; padding: 1px 3px !important; cursor: pointer; }
+.fc-event:hover                 { filter: brightness(.96); }
+.fc .fc-daygrid-day-number      { font-size: .75rem; font-weight: 600; color: #374151; text-decoration: none; }
+.fc .fc-day-today               { background: #f5f3ff !important; }
+.fc .fc-list-event:hover td     { background: #f9fafb !important; }
+.fc .fc-list-day-cushion        { background: #f3f4f6 !important; }
+.fc .fc-list-event-title        { color: #111827; font-size: .8rem; font-weight: 600; }
+.fc .fc-scrollgrid              { overflow: hidden; border-color: #e5e7eb !important; }
+.fc .fc-scrollgrid td,
+.fc .fc-scrollgrid th           { border-color: #f3f4f6 !important; }
+.fc .fc-toolbar                 { gap: .5rem; flex-wrap: wrap; }
+`
 
-      {appointment.isVideoCall && (
-        <div className="text-indigo-600">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-          </svg>
-        </div>
-      )}
-    </motion.div>
-  )
+export default function ModernAppointmentsCalendar({ onSelectEvent, onDateClick, onEventDrop }) {
+    const calRef = useRef(null)
+
+    // Called by FullCalendar on every view/range change — auto-refresh on month navigation
+    const fetchEvents = useCallback(async (fetchInfo, successCallback, failureCallback) => {
+        try {
+            const res = await appointmentsService.getCalendarEvents(
+                fetchInfo.startStr.slice(0, 10),
+                fetchInfo.endStr.slice(0, 10),
+            )
+            const raw =
+                Array.isArray(res?.data)               ? res.data :
+                Array.isArray(res?.data?.data)          ? res.data.data :
+                Array.isArray(res?.data?.appointments)  ? res.data.appointments :
+                []
+            successCallback(normalizeEvents(raw))
+        } catch {
+            successCallback([])
+            failureCallback?.(new Error('Could not load calendar events'))
+        }
+    }, [])
+
+    const handleEventDrop = useCallback((info) => {
+        onEventDrop?.({
+            ...info.event.extendedProps,
+            start:  info.event.start,
+            end:    info.event.end,
+            revert: info.revert,   // parent can revert on API error
+        })
+    }, [onEventDrop])
+
+    return (
+        <>
+            <style>{FC_STYLES}</style>
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 md:p-6 shadow-sm">
+                <FullCalendar
+                    ref={calRef}
+                    plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
+                    locale="es"
+                    initialView="timeGridWeek"
+                    headerToolbar={{
+                        left:   'prev,next today',
+                        center: 'title',
+                        right:  'dayGridMonth,timeGridWeek,timeGridDay,listWeek',
+                    }}
+                    buttonText={{ today: 'Hoy', month: 'Mes', week: 'Semana', day: 'Día', list: 'Lista' }}
+                    slotMinTime="07:00:00"
+                    slotMaxTime="21:00:00"
+                    slotDuration="00:30:00"
+                    slotLabelInterval="01:00"
+                    allDaySlot={false}
+                    expandRows
+                    height="auto"
+                    contentHeight={620}
+                    editable
+                    selectable
+                    selectMirror
+                    dayMaxEvents={4}
+                    weekends
+                    nowIndicator
+                    navLinks
+                    events={fetchEvents}
+                    eventClick={(info)  => onSelectEvent?.(info.event.extendedProps)}
+                    dateClick={(info)   => onDateClick?.(info.date)}
+                    eventDrop={handleEventDrop}
+                    eventContent={(arg) => (
+                        <div className="overflow-hidden px-1 py-0.5 h-full">
+                            <p className="text-[11px] font-bold leading-tight truncate" style={{ color: arg.event.textColor }}>
+                                {arg.event.title}
+                            </p>
+                            {arg.timeText && (
+                                <p className="text-[10px] leading-tight opacity-70 truncate" style={{ color: arg.event.textColor }}>
+                                    {arg.timeText}
+                                </p>
+                            )}
+                        </div>
+                    )}
+                />
+            </div>
+        </>
+    )
 }

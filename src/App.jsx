@@ -1,7 +1,7 @@
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth, ProtectedRoute, LoginPage, RegisterPage, Verify2FAPage } from '@features/auth'
-import { ProfessionalDashboard, AppointmentsCalendar } from '@features/professional'
+import { ProfessionalDashboard, AppointmentsCalendar, ProfessionalStats } from '@features/professional'
 import PatientsList from '@features/professional/components/PatientsList'
 import ProfessionalProfile from '@features/professional/components/ProfessionalProfile'
 import ProfessionalVideoCallWebRTC from '@features/professional/components/VideoCallWebRTC'
@@ -9,6 +9,7 @@ import { PatientDashboard, PatientAppointments } from '@features/patient'
 import PatientVideoCallWebRTC from '@features/patient/PatientVideoCallWebRTC'
 import PatientRegisterPage from '@features/patient/PatientRegisterPage'
 import PatientRegister from '@features/patient/PatientRegister'
+import PatientOnboardingPage from '@features/patient/PatientOnboardingPage'
 import LandingPage from '@pages/LandingPage'
 import PricingPlans from '@pages/PricingPlans'
 import CheckoutPage from '@pages/CheckoutPage'
@@ -26,7 +27,7 @@ const LoginRoute = () => {
   if (initializing) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700"></div>
       </div>
     )
   }
@@ -58,6 +59,7 @@ function App() {
           <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
           <Route path="/patient/register" element={<PatientRegisterPage />} />
           <Route path="/register/:inviteCode" element={<PatientRegister />} />
+          <Route path="/onboarding/:token" element={<PatientOnboardingPage />} />
           {/* Protected Routes - Professional */}
           <Route
             path={ROUTES.PROFESSIONAL_DASHBOARD}
@@ -85,6 +87,16 @@ function App() {
               <ProtectedRoute allowedRoles={[ROLES.HEALTH_PROFESSIONAL, ROLES.PROFESSIONAL]}>
                 <DashboardLayout userRole="professional">
                   <AppointmentsCalendar />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/professional/stats"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.HEALTH_PROFESSIONAL, ROLES.PROFESSIONAL]}>
+                <DashboardLayout userRole="professional">
+                  <ProfessionalStats />
                 </DashboardLayout>
               </ProtectedRoute>
             }

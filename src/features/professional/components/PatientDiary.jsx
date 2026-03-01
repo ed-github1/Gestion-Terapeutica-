@@ -15,7 +15,7 @@ const MOOD_COLORS = {
     '😐': 'bg-yellow-100 text-yellow-700',
     '😔': 'bg-blue-100 text-blue-700',
     '😣': 'bg-red-100 text-red-700',
-    '😴': 'bg-purple-100 text-purple-700',
+    '😴': 'bg-sky-100 text-sky-600',
     '😰': 'bg-orange-100 text-orange-700',
 }
 
@@ -75,15 +75,15 @@ const ClinicalNoteCard = ({ note, index }) => (
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: index * 0.05 }}
-        className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 shadow-sm"
+        className="bg-sky-50 border border-sky-100 rounded-2xl p-4 shadow-sm"
     >
         <div className="flex items-center gap-2 mb-2">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full text-xs font-semibold">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-sky-100 text-blue-800 rounded-full text-xs font-semibold">
                 <FileText className="w-3 h-3" /> Nota clínica
             </span>
             <span className="text-xs text-gray-400 ml-auto">{formatRelativeDate(note.createdAt)}</span>
         </div>
-        <p className="text-xs text-indigo-600 font-medium mb-1">{note.author || 'Profesional'}</p>
+        <p className="text-xs text-blue-700 font-medium mb-1">{note.author || 'Profesional'}</p>
         <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{note.text || note.notes}</p>
     </motion.div>
 )
@@ -173,7 +173,7 @@ const PatientDiary = ({ patientId, patientName, onClose }) => {
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="bg-linear-to-r from-indigo-600 to-blue-600 px-6 py-5 flex items-center gap-4 text-white shrink-0">
+                <div className="bg-linear-to-r from-blue-700 to-blue-600 px-6 py-5 flex items-center gap-4 text-white shrink-0">
                     <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-bold text-sm shrink-0">
                         {initials}
                     </div>
@@ -194,14 +194,14 @@ const PatientDiary = ({ patientId, patientName, onClose }) => {
                             onChange={e => setNewNote(e.target.value)}
                             placeholder={`Añadir nota clínica sobre ${patientName?.split(' ')[0] || 'el paciente'}…`}
                             rows={2}
-                            className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl resize-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent outline-none bg-gray-50"
+                            className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50"
                         />
                         <motion.button
                             type="submit"
                             disabled={isSubmitting || !newNote.trim()}
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
-                            className="shrink-0 p-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="shrink-0 p-2.5 bg-blue-700 text-white rounded-xl hover:bg-blue-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isSubmitting
                                 ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
@@ -223,7 +223,7 @@ const PatientDiary = ({ patientId, patientName, onClose }) => {
                             key={key}
                             onClick={() => setTab(key)}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-                                tab === key ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                tab === key ? 'bg-blue-700 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                             }`}
                         >
                             {key === 'homework' ? <><ClipboardList className="w-3 h-3" /> {label}</> : label}
@@ -259,8 +259,8 @@ const PatientDiary = ({ patientId, patientName, onClose }) => {
                         </div>
                     ) : visibleEntries.length === 0 ? (
                         <div className="text-center py-14">
-                            <div className="w-14 h-14 bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                                <BookOpen className="w-7 h-7 text-indigo-400" />
+                            <div className="w-14 h-14 bg-sky-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                                <BookOpen className="w-7 h-7 text-blue-500" />
                             </div>
                             <p className="font-semibold text-gray-700 mb-1">Sin entradas</p>
                             <p className="text-sm text-gray-400">

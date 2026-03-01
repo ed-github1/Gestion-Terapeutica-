@@ -104,7 +104,7 @@ const DashboardHeader = ({ user, currentTime, error, onNewPatient, onClearError,
                         <input
                             type="text"
                             placeholder="Buscar"
-                            className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition shadow-sm"
+                            className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition shadow-sm"
                         />
                     </div>
 
@@ -112,7 +112,7 @@ const DashboardHeader = ({ user, currentTime, error, onNewPatient, onClearError,
                     <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        className="relative w-14 h-14 bg-gradient-to-br from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 rounded-2xl flex items-center justify-center shadow-md transition-colors shrink-0"
+                        className="relative w-14 h-14 bg-gradient-to-br from-blue-700 to-blue-600 hover:from-blue-800 hover:to-blue-700 rounded-2xl flex items-center justify-center shadow-md transition-colors shrink-0"
                     >
                         <Bell className="w-5 h-5 text-white" />
                     </motion.button>
@@ -121,7 +121,7 @@ const DashboardHeader = ({ user, currentTime, error, onNewPatient, onClearError,
                     <motion.div
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-600 flex items-center justify-center text-white text-base font-bold cursor-pointer shadow-md shrink-0"
+                        className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-700 to-blue-600 flex items-center justify-center text-white text-base font-bold cursor-pointer shadow-md shrink-0"
                     >
                         {getInitials()}
                     </motion.div>

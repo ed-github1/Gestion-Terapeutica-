@@ -35,10 +35,10 @@ const SessionDetailsModal = ({ session, onClose, onJoinVideo, onAddNote, onMessa
     // Avatar color based on name
     const avatarColors = [
         'bg-orange-200 text-orange-900',
-        'bg-indigo-200 text-indigo-900',
+        'bg-sky-200 text-blue-950',
         'bg-emerald-200 text-emerald-900',
-        'bg-pink-200 text-pink-900',
-        'bg-purple-200 text-purple-900'
+        'bg-teal-200 text-teal-900',
+        'bg-sky-200 text-sky-800'
     ]
     const avatarColor = avatarColors[patientName.length % avatarColors.length]
 
@@ -136,7 +136,7 @@ const SessionDetailsModal = ({ session, onClose, onJoinVideo, onAddNote, onMessa
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
                                 onClick={handleViewDiary}
-                                className="flex flex-col items-center gap-1.5 py-3.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl transition-colors"
+                                className="flex flex-col items-center gap-1.5 py-3.5 bg-sky-50 hover:bg-sky-100 text-blue-800 rounded-xl transition-colors"
                             >
                                 <BookOpen className="w-4 h-4" />
                                 <span className="text-[11px] font-semibold">Expediente</span>
@@ -166,7 +166,7 @@ const SessionDetailsModal = ({ session, onClose, onJoinVideo, onAddNote, onMessa
                         {/* Today's Goal */}
                         <div className="space-y-2">
                             <div className="flex items-center gap-1.5">
-                                <Target className="w-4 h-4 text-indigo-600" />
+                                <Target className="w-4 h-4 text-blue-700" />
                                 <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Objetivo de Hoy</h3>
                             </div>
                             <p className="text-sm text-gray-700 leading-relaxed">{todayGoal}</p>

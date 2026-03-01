@@ -142,7 +142,7 @@ const ProfessionalVideoCallWebRTC = () => {
   // Check for error first
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-sky-50 to-sky-100 flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -156,7 +156,7 @@ const ProfessionalVideoCallWebRTC = () => {
           </p>
           <button
             onClick={() => navigate('/dashboard/professional')}
-            className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors"
+            className="bg-sky-500 text-white px-6 py-3 rounded-lg hover:bg-sky-600 transition-colors"
           >
             Volver al Dashboard
           </button>
@@ -167,9 +167,9 @@ const ProfessionalVideoCallWebRTC = () => {
 
   if (!isInitialized) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-sky-50 to-sky-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-sky-500 mx-auto mb-4"></div>
           <p className="text-gray-600">Inicializando sala de videollamada...</p>
         </div>
       </div>
@@ -178,9 +178,9 @@ const ProfessionalVideoCallWebRTC = () => {
 
   if (isConnecting) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-sky-50 to-sky-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-sky-500 mx-auto mb-4"></div>
           <p className="text-gray-600">Preparando sesión...</p>
         </div>
       </div>
@@ -250,7 +250,7 @@ const ProfessionalVideoCallWebRTC = () => {
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center">
-              <div className="w-16 h-16 bg-purple-600/50 rounded-full flex items-center justify-center mx-auto mb-3">
+              <div className="w-16 h-16 bg-sky-500/50 rounded-full flex items-center justify-center mx-auto mb-3">
                 <span className="text-2xl">👤</span>
               </div>
               <p className="text-white text-sm">Esperando al paciente...</p>
@@ -300,11 +300,11 @@ const ProfessionalVideoCallWebRTC = () => {
               transition={{ type: 'spring', damping: 20 }}
               className="absolute top-0 right-0 w-80 h-full bg-white shadow-2xl flex flex-col z-10"
             >
-              <div className="bg-purple-600 text-white px-4 py-3 flex items-center justify-between">
+              <div className="bg-sky-500 text-white px-4 py-3 flex items-center justify-between">
                 <h3 className="font-semibold">Chat de Sesión</h3>
                 <button
                   onClick={() => setShowChat(false)}
-                  className="hover:bg-purple-700 p-1 rounded"
+                  className="hover:bg-sky-600 p-1 rounded"
                 >
                   ✕
                 </button>
@@ -319,7 +319,7 @@ const ProfessionalVideoCallWebRTC = () => {
                     <div
                       className={`max-w-[70%] rounded-lg px-3 py-2 ${
                         msg.isOwn
-                          ? 'bg-purple-600 text-white'
+                          ? 'bg-sky-500 text-white'
                           : 'bg-gray-200 text-gray-800'
                       }`}
                     >
@@ -345,11 +345,11 @@ const ProfessionalVideoCallWebRTC = () => {
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
                     placeholder="Escribe un mensaje..."
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400"
                   />
                   <button
                     type="submit"
-                    className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+                    className="bg-sky-500 text-white px-4 py-2 rounded-lg hover:bg-sky-600 transition-colors"
                   >
                     Enviar
                   </button>
@@ -387,7 +387,7 @@ const ProfessionalVideoCallWebRTC = () => {
                     value={sessionNotes}
                     onChange={(e) => setSessionNotes(e.target.value)}
                     placeholder="Agregar notas sobre la sesión..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400"
                     rows={3}
                   />
                 </div>
@@ -446,7 +446,7 @@ const ProfessionalVideoCallWebRTC = () => {
           >
             <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
             {chatMessages.length > 0 && !showChat && (
-              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-purple-500 rounded-full text-[9px] flex items-center justify-center font-bold">
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-sky-400 rounded-full text-[9px] flex items-center justify-center font-bold">
                 {chatMessages.length > 9 ? '9+' : chatMessages.length}
               </span>
             )}

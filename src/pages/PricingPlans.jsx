@@ -34,7 +34,7 @@ const PricingPlans = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-sky-50/20">
       {/* Header */}
       <div className="bg-white/80 backdrop-blur-md border-b border-blue-100/50 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -44,16 +44,16 @@ const PricingPlans = () => {
                 onClick={() => navigate(-1)}
                 className="p-2 hover:bg-blue-50 rounded-xl transition-colors"
               >
-                <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                  <Sparkles className="w-6 h-6 text-indigo-600" />
+                  <Sparkles className="w-6 h-6 text-blue-700" />
                   Planes y Precios
                 </h1>
-                <p className="text-sm text-indigo-600 mt-1">Elige el plan perfecto para tu práctica</p>
+                <p className="text-sm text-blue-700 mt-1">Elige el plan perfecto para tu práctica</p>
               </div>
             </div>
           </div>
@@ -73,7 +73,7 @@ const PricingPlans = () => {
               onClick={() => setBillingPeriod('monthly')}
               className={`px-6 py-2.5 rounded-xl font-semibold text-sm transition-all ${
                 billingPeriod === 'monthly'
-                  ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-md'
+                  ? 'bg-gradient-to-r from-blue-700 to-blue-600 text-white shadow-md'
                   : 'text-gray-600 hover:bg-blue-50'
               }`}
             >
@@ -83,7 +83,7 @@ const PricingPlans = () => {
               onClick={() => setBillingPeriod('yearly')}
               className={`px-6 py-2.5 rounded-xl font-semibold text-sm transition-all relative ${
                 billingPeriod === 'yearly'
-                  ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-md'
+                  ? 'bg-gradient-to-r from-blue-700 to-blue-600 text-white shadow-md'
                   : 'text-gray-600 hover:bg-blue-50'
               }`}
             >
@@ -132,7 +132,7 @@ const PricingPlans = () => {
           transition={{ delay: 0.4 }}
           className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 border border-blue-100 shadow-xl"
         >
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent mb-6 text-center">Preguntas Frecuentes</h2>
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent mb-6 text-center">Preguntas Frecuentes</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FAQItem
               question="¿Puedo cambiar de plan en cualquier momento?"
@@ -160,13 +160,13 @@ const PricingPlans = () => {
           transition={{ delay: 0.5 }}
           className="mt-12 text-center"
         >
-          <div className="inline-flex items-center gap-3 bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-3 rounded-2xl border border-blue-200 shadow-lg">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-md">
+          <div className="inline-flex items-center gap-3 bg-gradient-to-r from-blue-50 to-sky-50 px-6 py-3 rounded-2xl border border-blue-200 shadow-lg">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center shadow-md">
               <Shield className="w-6 h-6 text-white" />
             </div>
             <div className="text-left">
-              <p className="font-bold text-indigo-900">Garantía de 30 días</p>
-              <p className="text-sm text-indigo-700">Si no estás satisfecho, te devolvemos tu dinero</p>
+              <p className="font-bold text-blue-950">Garantía de 30 días</p>
+              <p className="text-sm text-blue-800">Si no estás satisfecho, te devolvemos tu dinero</p>
             </div>
           </div>
         </motion.div>
@@ -201,13 +201,13 @@ const PlanCard = ({ planType, pricing, billingPeriod, onSelect, delay }) => {
       transition={{ delay }}
       className={`relative bg-white/90 backdrop-blur-sm rounded-3xl border-2 overflow-hidden transition-all hover:shadow-2xl hover:-translate-y-2 ${
         isPopular
-          ? 'border-indigo-500 shadow-xl scale-105 ring-4 ring-indigo-100'
+          ? 'border-sky-500 shadow-xl scale-105 ring-4 ring-sky-100'
           : 'border-blue-100 hover:border-blue-300'
       }`}
     >
       {/* Popular Badge */}
       {isPopular && (
-        <div className="absolute top-0 right-0 bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-600 text-white text-xs font-bold px-4 py-2 rounded-bl-2xl shadow-lg flex items-center gap-1">
+        <div className="absolute top-0 right-0 bg-gradient-to-r from-blue-700 via-blue-600 to-blue-700 text-white text-xs font-bold px-4 py-2 rounded-bl-2xl shadow-lg flex items-center gap-1">
           <Sparkles className="w-3 h-3" />
           MÁS POPULAR
         </div>
@@ -217,8 +217,8 @@ const PlanCard = ({ planType, pricing, billingPeriod, onSelect, delay }) => {
         {/* Header */}
         <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${
           planType === PLAN_TYPES.GRATUITO ? 'from-slate-500 to-slate-600' :
-          planType === PLAN_TYPES.PRO ? 'from-indigo-600 to-blue-600' :
-          'from-blue-700 to-indigo-800'
+          planType === PLAN_TYPES.PRO ? 'from-blue-700 to-blue-600' :
+          'from-blue-700 to-blue-900'
         } flex items-center justify-center text-white mb-4 shadow-lg`}>
           {getIcon()}
         </div>
@@ -236,11 +236,11 @@ const PlanCard = ({ planType, pricing, billingPeriod, onSelect, delay }) => {
           ) : (
             <div>
               <div className="flex items-baseline gap-1 mb-1">
-                <span className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">${pricing.price}</span>
+                <span className="text-4xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">${pricing.price}</span>
                 <span className="text-gray-600">/ mes</span>
               </div>
               {billingPeriod === 'yearly' && pricing.yearly && (
-                <p className="text-sm text-indigo-600 font-semibold bg-indigo-50 px-3 py-1 rounded-full inline-block">
+                <p className="text-sm text-blue-700 font-semibold bg-sky-50 px-3 py-1 rounded-full inline-block">
                   ${pricing.yearly}/año (ahorras ${(pricing.price * 12) - pricing.yearly})
                 </p>
               )}
@@ -255,10 +255,10 @@ const PlanCard = ({ planType, pricing, billingPeriod, onSelect, delay }) => {
           onClick={() => onSelect(planType)}
           className={`w-full py-3 rounded-2xl font-semibold flex items-center justify-center gap-2 mb-8 transition-all shadow-lg ${
             isPopular
-              ? 'bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white shadow-indigo-200'
+              ? 'bg-gradient-to-r from-blue-700 to-blue-600 hover:from-blue-800 hover:to-blue-700 text-white shadow-sky-200'
               : planType === PLAN_TYPES.GRATUITO
               ? 'bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white'
-              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-blue-200'
+              : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-blue-200'
           }`}
         >
           {planType === PLAN_TYPES.GRATUITO ? 'Comenzar Gratis' : 
@@ -272,8 +272,8 @@ const PlanCard = ({ planType, pricing, billingPeriod, onSelect, delay }) => {
           <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">Incluye:</p>
           {limits.features.map((feature, idx) => (
             <div key={idx} className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center shrink-0 mt-0.5">
-                <Check className="w-3 h-3 text-indigo-600" strokeWidth={3} />
+              <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-100 to-sky-100 flex items-center justify-center shrink-0 mt-0.5">
+                <Check className="w-3 h-3 text-blue-700" strokeWidth={3} />
               </div>
               <span className="text-sm text-gray-700">{feature}</span>
             </div>
@@ -302,8 +302,8 @@ const PlanCard = ({ planType, pricing, billingPeriod, onSelect, delay }) => {
 // FAQ Item Component
 const FAQItem = ({ question, answer }) => {
   return (
-    <div className="bg-gradient-to-br from-blue-50/50 to-indigo-50/50 rounded-2xl p-5 border border-blue-100/50 hover:shadow-md transition-shadow">
-      <h3 className="font-bold text-indigo-900 mb-2">{question}</h3>
+    <div className="bg-gradient-to-br from-blue-50/50 to-sky-50/50 rounded-2xl p-5 border border-blue-100/50 hover:shadow-md transition-shadow">
+      <h3 className="font-bold text-blue-950 mb-2">{question}</h3>
       <p className="text-sm text-gray-600">{answer}</p>
     </div>
   )

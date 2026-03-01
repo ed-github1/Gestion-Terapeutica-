@@ -16,7 +16,7 @@ import { homeworkService } from '@shared/services/homeworkService'
 const TYPES = [
   { value: 'exercise',    label: 'Ejercicio',     icon: Dumbbell,      color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
   { value: 'reading',     label: 'Lectura',        icon: BookOpen,      color: 'bg-blue-100 text-blue-700 border-blue-200' },
-  { value: 'journaling',  label: 'Diario',         icon: Pencil,        color: 'bg-purple-100 text-purple-700 border-purple-200' },
+  { value: 'journaling',  label: 'Diario',         icon: Pencil,        color: 'bg-sky-100 text-sky-600 border-sky-200' },
   { value: 'reflection',  label: 'Reflexión',      icon: Star,          color: 'bg-amber-100 text-amber-700 border-amber-200' },
   { value: 'other',       label: 'Otro',           icon: ClipboardList, color: 'bg-gray-100 text-gray-700 border-gray-200' },
 ]
@@ -66,11 +66,11 @@ const TaskCard = ({ task, index, onToggle, onDelete, toggling, deleting }) => {
         <button
           onClick={() => onToggle(task)}
           disabled={isLoading}
-          className="mt-0.5 shrink-0 text-gray-400 hover:text-indigo-600 transition disabled:opacity-40"
+          className="mt-0.5 shrink-0 text-gray-400 hover:text-blue-700 transition disabled:opacity-40"
           aria-label={task.completed ? 'Marcar incompleta' : 'Marcar completada'}
         >
           {toggling
-            ? <Loader2 className="w-5 h-5 animate-spin text-indigo-400" />
+            ? <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
             : task.completed
               ? <CheckCircle2 className="w-5 h-5 text-emerald-500" />
               : <Circle className="w-5 h-5" />
@@ -103,7 +103,7 @@ const TaskCard = ({ task, index, onToggle, onDelete, toggling, deleting }) => {
             <div>
               <button
                 onClick={() => setExpanded(e => !e)}
-                className="mt-1.5 flex items-center gap-0.5 text-xs text-indigo-500 hover:text-indigo-700 transition"
+                className="mt-1.5 flex items-center gap-0.5 text-xs text-sky-500 hover:text-blue-800 transition"
               >
                 {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                 {expanded ? 'Ocultar descripción' : 'Ver descripción'}
@@ -270,7 +270,7 @@ const HomeworkPanel = ({ patientId, patientName }) => {
             key={key}
             onClick={() => setFilter(key)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-              filter === key ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              filter === key ? 'bg-blue-700 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
             {label}
@@ -285,7 +285,7 @@ const HomeworkPanel = ({ patientId, patientName }) => {
           onClick={() => setShowForm(f => !f)}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
-          className="ml-auto flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700 transition"
+          className="ml-auto flex items-center gap-1.5 px-3 py-1.5 bg-blue-700 text-white rounded-lg text-xs font-semibold hover:bg-blue-800 transition"
         >
           <Plus className="w-3.5 h-3.5" />
           Asignar tarea
@@ -300,9 +300,9 @@ const HomeworkPanel = ({ patientId, patientName }) => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             onSubmit={handleSubmit}
-            className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 space-y-3"
+            className="bg-sky-50 border border-sky-100 rounded-2xl p-4 space-y-3"
           >
-            <p className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">
+            <p className="text-xs font-semibold text-blue-800 uppercase tracking-wide">
               Nueva tarea para {patientName?.split(' ')[0] || 'el paciente'}
             </p>
 
@@ -313,7 +313,7 @@ const HomeworkPanel = ({ patientId, patientName }) => {
               onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
               placeholder="Título de la tarea *"
               required
-              className="w-full px-3 py-2 text-sm border border-indigo-200 rounded-xl focus:ring-2 focus:ring-indigo-400 focus:border-transparent outline-none bg-white"
+              className="w-full px-3 py-2 text-sm border border-sky-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
             />
 
             {/* Description */}
@@ -322,7 +322,7 @@ const HomeworkPanel = ({ patientId, patientName }) => {
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
               placeholder="Descripción o instrucciones (opcional)"
               rows={2}
-              className="w-full px-3 py-2 text-sm border border-indigo-200 rounded-xl resize-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent outline-none bg-white"
+              className="w-full px-3 py-2 text-sm border border-sky-200 rounded-xl resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
             />
 
             {/* Type + Date row */}
@@ -330,7 +330,7 @@ const HomeworkPanel = ({ patientId, patientName }) => {
               <select
                 value={form.type}
                 onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
-                className="flex-1 px-3 py-2 text-sm border border-indigo-200 rounded-xl focus:ring-2 focus:ring-indigo-400 focus:border-transparent outline-none bg-white"
+                className="flex-1 px-3 py-2 text-sm border border-sky-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
               >
                 {TYPES.map(t => (
                   <option key={t.value} value={t.value}>{t.label}</option>
@@ -342,7 +342,7 @@ const HomeworkPanel = ({ patientId, patientName }) => {
                 value={form.dueDate}
                 onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))}
                 min={new Date().toISOString().split('T')[0]}
-                className="flex-1 px-3 py-2 text-sm border border-indigo-200 rounded-xl focus:ring-2 focus:ring-indigo-400 focus:border-transparent outline-none bg-white"
+                className="flex-1 px-3 py-2 text-sm border border-sky-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
               />
             </div>
 
@@ -353,7 +353,7 @@ const HomeworkPanel = ({ patientId, patientName }) => {
                 disabled={isSubmitting || !form.title.trim()}
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.98 }}
-                className="flex-1 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 py-2 bg-blue-700 text-white text-sm font-semibold rounded-xl hover:bg-blue-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting
                   ? <span className="flex items-center justify-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Guardando…</span>
@@ -396,8 +396,8 @@ const HomeworkPanel = ({ patientId, patientName }) => {
         </div>
       ) : visible.length === 0 ? (
         <div className="text-center py-10">
-          <div className="w-12 h-12 bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-            <ClipboardList className="w-6 h-6 text-indigo-400" />
+          <div className="w-12 h-12 bg-sky-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+            <ClipboardList className="w-6 h-6 text-blue-500" />
           </div>
           <p className="font-semibold text-gray-700 text-sm mb-1">
             {filter === 'pending' ? 'Sin tareas pendientes' :

@@ -36,7 +36,7 @@ const AppointmentRequest = ({ onClose, onSuccess, professionalId = null }) => {
     if (selectedDate) {
       fetchAvailableSlots(selectedDate)
     }
-  }, [selectedDate])
+  }, [selectedDate, professionalId])
 
   const getSlotsFromLocalAvailability = (date) => {
     try {
@@ -67,10 +67,17 @@ const AppointmentRequest = ({ onClose, onSuccess, professionalId = null }) => {
           ? response.data.data
           : []
 
-      console.log('✅ Slots resolved:', slots)
+      // Normalise: treat missing/undefined `available` as true so slots aren't
+      // silently grayed-out when the backend omits the field.
+      const normalisedSlots = slots.map(s => ({
+        ...s,
+        available: s.available !== false, // undefined → true, false → false
+      }))
+      console.log('✅ Slots resolved:', normalisedSlots)
+      console.log('✅ Slot sample:', normalisedSlots[0])
 
-      if (slots.length > 0) {
-        setAvailableSlots(slots)
+      if (normalisedSlots.length > 0) {
+        setAvailableSlots(normalisedSlots)
       } else {
         // API returned empty — fall back to professional's saved availability
         const localSlots = getSlotsFromLocalAvailability(date)
@@ -229,7 +236,7 @@ const AppointmentRequest = ({ onClose, onSuccess, professionalId = null }) => {
         className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] sm:max-h-[85vh] overflow-y-auto"
       >
         {/* Header */}
-        <div className="sticky top-0 bg-linear-to-r from-blue-500 to-purple-500 text-white p-4 sm:p-6 rounded-t-xl sm:rounded-t-2xl">
+        <div className="sticky top-0 bg-linear-to-r from-blue-500 to-sky-400 text-white p-4 sm:p-6 rounded-t-xl sm:rounded-t-2xl">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl sm:text-2xl font-bold">Reservar Cita</h2>
@@ -406,7 +413,7 @@ const AppointmentRequest = ({ onClose, onSuccess, professionalId = null }) => {
                   type="button"
                   onClick={handleReserveSlot}
                   disabled={loading || !selectedSlot || !formData.reason}
-                  className="w-full sm:flex-1 order-1 sm:order-2 px-6 py-2.5 sm:py-3 text-sm sm:text-base bg-linear-to-r from-blue-500 to-purple-500 text-white rounded-lg hover:from-blue-600 hover:to-purple-600 transition font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full sm:flex-1 order-1 sm:order-2 px-6 py-2.5 sm:py-3 text-sm sm:text-base bg-linear-to-r from-blue-500 to-sky-400 text-white rounded-lg hover:from-blue-600 hover:to-sky-500 transition font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? 'Reservando...' : 'Continuar al Pago'}
                 </button>
@@ -556,7 +563,7 @@ const AppointmentRequest = ({ onClose, onSuccess, professionalId = null }) => {
               </div>
               <button
                 onClick={onClose}
-                className="w-full sm:w-auto px-8 py-2.5 sm:py-3 text-sm sm:text-base bg-linear-to-r from-blue-500 to-purple-500 text-white rounded-lg hover:from-blue-600 hover:to-purple-600 transition font-semibold"
+                className="w-full sm:w-auto px-8 py-2.5 sm:py-3 text-sm sm:text-base bg-linear-to-r from-blue-500 to-sky-400 text-white rounded-lg hover:from-blue-600 hover:to-sky-500 transition font-semibold"
               >
                 Volver al Dashboard
               </button>

@@ -5,7 +5,11 @@
 import apiClient from '@shared/api/client'
 
 export const invitationsService = {
-  // POST /api/invitations — professional sends invite
+  // POST /api/invitations/generate-link — create a shareable registration link (no patient data required)
+  generateLink: () =>
+    apiClient.post('/invitations/generate-link').then((res) => res.data ?? res),
+
+  // POST /api/invitations — professional sends invite (or creates link-only invitation)
   send: (data) =>
     apiClient.post('/invitations', data),
 

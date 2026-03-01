@@ -71,10 +71,10 @@ const ComplianceWidget = ({ compliance = {} }) => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-xl md:rounded-2xl p-4 md:p-5 border border-indigo-100 shadow-sm"
+            className="bg-gradient-to-br from-sky-50 to-blue-50 rounded-xl md:rounded-2xl p-4 md:p-5 border border-sky-100 shadow-sm"
         >
             <div className="flex items-center gap-2 mb-4">
-                <Shield className="w-5 h-5 text-indigo-600" strokeWidth={2.5} />
+                <Shield className="w-5 h-5 text-blue-700" strokeWidth={2.5} />
                 <h2 className="text-sm md:text-base font-bold text-gray-900">Compliance Status</h2>
             </div>
 
@@ -125,7 +125,7 @@ const ComplianceWidget = ({ compliance = {} }) => {
             <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors"
+                className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-700 hover:bg-blue-800 text-white text-xs font-semibold rounded-lg transition-colors"
             >
                 <Shield className="w-4 h-4" />
                 <span>View Full Compliance Report</span>

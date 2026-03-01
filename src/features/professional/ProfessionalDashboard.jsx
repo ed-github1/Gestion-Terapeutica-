@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
+import { X } from 'lucide-react'
 import ModernProfessionalDashboard from './components/ModernProfessionalDashboard'
 import AppointmentsCalendar from './components/AppointmentsCalendar'
 import PatientClinicalFile from './components/PatientClinicalFile'
@@ -22,35 +23,60 @@ const ProfessionalDashboardWrapper = () => {
         if (id) setDiaryPatient({ id, nombre, apellido, name: fullName })
     }
 
-    // Show calendar if selected
-    if (showCalendar) {
-        return (
-            <div className="relative">
-                <motion.button
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setShowCalendar(false)}
-                    className="fixed top-4 left-4 z-50 flex items-center gap-2 px-4 py-2 bg-white shadow-lg rounded-xl hover:shadow-xl transition-all border border-gray-200"
-                >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                    </svg>
-                    <span className="font-semibold text-gray-700">Volver</span>
-                </motion.button>
-                <AppointmentsCalendar />
-            </div>
-        )
-    }
-
-    // Show main dashboard (diary overlays it as a modal)
+    // Dashboard + slide-over drawer for the full calendar
     return (
         <>
             <ModernProfessionalDashboard
                 setShowCalendar={setShowCalendar}
                 setDiaryPatient={handleViewDiary}
             />
+
+            {/* ── Full-calendar slide-over drawer ── */}
+            <AnimatePresence>
+                {showCalendar && (
+                    <>
+                        {/* Backdrop */}
+                        <motion.div
+                            key="cal-backdrop"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
+                            onClick={() => setShowCalendar(false)}
+                        />
+
+                        {/* Drawer panel */}
+                        <motion.div
+                            key="cal-drawer"
+                            initial={{ x: '100%' }}
+                            animate={{ x: 0 }}
+                            exit={{ x: '100%' }}
+                            transition={{ type: 'spring', damping: 28, stiffness: 260 }}
+                            className="fixed right-0 top-0 bottom-0 w-full max-w-5xl  z-50 overflow-y-auto shadow-2xl flex flex-col"
+                        >
+                            {/* Drawer header */}
+                            <div className="sticky top-0 z-10 flex items-center gap-3 px-5 py-3.5 bg-white border-b border-gray-100 shrink-0">
+                                <button
+                                    onClick={() => setShowCalendar(false)}
+                                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
+                                    aria-label="Cerrar agenda"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                                <h2 className="text-sm font-bold text-gray-900">Agenda completa</h2>
+                            </div>
+
+                            {/* Calendar content */}
+                            <div className="flex-1 p-4 md:p-6">
+                                <AppointmentsCalendar />
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+
+            {/* ── Patient diary overlay ── */}
             <AnimatePresence>
                 {diaryPatient && (
                     <PatientClinicalFile

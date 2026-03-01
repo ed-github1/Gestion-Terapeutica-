@@ -6,12 +6,12 @@ import { Video, FileText, MessageSquare, Phone, AlertCircle, ClipboardList } fro
  */
 const QuickActionButton = ({ icon: Icon, label, color, onClick, delay = 0 }) => {
     const colorClasses = {
-        indigo: 'bg-indigo-500 hover:bg-indigo-600 shadow-indigo-200',
+        indigo: 'bg-sky-500 hover:bg-blue-700 shadow-sky-200',
         emerald: 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-200',
         amber: 'bg-amber-500 hover:bg-amber-600 shadow-amber-200',
         rose: 'bg-rose-500 hover:bg-rose-600 shadow-rose-200',
         gray: 'bg-gray-500 hover:bg-gray-600 shadow-gray-200',
-        purple: 'bg-purple-500 hover:bg-purple-600 shadow-purple-200'
+        purple: 'bg-sky-400 hover:bg-sky-500 shadow-sky-200'
     }
 
     return (

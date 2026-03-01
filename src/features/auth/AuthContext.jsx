@@ -376,7 +376,7 @@ export const AuthProvider = ({ children }) => {
               </button>
               <button
                 onClick={extend}
-                className="flex-1 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition"
+                className="flex-1 py-2.5 bg-blue-700 text-white rounded-lg text-sm font-semibold hover:bg-blue-800 transition"
               >
                 Continuar
               </button>

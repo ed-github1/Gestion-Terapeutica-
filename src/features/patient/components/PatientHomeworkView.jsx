@@ -17,7 +17,7 @@ import { useAuth } from '@features/auth/AuthContext'
 const TYPES = {
   exercise:   { label: 'Ejercicio',  icon: Dumbbell,     color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
   reading:    { label: 'Lectura',    icon: BookOpen,     color: 'bg-blue-100 text-blue-700 border-blue-200' },
-  journaling: { label: 'Diario',     icon: Pencil,       color: 'bg-purple-100 text-purple-700 border-purple-200' },
+  journaling: { label: 'Diario',     icon: Pencil,       color: 'bg-sky-100 text-sky-600 border-sky-200' },
   reflection: { label: 'Reflexión',  icon: Star,         color: 'bg-amber-100 text-amber-700 border-amber-200' },
   other:      { label: 'Otro',       icon: ClipboardList,color: 'bg-gray-100 text-gray-700 border-gray-200' },
 }
@@ -65,12 +65,12 @@ const TaskCard = ({ task, index, onToggle, toggling }) => {
           className={`mt-0.5 shrink-0 transition ${
             task.completed
               ? 'text-emerald-500 cursor-default'
-              : 'text-gray-300 hover:text-indigo-500'
+              : 'text-gray-300 hover:text-sky-500'
           } disabled:opacity-60`}
           aria-label={task.completed ? 'Tarea completada' : 'Marcar como completada'}
         >
           {toggling
-            ? <Loader2 className="w-5 h-5 animate-spin text-indigo-400" />
+            ? <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
             : task.completed
               ? <CheckCircle2 className="w-5 h-5" />
               : <Circle className="w-5 h-5" />
@@ -111,7 +111,7 @@ const TaskCard = ({ task, index, onToggle, toggling }) => {
             <div>
               <button
                 onClick={() => setExpanded(e => !e)}
-                className="mt-2 flex items-center gap-0.5 text-xs text-indigo-500 hover:text-indigo-700 transition"
+                className="mt-2 flex items-center gap-0.5 text-xs text-sky-500 hover:text-blue-800 transition"
               >
                 {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                 {expanded ? 'Ocultar instrucciones' : 'Ver instrucciones'}
@@ -143,7 +143,7 @@ const TaskCard = ({ task, index, onToggle, toggling }) => {
             disabled={toggling}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-xl hover:bg-indigo-700 transition disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-700 text-white text-xs font-semibold rounded-xl hover:bg-blue-800 transition disabled:opacity-50"
           >
             {toggling
               ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Guardando…</>
@@ -254,7 +254,7 @@ const PatientHomeworkView = ({ patientId: propPatientId }) => {
             key={key}
             onClick={() => setFilter(key)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-              filter === key ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              filter === key ? 'bg-blue-700 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
             {label}
@@ -290,10 +290,10 @@ const PatientHomeworkView = ({ patientId: propPatientId }) => {
         </div>
       ) : visible.length === 0 ? (
         <div className="text-center py-12">
-          <div className="w-14 h-14 bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+          <div className="w-14 h-14 bg-sky-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
             {filter === 'done'
               ? <CheckCircle2 className="w-7 h-7 text-emerald-400" />
-              : <ClipboardList className="w-7 h-7 text-indigo-400" />
+              : <ClipboardList className="w-7 h-7 text-blue-500" />
             }
           </div>
           <p className="font-semibold text-gray-700 mb-1">

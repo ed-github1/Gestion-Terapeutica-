@@ -23,6 +23,7 @@ export const ROUTES = {
   PATIENT_VIDEO: '/video/join/:appointmentId',
   PATIENT_REGISTER: '/patient/register',
   PATIENT_INVITE: '/register/:inviteCode',
+  PATIENT_ONBOARDING: '/onboarding/:token',
 }
 
 export const ROLES = {

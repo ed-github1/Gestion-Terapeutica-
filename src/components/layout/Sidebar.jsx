@@ -92,7 +92,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 {/* Logo & Close Button */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-200">
                     <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-linear-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                        <div className="w-10 h-10 bg-linear-to-br from-blue-500 to-blue-700 rounded-lg flex items-center justify-center">
                             <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                             </svg>
@@ -115,7 +115,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 {/* User Profile */}
                 <div className="p-4 border-b border-gray-200">
                     <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-linear-to-br from-blue-400 to-indigo-500 rounded-full flex items-center justify-center">
+                        <div className="w-10 h-10 bg-linear-to-br from-blue-400 to-sky-500 rounded-full flex items-center justify-center">
                             <span className="text-white font-semibold text-sm">
                                 {user?.name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase()}
                             </span>
