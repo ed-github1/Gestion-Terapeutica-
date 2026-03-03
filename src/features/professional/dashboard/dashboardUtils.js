@@ -1,4 +1,49 @@
 /**
+ * Strip the literal words "undefined" and "null" that can leak into names
+ * when JS values are accidentally coerced to strings.
+ *
+ * @param {string} raw
+ * @returns {string} cleaned name, or '' if nothing useful remains
+ */
+export const sanitizeName = (raw) => {
+    if (!raw || typeof raw !== 'string') return ''
+    const cleaned = raw
+        .replace(/\bundefined\b/gi, '')
+        .replace(/\bnull\b/gi, '')
+        .replace(/\s{2,}/g, ' ')
+        .trim()
+    return cleaned || ''
+}
+
+/**
+ * Safely resolve a patient display name from an appointment object.
+ * Handles populated patientId objects (firstName/lastName or nombre/apellido)
+ * and falls back to stored string fields.
+ * Always sanitises the result so "undefined" / "null" never leak into the UI.
+ *
+ * @param {object} apt - Appointment object
+ * @returns {string} Patient display name
+ */
+export const resolvePatientName = (apt) => {
+    // 1. Try populated patientId object (Patient or User model)
+    const pid = apt?.patientId
+    if (pid && typeof pid === 'object') {
+        const first = sanitizeName(pid.firstName || pid.nombre || '')
+        const last  = sanitizeName(pid.lastName  || pid.apellido || '')
+        const full  = `${first} ${last}`.trim()
+        if (full) return full
+    }
+
+    // 2. Try denormalized string fields on the appointment itself
+    for (const field of [apt?.patientName, apt?.nombrePaciente, apt?.patient?.name]) {
+        const cleaned = sanitizeName(field)
+        if (cleaned) return cleaned
+    }
+
+    return 'Paciente'
+}
+
+/**
  * Get appropriate greeting based on time of day
  * @param {Date} currentTime - Current time
  * @returns {string} Greeting message
@@ -27,19 +72,18 @@ export const getTodayAppointments = (appointments) => {
 
     return appointments
         .filter(apt => {
-            const dateField = apt.fechaHora || apt.date
+            // Prefer the raw date-only field to avoid UTC-vs-local day shifts on
+            // combined ISO datetimes. Fall back to fechaHora if date is absent.
+            const dateField = apt.date || apt.fechaHora
             if (!dateField) return false
 
             try {
-                // Always extract the YYYY-MM-DD portion first (handles both
-                // plain "2026-02-18" and ISO "2026-02-18T00:00:00.000Z").
-                // Parsing just the date part avoids the UTC-vs-local day shift.
-                const dateOnly = String(dateField).slice(0, 10) // "2026-02-18"
+                const dateOnly = String(dateField).slice(0, 10) // "2026-03-02"
                 const [year, month, day] = dateOnly.split('-').map(Number)
 
                 return (
                     year  === todayYear &&
-                    month === todayMonth + 1 && // slice gives 1-based month
+                    month === todayMonth + 1 &&
                     day   === todayDate
                 )
             } catch {
@@ -62,9 +106,7 @@ export const getTodayAppointments = (appointments) => {
             return {
                 id: apt._id || apt.id,
                 patientId: apt.patientId?._id || apt.patientId,
-                nombrePaciente: apt.patientName || apt.nombrePaciente || (apt.patientId?.nombre 
-                    ? `${apt.patientId.nombre} ${apt.patientId.apellido}` 
-                    : 'Paciente'),
+                nombrePaciente: resolvePatientName(apt),
                 fechaHora: fechaHora,
                 estado: apt.estado || apt.status,
                 type: apt.type || 'Consulta',

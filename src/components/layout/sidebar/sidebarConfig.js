@@ -73,15 +73,6 @@ export const patientMenuItems = [
     secure: true
   },
   {
-    icon: MessageSquare,
-    path: '/dashboard/patient/messages',
-    label: 'Mensajes',
-    description: 'Habla con tu terapeuta',
-    badge: 2,
-    ariaLabel: 'Mensajes, 2 sin leer',
-    secure: true
-  },
-  {
     icon: TrendingUp,
     path: '/dashboard/patient/progress',
     label: 'Mi Progreso',

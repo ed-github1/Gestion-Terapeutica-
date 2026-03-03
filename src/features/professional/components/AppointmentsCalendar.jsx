@@ -5,22 +5,51 @@ import { Calendar, Clock, CheckCircle2 } from 'lucide-react'
 import VideoCallLauncher from './VideoCall'
 import { showToast } from '@components'
 import { appointmentsService } from '@shared/services/appointmentsService'
+import { patientsService } from '@shared/services/patientsService'
+import { socketNotificationService } from '@shared/services/socketNotificationService'
+import { useAuth } from '@features/auth/AuthContext'
 import AvailabilityManager from './AvailabilityManager'
 import ModernAppointmentsCalendar from './ModernAppointmentsCalendar'
+import PendingPaymentsPanel from './PendingPaymentsPanel'
 
 const AppointmentModal = ({ appointment, onClose, onSave, onDelete }) => {
+  const { user } = useAuth()
   const [showVideoCall, setShowVideoCall] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
   const [sendingNotification, setSendingNotification] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [patients, setPatients] = useState([])
+  const [loadingPatients, setLoadingPatients] = useState(false)
   const [formData, setFormData] = useState({
     patientName: appointment?.patientName || '',
+    patientId: appointment?.patientId || '',
+    patientUserId: appointment?.patientUserId || '',
     type: appointment?.type || 'consultation',
     date: appointment?.start ? format(appointment.start, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
     time: appointment?.start ? format(appointment.start, 'HH:mm') : '09:00',
     duration: appointment?.duration || '60',
     notes: appointment?.notes || '',
     isVideoCall: appointment?.isVideoCall || false,
+    price: appointment?.price || 50,
   })
+
+  // Load patients for picker
+  useEffect(() => {
+    const loadPatients = async () => {
+      setLoadingPatients(true)
+      try {
+        const res = await patientsService.getAll({})
+        const list = res.data?.data || res.data?.patients || res.data || []
+        setPatients(Array.isArray(list) ? list : [])
+      } catch (err) {
+        console.warn('Could not load patients:', err?.message)
+        setPatients([])
+      } finally {
+        setLoadingPatients(false)
+      }
+    }
+    loadPatients()
+  }, [])
 
   const copyVideoLink = () => {
     if (appointment) {
@@ -61,26 +90,108 @@ const AppointmentModal = ({ appointment, onClose, onSave, onDelete }) => {
     )
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    const [hours, minutes] = formData.time.split(':')
-    const startDate = new Date(formData.date)
-    startDate.setHours(parseInt(hours), parseInt(minutes), 0)
-    
-    const endDate = new Date(startDate)
-    endDate.setMinutes(endDate.getMinutes() + parseInt(formData.duration))
+    if (!formData.patientId && !appointment) {
+      showToast('Selecciona un paciente', 'error')
+      return
+    }
 
-    onSave({
-      id: appointment?.id || Date.now(),
-      patientName: formData.patientName,
-      type: formData.type,
-      start: startDate,
-      end: endDate,
-      duration: formData.duration,
-      notes: formData.notes,
-      isVideoCall: formData.isVideoCall,
-      status: appointment?.status || 'scheduled'
-    })
+    setSaving(true)
+    try {
+      const [hours, minutes] = formData.time.split(':')
+      // Parse date as local midnight (adding T00:00:00 prevents UTC-shift)
+      const startDate = new Date(`${formData.date}T00:00:00`)
+      startDate.setHours(parseInt(hours), parseInt(minutes), 0)
+      
+      const endDate = new Date(startDate)
+      endDate.setMinutes(endDate.getMinutes() + parseInt(formData.duration))
+
+      if (appointment) {
+        // Update existing
+        onSave({
+          id: appointment.id,
+          patientName: formData.patientName,
+          patientId: formData.patientId || appointment.patientId,
+          type: formData.type,
+          start: startDate,
+          end: endDate,
+          duration: formData.duration,
+          notes: formData.notes,
+          isVideoCall: formData.isVideoCall,
+          status: appointment.status,
+          price: formData.price,
+        })
+      } else {
+        // Create new appointment via backend – sends notification to patient
+        let created = null
+        try {
+          const res = await appointmentsService.createForPatient({
+            patientId: formData.patientId,
+            patientUserId: formData.patientUserId,
+            professionalId: user?._id || user?.id,
+            patientName: formData.patientName,
+            date: formData.date,
+            time: formData.time,
+            type: formData.type,
+            duration: parseInt(formData.duration),
+            notes: formData.notes,
+            isVideoCall: formData.isVideoCall,
+            price: formData.price,
+          })
+          created = res.data?.data || res.data
+
+          // Send real-time socket notification to the patient
+          const targetUserId = formData.patientUserId ||
+            created?.patientUserId || created?.patient?.userId || created?.patient?.user
+          if (targetUserId) {
+            const proToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || ''
+            const proUserId = user?._id || user?.id
+            socketNotificationService.connect(proUserId, proToken)
+            socketNotificationService.sendAppointmentNotification(targetUserId, {
+              appointmentId: created?._id || created?.id,
+              patientName: formData.patientName,
+              date: formData.date,
+              time: formData.time,
+              type: formData.type,
+              isVideoCall: formData.isVideoCall,
+            })
+          } else {
+            console.warn('[AppointmentModal] patientUserId not available — socket notification skipped; patient will see it via polling')
+          }
+        } catch (backendErr) {
+          const errMsg = backendErr?.data?.message || backendErr?.data?.error || backendErr?.message || 'Error desconocido'
+          console.error('Backend create failed (400 detail):', errMsg, '| full:', JSON.stringify(backendErr?.data))
+          showToast(`❌ No se pudo crear la cita: ${errMsg}`, 'error')
+          setSaving(false)
+          return
+        }
+
+        const appointmentId = created?._id || created?.id || Date.now()
+        const savedAppointment = {
+          id: appointmentId,
+          patientName: formData.patientName,
+          patientId: formData.patientId,
+          type: formData.type,
+          start: startDate,
+          end: endDate,
+          duration: formData.duration,
+          notes: formData.notes,
+          isVideoCall: formData.isVideoCall,
+          status: 'reserved',
+          price: formData.price,
+        }
+
+        onSave(savedAppointment)
+        // Backend emits appointment-pending socket event to the patient automatically
+        showToast('📩 Cita creada. El paciente recibirá una notificación para aceptarla.', 'success')
+      }
+    } catch (err) {
+      console.error('Error saving appointment:', err)
+      showToast('❌ Error al guardar la cita', 'error')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -147,11 +258,13 @@ const AppointmentModal = ({ appointment, onClose, onSave, onDelete }) => {
                           appointment.status === 'scheduled' ? 'bg-green-100 text-green-700' :
                           appointment.status === 'completed' ? 'bg-blue-100 text-blue-700' :
                           appointment.status === 'cancelled' ? 'bg-red-100 text-red-700' :
+                          appointment.status === 'reserved' ? 'bg-amber-100 text-amber-700' :
                           'bg-yellow-100 text-yellow-700'
                         }`}>
                           {appointment.status === 'scheduled' ? 'Programada' :
                            appointment.status === 'completed' ? 'Completada' :
                            appointment.status === 'cancelled' ? 'Cancelada' :
+                           appointment.status === 'reserved' ? 'Pendiente de aceptación' :
                            'Reservada'}
                         </span>
                       </div>
@@ -168,15 +281,47 @@ const AppointmentModal = ({ appointment, onClose, onSave, onDelete }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                  Nombre del Paciente *
+                  Paciente *
                 </label>
-                <input
-                  required
-                  value={formData.patientName}
-                  onChange={(e) => setFormData({ ...formData, patientName: e.target.value })}
-                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                  placeholder="Ej: María González"
-                />
+                {appointment ? (
+                  <input
+                    readOnly
+                    value={formData.patientName}
+                    className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-600"
+                  />
+                ) : (
+                  <select
+                    required
+                    value={formData.patientId}
+                    onChange={(e) => {
+                      const p = patients.find(p => (p._id || p.id) === e.target.value)
+                      const buildName = (pt) => {
+                        if (!pt) return ''
+                        const raw = pt.name || `${pt.firstName || ''} ${pt.lastName || ''}`.trim()
+                        // Strip stray "undefined" / "null" leaking from missing fields
+                        const cleaned = raw.replace(/\bundefined\b/gi, '').replace(/\bnull\b/gi, '').replace(/\s{2,}/g, ' ').trim()
+                        return cleaned || pt.email || ''
+                      }
+                      setFormData({
+                        ...formData,
+                        patientId: e.target.value,
+                        patientUserId: p?.userId || p?.user_id || p?.user || '',
+                        patientName: buildName(p),
+                      })
+                    }}
+                    className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  >
+                    <option value="">
+                      {loadingPatients ? 'Cargando pacientes...' : 'Seleccionar paciente'}
+                    </option>
+                    {patients.map((p) => {
+                      const pid = p._id || p.id
+                      const rawName = p.name || `${p.firstName || ''} ${p.lastName || ''}`.trim()
+                      const name = rawName.replace(/\bundefined\b/gi, '').replace(/\bnull\b/gi, '').replace(/\s{2,}/g, ' ').trim() || p.email
+                      return <option key={pid} value={pid}>{name}</option>
+                    })}
+                  </select>
+                )}
               </div>
 
               <div>
@@ -280,6 +425,23 @@ const AppointmentModal = ({ appointment, onClose, onSave, onDelete }) => {
               />
             </div>
 
+            {/* Price Section */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                Precio de la sesión (€) *
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                required
+                value={formData.price}
+                onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                placeholder="50.00"
+              />
+            </div>
+
             {/* Video Call Actions (if editing and is video call) */}
             {appointment && appointment.isVideoCall && (
               <div className="space-y-3 bg-linear-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
@@ -362,9 +524,10 @@ const AppointmentModal = ({ appointment, onClose, onSave, onDelete }) => {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 type="submit"
-                className="flex-1 sm:flex-none px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition font-medium shadow-sm"
+                disabled={saving}
+                className="flex-1 sm:flex-none px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition font-medium shadow-sm disabled:opacity-50"
               >
-                {appointment ? 'Actualizar' : 'Crear Sesión'}
+                {saving ? 'Guardando...' : appointment ? 'Actualizar' : 'Crear y Notificar'}
               </motion.button>
             </div>
           </div>
@@ -579,6 +742,9 @@ const AppointmentsCalendar = () => {
             </div>
           ))}
         </div>
+
+        {/* Pending payments panel */}
+        <PendingPaymentsPanel className="mb-5" />
 
         {/* Calendar */}
         <motion.div

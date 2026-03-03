@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import apiClient from '@shared/api/client'
+import { appointmentsService } from '@shared/services/appointmentsService'
+import { resolvePatientName, sanitizeName } from './dashboardUtils'
 
 /**
  * Derive a recent-activity feed from already-fetched appointments and patients.
@@ -19,12 +21,7 @@ const buildActivitiesFromData = (appointments = [], patients = []) => {
         const aptDate = new Date(apt.fechaHora || apt.date)
         if (isNaN(aptDate) || aptDate < thirtyDaysAgo) return
 
-        const patientName =
-            apt.nombrePaciente ||
-            apt.patientName ||
-            apt.patient?.name ||
-            apt.patient?.nombre ||
-            'Paciente'
+        const patientName = resolvePatientName(apt)
 
         if (apt.status === 'completed') {
             activities.push({
@@ -78,12 +75,12 @@ const buildActivitiesFromData = (appointments = [], patients = []) => {
         const createdAt = new Date(patient.createdAt || patient.created_at || patient.fechaRegistro)
         if (isNaN(createdAt) || createdAt < thirtyDaysAgo) return
 
-        const patientName =
+        const patientName = sanitizeName(
             patient.name ||
             patient.nombre ||
             `${patient.firstName || ''} ${patient.lastName || ''}`.trim() ||
-            `${patient.nombre || ''} ${patient.apellido || ''}`.trim() ||
-            'Nuevo paciente'
+            `${patient.nombre || ''} ${patient.apellido || ''}`.trim()
+        ) || 'Nuevo paciente'
 
         activities.push({
             id: `patient-${patient.id}`,
@@ -151,20 +148,38 @@ export const useDashboardData = () => {
 
     const fetchAppointments = async () => {
         try {
-            const response = await apiClient.get('/appointments')
-            const { data } = response
-            console.log('[useDashboard] /appointments raw response:', JSON.stringify(data))
+            const response = await appointmentsService.getAll({})
+            const raw = response?.data
 
             // Handle all common backend envelope shapes
             let appointmentsList =
-                Array.isArray(data)              ? data :
-                Array.isArray(data?.data)        ? data.data :
-                Array.isArray(data?.appointments)? data.appointments :
-                Array.isArray(data?.data?.data)  ? data.data.data :
+                Array.isArray(raw)              ? raw :
+                Array.isArray(raw?.data)        ? raw.data :
+                Array.isArray(raw?.appointments)? raw.appointments :
+                Array.isArray(raw?.data?.data)  ? raw.data.data :
                 []
 
-            console.log('[useDashboard] appointments resolved:', appointmentsList.length, appointmentsList)
-            setAppointments(Array.isArray(appointmentsList) ? appointmentsList : [])
+            // Normalise each appointment so it always has a combined `fechaHora`
+            // (same logic as AppointmentsCalendar which is known to work)
+            appointmentsList = appointmentsList.map(apt => {
+                let fechaHora = apt.fechaHora || apt.date
+                if (apt.time && apt.date && !apt.fechaHora) {
+                    const dateOnly = String(apt.date).slice(0, 10)
+                    const [yr, mo, dy] = dateOnly.split('-').map(Number)
+                    const [hours, minutes] = apt.time.split(':').map(Number)
+                    fechaHora = new Date(yr, mo - 1, dy, hours, minutes, 0, 0).toISOString()
+                }
+                return {
+                    ...apt,
+                    id: apt._id || apt.id,
+                    fechaHora,
+                    nombrePaciente: resolvePatientName(apt),
+                    estado: apt.estado || apt.status,
+                }
+            })
+
+            console.log('[useDashboard] appointments resolved:', appointmentsList.length, appointmentsList?.[0])
+            setAppointments(appointmentsList)
 
                 // Compare date-only strings to avoid UTC-vs-local day shift
                 const now = new Date()

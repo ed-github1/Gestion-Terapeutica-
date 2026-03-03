@@ -8,7 +8,10 @@ const AppointmentRequest = ({ onClose, onSuccess, professionalId = null }) => {
   const [step, setStep] = useState(1) // 1: select slot, 2: payment, 3: success
   const [appointmentData, setAppointmentData] = useState(null)
   const [availableSlots, setAvailableSlots] = useState([])
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
+  const toLocalDateStr = (d = new Date()) =>
+    `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+
+  const [selectedDate, setSelectedDate] = useState(() => toLocalDateStr())
   const [selectedSlot, setSelectedSlot] = useState(null)
   
   const [formData, setFormData] = useState({
@@ -38,15 +41,16 @@ const AppointmentRequest = ({ onClose, onSuccess, professionalId = null }) => {
     }
   }, [selectedDate, professionalId])
 
-  const getSlotsFromLocalAvailability = (date) => {
+  /**
+   * Derive time-slot objects from a weekly availability map.
+   * @param {object} availability  e.g. { 1: ["09:00","09:30"], 2: [...] }
+   * @param {string} date          ISO date string e.g. "2026-03-02"
+   */
+  const slotsFromAvailabilityMap = (availability, date) => {
     try {
-      const raw = localStorage.getItem('professionalAvailability')
-      if (!raw) return []
-      const availability = JSON.parse(raw)
-      // day-of-week: 0=Sun … 6=Sat
-      // Add 'T00:00:00' to avoid timezone shifting the date
+      if (!availability || typeof availability !== 'object') return []
       const dayOfWeek = new Date(`${date}T00:00:00`).getDay()
-      const times = availability[dayOfWeek] || []
+      const times = availability[dayOfWeek] || availability[String(dayOfWeek)] || []
       return times.map(time => ({ time, available: true }))
     } catch {
       return []
@@ -57,37 +61,64 @@ const AppointmentRequest = ({ onClose, onSuccess, professionalId = null }) => {
     setLoading(true)
     try {
       console.log('[AppointmentRequest] fetching slots — date:', date, '| professionalId:', professionalId)
-      const response = await appointmentsService.getAvailableSlots(date, professionalId)
-      console.log('✅ Slots from API raw:', response.data)
 
-      // Backend wraps result as { success, data: [...] } or returns the array directly
-      const slots = Array.isArray(response.data)
-        ? response.data
-        : Array.isArray(response.data?.data)
-          ? response.data.data
-          : []
+      // ── Strategy 1: dedicated available-slots endpoint ──
+      try {
+        const response = await appointmentsService.getAvailableSlots(date, professionalId)
+        console.log('✅ Slots from API raw:', response.data)
 
-      // Normalise: treat missing/undefined `available` as true so slots aren't
-      // silently grayed-out when the backend omits the field.
-      const normalisedSlots = slots.map(s => ({
-        ...s,
-        available: s.available !== false, // undefined → true, false → false
-      }))
-      console.log('✅ Slots resolved:', normalisedSlots)
-      console.log('✅ Slot sample:', normalisedSlots[0])
+        const slots = Array.isArray(response.data)
+          ? response.data
+          : Array.isArray(response.data?.data)
+            ? response.data.data
+            : []
 
-      if (normalisedSlots.length > 0) {
-        setAvailableSlots(normalisedSlots)
-      } else {
-        // API returned empty — fall back to professional's saved availability
-        const localSlots = getSlotsFromLocalAvailability(date)
-        console.log('ℹ️ Using local availability slots:', localSlots)
-        setAvailableSlots(localSlots)
+        const normalisedSlots = slots.map(s => ({
+          ...s,
+          available: s.available !== false,
+        }))
+
+        if (normalisedSlots.length > 0) {
+          console.log('✅ Slots resolved from available-slots endpoint:', normalisedSlots)
+          setAvailableSlots(normalisedSlots)
+          return
+        }
+      } catch (err) {
+        console.warn('⚠️ available-slots endpoint failed:', err.message)
       }
-    } catch (error) {
-      console.warn('⚠️ Backend not available, trying local availability:', error.message)
-      const localSlots = getSlotsFromLocalAvailability(date)
-      setAvailableSlots(localSlots)
+
+      // ── Strategy 2: fetch the professional's weekly availability map ──
+      try {
+        const res = await appointmentsService.getAvailability(professionalId || null)
+        const raw = res.data?.data || res.data
+        console.log('✅ Professional availability map:', raw)
+        const derived = slotsFromAvailabilityMap(raw, date)
+        if (derived.length > 0) {
+          console.log('✅ Slots derived from availability map:', derived)
+          setAvailableSlots(derived)
+          return
+        }
+      } catch (err) {
+        console.warn('⚠️ getAvailability endpoint failed:', err.message)
+      }
+
+      // ── Strategy 3: localStorage fallback (only useful when patient IS the professional in dev) ──
+      try {
+        const localRaw = localStorage.getItem('professionalAvailability')
+        if (localRaw) {
+          const localMap = JSON.parse(localRaw)
+          const localSlots = slotsFromAvailabilityMap(localMap, date)
+          if (localSlots.length > 0) {
+            console.log('ℹ️ Using local availability slots:', localSlots)
+            setAvailableSlots(localSlots)
+            return
+          }
+        }
+      } catch { /* ignore */ }
+
+      // Nothing found
+      console.log('ℹ️ No slots available for', date)
+      setAvailableSlots([])
     } finally {
       setLoading(false)
     }
@@ -146,7 +177,7 @@ const AppointmentRequest = ({ onClose, onSuccess, professionalId = null }) => {
         
         // Save to localStorage for professional to see
         const [hours, minutes] = selectedSlot.time.split(':')
-        const startDate = new Date(selectedDate)
+        const startDate = new Date(`${selectedDate}T00:00:00`)
         startDate.setHours(parseInt(hours), parseInt(minutes), 0)
         const endDate = new Date(startDate)
         endDate.setMinutes(endDate.getMinutes() + (selectedType?.duration || 60))

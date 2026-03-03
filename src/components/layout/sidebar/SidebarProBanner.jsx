@@ -38,7 +38,7 @@ const SidebarProBanner = ({ isCollapsed, show, onClose, prefersReducedMotion }) 
                 {/* Close button */}
                 <button
                     onClick={onClose}
-                    className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center rounded-full bg-blue-500/20 hover:bg-blue-500/35 text-blue-700 transition-colors backdrop-blur-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center rounded-full bg-blue-500/20 hover:bg-blue-500/35 text-blue-700 transition-colors backdrop-blur-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 z-20"
                     aria-label="Cerrar banner"
                 >
                     <X className="w-3.5 h-3.5" strokeWidth={2.5} />
@@ -101,7 +101,7 @@ const SidebarProBanner = ({ isCollapsed, show, onClose, prefersReducedMotion }) 
                     e.stopPropagation()
                     onClose()
                 }}
-                className="absolute -top-1.5 -right-1.5 w-5 h-5 flex items-center justify-center rounded-full bg-white border border-sky-100 text-sky-500 shadow-md hover:bg-sky-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className="absolute -top-1.5 -right-1.5 w-5 h-5 flex items-center justify-center rounded-full bg-white border border-sky-100 text-sky-500 shadow-md hover:bg-sky-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 z-20"
                 aria-label="Cerrar banner"
             >
                 <X className="w-3 h-3" strokeWidth={3} />

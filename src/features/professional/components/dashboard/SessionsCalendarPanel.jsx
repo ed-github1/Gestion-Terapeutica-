@@ -596,6 +596,7 @@ const SessionsContent = ({
             nextSessionTime={nextTimestamp}
             nextSessionCountdown={nextCountdown}
             nextIsImminent={nextIsImminent || nextIsNow}
+            isViewingToday={isViewingToday}
         />
     )
 }

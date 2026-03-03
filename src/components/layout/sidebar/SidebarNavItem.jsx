@@ -97,17 +97,6 @@ const SidebarNavItem = ({
                 />
             )}
             
-            {/* Badge (collapsed state) */}
-            {isCollapsed && item.badge && (
-                <motion.span 
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-blue-700 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-md"
-                    aria-label={`${item.badge} notificaciones`}
-                >
-                    {item.badge > 9 ? '9+' : item.badge}
-                </motion.span>
-            )}
         </motion.button>
     )
 }

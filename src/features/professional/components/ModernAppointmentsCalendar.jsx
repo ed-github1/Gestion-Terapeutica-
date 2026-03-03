@@ -3,13 +3,14 @@
  * Self-fetches via appointmentsService.getCalendarEvents on every view/range change.
  * Supports event click, date click, and drag-and-drop rescheduling.
  */
-import { useRef, useCallback } from 'react'
+import { useRef, useCallback, useEffect } from 'react'
 import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin     from '@fullcalendar/daygrid'
 import timeGridPlugin    from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import listPlugin        from '@fullcalendar/list'
 import { appointmentsService } from '@shared/services/appointmentsService'
+import { socketNotificationService } from '@shared/services/socketNotificationService'
 
 const TYPE_COLORS = {
     consultation: { bg: '#EEF2FF', border: '#6366F1', text: '#4338CA' },
@@ -79,23 +80,69 @@ const FC_STYLES = `
 export default function ModernAppointmentsCalendar({ onSelectEvent, onDateClick, onEventDrop }) {
     const calRef = useRef(null)
 
+    // Auto-refresh the calendar whenever the backend reports that an appointment
+    // was just paid — this happens when a patient completes checkout.
+    useEffect(() => {
+        const unsubscribe = socketNotificationService.on('appointment-paid', () => {
+            calRef.current?.getApi().refetchEvents()
+        })
+        return unsubscribe
+    }, [])
+
     // Called by FullCalendar on every view/range change — auto-refresh on month navigation
-    const fetchEvents = useCallback(async (fetchInfo, successCallback, failureCallback) => {
+    const fetchEvents = useCallback(async (fetchInfo, successCallback) => {
+        const startDate = fetchInfo.startStr.slice(0, 10)
+        const endDate   = fetchInfo.endStr.slice(0, 10)
+
+        let raw = []
+
+        // ── 1. Try the dedicated calendar endpoint ─────────────────────────
         try {
-            const res = await appointmentsService.getCalendarEvents(
-                fetchInfo.startStr.slice(0, 10),
-                fetchInfo.endStr.slice(0, 10),
-            )
-            const raw =
-                Array.isArray(res?.data)               ? res.data :
-                Array.isArray(res?.data?.data)          ? res.data.data :
-                Array.isArray(res?.data?.appointments)  ? res.data.appointments :
+            const res = await appointmentsService.getCalendarEvents(startDate, endDate)
+            const data =
+                Array.isArray(res?.data)              ? res.data :
+                Array.isArray(res?.data?.data)         ? res.data.data :
+                Array.isArray(res?.data?.appointments) ? res.data.appointments :
                 []
-            successCallback(normalizeEvents(raw))
-        } catch {
-            successCallback([])
-            failureCallback?.(new Error('Could not load calendar events'))
+            if (data.length > 0) raw = data
+        } catch { /* fall through to getAll */ }
+
+        // ── 2. Fallback: fetch all appointments and date-filter client-side ─
+        if (raw.length === 0) {
+            try {
+                const res = await appointmentsService.getAll({})
+                const all =
+                    Array.isArray(res?.data)              ? res.data :
+                    Array.isArray(res?.data?.data)         ? res.data.data :
+                    Array.isArray(res?.data?.appointments) ? res.data.appointments :
+                    []
+                const start = new Date(startDate)
+                const end   = new Date(endDate)
+                raw = all.filter(a => {
+                    const d = new Date(a.date || a.fechaHora || a.start)
+                    return d >= start && d <= end
+                })
+            } catch { /* continue to localStorage */ }
         }
+
+        // ── 3. Merge localStorage appointments (created in offline / demo mode) ─
+        try {
+            const saved = localStorage.getItem('professionalAppointments')
+            if (saved) {
+                const parsed = JSON.parse(saved)
+                const start  = new Date(startDate)
+                const end    = new Date(endDate)
+                const seenIds = new Set(raw.map(a => String(a._id || a.id)))
+                parsed.forEach(a => {
+                    const d = new Date(a.start || a.date)
+                    if (d >= start && d <= end && !seenIds.has(String(a._id || a.id))) {
+                        raw.push(a)
+                    }
+                })
+            }
+        } catch { /* ignore localStorage errors */ }
+
+        successCallback(normalizeEvents(raw))
     }, [])
 
     const handleEventDrop = useCallback((info) => {
@@ -141,18 +188,37 @@ export default function ModernAppointmentsCalendar({ onSelectEvent, onDateClick,
                     eventClick={(info)  => onSelectEvent?.(info.event.extendedProps)}
                     dateClick={(info)   => onDateClick?.(info.date)}
                     eventDrop={handleEventDrop}
-                    eventContent={(arg) => (
-                        <div className="overflow-hidden px-1 py-0.5 h-full">
-                            <p className="text-[11px] font-bold leading-tight truncate" style={{ color: arg.event.textColor }}>
-                                {arg.event.title}
-                            </p>
-                            {arg.timeText && (
-                                <p className="text-[10px] leading-tight opacity-70 truncate" style={{ color: arg.event.textColor }}>
-                                    {arg.timeText}
-                                </p>
-                            )}
-                        </div>
-                    )}
+                    eventContent={(arg) => {
+                        const apt = arg.event.extendedProps
+                        const isPaid    = apt.paymentStatus === 'paid' || apt.paymentStatus === 'completed'
+                        const isPending = apt.paymentStatus === 'pending' || (!isPaid && apt.status === 'reserved')
+                        return (
+                            <div className="overflow-hidden px-1 py-0.5 h-full">
+                                <div className="flex items-center gap-0.5">
+                                    <p className="text-[11px] font-bold leading-tight truncate flex-1" style={{ color: arg.event.textColor }}>
+                                        {arg.event.title}
+                                    </p>
+                                    {isPaid && (
+                                        <span title="Pagado" className="shrink-0 flex items-center justify-center w-3.5 h-3.5 rounded-full bg-emerald-500">
+                                            <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                            </svg>
+                                        </span>
+                                    )}
+                                    {isPending && !isPaid && (
+                                        <span title="Pago pendiente" className="shrink-0 text-[8px] font-bold text-amber-600 border border-amber-300 bg-amber-50 rounded px-0.5 leading-tight">
+                                            €?
+                                        </span>
+                                    )}
+                                </div>
+                                {arg.timeText && (
+                                    <p className="text-[10px] leading-tight opacity-70 truncate" style={{ color: arg.event.textColor }}>
+                                        {arg.timeText}
+                                    </p>
+                                )}
+                            </div>
+                        )
+                    }}
                 />
             </div>
         </>

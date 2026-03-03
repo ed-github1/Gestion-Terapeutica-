@@ -15,12 +15,43 @@ const ProfessionalDashboardWrapper = () => {
 
     // Map session/appointment object → patient shape for PatientClinicalFile
     const handleViewDiary = (session) => {
-        const id = session?.patientId || session?.patient?._id || session?.patient?.id || session?.id
-        const fullName = session?.nombrePaciente || session?.patient?.name || session?.patientName || session?.name || 'Paciente'
-        const parts = fullName.trim().split(' ')
-        const nombre   = parts[0] || 'Paciente'
-        const apellido = parts.slice(1).join(' ') || ''
-        if (id) setDiaryPatient({ id, nombre, apellido, name: fullName })
+        // patientId may be a populated object { _id, nombre, apellido } or a plain string
+        const patientObj = session?.patientId
+        const id =
+            (patientObj && typeof patientObj === 'object'
+                ? patientObj._id || patientObj.id
+                : patientObj) ||
+            session?.patient?._id ||
+            session?.patient?.id
+
+        if (!id) {
+            // No patient linked — can't open clinical file
+            console.warn('[handleViewDiary] No patientId found on session:', session)
+            return
+        }
+
+        // Prefer name from populated patientId object (Patient model uses firstName/lastName)
+        const fullName =
+            (patientObj && typeof patientObj === 'object'
+                ? `${patientObj.firstName || patientObj.nombre || ''} ${patientObj.lastName || patientObj.apellido || ''}`.trim()
+                : '') ||
+            session?.nombrePaciente ||
+            session?.patientName ||
+            session?.patient?.name ||
+            'Paciente'
+
+        const parts    = fullName.trim().split(' ')
+        const firstName = patientObj?.firstName || parts[0] || 'Paciente'
+        const lastName  = patientObj?.lastName  || parts.slice(1).join(' ') || ''
+        setDiaryPatient({
+            id,
+            firstName, lastName,
+            nombre: firstName, apellido: lastName,
+            name: fullName,
+            email:    patientObj?.email    || session?.email    || '',
+            phone:    patientObj?.phone    || session?.phone    || '',
+            telefono: patientObj?.telefono || session?.telefono || '',
+        })
     }
 
     // Dashboard + slide-over drawer for the full calendar

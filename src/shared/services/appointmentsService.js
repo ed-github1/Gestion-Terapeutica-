@@ -59,4 +59,51 @@ export const appointmentsService = {
 
   getCalendarEvents: (startDate, endDate) =>
     apiClient.get(`/appointments/calendar?startDate=${startDate}&endDate=${endDate}`),
+
+  /** Patient accepts a pending appointment */
+  accept: (id) =>
+    apiClient.patch(`/appointments/${id}/accept`),
+
+  /** Patient rejects/declines an appointment */
+  reject: (id, reason) =>
+    apiClient.patch(`/appointments/${id}/reject`, { reason }),
+
+  /** Patient pays for an accepted appointment — returns { checkoutUrl } or { success } */
+  pay: (id, paymentData) =>
+    apiClient.post(`/appointments/${id}/pay`, paymentData),
+
+  /** Professional creates an appointment for a patient.
+   * Uses POST /appointments (not /reserve which is patient-only).
+   * professionalId must be supplied by the caller from the auth context.
+   */
+  createForPatient: (data) =>
+    apiClient.post('/appointments', {
+      // Backend filters GET /appointments by patientId === user._id (user account),
+      // so we must store patientUserId (user account _id) here, not the profile _id.
+      patientId: data.patientUserId || data.patientId,
+      ...(data.patientUserId ? { patientUserId: data.patientUserId } : {}),
+      professionalId: data.professionalId,
+      patientName: data.patientName,
+      date: data.date,
+      time: data.time,
+      type: data.type,
+      duration: data.duration,
+      notes: data.notes,
+      isVideoCall: data.isVideoCall,
+      reason: data.reason || data.notes || '',
+      status: 'reserved',
+      paymentStatus: 'pending',
+    }),
+
+  /** Get a professional's weekly availability (day-of-week → time-slot map) */
+  getAvailability: (professionalId = null) => {
+    const endpoint = professionalId
+      ? `/availability/${professionalId}`
+      : '/availability'
+    return apiClient.get(endpoint)
+  },
+
+  /** Save / update the current professional's weekly availability */
+  updateAvailability: (availabilityData) =>
+    apiClient.put('/availability', availabilityData),
 }

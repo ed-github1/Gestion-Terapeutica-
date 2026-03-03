@@ -19,6 +19,7 @@ class SocketNotificationService {
     this.userId = null
     this.token = null
     this.listeners = new Map() // event → Set<callback>
+    this._pendingEmits = []    // queued while connecting
   }
 
   connect(userId, token) {
@@ -40,15 +41,30 @@ class SocketNotificationService {
     this.socket.on('connect', () => {
       // Register so the server knows which socket belongs to this user
       this.socket.emit('register', { userId, role: 'notification-listener' })
+      // Flush any emissions that arrived while we were still connecting
+      const pending = this._pendingEmits.splice(0)
+      pending.forEach(({ event, data }) => {
+        console.debug('[SocketNotificationService] flushing queued emit:', event)
+        this.socket.emit(event, data)
+      })
     })
 
     this.socket.on('call-invitation', (data) => {
+      // Appointment notifications piggyback on call-invitation relay
+      if (data?.type && data.type.startsWith('appointment-')) {
+        console.debug('[SocketNotificationService] routed appointment event:', data.type)
+        this._emit(data.type, data)
+        return
+      }
       this._emit('call-invitation', data)
     })
 
     // Appointment lifecycle events
     this.socket.on('appointment-booked', (data) => {
       this._emit('appointment-booked', data)
+    })
+    this.socket.on('appointment-pending', (data) => {
+      this._emit('appointment-pending', data)
     })
     this.socket.on('appointment-confirmed', (data) => {
       this._emit('appointment-confirmed', data)
@@ -58,6 +74,9 @@ class SocketNotificationService {
     })
     this.socket.on('appointment-rescheduled', (data) => {
       this._emit('appointment-rescheduled', data)
+    })
+    this.socket.on('appointment-paid', (data) => {
+      this._emit('appointment-paid', data)
     })
 
     this.socket.on('disconnect', () => {
@@ -77,6 +96,50 @@ class SocketNotificationService {
       return false
     }
     this.socket.emit('call-invitation', { targetUserId: patientUserId, ...payload })
+    return true
+  }
+
+  /**
+   * Patient → professional: notify that an appointment has been paid.
+   * Piggybacks on the call-invitation relay so the server forwards it
+   * to the professional's socket.
+   */
+  sendPaymentNotification(professionalUserId, appointmentData) {
+    const payload = {
+      targetUserId: professionalUserId,
+      type: 'appointment-paid',
+      ...appointmentData,
+    }
+    if (this.socket?.connected) {
+      this.socket.emit('call-invitation', payload)
+      console.debug('[SocketNotificationService] payment notification sent to professional', professionalUserId)
+    } else {
+      this._pendingEmits.push({ event: 'call-invitation', data: payload })
+      console.debug('[SocketNotificationService] payment notification queued for', professionalUserId)
+    }
+    return true
+  }
+
+  /**
+   * Professional → patient: send an appointment notification via socket.
+   * Piggybacks on the call-invitation relay so the server forwards it
+   * to the patient's socket. The receiver detects data.type and routes
+   * the event to the appropriate appointment handler.
+   */
+  sendAppointmentNotification(targetUserId, appointmentData) {
+    const payload = {
+      targetUserId,
+      type: 'appointment-pending',
+      ...appointmentData,
+    }
+    if (this.socket?.connected) {
+      this.socket.emit('call-invitation', payload)
+      console.debug('[SocketNotificationService] appointment notification sent to', targetUserId)
+    } else {
+      // Queue it — will be flushed once the socket connects
+      this._pendingEmits.push({ event: 'call-invitation', data: payload })
+      console.debug('[SocketNotificationService] appointment notification queued for', targetUserId)
+    }
     return true
   }
 

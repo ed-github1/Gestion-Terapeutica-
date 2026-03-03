@@ -17,31 +17,29 @@ import {
 import { useAuth } from '../../auth'
 import { diaryService } from '@shared/services/diaryService'
 import { homeworkService } from '@shared/services/homeworkService'
+import { patientsService } from '@shared/services/patientsService'
 
 // ─── Palette helpers ──────────────────────────────────────────────────────────
-const avatarPalette = [
-  'from-sky-500 to-blue-700',
-  'from-emerald-500 to-emerald-600',
-  'from-sky-500 to-sky-600',
-  'from-rose-500 to-rose-600',
-  'from-amber-400 to-amber-500',
-  'from-cyan-500 to-cyan-600',
-]
-const getGradient = (id) => {
-  const n = typeof id === 'number' ? id : String(id).split('').reduce((a, c) => a + c.charCodeAt(0), 0)
-  return avatarPalette[n % avatarPalette.length]
-}
+const BRAND_GRAD = 'from-[#54C0E8] to-[#0075C9]'
 const getInitials = (nombre, apellido) => `${nombre?.[0] || ''}${apellido?.[0] || ''}`.toUpperCase()
 
 // ─── Mock data factory ────────────────────────────────────────────────────────
 const MOOD_META = {
-  '😊': { label: 'Bien',     bg: 'bg-emerald-100',  text: 'text-emerald-700', score: 8 },
-  '😄': { label: 'Excelente',bg: 'bg-green-100',     text: 'text-green-700',   score: 10 },
-  '😐': { label: 'Regular',  bg: 'bg-yellow-100',   text: 'text-yellow-700',  score: 5 },
-  '😔': { label: 'Triste',   bg: 'bg-blue-100',     text: 'text-blue-700',    score: 3 },
-  '😣': { label: 'Dolor',    bg: 'bg-red-100',      text: 'text-red-700',     score: 2 },
-  '😴': { label: 'Cansado',  bg: 'bg-sky-100',   text: 'text-sky-600',  score: 4 },
-  '😰': { label: 'Ansioso',  bg: 'bg-orange-100',   text: 'text-orange-700',  score: 3 },
+  // Legacy emoji keys
+  '😊': { label: 'Bien',      bg: 'bg-emerald-100', text: 'text-emerald-700', icon: '😊' },
+  '😄': { label: 'Excelente', bg: 'bg-green-100',   text: 'text-green-700',   icon: '😄' },
+  '😐': { label: 'Regular',   bg: 'bg-yellow-100',  text: 'text-yellow-700',  icon: '😐' },
+  '😔': { label: 'Triste',    bg: 'bg-blue-100',    text: 'text-blue-700',    icon: '😔' },
+  '😣': { label: 'Dolor',     bg: 'bg-red-100',     text: 'text-red-700',     icon: '😣' },
+  '😴': { label: 'Cansado',   bg: 'bg-sky-100',     text: 'text-sky-600',     icon: '😴' },
+  '😰': { label: 'Ansioso',   bg: 'bg-orange-100',  text: 'text-orange-700',  icon: '😰' },
+  // New string keys (DiaryWidget)
+  bien:    { label: 'Bien',    bg: 'bg-emerald-100', text: 'text-emerald-700', icon: '😊' },
+  regular: { label: 'Regular', bg: 'bg-yellow-100',  text: 'text-yellow-700',  icon: '😐' },
+  triste:  { label: 'Triste',  bg: 'bg-blue-100',    text: 'text-blue-700',    icon: '😔' },
+  dolor:   { label: 'Dolor',   bg: 'bg-red-100',     text: 'text-red-700',     icon: '😣' },
+  cansado: { label: 'Cansado', bg: 'bg-sky-100',     text: 'text-sky-600',     icon: '😴' },
+  ansioso: { label: 'Ansioso', bg: 'bg-orange-100',  text: 'text-orange-700',  icon: '😰' },
 }
 
 const HOMEWORK_TYPES = {
@@ -258,37 +256,80 @@ const PatientClinicalFile = ({ patient, onClose }) => {
   const [error, setError]               = useState(null)
   const [newNote, setNewNote]           = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  // Full patient profile fetched from backend
+  const [patientProfile, setPatientProfile] = useState(patient)
 
   const patientId = patient?.id || patient?._id
+  // True when the drawer was opened from the sessions list (only id+name passed),
+  // so we need to fetch the full record from the patients list endpoint.
+  const needsFullProfile = !patient?.email && !patient?.telefono && !patient?.phone
 
   const fetchData = useCallback(async () => {
     if (!patientId) { setIsLoading(false); return }
     setIsLoading(true); setError(null)
     try {
-      const [notesRes, hwRes] = await Promise.all([
+      const fetches = [
         diaryService.getNotes(patientId),
         homeworkService.getAll(patientId),
-      ])
-      const rawNotes = notesRes.data
-      setEntries(
-        Array.isArray(rawNotes) ? rawNotes
-        : Array.isArray(rawNotes?.data) ? rawNotes.data
-        : Array.isArray(rawNotes?.notes) ? rawNotes.notes
-        : []
-      )
-      const rawHw = hwRes.data
-      setHwTasks(
-        Array.isArray(rawHw) ? rawHw
-        : Array.isArray(rawHw?.data) ? rawHw.data
-        : []
-      )
+        ...(needsFullProfile ? [patientsService.getAll({ limit: 200 })] : []),
+      ]
+      const results = await Promise.allSettled(fetches)
+      const [notesResult, hwResult, listResult] = results
+
+      // Merge full patient from the list when needed
+      if (needsFullProfile && listResult?.status === 'fulfilled') {
+        const raw = listResult.value?.data
+        const list = raw?.data?.data ?? raw?.data ?? raw ?? []
+        const arr  = Array.isArray(list) ? list : []
+        const found = arr.find(p =>
+          (p._id || p.id)?.toString() === patientId?.toString()
+        )
+        if (found) {
+          setPatientProfile(prev => ({
+            ...found,
+            id:       found._id || found.id || patientId,
+            nombre:   found.firstName  || found.nombre  || prev.nombre,
+            apellido: found.lastName   || found.apellido || prev.apellido,
+            email:    found.email      || prev.email,
+            telefono: found.phone      || found.telefono || prev.telefono,
+            phone:    found.phone      || prev.phone,
+            age:      found.dateOfBirth
+              ? Math.floor((Date.now() - new Date(found.dateOfBirth)) / 3.156e10)
+              : (prev.age ?? null),
+            treatmentGoal: found.presentingConcern || found.treatmentGoal || prev.treatmentGoal,
+          }))
+        }
+      }
+
+      if (notesResult.status === 'fulfilled') {
+        const rawNotes = notesResult.value?.data
+        const list = Array.isArray(rawNotes)      ? rawNotes
+          : Array.isArray(rawNotes?.data)         ? rawNotes.data
+          : Array.isArray(rawNotes?.notes)        ? rawNotes.notes
+          : []
+        setEntries(list)
+      } else {
+        console.error('Error fetching diary notes:', notesResult.reason)
+        setError('No se pudieron cargar las entradas del diario.')
+      }
+
+      if (hwResult.status === 'fulfilled') {
+        const rawHw = hwResult.value?.data
+        setHwTasks(
+          Array.isArray(rawHw)         ? rawHw
+          : Array.isArray(rawHw?.data) ? rawHw.data
+          : []
+        )
+      } else {
+        console.warn('Homework endpoint unavailable:', hwResult.reason?.message)
+      }
     } catch (err) {
-      console.error('Error fetching clinical file:', err)
+      console.error('Error loading clinical file:', err)
       setError('No se pudieron cargar los datos del expediente.')
     } finally {
       setIsLoading(false)
     }
-  }, [patientId])
+  }, [patientId, needsFullProfile])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -321,17 +362,38 @@ const PatientClinicalFile = ({ patient, onClose }) => {
   const diaryEntries  = entries.filter(e => e.mood)
   const clinicalNotes = entries.filter(e => !e.mood && (e.text || e.notes))
 
+  // Use merged profile for all renders (falls back to initial prop while loading)
+  const p = patientProfile
+
+  // Derive display-friendly helpers from real API field names
+  const pFirstName = p.firstName || p.nombre || p.name?.split(' ')[0] || ''
+  const pLastName  = p.lastName  || p.apellido || p.name?.split(' ').slice(1).join(' ') || ''
+  const pPhone     = p.phone     || p.telefono || ''
+  const pConcern   = p.presentingConcern || p.treatmentGoal || p.reason || ''
+  const pEmergency = [p.emergencyContactName, p.emergencyContactPhone].filter(Boolean).join(' · ') ||
+                     p.emergencyContact || ''
+  const pAge = (() => {
+    if (p.age) return p.age
+    if (!p.dateOfBirth) return null
+    const dob  = new Date(p.dateOfBirth)
+    const diff = Date.now() - dob.getTime()
+    return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25))
+  })()
+
   // ── Keep mock only for session history (no API yet)
-  const mock = useMemo(() => buildMockData(patient), [patient])
+  const mock = useMemo(() => buildMockData(p), [p])
   const { sessionHistory, clinicalNotes: mockClinicalNotes } = mock
 
-  const grad      = getGradient(patient.id)
-  const initials  = getInitials(
-    patient.nombre || patient.name?.split(' ')[0],
-    patient.apellido || patient.name?.split(' ').slice(1).join(' ')
-  )
+  const initials = getInitials(pFirstName, pLastName)
   const completedHW = hwTasks.filter(t => t.completed).length
   const totalHW     = Math.max(hwTasks.length, 1)
+  const authorName  = user?.name || user?.email || 'Profesional'
+
+  const handleEntryUpdate = (updated) => {
+    setEntries(prev => prev.map(e =>
+      (e._id || e.id) === (updated._id || updated.id) ? updated : e
+    ))
+  }
 
   return (
     <AnimatePresence>
@@ -354,7 +416,7 @@ const PatientClinicalFile = ({ patient, onClose }) => {
           style={{ width: 'min(860px, 100vw)', height: '100dvh' }}
         >
           {/* ── Top header ─────────────────────────────────────────────── */}
-          <div className={`bg-linear-to-r ${grad} px-6 pt-6 pb-0 shrink-0`}>
+          <div className={`bg-linear-to-r ${BRAND_GRAD} px-6 pt-6 pb-0 shrink-0`}>
             {/* Back + close */}
             <div className="flex items-center justify-between mb-4">
               <button onClick={onClose} className="flex items-center gap-1.5 text-white/80 hover:text-white text-sm transition">
@@ -367,28 +429,28 @@ const PatientClinicalFile = ({ patient, onClose }) => {
 
             {/* Patient identity */}
             <div className="flex items-end gap-4 mb-5">
-              <div className="w-16 h-16 rounded-2xl bg-white/25 flex items-center justify-center text-white text-xl font-black shrink-0 ring-2 ring-white/30">
+              <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center text-white text-xl font-black shrink-0 ring-2 ring-white/25 backdrop-blur-sm">
                 {initials}
               </div>
               <div className="flex-1 min-w-0 pb-1">
                 <h2 className="text-xl font-black text-white truncate">
-                  {patient.nombre} {patient.apellido}
+                  {pFirstName} {pLastName}
                 </h2>
                 <div className="flex flex-wrap items-center gap-2 mt-1">
-                  {patient.diagnosis && patient.diagnosis !== 'Pendiente' && (
+                  {p.diagnosis && p.diagnosis !== 'Pendiente' && (
                     <span className="text-xs font-semibold text-white/90 bg-white/20 px-2 py-0.5 rounded-full">
-                      {patient.diagnosis}
+                      {p.diagnosis}
                     </span>
                   )}
-                  {patient.age && (
-                    <span className="text-xs text-white/70">{patient.age} años</span>
+                  {pAge && (
+                    <span className="text-xs text-white/70">{pAge} años</span>
                   )}
-                  {patient.riskLevel === 'high' && (
+                  {p.riskLevel === 'high' && (
                     <span className="flex items-center gap-1 text-xs font-semibold bg-rose-500 text-white px-2 py-0.5 rounded-full">
                       <ShieldAlert className="w-3 h-3" /> Alto riesgo
                     </span>
                   )}
-                  {patient.riskLevel === 'medium' && (
+                  {p.riskLevel === 'medium' && (
                     <span className="flex items-center gap-1 text-xs font-semibold bg-amber-400 text-amber-900 px-2 py-0.5 rounded-full">
                       <AlertCircle className="w-3 h-3" /> Riesgo medio
                     </span>
@@ -398,7 +460,7 @@ const PatientClinicalFile = ({ patient, onClose }) => {
               {/* Quick stats */}
               <div className="hidden sm:flex items-center gap-3 pb-1 shrink-0">
                 {[
-                  { value: patient.totalSessions ?? sessionHistory.length, label: 'Sesiones' },
+                  { value: p.totalSessions ?? sessionHistory.length, label: 'Sesiones' },
                   { value: `${completedHW}/${totalHW}`, label: 'Tareas' },
                 ].map(({ value, label }) => (
                   <div key={label} className="text-center">
@@ -472,14 +534,14 @@ const PatientClinicalFile = ({ patient, onClose }) => {
                       </div>
                       <div className="space-y-3 divide-y divide-gray-50">
                         {[
-                          { label: 'Nombre',                 value: `${patient.nombre || patient.name?.split(' ')[0] || ''} ${patient.apellido || patient.name?.split(' ').slice(1).join(' ') || ''}`.trim() || '—' },
-                          { label: 'Edad',                   value: patient.age ? `${patient.age} años` : '—' },
-                          { label: 'Género',                 value: patient.gender || '—' },
-                          { label: 'Email',                  value: patient.email || '—' },
-                          { label: 'Teléfono',               value: patient.telefono || '—' },
-                          { label: 'Contacto de emergencia', value: patient.emergencyContact || '—' },
-                          { label: 'Motivo de consulta',     value: patient.treatmentGoal || '—' },
-                          { label: 'Diagnóstico',            value: patient.diagnosis && patient.diagnosis !== 'Pendiente' ? patient.diagnosis : '—' },
+                          { label: 'Nombre',                 value: `${pFirstName} ${pLastName}`.trim() || '—' },
+                          { label: 'Edad',                   value: pAge ? `${pAge} años` : '—' },
+                          { label: 'Género',                 value: p.gender || '—' },
+                          { label: 'Email',                  value: p.email || '—' },
+                          { label: 'Teléfono',               value: pPhone || '—' },
+                          { label: 'Contacto de emergencia', value: pEmergency || '—' },
+                          { label: 'Motivo de consulta',     value: pConcern || '—' },
+                          { label: 'Diagnóstico',            value: p.diagnosis && p.diagnosis !== 'Pendiente' ? p.diagnosis : '—' },
                         ].filter(({ value }) => value !== '—' || true).map(({ label, value }) => (
                           <div key={label} className="grid grid-cols-[160px_1fr] gap-3 items-baseline pt-2.5 first:pt-0">
                             <span className="text-xs text-gray-400 font-medium shrink-0">{label}:</span>
@@ -542,8 +604,8 @@ const PatientClinicalFile = ({ patient, onClose }) => {
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       {[
                         {
-                          label: 'Sesiones totales', value: patient.totalSessions ?? sessionHistory.length,
-                          sub: patient.lastSession ? `Última: ${rel(patient.lastSession)}` : null,
+                          label: 'Sesiones totales', value: p.totalSessions ?? sessionHistory.length,
+                          sub: p.lastSession ? `Última: ${rel(p.lastSession)}` : null,
                           Icon: Calendar, bg: 'bg-sky-50', color: 'text-blue-700',
                         },
                         {
@@ -580,7 +642,7 @@ const PatientClinicalFile = ({ patient, onClose }) => {
                           <h3 className="font-bold text-gray-900 text-sm">Objetivo terapéutico</h3>
                         </div>
                         <p className="text-sm text-gray-700 leading-relaxed">
-                          {patient.treatmentGoal || 'No definido aún.'}
+                          {pConcern || 'No definido aún.'}
                         </p>
                       </div>
                       <div className="bg-white rounded-2xl border border-gray-100 p-5">
@@ -589,20 +651,20 @@ const PatientClinicalFile = ({ patient, onClose }) => {
                           <h3 className="font-bold text-gray-900 text-sm">Datos de contacto</h3>
                         </div>
                         <div className="space-y-2">
-                          {patient.email && (
+                          {p.email && (
                             <div className="flex items-center gap-2 text-sm text-gray-600">
-                              <Mail className="w-3.5 h-3.5 text-gray-400" /> {patient.email}
+                              <Mail className="w-3.5 h-3.5 text-gray-400" /> {p.email}
                             </div>
                           )}
-                          {patient.telefono && (
+                          {pPhone && (
                             <div className="flex items-center gap-2 text-sm text-gray-600">
-                              <Phone className="w-3.5 h-3.5 text-gray-400" /> {patient.telefono}
+                              <Phone className="w-3.5 h-3.5 text-gray-400" /> {pPhone}
                             </div>
                           )}
-                          {patient.nextSession && (
+                          {p.nextSession && (
                             <div className="flex items-center gap-2 text-sm text-gray-600">
                               <Clock className="w-3.5 h-3.5 text-gray-400" />
-                              Próxima sesión: {new Date(patient.nextSession).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                              Próxima sesión: {new Date(p.nextSession).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
                             </div>
                           )}
                         </div>
@@ -621,7 +683,7 @@ const PatientClinicalFile = ({ patient, onClose }) => {
                             Ver todo <ChevronRight className="w-3 h-3" />
                           </button>
                         </div>
-                        <DiaryCard entry={diaryEntries[0]} />
+                        <DiaryCard entry={diaryEntries[0]} patientId={patientId} authorName={authorName} onUpdate={handleEntryUpdate} />
                       </div>
                     )}
                   </div>
@@ -644,7 +706,15 @@ const PatientClinicalFile = ({ patient, onClose }) => {
                       </div>
                     ) : (
                       diaryEntries.map((entry, i) => (
-                        <DiaryCard key={entry._id || entry.id || i} entry={entry} index={i} expanded />
+                        <DiaryCard
+                          key={entry._id || entry.id || i}
+                          entry={entry}
+                          index={i}
+                          expanded
+                          patientId={patientId}
+                          authorName={authorName}
+                          onUpdate={handleEntryUpdate}
+                        />
                       ))
                     )}
                   </div>
@@ -704,7 +774,7 @@ const PatientClinicalFile = ({ patient, onClose }) => {
                         <textarea
                           value={newNote}
                           onChange={e => setNewNote(e.target.value)}
-                          placeholder={`Añadir nota sobre ${patient.nombre || patient.name?.split(' ')[0] || 'el paciente'}…`}
+                          placeholder={`Añadir nota sobre ${pFirstName || 'el paciente'}…`}
                           rows={2}
                           className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50"
                         />
@@ -771,8 +841,125 @@ const PatientClinicalFile = ({ patient, onClose }) => {
   )
 }
 
+// ─── StarRating ───────────────────────────────────────────────────────────────
+const StarRating = ({ value, onChange, readOnly = false }) => (
+  <div className="flex gap-0.5">
+    {[1, 2, 3, 4, 5].map(n => (
+      <button
+        key={n}
+        type="button"
+        disabled={readOnly}
+        onClick={() => !readOnly && onChange?.(n)}
+        className={`transition-colors ${
+          readOnly ? 'cursor-default' : 'cursor-pointer hover:scale-110'
+        }`}
+      >
+        <Star
+          className={`w-4 h-4 ${
+            n <= (value || 0)
+              ? 'fill-amber-400 text-amber-400'
+              : 'text-gray-200'
+          }`}
+        />
+      </button>
+    ))}
+  </div>
+)
+
+// ─── EvaluationPanel ─────────────────────────────────────────────────────────
+const EvaluationPanel = ({ entry, patientId, authorName, onSaved }) => {
+  const existing = entry.evaluation
+  const [open, setOpen]       = useState(false)
+  const [rating, setRating]   = useState(existing?.rating || 0)
+  const [comment, setComment] = useState(existing?.comment || '')
+  const [saving, setSaving]   = useState(false)
+
+  const handleSave = async () => {
+    if (!rating) return
+    setSaving(true)
+    try {
+      const res = await diaryService.evaluateNote(
+        patientId,
+        entry._id || entry.id,
+        { rating, comment: comment.trim(), evaluatedBy: authorName }
+      )
+      const updated = res?.data?.data ?? res?.data ?? entry
+      onSaved?.(updated)
+      setOpen(false)
+    } catch (e) {
+      console.error('evaluateNote error:', e)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (existing?.rating && !open) {
+    return (
+      <div className="flex items-start justify-between gap-3 pt-3 border-t border-gray-50">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <StarRating value={existing.rating} readOnly />
+            <span className="text-[10px] text-gray-400">{existing.evaluatedBy}</span>
+          </div>
+          {existing.comment && (
+            <p className="text-xs text-gray-600 leading-relaxed italic">"{existing.comment}"</p>
+          )}
+        </div>
+        <button
+          onClick={() => { setOpen(true); setRating(existing.rating); setComment(existing.comment || '') }}
+          className="text-[10px] text-blue-600 hover:underline shrink-0"
+        >
+          Editar
+        </button>
+      </div>
+    )
+  }
+
+  if (!open) {
+    return (
+      <div className="pt-3 border-t border-gray-50">
+        <button
+          onClick={() => setOpen(true)}
+          className="flex items-center gap-1.5 text-[11px] font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+        >
+          <Star className="w-3.5 h-3.5" /> Evaluar esta entrada
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="pt-3 border-t border-gray-50 space-y-2">
+      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Evaluación clínica</p>
+      <StarRating value={rating} onChange={setRating} />
+      <textarea
+        value={comment}
+        onChange={e => setComment(e.target.value)}
+        placeholder="Observación clínica (opcional)…"
+        rows={2}
+        className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-200"
+      />
+      <div className="flex gap-2">
+        <button
+          onClick={handleSave}
+          disabled={!rating || saving}
+          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-[11px] font-semibold rounded-lg transition-colors"
+        >
+          {saving ? 'Guardando…' : 'Guardar'}
+        </button>
+        <button
+          onClick={() => setOpen(false)}
+          className="px-3 py-1.5 text-[11px] text-gray-500 hover:text-gray-700 transition-colors"
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ─── Sub-cards ────────────────────────────────────────────────────────────────
-const DiaryCard = ({ entry, index = 0, expanded = false }) => {
+const DiaryCard = ({ entry, index = 0, expanded = false, patientId, authorName, onUpdate }) => {
   const meta = MOOD_META[entry.mood] || MOOD_META['😐']
   const [open, setOpen] = useState(expanded)
 
@@ -787,20 +974,20 @@ const DiaryCard = ({ entry, index = 0, expanded = false }) => {
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center gap-3 p-4 text-left hover:bg-gray-50/60 transition-colors"
       >
-        <span className="text-2xl">{entry.mood}</span>
+        <span className="text-2xl">{meta.icon ?? entry.mood}</span>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${meta.bg} ${meta.text}`}>
               {meta.label}
             </span>
+            {entry.evaluation?.rating && (
+              <span className="flex items-center gap-0.5 text-[10px] text-amber-600 font-semibold">
+                <Star className="w-3 h-3 fill-amber-400 text-amber-400" /> {entry.evaluation.rating}/5
+              </span>
+            )}
             {entry.symptoms && (
               <span className="text-[10px] bg-rose-50 text-rose-600 px-2 py-0.5 rounded-full border border-rose-100">
                 {entry.symptoms}
-              </span>
-            )}
-            {entry.activities && (
-              <span className="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full border border-emerald-100">
-                {entry.activities}
               </span>
             )}
           </div>
@@ -809,7 +996,7 @@ const DiaryCard = ({ entry, index = 0, expanded = false }) => {
           )}
         </div>
         <div className="text-right shrink-0">
-          <p className="text-[10px] text-gray-400">{rel(entry.date)}</p>
+          <p className="text-[10px] text-gray-400">{rel(entry.createdAt || entry.date)}</p>
         </div>
       </button>
 
@@ -825,20 +1012,34 @@ const DiaryCard = ({ entry, index = 0, expanded = false }) => {
               {entry.notes && (
                 <p className="text-sm text-gray-700 leading-relaxed">{entry.notes}</p>
               )}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1.5 font-semibold flex items-center gap-1">
-                    <Zap className="w-3 h-3" /> Energía
-                  </p>
-                  <MoodBar value={entry.energy ?? 5} />
+              {(entry.energy != null || entry.sleep != null) && (
+                <div className="grid grid-cols-2 gap-3">
+                  {entry.energy != null && (
+                    <div>
+                      <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1.5 font-semibold flex items-center gap-1">
+                        <Zap className="w-3 h-3" /> Energía
+                      </p>
+                      <MoodBar value={entry.energy} />
+                    </div>
+                  )}
+                  {entry.sleep != null && (
+                    <div>
+                      <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1.5 font-semibold flex items-center gap-1">
+                        <Moon className="w-3 h-3" /> Sueño
+                      </p>
+                      <MoodBar value={entry.sleep} />
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1.5 font-semibold flex items-center gap-1">
-                    <Moon className="w-3 h-3" /> Sueño
-                  </p>
-                  <MoodBar value={entry.sleep ?? 5} />
-                </div>
-              </div>
+              )}
+              {patientId && (
+                <EvaluationPanel
+                  entry={entry}
+                  patientId={patientId}
+                  authorName={authorName}
+                  onSaved={onUpdate}
+                />
+              )}
             </div>
           </motion.div>
         )}

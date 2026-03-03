@@ -18,8 +18,9 @@ const SidebarCollapseToggle = ({ isCollapsed, prefersReducedMotion, onToggle }) 
             whileHover={prefersReducedMotion ? {} : { scale: 1.05, x: isCollapsed ? 2 : -2 }}
             whileTap={prefersReducedMotion ? {} : { scale: 0.95 }}
             className="hidden md:flex absolute -right-4 top-24 z-10 w-8 h-16 bg-gradient-to-br from-blue-700 to-blue-800 text-white rounded-r-xl items-center justify-center shadow-lg hover:shadow-xl transition-all group focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
-            aria-label={isCollapsed ? 'Expandir barra lateral' : 'Contraer barra lateral'}
-            aria-expanded={!isCollapsed}
+            aria-label={isCollapsed ? 'Fijar barra lateral abierta' : 'Volver a modo auto-ocultar'}
+            aria-pressed={!isCollapsed}
+            title={isCollapsed ? 'Fijar abierta' : 'Auto-ocultar'}
         >
             <div className="flex flex-col items-center gap-0.5">
                 {isCollapsed ? (

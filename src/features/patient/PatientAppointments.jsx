@@ -93,11 +93,12 @@ const PatientAppointments = ({ onClose }) => {
 
   const getStatusBadge = (status) => {
     const badges = {
-      scheduled: { color: 'bg-green-100 text-green-700',  text: '✓ Programada' },
-      reserved:  { color: 'bg-yellow-100 text-yellow-700', text: '○ Reservada' },
-      completed: { color: 'bg-blue-100 text-blue-700',    text: '✓ Completada' },
-      cancelled: { color: 'bg-red-100 text-red-700',      text: '✗ Cancelada'  },
-      pending:   { color: 'bg-gray-100 text-gray-600',    text: '… Pendiente'  },
+      scheduled:            { color: 'bg-green-100 text-green-700',  text: '✓ Programada' },
+      reserved:             { color: 'bg-amber-100 text-amber-700',  text: '📩 Pendiente de aceptación' },
+      completed:            { color: 'bg-blue-100 text-blue-700',    text: '✓ Completada' },
+      cancelled:            { color: 'bg-red-100 text-red-700',      text: '✗ Cancelada'  },
+      pending:              { color: 'bg-gray-100 text-gray-600',    text: '… Pendiente'  },
+      accepted:             { color: 'bg-emerald-100 text-emerald-700', text: '✓ Aceptada — Pago pendiente' },
     }
     return badges[status] ?? badges.scheduled
   }

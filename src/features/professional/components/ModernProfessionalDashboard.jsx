@@ -5,9 +5,11 @@ import { useAuth } from '@features/auth'
 import { useNavigate } from 'react-router-dom'
 import NewPatientLinkModal from './NewPatientLinkModal'
 import { useDashboardData } from '../dashboard/useDashboard'
-import { getTodayAppointments } from '../dashboard/dashboardUtils'
+import { getTodayAppointments, resolvePatientName } from '../dashboard/dashboardUtils'
 import { videoCallService } from '@shared/services/videoCallService'
 import { appointmentsService } from '@shared/services/appointmentsService'
+import { socketNotificationService } from '@shared/services/socketNotificationService'
+import { showToast } from '@shared/ui'
 import { ROUTES } from '@shared/constants/routes'
 import {
     SessionsCalendarPanel,
@@ -25,6 +27,7 @@ import {
 
 const MOCK_REVENUE = { thisMonth: 4800, lastMonth: 4200, outstanding: 650, pendingClaims: 3 }
 
+// resolvePatientName is imported from ../dashboard/dashboardUtils
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -35,6 +38,8 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
     const { stats, patients, appointments, activities, loading, error } = useDashboardData()
     const [showPatientForm, setShowPatientForm] = useState(false)
     const [availability, setAvailability] = useState({})
+    // Real-time paid appointment notifications from patients
+    const [paidNotifications, setPaidNotifications] = useState([])
     const [calendarMonth, setCalendarMonthRaw] = useState(() => {
         const d = new Date()
         return { year: d.getFullYear(), month: d.getMonth() }
@@ -78,85 +83,6 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
     const fullName = user?.name || user?.nombre || 'Professional'
     const initials = fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 
-    // ── Mock today sessions (shown when no real data is available) ────────────
-    const mockTodaySessions = useMemo(() => {
-        const t = (offsetMins) => {
-            const d = new Date()
-            d.setSeconds(0, 0)
-            d.setMinutes(d.getMinutes() + offsetMins)
-            return d.toISOString()
-        }
-        return [
-            {
-                id: 'mock-s1',
-                nombrePaciente: 'Jemma Linda',
-                fechaHora: t(-150),
-                estado: 'completed',
-                riskLevel: 'low',
-                homeworkCompleted: true,
-                totalSessions: 7,
-                ultimaVisita: t(-150 - 60 * 24 * 7),
-                treatmentGoal: 'Terapia cognitiva — ansiedad',
-            },
-            {
-                id: 'mock-s2',
-                nombrePaciente: 'Pedro Martínez',
-                fechaHora: t(-90),
-                estado: 'completed',
-                riskLevel: 'high',
-                homeworkCompleted: false,
-                totalSessions: 3,
-                ultimaVisita: t(-90 - 60 * 24 * 14),
-                treatmentGoal: 'Manejo crisis — depresión severa',
-            },
-            {
-                id: 'mock-s3',
-                nombrePaciente: 'Sara Alcázar',
-                fechaHora: t(-30),
-                estado: 'completed',
-                riskLevel: 'medium',
-                homeworkCompleted: true,
-                totalSessions: 12,
-                ultimaVisita: t(-30 - 60 * 24 * 7),
-                treatmentGoal: 'EMDR — trauma',
-            },
-            {
-                id: 'mock-next',
-                nombrePaciente: 'María González',
-                fechaHora: t(18),
-                estado: 'reserved',
-                riskLevel: 'medium',
-                homeworkCompleted: true,
-                totalSessions: 5,
-                ultimaVisita: t(18 - 60 * 24 * 7),
-                treatmentGoal: 'Manejo de ansiedad generalizada',
-                lastSessionNote: 'Progresando con técnicas de respiración y registro cognitivo.',
-            },
-            {
-                id: 'mock-s5',
-                nombrePaciente: 'Carlos Rivera',
-                fechaHora: t(90),
-                estado: 'reserved',
-                riskLevel: 'low',
-                homeworkCompleted: false,
-                totalSessions: 9,
-                ultimaVisita: t(90 - 60 * 24 * 7),
-                treatmentGoal: 'Gestión del estrés laboral',
-            },
-            {
-                id: 'mock-s6',
-                nombrePaciente: 'Ana Torres',
-                fechaHora: t(180),
-                estado: 'reserved',
-                riskLevel: 'low',
-                homeworkCompleted: true,
-                totalSessions: 2,
-                ultimaVisita: null,
-                treatmentGoal: 'Evaluación inicial — duelo',
-            },
-        ]
-    }, [])
-
     // Memoize expensive calculations to prevent re-running on every render
     const { todayAppointments, allDaySlots, upcomingPatient } = useMemo(() => {
         // Real appointments from backend
@@ -180,7 +106,8 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                     })
                     .map(apt => ({
                         id: apt.id,
-                        nombrePaciente: apt.patientName || 'Paciente',
+                        patientId: apt.patientId || null,
+                        nombrePaciente: resolvePatientName(apt),
                         fechaHora: apt.start || apt.fechaHora,
                         estado: apt.status || 'reserved',
                         type: apt.type || 'Consulta',
@@ -195,15 +122,10 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
             console.warn('Could not read localStorage appointments', e)
         }
 
-        // Merge: real backend + localStorage + mock fallback (mock only when no real data)
+        // Merge: real backend + localStorage
         const seenIds = new Set(realTodayAppointments.map(a => String(a.id)))
         const merged = [...realTodayAppointments]
         localStorageAppointments.forEach(apt => {
-            if (!seenIds.has(String(apt.id))) merged.push(apt)
-        })
-        // Always inject mock sessions so the timeline is populated during development.
-        // Real data takes precedence — mocks with duplicate IDs are skipped.
-        mockTodaySessions.forEach(apt => {
             if (!seenIds.has(String(apt.id))) merged.push(apt)
         })
 
@@ -225,56 +147,35 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
             }
         })
 
-        // Generate pills for time slots WITHOUT appointments (either unavailable or break time)
-        // Skip entirely when no availability is configured — avoids flooding the timeline with
-        // 27 "No Disponible" pills that bury the real session cards.
+        // Generate "No Disponible" pills only when there are NO real appointments today.
+        // When real sessions exist, filling every empty 30-min slot with pills buries the cards.
         const unavailableSlotsToday = []
-        const today = new Date()
-        const todayDayOfWeek = today.getDay()
-        const todayAvailability = availability[todayDayOfWeek] || []
         const hasAvailabilityData = Object.values(availability).some(slots => Array.isArray(slots) && slots.length > 0)
 
-        if (hasAvailabilityData) {
-            // Get times of existing appointments
-            const appointmentTimes = new Set(
-                todayAppointments.map(apt => {
-                    const date = new Date(apt.fechaHora)
-                    return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
-                })
-            )
+        if (hasAvailabilityData && todayAppointments.length === 0) {
+            const today = new Date()
+            const todayDayOfWeek = today.getDay()
+            const todayAvailability = availability[todayDayOfWeek] || []
 
             // Generate all possible time slots for the day (7:00 AM - 8:00 PM)
-            const allPossibleSlots = []
             for (let hour = 7; hour <= 20; hour++) {
-                allPossibleSlots.push(`${hour.toString().padStart(2, '0')}:00`)
-                if (hour < 20) {
-                    allPossibleSlots.push(`${hour.toString().padStart(2, '0')}:30`)
-                }
-            }
-
-            // Create "unavailable" or "break" entries for slots without appointments
-            allPossibleSlots.forEach(timeSlot => {
-                if (!appointmentTimes.has(timeSlot)) {
-                    // Check if this slot is in availability
-                    const isInAvailability = todayAvailability.includes(timeSlot)
-                    const [hours, minutes] = timeSlot.split(':')
-
-                    // Create date for TODAY with the specific time
-                    const slotDate = new Date()
-                    slotDate.setHours(parseInt(hours), parseInt(minutes), 0, 0)
-
-                    // Only show pill for slots NOT in availability
-                    if (!isInAvailability) {
+                const slots = [`${String(hour).padStart(2, '0')}:00`]
+                if (hour < 20) slots.push(`${String(hour).padStart(2, '0')}:30`)
+                slots.forEach(timeSlot => {
+                    if (!todayAvailability.includes(timeSlot)) {
+                        const [h, m] = timeSlot.split(':')
+                        const slotDate = new Date()
+                        slotDate.setHours(parseInt(h), parseInt(m), 0, 0)
                         unavailableSlotsToday.push({
                             id: `unavailable-${timeSlot}`,
                             fechaHora: slotDate,
                             isUnavailable: true,
-                            timeSlot: timeSlot
+                            timeSlot,
                         })
                     }
-                }
-            })
-        } // end hasAvailabilityData
+                })
+            }
+        }
 
         // Merge appointments and unavailable slots, sort chronologically (earliest first)
         const allDaySlots = [...todayAppointments, ...unavailableSlotsToday]
@@ -288,7 +189,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
         const upcomingPatient = todayAppointments[0]
 
         return { todayAppointments, allDaySlots, upcomingPatient }
-    }, [appointments, availability, mockTodaySessions]) // Only recalculate when appointments or availability change
+    }, [appointments, availability])
 
     // Calendar: build a set of appointment days for current viewed month
     // Uses month-specific API data when available, falls back to full appointments list
@@ -297,10 +198,9 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
         const firstDay = new Date(year, month, 1).getDay() // 0=Sun
         const daysInMonth = new Date(year, month + 1, 0).getDate()
 
-        // Prefer freshly-fetched month data; fall back to full list + mocks
-        const sourceApts = calendarMonthApts.length > 0
-            ? calendarMonthApts
-            : [...(Array.isArray(appointments) ? appointments : []), ...mockTodaySessions]
+        // Prefer freshly-fetched month data; fall back to full appointments list
+        const realApts = Array.isArray(appointments) ? appointments : []
+        const sourceApts = calendarMonthApts.length > 0 ? calendarMonthApts : realApts
 
         // Build map: day -> { count, hasCompleted, hasCancelled }
         const dayMap = {}
@@ -321,7 +221,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
         const cancelledSessions = Object.values(dayMap).reduce((s, d) => s + d.cancelled, 0)
 
         return { firstDay, daysInMonth, dayMap, monthName: monthNames[month], year, totalSessions, completedSessions, cancelledSessions }
-    }, [calendarMonth, calendarMonthApts, appointments, mockTodaySessions])
+    }, [calendarMonth, calendarMonthApts, appointments])
 
     // Build a Set of day-numbers that have open availability slots (for mini-calendar rings)
     const availabilityDays = useMemo(() => {
@@ -338,11 +238,35 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
 
     // Sessions for the selected calendar date
     const isViewingToday = selectedDate.toDateString() === currentTime.toDateString()
+
+    // Upcoming sessions: next appointments (any date) sorted by date
+    const upcomingSessions = useMemo(() => {
+        const allApts = Array.isArray(appointments) ? appointments : []
+        const now = new Date()
+        return allApts
+            .filter(apt => {
+                const d = new Date(apt.fechaHora || apt.date)
+                return !isNaN(d) && d >= now
+            })
+            .map(apt => ({
+                id: apt._id || apt.id,
+                patientId: apt.patientId?._id || apt.patientId || null,
+                nombrePaciente: resolvePatientName(apt),
+                fechaHora: apt.fechaHora || apt.date,
+                estado: apt.estado || apt.status,
+                riskLevel: apt.riskLevel || 'low',
+                treatmentGoal: apt.treatmentGoal || '',
+                lastSessionNote: apt.lastSessionNote || '',
+                homeworkCompleted: apt.homeworkCompleted || false,
+                duration: apt.duration,
+            }))
+            .sort((a, b) => new Date(a.fechaHora) - new Date(b.fechaHora))
+            .slice(0, 10)
+    }, [appointments])
+
     const selectedDateSessions = useMemo(() => {
-        // Compute the "is today" check INSIDE the memo using a fresh Date so it is
-        // never stale relative to the currentTime ticker that fires every second.
         const selYear  = selectedDate.getFullYear()
-        const selMonth = selectedDate.getMonth()   // 0-based
+        const selMonth = selectedDate.getMonth()
         const selDay   = selectedDate.getDate()
         const now      = new Date()
         const isToday  =
@@ -350,36 +274,48 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
             selMonth === now.getMonth() &&
             selDay   === now.getDate()
 
-        if (isToday) return allDaySlots
+        // Today selected — if there are real slots show them, otherwise fall through to upcoming
+        if (isToday && allDaySlots.length > 0) return allDaySlots
 
-        const allApts = Array.isArray(appointments) ? appointments : []
-        return allApts
-            .filter(apt => {
-                const dateField = apt.fechaHora || apt.date
-                if (!dateField) return false
-                // Use safe ISO-slice comparison to avoid UTC ↔ local day-shift
-                // (mirrors the logic in getTodayAppointments)
-                const dateOnly = String(dateField).slice(0, 10) // "YYYY-MM-DD"
-                const [yr, mo, dy] = dateOnly.split('-').map(Number)
-                return yr === selYear && mo === selMonth + 1 && dy === selDay
-            })
-            .map(apt => ({
-                id: apt._id || apt.id,
-                nombrePaciente: apt.patientName || apt.nombrePaciente || 'Paciente',
-                fechaHora: apt.fechaHora || apt.date,
-                estado: apt.estado || apt.status,
-                riskLevel: apt.riskLevel || 'low',
-                treatmentGoal: apt.treatmentGoal || '',
-                lastSessionNote: apt.lastSessionNote || '',
-                homeworkCompleted: apt.homeworkCompleted || false,
-            }))
-            .sort((a, b) => new Date(a.fechaHora) - new Date(b.fechaHora))
-    }, [selectedDate, allDaySlots, appointments])
+        // Non-today date selected
+        if (!isToday) {
+            const allApts = Array.isArray(appointments) ? appointments : []
+            return allApts
+                .filter(apt => {
+                    const dateField = apt.date || apt.fechaHora
+                    if (!dateField) return false
+                    const dateOnly = String(dateField).slice(0, 10)
+                    const [yr, mo, dy] = dateOnly.split('-').map(Number)
+                    return yr === selYear && mo === selMonth + 1 && dy === selDay
+                })
+                .map(apt => ({
+                    id: apt._id || apt.id,
+                    patientId: apt.patientId?._id || apt.patientId || null,
+                    nombrePaciente: resolvePatientName(apt),
+                    fechaHora: apt.fechaHora || apt.date,
+                    estado: apt.estado || apt.status,
+                    riskLevel: apt.riskLevel || 'low',
+                    treatmentGoal: apt.treatmentGoal || '',
+                    lastSessionNote: apt.lastSessionNote || '',
+                    homeworkCompleted: apt.homeworkCompleted || false,
+                    duration: apt.duration,
+                }))
+                .sort((a, b) => new Date(a.fechaHora) - new Date(b.fechaHora))
+        }
+
+        // Today selected but no sessions — show upcoming
+        return upcomingSessions
+    }, [selectedDate, allDaySlots, appointments, upcomingSessions])
+
+    // True when we're showing upcoming (not today's) sessions as fallback
+    const isShowingUpcoming = isViewingToday && allDaySlots.length === 0 && upcomingSessions.length > 0
 
     const shortMonthNames = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
-    const selectedDateLabel = isViewingToday
-        ? 'Sesiones de hoy'
-        : `Sesiones — ${selectedDate.getDate()} ${shortMonthNames[selectedDate.getMonth()]}`
+    const selectedDateLabel = isShowingUpcoming
+        ? 'Próximas sesiones'
+        : isViewingToday
+            ? 'Sesiones de hoy'
+            : `Sesiones — ${selectedDate.getDate()} ${shortMonthNames[selectedDate.getMonth()]}`
 
     const monthGrowth  = Math.round((stats.totalPatients / Math.max(stats.totalPatients - 10, 1)) * 100) - 100
     const revenueGrowth = Math.round(((MOCK_REVENUE.thisMonth - MOCK_REVENUE.lastMonth) / MOCK_REVENUE.lastMonth) * 100)
@@ -401,7 +337,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                 const apt = future[0]
                 return {
                     id: apt._id || apt.id,
-                    nombrePaciente: apt.patientName || apt.nombrePaciente || 'Paciente',
+                    nombrePaciente: resolvePatientName(apt),
                     fechaHora: apt.fechaHora || apt.date,
                     riskLevel: apt.riskLevel || 'low',
                     treatmentGoal: apt.treatmentGoal || '',
@@ -410,7 +346,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                 }
             }
         }
-        return mockTodaySessions.find(s => s.id === 'mock-next') ?? null
+        return null
     })()
 
     // Handler for joining video call - memoized to prevent excessive re-renders
@@ -433,6 +369,29 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000)
         return () => clearInterval(timer)
+    }, [])
+
+    // Subscribe to appointment-paid socket events emitted by patients
+    useEffect(() => {
+        const unsubscribe = socketNotificationService.on('appointment-paid', (data) => {
+            const name = data.patientName || 'Un paciente'
+            const dateStr = data.date
+                ? new Date(data.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+                : ''
+            showToast(`💳 ${name} ha pagado su cita${dateStr ? ` del ${dateStr}` : ''}`, 'success')
+            setPaidNotifications(prev => [
+                {
+                    id: data.appointmentId || Date.now(),
+                    patientName: name,
+                    date: data.date,
+                    time: data.time,
+                    amount: data.amount,
+                    receivedAt: new Date(),
+                },
+                ...prev.slice(0, 9), // keep last 10
+            ])
+        })
+        return unsubscribe
     }, [])
 
     // Load availability settings
@@ -575,6 +534,63 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                 </motion.div>
 
                                 {/* General Notes — inline panel */}
+                                <AnimatePresence>
+                                {paidNotifications.length > 0 && (
+                                    <motion.div
+                                        key="paid-notifs"
+                                        initial={{ opacity: 0, y: -8, height: 0 }}
+                                        animate={{ opacity: 1, y: 0, height: 'auto' }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        transition={{ type: 'spring', damping: 22, stiffness: 280 }}
+                                        className="bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3 overflow-hidden shrink-0"
+                                    >
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div className="flex items-center gap-2">
+                                                <span className="w-5 h-5 bg-emerald-500 rounded-lg flex items-center justify-center">
+                                                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
+                                                            d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                                                    </svg>
+                                                </span>
+                                                <p className="text-xs font-bold text-emerald-800">Pagos recibidos</p>
+                                                <span className="bg-emerald-500 text-white text-[10px] font-bold rounded-full px-1.5 py-0.5 leading-none">
+                                                    {paidNotifications.length}
+                                                </span>
+                                            </div>
+                                            <button
+                                                onClick={() => setPaidNotifications([])}
+                                                className="text-emerald-400 hover:text-emerald-600 text-[10px] font-medium transition-colors"
+                                            >
+                                                Limpiar
+                                            </button>
+                                        </div>
+                                        <div className="flex flex-col gap-1.5 max-h-40 overflow-y-auto pr-1">
+                                            {paidNotifications.map((n) => {
+                                                const dateStr = n.date
+                                                    ? new Date(n.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+                                                    : ''
+                                                return (
+                                                    <div key={n.id} className="flex items-center gap-2 bg-white rounded-xl px-3 py-2 border border-emerald-100">
+                                                        <div className="w-6 h-6 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
+                                                            <svg className="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                            </svg>
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-xs font-semibold text-stone-800 truncate">{n.patientName}</p>
+                                                            <p className="text-[10px] text-stone-400 leading-none mt-0.5">
+                                                                {dateStr}{n.time ? ` · ${n.time}` : ''}{n.amount ? ` · €${n.amount}` : ''}
+                                                            </p>
+                                                        </div>
+                                                        <span className="text-[10px] font-bold text-emerald-600 shrink-0">Pagado</span>
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
+                                    </motion.div>
+                                )}
+                                </AnimatePresence>
+
                                 <GeneralNotes variant="panel" />
 
                                 {/* Today's sessions */}
@@ -728,9 +744,11 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                             const [h, m]  = quickForm.time.split(':').map(Number)
                                             const start   = new Date(quickCreate.date)
                                             start.setHours(h, m, 0, 0)
+                                            // Build local YYYY-MM-DD to avoid UTC shift from toISOString()
+                                            const localDate = `${start.getFullYear()}-${String(start.getMonth()+1).padStart(2,'0')}-${String(start.getDate()).padStart(2,'0')}`
                                             await appointmentsService.create({
                                                 patientName: quickForm.patientName.trim(),
-                                                date:        start.toISOString().slice(0, 10),
+                                                date:        localDate,
                                                 time:        quickForm.time,
                                                 duration:    Number(quickForm.duration),
                                                 isVideoCall: quickForm.isVideoCall,

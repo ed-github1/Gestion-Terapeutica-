@@ -5,7 +5,8 @@ import { ProfessionalDashboard, AppointmentsCalendar, ProfessionalStats } from '
 import PatientsList from '@features/professional/components/PatientsList'
 import ProfessionalProfile from '@features/professional/components/ProfessionalProfile'
 import ProfessionalVideoCallWebRTC from '@features/professional/components/VideoCallWebRTC'
-import { PatientDashboard, PatientAppointments } from '@features/patient'
+import { PatientDashboard } from '@features/patient'
+import PatientSessionsPage from '@features/patient/PatientSessionsPage'
 import PatientVideoCallWebRTC from '@features/patient/PatientVideoCallWebRTC'
 import PatientRegisterPage from '@features/patient/PatientRegisterPage'
 import PatientRegister from '@features/patient/PatientRegister'
@@ -133,7 +134,7 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={[ROLES.PATIENT, ROLES.PACIENT]}>
                 <DashboardLayout userRole="patient">
-                  <PatientAppointments />
+                  <PatientSessionsPage />
                 </DashboardLayout>
               </ProtectedRoute>
             }

@@ -12,7 +12,6 @@ import SidebarHeader from './SidebarHeader'
 import SidebarNav from './SidebarNav'
 import SidebarProBanner from './SidebarProBanner'
 import SidebarFooter from './SidebarFooter'
-import SidebarCollapseToggle from './SidebarCollapseToggle'
 
 /**
  * DashboardSidebar Component
@@ -31,10 +30,11 @@ const DashboardSidebar = ({ userRole = 'professional', onClose }) => {
 
     // Custom hook for sidebar state management
     const {
-        isCollapsed,
-        toggleCollapse,
+        effectiveIsCollapsed,
         prefersReducedMotion,
-        isActive
+        isActive,
+        handleMouseEnter,
+        handleMouseLeave,
     } = useSidebar()
 
     // Get menu items based on user role
@@ -71,23 +71,18 @@ const DashboardSidebar = ({ userRole = 'professional', onClose }) => {
     return (
         <motion.aside
             initial={sidebarAnimationConfig.initial}
-            animate={sidebarAnimationConfig.animate(isCollapsed)}
+            animate={sidebarAnimationConfig.animate(effectiveIsCollapsed)}
             exit={sidebarAnimationConfig.exit}
             transition={sidebarAnimationConfig.transition(prefersReducedMotion)}
-            className="h-full w-full glass-sidebar flex flex-col relative"
+            className="h-full glass-sidebar flex flex-col relative overflow-hidden"
             role="navigation"
             aria-label="Navegación principal"
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
         >
-            {/* Collapse Toggle */}
-            <SidebarCollapseToggle
-                isCollapsed={isCollapsed}
-                prefersReducedMotion={prefersReducedMotion}
-                onToggle={toggleCollapse}
-            />
-
             {/* Header */}
             <SidebarHeader
-                isCollapsed={isCollapsed}
+                isCollapsed={effectiveIsCollapsed}
                 userRole={userRole}
             />
 
@@ -95,22 +90,22 @@ const DashboardSidebar = ({ userRole = 'professional', onClose }) => {
             <SidebarNav
                 menuItems={menuItems}
                 isActive={checkIsActive}
-                isCollapsed={isCollapsed}
+                isCollapsed={effectiveIsCollapsed}
                 prefersReducedMotion={prefersReducedMotion}
                 onNavigate={handleNavigation}
             />
 
-            {/* Pro Plan Banner */}
+            {/* Pro Plan Banner — professionals only */}
             <SidebarProBanner
-                isCollapsed={isCollapsed}
-                show={showProBanner}
+                isCollapsed={effectiveIsCollapsed}
+                show={showProBanner && userRole !== 'patient'}
                 onClose={() => setShowProBanner(false)}
                 prefersReducedMotion={prefersReducedMotion}
             />
 
             {/* Footer */}
             <SidebarFooter
-                isCollapsed={isCollapsed}
+                isCollapsed={effectiveIsCollapsed}
                 prefersReducedMotion={prefersReducedMotion}
                 onSettings={handleSettings}
                 onLogout={handleLogout}

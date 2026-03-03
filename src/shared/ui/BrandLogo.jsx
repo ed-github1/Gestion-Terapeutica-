@@ -1,18 +1,30 @@
 import logoSymbol from '@/assets/SIMBOLO_LOGO_TOTALMENTE.png'
+import logoFull from '@/assets/LOGOTIPO_TOTALMENTE.png'
 
 /**
  * BrandLogo Component
  *
  * @param {Object}  props
  * @param {boolean} [props.symbolOnly] - Show only the symbol image (for auth pages)
- * @param {string}  [props.size]       - Symbol size class, e.g. 'h-16 w-16' (default: 'h-9 w-9')
+ * @param {boolean} [props.fullLogo]   - Show the full color logotype image (for footer / hero)
+ * @param {string}  [props.size]       - Symbol/full logo size class, e.g. 'h-16 w-16' (default: 'h-9 w-9')
  * @param {string}  [props.className]  - Extra classes for the wrapper
  */
-const BrandLogo = ({ symbolOnly = false, size = 'h-9 w-9', className = '' }) => {
+const BrandLogo = ({ symbolOnly = false, fullLogo = false, size = 'h-9 w-9', className = '' }) => {
     if (symbolOnly) {
         return (
             <img
                 src={logoSymbol}
+                alt="TotalMente"
+                className={`${size} object-contain ${className}`}
+            />
+        )
+    }
+
+    if (fullLogo) {
+        return (
+            <img
+                src={logoFull}
                 alt="TotalMente"
                 className={`${size} object-contain ${className}`}
             />

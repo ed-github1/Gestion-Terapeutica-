@@ -16,4 +16,8 @@ export const diaryService = {
 
   deleteNote: (patientId, noteId) =>
     apiClient.delete(`/patients/${patientId}/diary-notes/${noteId}`),
+
+  /** Professional evaluates a specific patient diary entry */
+  evaluateNote: (patientId, noteId, data) =>
+    apiClient.put(`/patients/${patientId}/diary-notes/${noteId}/evaluate`, data),
 }

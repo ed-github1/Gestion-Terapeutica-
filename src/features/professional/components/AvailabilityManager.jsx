@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { X, Clock } from 'lucide-react'
 import { showToast } from '@components'
+import { appointmentsService } from '@shared/services/appointmentsService'
 
 const AvailabilityManager = ({ onClose }) => {
   const [loading, setLoading] = useState(false)
@@ -38,10 +39,24 @@ const AvailabilityManager = ({ onClose }) => {
   const loadAvailability = async () => {
     setLoading(true)
     try {
+      // Try fetching from backend first
+      const res = await appointmentsService.getAvailability()
+      const raw = res.data?.data || res.data
+      if (raw && typeof raw === 'object' && Object.keys(raw).length > 0) {
+        const normalized = {}
+        Object.entries(raw).forEach(([k, v]) => { normalized[Number(k)] = v })
+        setAvailability(normalized)
+        // Sync to localStorage for quick local reads
+        localStorage.setItem('professionalAvailability', JSON.stringify(normalized))
+        return
+      }
+    } catch {
+      // Backend unavailable — fall through to localStorage
+    }
+    try {
       const local = localStorage.getItem('professionalAvailability')
       if (local) {
         const parsed = JSON.parse(local)
-        // Keys are stored as strings — normalize to numbers
         const normalized = {}
         Object.entries(parsed).forEach(([k, v]) => { normalized[Number(k)] = v })
         setAvailability(normalized)
@@ -105,9 +120,9 @@ const AvailabilityManager = ({ onClose }) => {
   const handleSave = async () => {
     setLoading(true)
     try {
-      // Save to backend
-      // await appointmentsService.updateAvailability(availability) // extend service when endpoint ready
-      // Save to localStorage as well for immediate access
+      // Save to backend so patients can fetch it
+      await appointmentsService.updateAvailability(availability)
+      // Also sync to localStorage for immediate local access
       localStorage.setItem('professionalAvailability', JSON.stringify(availability))
       
       // Dispatch custom event to notify dashboard

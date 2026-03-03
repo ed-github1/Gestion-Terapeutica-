@@ -215,7 +215,7 @@ export const appointmentsAPI = {
   getAvailability: async (professionalId = null) => {
     try {
       const endpoint = professionalId 
-        ? `/professionals/${professionalId}/availability`
+        ? `/availability/${professionalId}`
         : '/availability'
       const response = await apiClient.get(endpoint)
       return response

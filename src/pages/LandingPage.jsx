@@ -3,13 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import BrandLogo from '@/shared/ui/BrandLogo';
 import { 
-  Brain,
   Video, 
   Calendar, 
   Users, 
   Lock, 
   TrendingUp, 
-  Heart,
   CheckCircle,
   Star,
   ArrowRight,
@@ -202,8 +200,7 @@ const LandingPage = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
             >
-              {/* Use BrandLogo to match sidebar logo */}
-              <BrandLogo />
+              <BrandLogo fullLogo size="h-10 w-auto" />
             </motion.div>
             
             <motion.div 
@@ -813,13 +810,8 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid md:grid-cols-4 gap-12 mb-12">
             <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-linear-to-br from-blue-600 to-cyan-600 rounded-lg flex items-center justify-center">
-                  <Heart className="w-4 h-4 text-white" />
-                </div>
-                <span className="text-xl font-bold bg-linear-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-                  TotalMente
-                </span>
+              <div className="mb-5">
+                <BrandLogo fullLogo size="h-12 w-auto" />
               </div>
               <p className="text-slate-600 mb-4">
                 La plataforma todo-en-uno para profesionales de salud mental.

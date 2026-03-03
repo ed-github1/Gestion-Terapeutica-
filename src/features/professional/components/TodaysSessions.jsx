@@ -1,15 +1,23 @@
 import { motion, AnimatePresence } from 'motion/react'
+import { useEffect, useRef } from 'react'
 import { Calendar, Clock, Video, FileText, MessageSquare, CheckCircle2, XCircle, Target } from 'lucide-react'
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Helpers
 ───────────────────────────────────────────────────────────────────────────── */
+/** Strip stray "undefined" / "null" words that may leak into display names. */
+const sanitize = (s) => {
+    if (!s || typeof s !== 'string') return ''
+    return s.replace(/\bundefined\b/gi, '').replace(/\bnull\b/gi, '').replace(/\s{2,}/g, ' ').trim()
+}
+
 const getInitials = (name) => {
-    if (!name) return '?'
-    const parts = name.split(' ')
+    const clean = sanitize(name)
+    if (!clean) return '?'
+    const parts = clean.split(' ')
     return parts.length >= 2
         ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
-        : name.substring(0, 2).toUpperCase()
+        : clean.substring(0, 2).toUpperCase()
 }
 
 const getTimeComponents = (date) => {
@@ -60,9 +68,9 @@ const SessionCard = ({
     onViewDiary,
     onMessage,
 }) => {
-    const patientName   = appointment.nombrePaciente || appointment.patient?.name || 'Paciente Desconocido'
+    const patientName   = sanitize(appointment.nombrePaciente || appointment.patient?.name) || 'Paciente'
     const startTime      = new Date(appointment.fechaHora)
-    const endTime        = new Date(startTime.getTime() + 60 * 60 * 1000)
+    const endTime        = new Date(startTime.getTime() + (appointment.duration || 60) * 60 * 1000)
     const riskLevel      = appointment.riskLevel || 'low'
     const homeworkOk     = appointment.homeworkCompleted !== false
     const sessionType    = appointment.type || 'Consulta'
@@ -73,6 +81,16 @@ const SessionCard = ({
     const { timeStr: endStr, ampm: endAmpm } = getTimeComponents(endTime)
     const timeRange = `${timeStr} – ${endStr} ${endAmpm}`
     const typeStyle = SESSION_TYPE_STYLES[sessionType] || SESSION_TYPE_STYLES.default
+
+    // Show date label when the appointment is NOT today
+    const now = new Date()
+    const isToday = startTime.getDate() === now.getDate() &&
+        startTime.getMonth() === now.getMonth() &&
+        startTime.getFullYear() === now.getFullYear()
+    const shortMonths = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
+    const dateLabel = !isToday
+        ? `${startTime.getDate()} ${shortMonths[startTime.getMonth()]}`
+        : null
 
     /* visual tokens ── next session gets indigo, risk gets rose, default cycles */
     const bgPalette = [
@@ -124,7 +142,7 @@ const SessionCard = ({
                 {/* Time stamp */}
                 <div className="w-9 shrink-0 text-right pt-2.5">
                     <div className="text-[10px] font-bold text-gray-400 leading-none">{timeStr}</div>
-                    <div className="text-[9px] text-gray-400 uppercase mt-0.5">{ampm}</div>
+                    <div className="text-[9px] text-gray-400 uppercase mt-0.5">{dateLabel || ampm}</div>
                 </div>
 
                 {/* Connector */}
@@ -397,7 +415,43 @@ const TodaysSessions = ({
     nextSessionTime = null,
     nextSessionCountdown = null,
     nextIsImminent = false,
+    isViewingToday = false,
 }) => {
+    const scrollRef = useRef(null)
+    const currentRef = useRef(null)
+
+    // Auto-scroll to the current/next session when viewing today
+    useEffect(() => {
+        if (!isViewingToday || loading) return
+        const id = setTimeout(() => {
+            const container = scrollRef.current
+            const anchor = currentRef.current
+            if (!container || !anchor) return
+            // Calculate absolute offset of anchor inside the scroll container
+            const containerRect = container.getBoundingClientRect()
+            const anchorRect    = anchor.getBoundingClientRect()
+            // anchorRect.top - containerRect.top = anchor's position relative to container's visible top
+            const scrollTo = container.scrollTop + (anchorRect.top - containerRect.top) - 24
+            container.scrollTop = Math.max(0, scrollTo)
+        }, 150)
+        return () => clearTimeout(id)
+    }, [isViewingToday, loading, sessions.length])
+
+    // Find the index of the first item at or after 30 min ago (scroll anchor)
+    const now = Date.now()
+    const anchorIndex = (() => {
+        const idx = sessions.findIndex(item => {
+            if (!item.fechaHora) return false
+            return new Date(item.fechaHora).getTime() >= now - 30 * 60 * 1000
+        })
+        // If everything is in the past, anchor to the last real session
+        if (idx === -1) {
+            const lastReal = [...sessions].reverse().findIndex(item => !item.isUnavailable)
+            return lastReal === -1 ? sessions.length - 1 : sessions.length - 1 - lastReal
+        }
+        return idx
+    })()
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -410,30 +464,36 @@ const TodaysSessions = ({
             ) : sessions.length === 0 ? (
                 <EmptyState />
             ) : (
-                <div className="space-y-0 xl:flex-1 xl:min-h-0 overflow-y-auto overflow-x-hidden pr-1 custom-scrollbar">
+                <div ref={scrollRef} className="space-y-0 xl:flex-1 xl:min-h-0 overflow-y-auto overflow-x-hidden pr-1 custom-scrollbar">
                     <AnimatePresence mode="popLayout">
                         {sessions.map((item, index) => {
                             const itemTs = item.fechaHora ? new Date(item.fechaHora).getTime() : null
                             const isNext = nextSessionTime !== null && itemTs !== null && itemTs === nextSessionTime
+                            const isAnchor = index === anchorIndex
 
                             if (item.isBreak) {
                                 return <BreakCard key={`break-${index}`} time={item.time} index={index} />
                             }
                             if (item.isUnavailable) {
-                                return <AvailableSlotCard key={itemTs || index} slot={item} index={index} />
+                                return (
+                                    <div key={itemTs || index} ref={isAnchor ? currentRef : null}>
+                                        <AvailableSlotCard slot={item} index={index} />
+                                    </div>
+                                )
                             }
                             return (
-                                <SessionCard
-                                    key={itemTs || index}
-                                    appointment={item}
-                                    index={index}
-                                    isNext={isNext}
-                                    countdown={isNext ? nextSessionCountdown : null}
-                                    isImminent={isNext && nextIsImminent}
-                                    onJoinVideo={onJoinVideo}
-                                    onViewDiary={onViewDiary}
-                                    onMessage={onMessage}
-                                />
+                                <div key={itemTs || index} ref={isAnchor ? currentRef : null}>
+                                    <SessionCard
+                                        appointment={item}
+                                        index={index}
+                                        isNext={isNext}
+                                        countdown={isNext ? nextSessionCountdown : null}
+                                        isImminent={isNext && nextIsImminent}
+                                        onJoinVideo={onJoinVideo}
+                                        onViewDiary={onViewDiary}
+                                        onMessage={onMessage}
+                                    />
+                                </div>
                             )
                         })}
                     </AnimatePresence>
