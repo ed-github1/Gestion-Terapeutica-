@@ -114,7 +114,9 @@ export const getTodayAppointments = (appointments) => {
                 lastSessionNote: apt.lastSessionNote || '',
                 treatmentGoal: apt.treatmentGoal || '',
                 homeworkCompleted: apt.homeworkCompleted || false,
-                ultimaVisita: apt.ultimaVisita || null
+                ultimaVisita: apt.ultimaVisita || null,
+                isVideoCall: apt.isVideoCall || apt.mode === 'videollamada' || false,
+                mode: apt.mode ?? (apt.isVideoCall ? 'videollamada' : 'consultorio'),
             }
         })
 }

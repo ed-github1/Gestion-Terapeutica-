@@ -12,7 +12,7 @@ import PatientClinicalFile from './PatientClinicalFile'
 import {
     Users, UserPlus, Search, RefreshCw,
     LayoutGrid, List, ShieldAlert,
-    BookOpen, MessageSquare, CalendarPlus,
+    BookOpen, MessageSquare, CalendarPlus, Calendar,
     ChevronRight, Minus,
     Clock, MoreHorizontal, CheckCircle2,
     XCircle, TimerOff
@@ -42,28 +42,15 @@ const normalizePatient = (p) => ({
     hasRegistered:     p.hasRegistered ?? (p.userId != null),
 })
 
-// ─── Mock patients (fallback while backend has no clinical data) ────────────────
-const mockPatients = [
-    { id: 1,  nombre: 'María',   apellido: 'González',  email: 'maria.gonzalez@email.com',  telefono: '+34 612 345 678', status: 'active',   lastSession: '2026-02-10', nextSession: '2026-02-19', totalSessions: 14, riskLevel: 'low',    treatmentGoal: 'Manejo de ansiedad generalizada',               homeworkCompleted: true,  diagnosis: 'TAG',     insuranceRemaining: 6,    age: 34 },
-    { id: 2,  nombre: 'Carlos',  apellido: 'Rodríguez', email: 'carlos.rodriguez@email.com', telefono: '+34 623 456 789', status: 'active',   lastSession: '2026-02-08', nextSession: '2026-02-20', totalSessions: 7,  riskLevel: 'high',   treatmentGoal: 'Reducir ideación pasiva — plan de seguridad activo', homeworkCompleted: false, diagnosis: 'TDM',     insuranceRemaining: 2,    age: 42 },
-    { id: 3,  nombre: 'Ana',     apellido: 'Martínez',  email: 'ana.martinez@email.com',     telefono: '+34 634 567 890', status: 'pending',  lastSession: null,         nextSession: '2026-02-21', totalSessions: 0,  riskLevel: 'low',    treatmentGoal: 'Evaluación inicial pendiente',                    homeworkCompleted: null,  diagnosis: 'Pendiente',insuranceRemaining: 10,   age: 28 },
-    { id: 4,  nombre: 'David',   apellido: 'López',     email: 'david.lopez@email.com',      telefono: '+34 645 678 901', status: 'active',   lastSession: '2026-02-12', nextSession: '2026-02-22', totalSessions: 22, riskLevel: 'medium', treatmentGoal: 'Regulación emocional — episodios de ira',          homeworkCompleted: true,  diagnosis: 'TEL',     insuranceRemaining: null, age: 38 },
-    { id: 5,  nombre: 'Laura',   apellido: 'Sánchez',   email: 'laura.sanchez@email.com',    telefono: '+34 656 789 012', status: 'inactive', lastSession: '2026-01-15', nextSession: null,         totalSessions: 5,  riskLevel: 'low',    treatmentGoal: 'Alta temporal — pausó tratamiento',               homeworkCompleted: null,  diagnosis: 'TA',      insuranceRemaining: 8,    age: 29 },
-    { id: 6,  nombre: 'Miguel',  apellido: 'Fernández', email: 'miguel.fernandez@email.com', telefono: '+34 667 890 123', status: 'active',   lastSession: '2026-02-11', nextSession: '2026-02-18', totalSessions: 31, riskLevel: 'low',    treatmentGoal: 'Consolidar habilidades sociales',                 homeworkCompleted: true,  diagnosis: 'TP-E',    insuranceRemaining: null, age: 25 },
-    { id: 7,  nombre: 'Isabel',  apellido: 'García',    email: 'isabel.garcia@email.com',    telefono: '+34 678 901 234', status: 'pending',  lastSession: null,         nextSession: '2026-02-24', totalSessions: 0,  riskLevel: 'medium', treatmentGoal: 'Evaluación de duelo complicado',                  homeworkCompleted: null,  diagnosis: 'Pendiente',insuranceRemaining: 12,   age: 55 },
-    { id: 8,  nombre: 'Javier',  apellido: 'Díaz',      email: 'javier.diaz@email.com',      telefono: '+34 689 012 345', status: 'active',   lastSession: '2026-02-09', nextSession: '2026-02-20', totalSessions: 9,  riskLevel: 'medium', treatmentGoal: 'Protocolo de exposición — fobia social',          homeworkCompleted: false, diagnosis: 'FS',      insuranceRemaining: 4,    age: 31 },
-    { id: 9,  nombre: 'Carmen',  apellido: 'Ruiz',      email: 'carmen.ruiz@email.com',      telefono: '+34 690 123 456', status: 'active',   lastSession: '2026-02-13', nextSession: '2026-02-25', totalSessions: 18, riskLevel: 'low',    treatmentGoal: 'Mantenimiento — habilidades de afrontamiento',    homeworkCompleted: true,  diagnosis: 'TDA',     insuranceRemaining: null, age: 45 },
-    { id: 10, nombre: 'Pablo',   apellido: 'Torres',    email: 'pablo.torres@email.com',     telefono: '+34 601 234 567', status: 'inactive', lastSession: '2026-01-20', nextSession: null,         totalSessions: 3,  riskLevel: 'high',   treatmentGoal: 'Perdió seguimiento — requiere recontacto urgente', homeworkCompleted: null,  diagnosis: 'TDM',     insuranceRemaining: 5,    age: 48 },
-    { id: 11, nombre: 'Elena',   apellido: 'Ramírez',   email: 'elena.ramirez@email.com',    telefono: '+34 612 345 789', status: 'pending',  lastSession: null,         nextSession: '2026-02-26', totalSessions: 0,  riskLevel: 'low',    treatmentGoal: 'Primera consulta programada',                     homeworkCompleted: null,  diagnosis: 'Pendiente',insuranceRemaining: 10,   age: 22 },
-    { id: 12, nombre: 'Roberto', apellido: 'Moreno',    email: 'roberto.moreno@email.com',   telefono: '+34 623 456 890', status: 'active',   lastSession: '2026-02-07', nextSession: '2026-02-21', totalSessions: 11, riskLevel: 'medium', treatmentGoal: 'Protocolo de duelo — 6 meses',                    homeworkCompleted: true,  diagnosis: 'TD',      insuranceRemaining: 3,    age: 60 },
-]
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const getInitials = (n, a) => `${n?.[0] || ''}${a?.[0] || ''}`.toUpperCase()
 const avatarPalette = [
-    'bg-sky-100 text-blue-800', 'bg-emerald-100 text-emerald-700',
-    'bg-sky-100 text-sky-600', 'bg-rose-100 text-rose-700',
-    'bg-amber-100 text-amber-700',   'bg-cyan-100 text-cyan-700',
+    'bg-sky-100 dark:bg-sky-900/50 text-blue-800 dark:text-sky-300',
+    'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300',
+    'bg-sky-100 dark:bg-sky-900/50 text-sky-600 dark:text-sky-300',
+    'bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300',
+    'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300',
+    'bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300',
 ]
 const getAvatarColor = (id) => {
     // id may be a MongoDB ObjectId string — derive a stable numeric index from it
@@ -72,10 +59,10 @@ const getAvatarColor = (id) => {
 }
 
 const statusConfig = {
-    active:   { label: 'Activo',    cls: 'bg-emerald-50 text-emerald-700', dot: 'bg-emerald-500' },
-    pending:  { label: 'Pendiente', cls: 'bg-amber-50 text-amber-700',     dot: 'bg-amber-400' },
-    inactive: { label: 'Inactivo',  cls: 'bg-gray-100 text-gray-500',      dot: 'bg-gray-400' },
-    invited:  { label: 'Invitado',  cls: 'bg-blue-50 text-blue-700',       dot: 'bg-blue-400' },
+    active:   { label: 'Activo',    cls: 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400', dot: 'bg-emerald-500' },
+    pending:  { label: 'Pendiente', cls: 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',         dot: 'bg-amber-400' },
+    inactive: { label: 'Inactivo',  cls: 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400',              dot: 'bg-gray-400 dark:bg-gray-500' },
+    invited:  { label: 'Invitado',  cls: 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',            dot: 'bg-blue-400' },
 }
 
 const daysSince = (dateStr) => {
@@ -94,16 +81,16 @@ const AlertBanner = ({ patients }) => {
         <motion.div
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-5 flex items-start gap-3 p-4 bg-rose-50 border border-rose-200 rounded-2xl"
+            className="mb-5 flex items-start gap-3 p-4 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800/50 rounded-2xl"
         >
             <ShieldAlert className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-rose-800">
+                <p className="text-sm font-semibold text-rose-800 dark:text-rose-300">
                     {urgent.length} paciente{urgent.length !== 1 ? 's' : ''} de alto riesgo en tu carga
                 </p>
                 <div className="flex flex-wrap gap-2 mt-1.5">
                     {urgent.map(p => (
-                        <span key={p.id} className="text-[11px] font-medium text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <span key={p.id} className="text-[11px] font-medium text-rose-700 dark:text-rose-300 bg-rose-100 dark:bg-rose-900/40 px-2 py-0.5 rounded-full flex items-center gap-1">
                             {p.status === 'inactive' && <TimerOff className="w-2.5 h-2.5" />}
                             {p.nombre} {p.apellido}
                             {p.status === 'inactive' && ' — perdió seguimiento'}
@@ -115,7 +102,7 @@ const AlertBanner = ({ patients }) => {
     )
 }
 
-// ─── Patient Card (grid) ──────────────────────────────────────────────────────
+// ─── Patient Card ─────────────────────────────────────────────────────────────
 const PatientCard = ({ patient, onOpenDiary, onDelete, index }) => {
     const [menuOpen, setMenuOpen] = useState(false)
     const status = statusConfig[patient.status] || statusConfig.inactive
@@ -127,8 +114,8 @@ const PatientCard = ({ patient, onOpenDiary, onDelete, index }) => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96 }}
             transition={{ delay: index * 0.04, duration: 0.25 }}
-            className={`bg-white rounded-2xl border flex flex-col overflow-hidden hover:shadow-md transition-shadow ${
-                patient.riskLevel === 'high' ? 'border-rose-200' : 'border-gray-100'
+            className={`bg-white dark:bg-gray-800 rounded-2xl border shadow-sm flex flex-col overflow-hidden hover:shadow-md transition-shadow ${
+                patient.riskLevel === 'high' ? 'border-rose-200 dark:border-rose-800' : 'border-gray-200 dark:border-gray-700'
             }`}
         >
             {/* Risk accent line */}
@@ -142,22 +129,21 @@ const PatientCard = ({ patient, onOpenDiary, onDelete, index }) => {
                     </div>
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 mb-0.5">
-                            <p className="font-semibold text-gray-900 text-sm truncate">{patient.nombre} {patient.apellido}</p>
+                            <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm truncate">{patient.nombre} {patient.apellido}</p>
                             {patient.riskLevel === 'high' && <ShieldAlert className="w-3.5 h-3.5 text-rose-500 shrink-0" />}
                         </div>
                         <div className="flex items-center gap-2 flex-wrap">
-                            <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${status.cls} border-transparent`}>
+                            <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${status.cls}`}>
                                 <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
                                 {status.label}
                             </span>
                             {patient.diagnosis && patient.diagnosis !== 'Pendiente' && (
-                                <span className="text-[10px] text-gray-400 font-medium">{patient.diagnosis} · {patient.age}a</span>
+                                <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">{patient.diagnosis}{patient.age ? ` · ${patient.age}a` : ''}</span>
                             )}
                         </div>
                     </div>
-                    {/* context menu */}
                     <div className="relative shrink-0">
-                        <button onClick={() => setMenuOpen(o => !o)} className="p-1 hover:bg-gray-100 rounded-lg transition-colors">
+                        <button onClick={() => setMenuOpen(o => !o)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
                             <MoreHorizontal className="w-4 h-4 text-gray-400" />
                         </button>
                         <AnimatePresence>
@@ -166,19 +152,19 @@ const PatientCard = ({ patient, onOpenDiary, onDelete, index }) => {
                                     initial={{ opacity: 0, scale: 0.95, y: -4 }}
                                     animate={{ opacity: 1, scale: 1, y: 0 }}
                                     exit={{ opacity: 0, scale: 0.95 }}
-                                    className="absolute right-0 top-7 z-20 bg-white border border-gray-100 shadow-lg rounded-xl py-1 w-44"
+                                    className="absolute right-0 top-7 z-20 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-lg rounded-xl py-1 w-44"
                                 >
                                     {[
-                                        { icon: BookOpen, label: 'Ver expediente', action: () => { onOpenDiary(patient); setMenuOpen(false) } },
-                                        { icon: CalendarPlus, label: 'Agendar sesión', action: () => setMenuOpen(false) },
-                                        { icon: MessageSquare, label: 'Mensaje', action: () => setMenuOpen(false) },
+                                        { icon: BookOpen,     label: 'Ver expediente', action: () => { onOpenDiary(patient); setMenuOpen(false) } },
+                                        { icon: CalendarPlus, label: 'Agendar sesión',  action: () => setMenuOpen(false) },
+                                        { icon: MessageSquare, label: 'Mensaje',        action: () => setMenuOpen(false) },
                                     ].map(({ icon: Icon, label, action }) => (
-                                        <button key={label} onClick={action} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50">
+                                        <button key={label} onClick={action} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
                                             <Icon className="w-3.5 h-3.5" /> {label}
                                         </button>
                                     ))}
-                                    <div className="border-t border-gray-100 my-1" />
-                                    <button onClick={() => { onDelete(patient.id); setMenuOpen(false) }} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-rose-600 hover:bg-rose-50">
+                                    <div className="border-t border-gray-100 dark:border-gray-700 my-1" />
+                                    <button onClick={() => { onDelete(patient.id); setMenuOpen(false) }} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20">
                                         <XCircle className="w-3.5 h-3.5" /> Eliminar
                                     </button>
                                 </motion.div>
@@ -187,36 +173,31 @@ const PatientCard = ({ patient, onOpenDiary, onDelete, index }) => {
                     </div>
                 </div>
 
-                {/* Treatment goal */}
-                <p className="text-[11px] text-gray-500 leading-snug line-clamp-2">
-                    {patient.treatmentGoal || 'Sin objetivo de tratamiento definido'}
-                </p>
-
                 {/* Stats */}
                 <div className="grid grid-cols-3 gap-2">
-                    <div className="bg-gray-50 rounded-xl p-2.5 text-center">
-                        <p className="text-sm font-bold text-gray-800">{patient.totalSessions}</p>
-                        <p className="text-[9px] text-gray-400 uppercase tracking-wide">Sesiones</p>
+                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-2.5 text-center">
+                        <p className="text-sm font-bold text-gray-800 dark:text-gray-200">{patient.totalSessions}</p>
+                        <p className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide">Sesiones</p>
                     </div>
-                    <div className="bg-gray-50 rounded-xl p-2.5 text-center">
-                        <p className="text-sm font-bold text-gray-800">{daysSince(patient.lastSession) || '—'}</p>
-                        <p className="text-[9px] text-gray-400 uppercase tracking-wide">Última</p>
+                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-2.5 text-center">
+                        <p className="text-sm font-bold text-gray-800 dark:text-gray-200">{daysSince(patient.lastSession) || '—'}</p>
+                        <p className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide">Última</p>
                     </div>
-                    <div className={`rounded-xl p-2.5 text-center ${patient.insuranceRemaining !== null && patient.insuranceRemaining <= 3 ? 'bg-amber-50' : 'bg-gray-50'}`}>
-                        <p className={`text-sm font-bold ${patient.insuranceRemaining !== null && patient.insuranceRemaining <= 3 ? 'text-amber-600' : 'text-gray-800'}`}>
+                    <div className={`rounded-xl p-2.5 text-center ${patient.insuranceRemaining !== null && patient.insuranceRemaining <= 3 ? 'bg-amber-50 dark:bg-amber-900/20' : 'bg-gray-50 dark:bg-gray-700/50'}`}>
+                        <p className={`text-sm font-bold ${patient.insuranceRemaining !== null && patient.insuranceRemaining <= 3 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-800 dark:text-gray-200'}`}>
                             {patient.insuranceRemaining ?? '∞'}
                         </p>
-                        <p className="text-[9px] text-gray-400 uppercase tracking-wide">Seguro</p>
+                        <p className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide">Seguro</p>
                     </div>
                 </div>
 
                 {/* Homework + next */}
-                <div className="flex items-center justify-between pt-1 border-t border-gray-50">
+                <div className="flex items-center justify-between pt-1 border-t border-gray-100 dark:border-gray-700">
                     {patient.homeworkCompleted === true  && <span className="flex items-center gap-1 text-[10px] font-medium text-emerald-600"><CheckCircle2 className="w-3 h-3" /> Tarea entregada</span>}
                     {patient.homeworkCompleted === false && <span className="flex items-center gap-1 text-[10px] font-medium text-rose-500"><XCircle className="w-3 h-3" /> Tarea pendiente</span>}
-                    {patient.homeworkCompleted === null  && <span className="text-[10px] text-gray-300">Sin tarea</span>}
+                    {patient.homeworkCompleted === null  && <span className="text-[10px] text-gray-300 dark:text-gray-600">Sin tarea</span>}
                     {patient.nextSession && (
-                        <span className="flex items-center gap-1 text-[10px] text-gray-400">
+                        <span className="flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-500">
                             <Clock className="w-3 h-3" />
                             {new Date(patient.nextSession).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
                         </span>
@@ -227,7 +208,7 @@ const PatientCard = ({ patient, onOpenDiary, onDelete, index }) => {
             {/* Footer CTA */}
             <button
                 onClick={() => onOpenDiary(patient)}
-                className="flex items-center justify-center gap-1.5 py-3 border-t border-gray-100 text-xs font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                className="flex items-center justify-center gap-1.5 py-3 border-t border-gray-100 dark:border-gray-700 text-xs font-semibold text-[#0075C9] dark:text-sky-400 hover:bg-[#0075C9]/5 dark:hover:bg-sky-400/10 hover:text-[#005fa0] dark:hover:text-sky-300 transition-colors"
             >
                 <BookOpen className="w-3.5 h-3.5" /> Ver expediente <ChevronRight className="w-3 h-3 ml-0.5" />
             </button>
@@ -240,7 +221,7 @@ const PatientRow = ({ patient, onOpenDiary, onDelete }) => {
     const status = statusConfig[patient.status] || statusConfig.inactive
 
     return (
-        <tr className="group hover:bg-gray-50/60 transition-colors">
+        <tr className="group hover:bg-gray-50/60 dark:hover:bg-gray-700/30 transition-colors">
             <td className="px-5 py-3.5">
                 <div className="flex items-center gap-3">
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${getAvatarColor(patient.id)}`}>
@@ -248,10 +229,10 @@ const PatientRow = ({ patient, onOpenDiary, onDelete }) => {
                     </div>
                     <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
-                            <p className="font-semibold text-gray-900 text-sm truncate">{patient.nombre} {patient.apellido}</p>
+                            <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm truncate">{patient.nombre} {patient.apellido}</p>
                             {patient.riskLevel === 'high' && <ShieldAlert className="w-3.5 h-3.5 text-rose-500 shrink-0" />}
                         </div>
-                        <p className="text-[10px] text-gray-400">{patient.diagnosis} · {patient.age}a</p>
+                        <p className="text-[10px] text-gray-400 dark:text-gray-500">{patient.diagnosis} · {patient.age}a</p>
                     </div>
                 </div>
             </td>
@@ -261,22 +242,22 @@ const PatientRow = ({ patient, onOpenDiary, onDelete }) => {
                 </span>
             </td>
             <td className="px-5 py-3.5">
-                <p className="text-sm font-semibold text-gray-800">{patient.totalSessions}</p>
-                <p className="text-[10px] text-gray-400">{daysSince(patient.lastSession) || 'Sin sesiones'}</p>
+                <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{patient.totalSessions}</p>
+                <p className="text-[10px] text-gray-400 dark:text-gray-500">{daysSince(patient.lastSession) || 'Sin sesiones'}</p>
             </td>
             <td className="px-5 py-3.5">
                 {patient.homeworkCompleted === true  && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
                 {patient.homeworkCompleted === false && <XCircle className="w-4 h-4 text-rose-400" />}
                 {patient.homeworkCompleted === null  && <Minus className="w-4 h-4 text-gray-300" />}
             </td>
-            <td className="px-5 py-3.5 text-xs text-gray-500">
+            <td className="px-5 py-3.5 text-xs text-gray-500 dark:text-gray-400">
                 {patient.nextSession
                     ? new Date(patient.nextSession).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
-                    : <span className="text-gray-300">—</span>}
+                    : <span className="text-gray-300 dark:text-gray-600">—</span>}
             </td>
             <td className="px-5 py-3.5">
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => onOpenDiary(patient)} title="Ver expediente" className="p-1.5 hover:bg-sky-50 rounded-lg transition-colors text-gray-400 hover:text-blue-700"><BookOpen className="w-4 h-4" /></button>
+                    <button onClick={() => onOpenDiary(patient)} title="Ver expediente" className="p-1.5 hover:bg-sky-50 rounded-lg transition-colors text-gray-400 hover:text-[#0075C9]"><BookOpen className="w-4 h-4" /></button>
                     <button title="Agendar" className="p-1.5 hover:bg-emerald-50 rounded-lg transition-colors text-gray-400 hover:text-emerald-600"><CalendarPlus className="w-4 h-4" /></button>
                     <button title="Mensaje" className="p-1.5 hover:bg-blue-50 rounded-lg transition-colors text-gray-400 hover:text-blue-600"><MessageSquare className="w-4 h-4" /></button>
                     <button onClick={() => onDelete(patient.id)} title="Eliminar" className="p-1.5 hover:bg-rose-50 rounded-lg transition-colors text-gray-400 hover:text-rose-600"><XCircle className="w-4 h-4" /></button>
@@ -347,18 +328,30 @@ const ModernPatientsList = () => {
             const existingEmails = new Set(realPatients.map(p => p.email?.toLowerCase()))
 
             const fromInvites = invList
-                .filter(inv => !existingEmails.has((inv.patientEmail || inv.email || '').toLowerCase()))
-                .map(inv => normalizePatient({
-                    _id:               inv._id || inv.id || `inv-${inv.patientEmail}`,
-                    firstName:         inv.firstName || inv.patientName?.split(' ')[0] || '',
-                    lastName:          inv.lastName  || inv.patientName?.split(' ').slice(1).join(' ') || '',
-                    email:             inv.patientEmail || inv.email || '',
-                    phone:             inv.phone || null,
-                    status:            (inv.hasRegistered || inv.status === 'accepted') ? 'pending' : 'invited',
-                    presentingConcern: inv.presentingConcern || '',
-                    hasRegistered:     inv.hasRegistered ?? (inv.status === 'accepted'),
-                    _fromInvitation:   true,
-                }))
+                .filter(inv => {
+                    const email = (inv.patientEmail || inv.email || '').toLowerCase()
+                    // Skip if already in /patients OR if there is no identifiable data at all
+                    if (existingEmails.has(email)) return false
+                    const hasName  = !!(inv.firstName || inv.lastName || inv.patientName)
+                    const hasEmail = !!email
+                    return hasName || hasEmail
+                })
+                .map(inv => {
+                    const email = inv.patientEmail || inv.email || ''
+                    // Use email local-part as fallback when no real name exists
+                    const fallbackFirst = email ? email.split('@')[0] : ''
+                    return normalizePatient({
+                        _id:               inv._id || inv.id || `inv-${email}`,
+                        firstName:         inv.firstName || inv.patientName?.split(' ')[0] || fallbackFirst,
+                        lastName:          inv.lastName  || inv.patientName?.split(' ').slice(1).join(' ') || '',
+                        email,
+                        phone:             inv.phone || null,
+                        status:            (inv.hasRegistered || inv.status === 'accepted') ? 'pending' : 'invited',
+                        presentingConcern: inv.presentingConcern || '',
+                        hasRegistered:     inv.hasRegistered ?? (inv.status === 'accepted'),
+                        _fromInvitation:   true,
+                    })
+                })
 
             console.log('[PatientsList] from invitations (not in /patients):', fromInvites)
             realPatients = [...realPatients, ...fromInvites]
@@ -408,67 +401,60 @@ const ModernPatientsList = () => {
     return (
         <>
         <div className="bg-transparent">
-            <div className="p-4 md:p-6 lg:p-8 max-w-screen-2xl mx-auto">
+            <div className="p-3 md:p-6 lg:p-8 max-w-screen-2xl mx-auto">
 
-                {/* Header */}
-                <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between gap-4 mb-6">
-                    <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4 text-sky-500" />
-                        <h1 className="text-sm font-bold text-gray-800">Carga de Pacientes</h1>
-                        <span className="text-[10px] text-gray-400">· {active} activos · {total} en total</span>
+                {/* KPI chips */}
+                <motion.div
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mb-4"
+                >
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+                        {[
+                            { label: 'Pacientes', value: total,     icon: Users,       iconColor: 'text-blue-400'    },
+                            { label: 'Activos',   value: active,    icon: Users,       iconColor: 'text-sky-400'     },
+                            { label: 'Alto riesgo', value: highRisk, icon: ShieldAlert, iconColor: 'text-rose-400'   },
+                            { label: 'Tarea pend.', value: pendingHW, icon: BookOpen,  iconColor: 'text-amber-400'   },
+                        ].map(({ label, value, icon: Icon, iconColor }) => (
+                            <div key={label} className="bg-gray-50 dark:bg-gray-700/50 rounded-2xl px-3 pt-2.5 pb-3 w-full flex flex-col gap-1.5">
+                                <div className="flex items-center gap-1.5">
+                                    <Icon size={12} className={iconColor} strokeWidth={2.5} />
+                                    <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 tracking-wide uppercase">{label}</span>
+                                </div>
+                                <p className="text-[22px] font-black text-gray-900 dark:text-white leading-none tabular-nums tracking-tight">{value}</p>
+                            </div>
+                        ))}
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex justify-end items-center gap-2">
                         <button
                             onClick={loadPatients}
-                            title="Actualizar lista"
-                            className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+                            title="Actualizar"
+                            className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                         >
                             <RefreshCw className="w-4 h-4" />
-                            <span className="hidden sm:inline">Actualizar</span>
                         </button>
                         <button
                             onClick={() => setShowAddPatient(true)}
-                            className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-xl text-sm font-semibold hover:bg-gray-700 transition-colors"
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0075C9] text-white rounded-xl text-xs font-semibold hover:bg-[#005fa0] transition-colors"
                         >
-                            <UserPlus className="w-4 h-4" />
+                            <UserPlus className="w-3.5 h-3.5" />
                             <span className="hidden sm:inline">Nuevo paciente</span>
                         </button>
                     </div>
                 </motion.div>
-
-                {/* KPI strip */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-                    {[
-                        { label: 'Total',        value: total,     Icon: Users,        bg: 'bg-blue-50',    color: 'text-blue-600' },
-                        { label: 'Activos',      value: active,    Icon: CheckCircle2, bg: 'bg-emerald-50', color: 'text-emerald-600' },
-                        { label: 'Alto riesgo',  value: highRisk,  Icon: ShieldAlert,  bg: 'bg-rose-50',    color: 'text-rose-600',   urgent: highRisk > 0 },
-                        { label: 'Tarea pend.',  value: pendingHW, Icon: TimerOff,     bg: 'bg-amber-50',   color: 'text-amber-600',  urgent: pendingHW > 0 },
-                    ].map((k, i) => (
-                        <motion.div key={k.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
-                            className={`bg-white rounded-2xl border p-4 flex items-center gap-3 ${k.urgent ? 'border-rose-200' : 'border-gray-100'}`}>
-                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${k.bg}`}>
-                                <k.Icon className={`w-4 h-4 ${k.color}`} />
-                            </div>
-                            <div>
-                                <p className="text-xl font-bold text-gray-900 leading-none">{k.value}</p>
-                                <p className="text-[11px] text-gray-500 mt-0.5">{k.label}</p>
-                            </div>
-                        </motion.div>
-                    ))}
-                </div>
 
                 {/* Alert banner */}
                 <AlertBanner patients={patients} />
 
                 {/* Search + filters */}
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
-                    className="bg-white border border-gray-100 rounded-2xl p-3 mb-5 flex flex-wrap items-center gap-2">
+                    className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-2xl p-3 mb-4 flex flex-wrap items-center gap-2">
                     <div className="relative flex-1 min-w-48">
                         <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                         <input
                             type="text" placeholder="Buscar por nombre, diagnóstico..." value={search}
                             onChange={e => setSearch(e.target.value)}
-                            className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-blue-500"
+                            className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#0075C9]/20 focus:border-[#0075C9] dark:focus:border-sky-500"
                         />
                     </div>
                     {[
@@ -477,14 +463,14 @@ const ModernPatientsList = () => {
                         { value: sortBy,       setter: setSortBy,       options: [['name','Orden: Nombre'],['risk','Orden: Riesgo'],['lastSession','Orden: Última sesión']] },
                     ].map(({ value, setter, options }, i) => (
                         <select key={i} value={value} onChange={e => setter(e.target.value)}
-                            className="text-xs font-medium border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-sky-500/20">
+                            className="text-xs font-medium border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#0075C9]/20">
                             {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                         </select>
                     ))}
-                    <div className="flex bg-gray-100 rounded-xl p-0.5 ml-auto">
+                    <div className="flex bg-gray-100 dark:bg-gray-700 rounded-xl p-0.5 ml-auto">
                         {[['grid', LayoutGrid], ['list', List]].map(([m, Icon]) => (
                             <button key={m} onClick={() => setViewMode(m)}
-                                className={`p-2 rounded-lg transition-colors ${viewMode === m ? 'bg-white shadow-sm text-gray-900' : 'text-gray-400'}`}>
+                                className={`p-2 rounded-lg transition-colors ${viewMode === m ? 'bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'}`}>
                                 <Icon className="w-4 h-4" />
                             </button>
                         ))}
@@ -492,25 +478,25 @@ const ModernPatientsList = () => {
                 </motion.div>
 
                 {/* Results count */}
-                <p className="text-xs text-gray-400 mb-3 px-1">
+                <p className="text-xs text-gray-400 dark:text-gray-500 mb-3 px-1">
                     {filtered.length} paciente{filtered.length !== 1 ? 's' : ''}
                     {(filterStatus !== 'all' || filterRisk !== 'all' || search) && (
                         <button onClick={() => { setSearch(''); setFilterStatus('all'); setFilterRisk('all') }}
-                            className="ml-2 text-sky-500 hover:text-blue-800 font-medium">
+                            className="ml-2 text-[#0075C9] hover:text-[#005fa0] font-medium">
                             Limpiar filtros
                         </button>
                     )}
                 </p>
 
                 {/* Loading */}
-                {loading && <div className="flex justify-center py-20"><div className="w-8 h-8 border-2 border-gray-900 border-t-transparent rounded-full animate-spin" /></div>}
+                {loading && <div className="flex justify-center py-20"><div className="w-8 h-8 border-2 border-[#0075C9] border-t-transparent rounded-full animate-spin" /></div>}
 
                 {/* Empty */}
                 {!loading && filtered.length === 0 && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
-                        <Users className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-                        <p className="font-semibold text-gray-700">Sin resultados</p>
-                        <p className="text-sm text-gray-400 mt-1">{search ? 'Prueba con otro término.' : 'No hay pacientes con estos filtros.'}</p>
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-12 text-center">
+                        <Users className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                        <p className="font-semibold text-gray-700 dark:text-gray-300">Sin resultados</p>
+                        <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{search ? 'Prueba con otro término.' : 'No hay pacientes con estos filtros.'}</p>
                         {patients.length > 0 && (filterStatus !== 'all' || filterRisk !== 'all') && (
                             <button onClick={() => { setSearch(''); setFilterStatus('all'); setFilterRisk('all') }}
                                 className="mt-3 text-sm text-blue-700 hover:underline">
@@ -525,7 +511,7 @@ const ModernPatientsList = () => {
 
                 {/* Grid */}
                 {!loading && viewMode === 'grid' && filtered.length > 0 && (
-                    <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">  
                         <AnimatePresence>
                             {filtered.map((p, i) => {
                                 console.log('[PatientsList] rendering card for:', p.nombre, p.apellido, 'id:', p.id, 'status:', p.status)
@@ -537,16 +523,16 @@ const ModernPatientsList = () => {
 
                 {/* Table */}
                 {!loading && viewMode === 'list' && filtered.length > 0 && (
-                    <div className="bg-white rounded-2xl border border-gray-100 overflow-x-auto">
-                        <table className="w-full min-w-[780px] text-left">
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-x-auto">
+                        <table className="w-full min-w-195 text-left">
                             <thead>
-                                <tr className="border-b border-gray-100">
+                                <tr className="border-b border-gray-100 dark:border-gray-700">
                                     {['Paciente','Estado','Sesiones','Tarea','Próxima',''].map(h => (
-                                        <th key={h} className="px-5 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{h}</th>
+                                        <th key={h} className="px-5 py-3 text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{h}</th>
                                     ))}
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-50">
+                            <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
                                 <AnimatePresence>
                                     {filtered.map(p => <PatientRow key={p.id} patient={p} onOpenDiary={openDiary} onDelete={handleDelete} />)}
                                 </AnimatePresence>

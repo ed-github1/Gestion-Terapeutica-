@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import { useAuth } from '../auth'
 import { diaryService } from '@shared/services/diaryService'
@@ -78,8 +79,11 @@ const DiaryEntry = ({ entry, index }) => (
 )
 
 const PatientPersonalDiary = ({ onClose }) => {
+  const navigate = useNavigate()
   const { user } = useAuth()
   const patientId = user?.patientId || user?.id || user?._id
+
+  const handleClose = onClose || (() => navigate(-1))
 
   const [entries, setEntries] = useState([])
   const [loading, setLoading] = useState(true)
@@ -140,7 +144,7 @@ const PatientPersonalDiary = ({ onClose }) => {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-      onClick={onClose}
+      onClick={handleClose}
     >
       <motion.div
         initial={{ scale: 0.96, opacity: 0, y: 12 }}
@@ -157,7 +161,7 @@ const PatientPersonalDiary = ({ onClose }) => {
             <p className="text-blue-100 text-xs mt-0.5">Registra cómo te sientes cada día</p>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="p-2 rounded-xl hover:bg-white/20 transition"
             aria-label="Cerrar"
           >

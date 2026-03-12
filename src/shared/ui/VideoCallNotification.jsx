@@ -1,4 +1,4 @@
-/**
+  /**
  * shared/ui/VideoCallNotification.jsx
  * Incoming video call banner + manager that polls for invitations.
  * Uses videoCallService for all HTTP calls, with socket fallback for

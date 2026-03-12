@@ -5,7 +5,8 @@ import { ProfessionalDashboard, AppointmentsCalendar, ProfessionalStats } from '
 import PatientsList from '@features/professional/components/PatientsList'
 import ProfessionalProfile from '@features/professional/components/ProfessionalProfile'
 import ProfessionalVideoCallWebRTC from '@features/professional/components/VideoCallWebRTC'
-import { PatientDashboard } from '@features/patient'
+import ProfessionalSettings from '@features/professional/components/ProfessionalSettings'
+import { PatientDashboard, PatientPersonalDiary } from '@features/patient'
 import PatientSessionsPage from '@features/patient/PatientSessionsPage'
 import PatientVideoCallWebRTC from '@features/patient/PatientVideoCallWebRTC'
 import PatientRegisterPage from '@features/patient/PatientRegisterPage'
@@ -17,6 +18,14 @@ import CheckoutPage from '@pages/CheckoutPage'
 import { Toast } from '@shared/ui'
 import { ROUTES, ROLES } from '@shared/constants/routes'
 import DashboardLayout from '@shared/layouts/DashboardLayout'
+import { usePageTitle } from '@shared/hooks'
+import { DarkModeProvider } from '@shared/DarkModeContext'
+
+function PageTitleManager() {
+  usePageTitle()
+  return null
+}
+
 // Redirect authenticated users from login
 
 
@@ -48,7 +57,9 @@ const LoginRoute = () => {
 function App() {
   return (
     <Router>
+      <DarkModeProvider>
       <AuthProvider>
+        <PageTitleManager />
         <Toast />
         <Routes>
           {/* Public Routes */}
@@ -111,6 +122,16 @@ function App() {
             }
           />
           <Route
+            path={ROUTES.PROFESSIONAL_SETTINGS}
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.HEALTH_PROFESSIONAL, ROLES.PROFESSIONAL]}>
+                <DashboardLayout userRole="professional">
+                  <ProfessionalSettings />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/professional/video/:appointmentId"
             element={
               <ProtectedRoute allowedRoles={[ROLES.HEALTH_PROFESSIONAL, ROLES.PROFESSIONAL]}>
@@ -139,6 +160,16 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/dashboard/patient/diary"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.PATIENT, ROLES.PACIENT]}>
+                <DashboardLayout userRole="patient">
+                  <PatientPersonalDiary />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
           <Route 
             path="/video/join/:appointmentId" 
             element={
@@ -158,6 +189,7 @@ function App() {
           <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
         </Routes>
       </AuthProvider>
+      </DarkModeProvider>
     </Router>
   )
 }

@@ -3,8 +3,10 @@ import { motion, AnimatePresence } from 'motion/react'
 import { X, Clock } from 'lucide-react'
 import { showToast } from '@components'
 import { appointmentsService } from '@shared/services/appointmentsService'
+import { useDarkModeContext } from '@shared/DarkModeContext'
 
 const AvailabilityManager = ({ onClose }) => {
+  const { dark } = useDarkModeContext()
   const [loading, setLoading] = useState(false)
   const [selectedDays, setSelectedDays] = useState([1, 2, 3, 4, 5,6,7]) // Monday to Friday
   const [timeSlots, setTimeSlots] = useState([])
@@ -27,11 +29,9 @@ const AvailabilityManager = ({ onClose }) => {
 
   const generateTimeSlots = () => {
     const slots = []
-    for (let hour = 7; hour <= 20; hour++) {
+    for (let hour = 0; hour <= 23; hour++) {
       slots.push(`${hour.toString().padStart(2, '0')}:00`)
-      if (hour < 20) {
-        slots.push(`${hour.toString().padStart(2, '0')}:30`)
-      }
+      slots.push(`${hour.toString().padStart(2, '0')}:30`)
     }
     setTimeSlots(slots)
   }
@@ -40,20 +40,20 @@ const AvailabilityManager = ({ onClose }) => {
     setLoading(true)
     try {
       // Try fetching from backend first
-      const res = await appointmentsService.getAvailability()
-      const raw = res.data?.data || res.data
-      if (raw && typeof raw === 'object' && Object.keys(raw).length > 0) {
-        const normalized = {}
-        Object.entries(raw).forEach(([k, v]) => { normalized[Number(k)] = v })
-        setAvailability(normalized)
-        // Sync to localStorage for quick local reads
-        localStorage.setItem('professionalAvailability', JSON.stringify(normalized))
-        return
+      try {
+        const res = await appointmentsService.getAvailability()
+        const raw = res.data?.data || res.data
+        if (raw && typeof raw === 'object' && Object.keys(raw).length > 0) {
+          const normalized = {}
+          Object.entries(raw).forEach(([k, v]) => { normalized[Number(k)] = v })
+          setAvailability(normalized)
+          // Sync to localStorage for quick local reads
+          localStorage.setItem('professionalAvailability', JSON.stringify(normalized))
+          return
+        }
+      } catch {
+        // Backend unavailable — fall through to localStorage
       }
-    } catch {
-      // Backend unavailable — fall through to localStorage
-    }
-    try {
       const local = localStorage.getItem('professionalAvailability')
       if (local) {
         const parsed = JSON.parse(local)
@@ -128,7 +128,7 @@ const AvailabilityManager = ({ onClose }) => {
       // Dispatch custom event to notify dashboard
       window.dispatchEvent(new Event('availabilityUpdated'))
       
-      showToast('✅ Disponibilidad actualizada exitosamente', 'success')
+      showToast('Disponibilidad actualizada exitosamente', 'success')
       onClose?.()
     } catch (error) {
       console.error('Error saving availability:', error)
@@ -138,7 +138,7 @@ const AvailabilityManager = ({ onClose }) => {
       // Dispatch custom event even on fallback
       window.dispatchEvent(new Event('availabilityUpdated'))
       
-      showToast('✅ Disponibilidad guardada localmente', 'success')
+      showToast('Disponibilidad guardada localmente', 'success')
       onClose?.()
     } finally {
       setLoading(false)
@@ -150,7 +150,7 @@ const AvailabilityManager = ({ onClose }) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 z-50 pb-20 sm:pb-4"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 z-50 pb-20 sm:pb-4"
       onClick={onClose}
     >
       <motion.div
@@ -159,24 +159,24 @@ const AvailabilityManager = ({ onClose }) => {
         exit={{ scale: 0.95, opacity: 0 }}
         transition={{ type: "spring", duration: 0.3, bounce: 0.2 }}
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-6xl max-h-[80vh] sm:max-h-[85vh] overflow-hidden flex flex-col"
+        className={`rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-6xl max-h-[80vh] sm:max-h-[85vh] overflow-hidden flex flex-col ${dark ? 'bg-gray-900' : 'bg-white'}`}
       >
         {/* Header */}
-        <div className="relative p-4 sm:p-6 pb-4 sm:pb-5 border-b border-gray-100">
+        <div className={`relative p-4 sm:p-6 pb-4 sm:pb-5 border-b ${dark ? 'border-gray-700' : 'border-gray-100'}`}>
           <button
             onClick={onClose}
-            className="absolute top-3 right-3 sm:top-4 sm:right-4 p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+            className={`absolute top-3 right-3 sm:top-4 sm:right-4 p-1.5 rounded-lg transition-colors ${dark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
           >
-            <X className="w-4 h-4 text-gray-500" />
+            <X className={`w-4 h-4 ${dark ? 'text-gray-400' : 'text-gray-500'}`} />
           </button>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg sm:rounded-xl flex items-center justify-center">
-              <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
-            </div>
-            <div>
-              <h2 className="text-base sm:text-lg font-bold text-gray-900">Gestionar Disponibilidad</h2>
-              <p className="text-xs text-gray-500 mt-0.5 hidden sm:block">Define tus horarios de atención</p>
+              <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center ${dark ? 'bg-blue-900' : 'bg-blue-100'}`}>
+                <Clock className={`w-5 h-5 sm:w-6 sm:h-6 ${dark ? 'text-blue-400' : 'text-blue-600'}`} />
+              </div>
+              <div>
+                <h2 className={`text-base sm:text-lg font-bold ${dark ? 'text-white' : 'text-gray-900'}`}>Gestionar Disponibilidad</h2>
+                <p className={`text-xs mt-0.5 hidden sm:block ${dark ? 'text-gray-400' : 'text-gray-500'}`}>Define tus horarios de atención</p>
             </div>
           </div>
         </div>
@@ -185,14 +185,14 @@ const AvailabilityManager = ({ onClose }) => {
           <div className="flex-1 flex items-center justify-center p-4 sm:p-8">
             <div className="text-center">
               <div className="inline-block animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-4 border-blue-500 border-t-transparent mb-4"></div>
-              <p className="text-sm sm:text-base text-gray-600">Cargando disponibilidad...</p>
+              <p className={`text-sm sm:text-base ${dark ? 'text-gray-300' : 'text-gray-600'}`}>Cargando disponibilidad...</p>
             </div>
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
             {/* Day Selection */}
             <div>
-              <h3 className="text-xs sm:text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Días de Atención</h3>
+              <h3 className={`text-xs sm:text-sm font-semibold uppercase tracking-wide mb-2 sm:mb-3 ${dark ? 'text-gray-400' : 'text-gray-500'}`}>Días de Atención</h3>
               <div className="flex gap-1.5 sm:gap-2 flex-wrap">
                 {daysOfWeek.map(day => (
                   <button
@@ -202,7 +202,7 @@ const AvailabilityManager = ({ onClose }) => {
                     className={`px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition ${
                       selectedDays.includes(day.value)
                         ? 'bg-blue-600 text-white shadow-sm'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        : dark ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
                     <span className="hidden sm:inline">{day.label}</span>
@@ -213,8 +213,8 @@ const AvailabilityManager = ({ onClose }) => {
             </div>
 
             {/* Quick Actions */}
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:items-center bg-blue-50 p-3 sm:p-4 rounded-lg sm:rounded-xl border border-blue-100">
-              <span className="text-xs sm:text-sm font-medium text-gray-700">Acciones rápidas:</span>
+            <div className={`flex flex-col sm:flex-row gap-2 sm:gap-3 sm:items-center p-3 sm:p-4 rounded-lg sm:rounded-xl border ${dark ? 'bg-blue-950 border-blue-900' : 'bg-blue-50 border-blue-100'}`}>
+              <span className={`text-xs sm:text-sm font-medium ${dark ? 'text-gray-300' : 'text-gray-700'}`}>Acciones rápidas:</span>
               <button
                 type="button"
                 onClick={applyToAllDays}
@@ -231,9 +231,9 @@ const AvailabilityManager = ({ onClose }) => {
                 if (!day) return null
                 const daySlots = availability[dayValue] || []
                 return (
-                  <div key={dayValue} className="border border-gray-200 rounded-lg sm:rounded-xl p-3 sm:p-5 bg-white shadow-sm">
+                  <div key={dayValue} className={`border rounded-lg sm:rounded-xl p-3 sm:p-5 shadow-sm ${dark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0 mb-3 sm:mb-4">
-                      <h4 className="text-sm sm:text-base font-semibold text-gray-900">{day.label}</h4>
+                      <h4 className={`text-sm sm:text-base font-semibold ${dark ? 'text-white' : 'text-gray-900'}`}>{day.label}</h4>
                       <div className="flex gap-2">
                         <button
                           type="button"
@@ -263,7 +263,7 @@ const AvailabilityManager = ({ onClose }) => {
                             className={`px-1.5 sm:px-2 py-1.5 sm:py-2 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-medium transition ${
                               isSelected
                                 ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                : dark ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                             }`}
                           >
                             {time}
@@ -272,7 +272,7 @@ const AvailabilityManager = ({ onClose }) => {
                       })}
                     </div>
                     
-                    <p className="text-xs text-gray-600 mt-2 sm:mt-3 font-medium">
+                    <p className={`text-xs mt-2 sm:mt-3 font-medium ${dark ? 'text-gray-400' : 'text-gray-600'}`}>
                       {daySlots.length} horario{daySlots.length !== 1 ? 's' : ''} disponible{daySlots.length !== 1 ? 's' : ''}
                     </p>
                   </div>
@@ -283,11 +283,11 @@ const AvailabilityManager = ({ onClose }) => {
         )}
 
         {/* Footer */}
-        <div className="border-t border-gray-100 px-3 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row gap-2 sm:gap-3 bg-gray-50">
+        <div className={`border-t px-3 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row gap-2 sm:gap-3 ${dark ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-gray-50'}`}>
           <button
             type="button"
             onClick={onClose}
-            className="w-full sm:w-auto order-2 sm:order-1 px-6 py-2.5 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition font-medium"
+            className={`w-full sm:w-auto order-2 sm:order-1 px-6 py-2.5 text-sm border rounded-lg transition font-medium ${dark ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-100'}`}
           >
             Cancelar
           </button>

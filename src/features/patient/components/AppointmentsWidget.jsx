@@ -5,11 +5,11 @@ import { appointmentsService } from '@shared/services/appointmentsService'
 import { normalizeAppointmentsResponse, toLocalDateObj } from '@shared/utils/appointments'
 
 const STATUS_CONFIG = {
-  confirmed:  { label: 'Confirmada',  bg: 'bg-emerald-50',  text: 'text-emerald-700', border: 'border-emerald-200', Icon: CheckCircle2 },
-  completed:  { label: 'Completada',  bg: 'bg-stone-50',    text: 'text-stone-500',   border: 'border-stone-200',   Icon: CheckCircle2 },
-  pending:    { label: 'Pendiente',   bg: 'bg-amber-50',    text: 'text-amber-700',   border: 'border-amber-200',   Icon: Clock       },
-  reserved:   { label: 'Reservada',  bg: 'bg-blue-50',     text: 'text-blue-700',    border: 'border-blue-200',    Icon: Clock       },
-  cancelled:  { label: 'Cancelada',   bg: 'bg-red-50',      text: 'text-red-600',     border: 'border-red-200',     Icon: XCircle     },
+  confirmed:  { label: 'Confirmada',  bg: 'bg-emerald-50 dark:bg-emerald-900/30',  text: 'text-emerald-700 dark:text-emerald-400', border: 'border-emerald-200 dark:border-emerald-700/50', Icon: CheckCircle2 },
+  completed:  { label: 'Completada',  bg: 'bg-stone-50 dark:bg-stone-800',          text: 'text-stone-500 dark:text-stone-400',     border: 'border-stone-200 dark:border-stone-600',       Icon: CheckCircle2 },
+  pending:    { label: 'Pendiente',   bg: 'bg-amber-50 dark:bg-amber-900/30',       text: 'text-amber-700 dark:text-amber-400',    border: 'border-amber-200 dark:border-amber-700/50',    Icon: Clock       },
+  reserved:   { label: 'Reservada',  bg: 'bg-blue-50 dark:bg-blue-900/30',         text: 'text-blue-700 dark:text-blue-400',      border: 'border-blue-200 dark:border-blue-700/50',      Icon: Clock       },
+  cancelled:  { label: 'Cancelada',   bg: 'bg-red-50 dark:bg-red-900/30',           text: 'text-red-600 dark:text-red-400',        border: 'border-red-200 dark:border-red-700/50',        Icon: XCircle     },
 }
 
 function statusCfg(status) {
@@ -75,15 +75,15 @@ const AppointmentsWidget = ({ onOpenAll, onRequestNew, refreshTrigger = 0 }) => 
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.10 }}
-      className="bg-white rounded-3xl border border-stone-100 shadow-sm overflow-hidden"
+      className="bg-white dark:bg-gray-800 rounded-3xl border border-stone-100 dark:border-gray-700 shadow-sm overflow-hidden"
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-stone-100">
+      <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-stone-100 dark:border-gray-700">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-sky-50 flex items-center justify-center shrink-0">
-            <CalendarDays className="w-4 h-4 text-sky-600" strokeWidth={1.8} />
+          <div className="w-8 h-8 rounded-xl bg-sky-50 dark:bg-sky-900/30 flex items-center justify-center shrink-0">
+            <CalendarDays className="w-4 h-4 text-sky-600 dark:text-sky-400" strokeWidth={1.8} />
           </div>
-          <p className="text-sm font-bold text-stone-900">Mis Citas</p>
+          <p className="text-sm font-bold text-stone-900 dark:text-white">Mis Citas</p>
         </div>
         {onOpenAll && (
           <button
@@ -101,13 +101,13 @@ const AppointmentsWidget = ({ onOpenAll, onRequestNew, refreshTrigger = 0 }) => 
         {loading ? (
           <div className="space-y-2">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-14 bg-stone-100 rounded-2xl animate-pulse" />
+              <div key={i} className="h-14 bg-stone-100 dark:bg-gray-700 rounded-2xl animate-pulse" />
             ))}
           </div>
         ) : appointments.length === 0 ? (
           <div className="flex flex-col items-center py-6 gap-2">
             <CalendarDays className="w-9 h-9 text-stone-200" strokeWidth={1.2} />
-            <p className="text-xs text-stone-400 text-center leading-snug">
+            <p className="text-xs text-stone-400 dark:text-gray-500 text-center leading-snug">
               Sin citas registradas.<br />¡Solicita tu primera sesión!
             </p>
           </div>
@@ -125,7 +125,7 @@ const AppointmentsWidget = ({ onOpenAll, onRequestNew, refreshTrigger = 0 }) => 
                     initial={{ opacity: 0, x: -6 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.05 }}
-                    className={`flex items-start gap-3 p-3 rounded-2xl ${isPast ? 'bg-stone-50/70' : 'bg-stone-50'}`}
+                    className={`flex items-start gap-3 p-3 rounded-2xl ${isPast ? 'bg-stone-50/70 dark:bg-gray-700/50' : 'bg-stone-50 dark:bg-gray-700/80'}`}
                   >
                     {/* Status badge */}
                     <span className={`shrink-0 mt-0.5 flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[10px] font-semibold ${cfg.bg} ${cfg.text} ${cfg.border}`}>
@@ -135,7 +135,7 @@ const AppointmentsWidget = ({ onOpenAll, onRequestNew, refreshTrigger = 0 }) => 
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <p className={`text-xs font-semibold truncate leading-snug ${isPast ? 'text-stone-400' : 'text-stone-800'}`}>
+                      <p className={`text-xs font-semibold truncate leading-snug ${isPast ? 'text-stone-400 dark:text-gray-500' : 'text-stone-800 dark:text-gray-100'}`}>
                         {appt.professionalName || appt.professional?.name || 'Profesional'}
                       </p>
                       <p className="flex items-center gap-1 text-[10px] text-stone-400 mt-0.5">

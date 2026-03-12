@@ -1,13 +1,53 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
+import { Calendar, Clock, CreditCard, Lock, X, CheckCircle2 } from 'lucide-react'
 import { showToast } from '@components'
+import { useAuth } from '@features/auth/AuthContext'
 import { appointmentsService } from '@shared/services/appointmentsService'
+import { patientsService } from '@shared/services/patientsService'
+import { socketNotificationService } from '@shared/services/socketNotificationService'
 
-const AppointmentRequest = ({ onClose, onSuccess, professionalId = null }) => {
+const AppointmentRequest = ({ onClose, onSuccess, professionalId = null, professionalUserId: professionalUserIdProp = null }) => {
+  const { user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState(1) // 1: select slot, 2: payment, 3: success
   const [appointmentData, setAppointmentData] = useState(null)
   const [availableSlots, setAvailableSlots] = useState([])
+  const [resolvedProUserId, setResolvedProUserId] = useState(professionalUserIdProp)
+
+  // Resolve the professional's user account ID for socket routing.
+  // The prop may be null when /patients/me and /patients/my-professional are unavailable.
+  useEffect(() => {
+    if (resolvedProUserId || !professionalId) return
+    const cached = localStorage.getItem('_linkedProUserId')
+    if (cached) { setResolvedProUserId(cached); return }
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await patientsService.getProfessionalInfo(professionalId)
+        const p   = res.data?.data || res.data
+        const raw = p?.userId || p?.user?._id || p?.user?.id || p?.user || null
+        const uid = raw && typeof raw === 'object' ? (raw._id || raw.id || null) : raw
+        if (!cancelled && uid) {
+          setResolvedProUserId(uid)
+          localStorage.setItem('_linkedProUserId', uid)
+        }
+      } catch { /* endpoint may not exist */ }
+    })()
+    return () => { cancelled = true }
+  }, [professionalId, resolvedProUserId])
+
+  // Derive the best socket target: resolved user ID → prop → profile ID fallback
+  const professionalUserId = resolvedProUserId || professionalUserIdProp
+
+  // Ensure the socket is connected so notifications can be sent to the professional
+  useEffect(() => {
+    const userId = user?._id || user?.id
+    if (!userId) return
+    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken')
+    socketNotificationService.connect(userId, token)
+  }, [user])
+
   const toLocalDateStr = (d = new Date()) =>
     `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
 
@@ -16,6 +56,7 @@ const AppointmentRequest = ({ onClose, onSuccess, professionalId = null }) => {
   
   const [formData, setFormData] = useState({
     type: 'consultation',
+    mode: 'consultorio',
     reason: '',
     notes: ''
   })
@@ -27,6 +68,7 @@ const AppointmentRequest = ({ onClose, onSuccess, professionalId = null }) => {
     cvv: '',
     amount: 500 // Default amount in pesos
   })
+  const [paymentOption, setPaymentOption] = useState('full') // 'full' or 'half'
 
   const appointmentTypes = [
     { value: 'consultation', label: 'Consulta General', price: 500, duration: 60 },
@@ -150,14 +192,25 @@ const AppointmentRequest = ({ onClose, onSuccess, professionalId = null }) => {
           date: selectedDate,
           time: selectedSlot.time,
           type: formData.type,
+          mode: formData.mode,
           reason: formData.reason,
           notes: formData.notes,
           duration: selectedType?.duration || 60,
           professionalId,
         })
-        setAppointmentData(response.data)
-        appointmentId = response.data.id || response.data._id
+        // Unwrap: API returns { success, data: appointment }
+        const apptData = response.data?.data || response.data
+        setAppointmentData(apptData)
+        appointmentId = apptData?._id || apptData?.id
       } catch (error) {
+        // 4xx errors from the backend are real business errors — don't mask them as demo mode.
+        // The axios interceptor in client.js strips error.response and puts status at error.status.
+        // e.g. 403 = subscription limit exceeded, 400 = no professional assigned.
+        const httpStatus = error?.status ?? error?.response?.status
+        if (httpStatus >= 400 && httpStatus < 500) {
+          const msg = error.data?.message || error.response?.data?.message || error.message
+          throw new Error(msg)
+        }
         console.warn('⚠️ Backend not available, using demo mode for reservation')
         // Demo mode: create mock appointment data
         appointmentId = 'patient_' + Date.now()
@@ -200,13 +253,13 @@ const AppointmentRequest = ({ onClose, onSuccess, professionalId = null }) => {
         appointments.push(calendarAppointment)
         localStorage.setItem('professionalAppointments', JSON.stringify(appointments))
       }
-      
+
       setPaymentData(prev => ({ ...prev, amount: selectedType?.price || 500 }))
       setStep(2) // Move to payment
-      showToast('✅ Horario reservado, procede con el pago', 'success')
+      showToast('Horario reservado, procede con el pago', 'success')
     } catch (error) {
       console.error('Error reserving slot:', error)
-      showToast(`❌ ${error.message}`, 'error')
+      showToast(`${error.message}`, 'error')
     } finally {
       setLoading(false)
     }
@@ -223,384 +276,498 @@ const AppointmentRequest = ({ onClose, onSuccess, professionalId = null }) => {
     setLoading(true)
     try {
       // Process payment (demo mode enabled)
-      try {
-        await paymentsAPI.processPayment({
-          appointmentId: appointmentData._id || appointmentData.id,
-          amount: paymentData.amount,
-          paymentMethod: 'card',
-          cardLast4: paymentData.cardNumber.slice(-4)
-        })
-        console.log('✅ Payment processed via backend')
-      } catch (error) {
-        console.warn('⚠️ Backend not available, using demo mode for payment')
-        // Demo mode: simulate successful payment
-        await new Promise(resolve => setTimeout(resolve, 1500)) // Simulate processing time
+      const aptId = appointmentData?._id || appointmentData?.id || null
+      const isDemoId = !aptId || String(aptId).startsWith('patient_')
+      if (isDemoId) {
+        // Mock appointment — skip backend, simulate payment delay
+        console.info('ℹ️ Demo appointment ID detected, using demo payment mode')
+        await new Promise(resolve => setTimeout(resolve, 1500))
+      } else {
+        try {
+          await appointmentsService.pay(aptId, {
+            amount: chargeAmount,
+            totalAmount: paymentData.amount,
+            currency: 'MXN',
+            paymentMethod: 'card',
+            cardLast4: paymentData.cardNumber.replace(/\s/g, '').slice(-4),
+            splitPayment: paymentOption === 'half',
+            remainingAmount: paymentOption === 'half' ? Math.floor(paymentData.amount / 2) : 0,
+          })
+          console.log('✅ Payment processed via backend')
+        } catch (error) {
+          console.warn('⚠️ Backend payment failed, using demo mode for payment:', error.message)
+          // Demo mode: simulate successful payment
+          await new Promise(resolve => setTimeout(resolve, 1500))
+        }
       }
 
       setStep(3) // Success
-      showToast('🎉 ¡Pago procesado exitosamente!', 'success')
+      showToast('Pago procesado exitosamente', 'success')
       setTimeout(() => {
         onSuccess?.()
         onClose()
       }, 3000)
     } catch (error) {
       console.error('Error processing payment:', error)
-      showToast(`❌ ${error.message}`, 'error')
+      showToast(`${error.message}`, 'error')
     } finally {
       setLoading(false)
     }
   }
+
+  const inputCls =
+    'w-full px-3 py-2.5 text-[13px] border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-transparent transition bg-white placeholder:text-gray-300'
+  const labelCls = 'block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5'
+
+  const selectedType = appointmentTypes.find(t => t.value === formData.type)
+  const chargeAmount = paymentOption === 'half'
+    ? Math.ceil(paymentData.amount / 2)
+    : paymentData.amount
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 z-50 pb-20 sm:pb-4"
+      className="fixed inset-0 bg-black/30 backdrop-blur-[2px] flex items-center justify-center z-50 p-4"
       onClick={onClose}
     >
       <motion.div
-        initial={{ scale: 0.95, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.95, opacity: 0 }}
-        onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] sm:max-h-[85vh] overflow-y-auto"
+        initial={{ scale: 0.96, opacity: 0, y: 12 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.96, opacity: 0, y: 12 }}
+        transition={{ type: 'spring', duration: 0.35, bounce: 0.1 }}
+        className="bg-white rounded-2xl border border-gray-200 shadow-xl w-full max-w-md flex flex-col overflow-hidden"
+        style={{ maxHeight: 'calc(100dvh - 2rem)' }}
+        onClick={e => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="sticky top-0 bg-linear-to-r from-blue-500 to-sky-400 text-white p-4 sm:p-6 rounded-t-xl sm:rounded-t-2xl">
-          <div className="flex items-center justify-between">
+        {/* ── Header ── */}
+        <div className="px-5 pt-5 pb-4 flex items-start justify-between border-b border-gray-100 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+              {step === 1 && <Calendar className="w-4 h-4 text-blue-600" />}
+              {step === 2 && <CreditCard className="w-4 h-4 text-blue-600" />}
+              {step === 3 && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
+            </div>
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold">Reservar Cita</h2>
-              <p className="text-blue-100 mt-1 text-xs sm:text-sm">
-                {step === 1 && 'Paso 1: Selecciona horario'}
-                {step === 2 && 'Paso 2: Confirmar pago'}
-                {step === 3 && '¡Reserva confirmada!'}
+              <p className="text-[11px] font-semibold text-blue-600 uppercase tracking-wider leading-none mb-0.5">
+                {step === 1 && 'Paso 1 de 2'}
+                {step === 2 && 'Paso 2 de 2'}
+                {step === 3 && 'Confirmada'}
               </p>
+              <h2 className="text-[15px] font-bold text-gray-900 leading-tight">
+                {step === 1 && 'Reservar cita'}
+                {step === 2 && 'Confirmar pago'}
+                {step === 3 && '¡Reserva exitosa!'}
+              </h2>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 ml-2 shrink-0">
+            {/* Step dots */}
+            <div className="flex gap-1">
+              {[1, 2].map(s => (
+                <div key={s} className={`h-1.5 rounded-full transition-all duration-300 ${step > s ? 'w-3 bg-blue-500' : step === s ? 'w-4 bg-blue-500' : 'w-1.5 bg-gray-200'}`} />
+              ))}
             </div>
             <button
+              type="button"
               onClick={onClose}
-              className="text-white hover:bg-white/20 p-1.5 sm:p-2 rounded-full transition"
+              className="p-1.5 hover:bg-gray-100 rounded-lg transition text-gray-400 hover:text-gray-600"
             >
-              <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <X className="w-4 h-4" />
             </button>
-          </div>
-
-          {/* Progress Bar */}
-          <div className="mt-3 sm:mt-4 flex gap-1.5 sm:gap-2">
-            <div className={`h-1.5 sm:h-2 flex-1 rounded-full transition ${step >= 1 ? 'bg-white' : 'bg-white/30'}`} />
-            <div className={`h-1.5 sm:h-2 flex-1 rounded-full transition ${step >= 2 ? 'bg-white' : 'bg-white/30'}`} />
-            <div className={`h-1.5 sm:h-2 flex-1 rounded-full transition ${step >= 3 ? 'bg-white' : 'bg-white/30'}`} />
           </div>
         </div>
 
-        <AnimatePresence mode="wait">
-          {/* Step 1: Select Time Slot */}
-          {step === 1 && (
-            <motion.div
-              key="step1"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              className="p-3 sm:p-6 space-y-4 sm:space-y-6"
-            >
-              {/* Appointment Type Selection */}
-              <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">
-                  Tipo de Cita
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-                  {appointmentTypes.map(type => (
-                    <button
-                      key={type.value}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, type: type.value })}
-                      className={`p-3 sm:p-4 border-2 rounded-lg text-left transition ${
-                        formData.type === type.value
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <p className="text-sm sm:text-base font-semibold text-gray-900">{type.label}</p>
-                      <p className="text-xs sm:text-sm text-gray-600">${type.price} MXN · {type.duration} min</p>
-                    </button>
-                  ))}
-                </div>
-              </div>
+        {/* ── Scrollable body ── */}
+        <div className="overflow-y-auto flex-1">
+          <AnimatePresence mode="wait">
 
-              {/* Date Selection */}
-              <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-                  Selecciona una Fecha
-                </label>
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
-                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-
-              {/* Available Time Slots */}
-              <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">
-                  Horarios Disponibles
-                </label>
-                {loading ? (
-                  <div className="text-center py-6 sm:py-8">
-                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
-                    <p className="text-xs sm:text-sm text-gray-600 mt-2">Cargando horarios...</p>
-                  </div>
-                ) : availableSlots.length === 0 ? (
-                  <div className="text-center py-6 sm:py-8 bg-gray-50 rounded-lg">
-                    <svg className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <p className="text-xs sm:text-sm text-gray-600">No hay horarios disponibles para esta fecha.</p>
-                    <p className="text-xs text-gray-500 mt-1">El profesional no ha configurado disponibilidad para este día. Intenta con otra fecha.</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 sm:gap-2 max-h-48 sm:max-h-64 overflow-y-auto">
-                    {availableSlots.map((slot, index) => (
+            {/* ─── Step 1: Select slot ─── */}
+            {step === 1 && (
+              <motion.div
+                key="step1"
+                initial={{ opacity: 0, x: -16 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 16 }}
+                transition={{ duration: 0.2 }}
+                className="px-5 pt-4 pb-5 space-y-4"
+              >
+                {/* Type pills */}
+                <div>
+                  <label className={labelCls}>Tipo de cita</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {appointmentTypes.map(type => (
                       <button
-                        key={index}
+                        key={type.value}
                         type="button"
-                        disabled={!slot.available}
-                        onClick={() => setSelectedSlot(slot)}
-                        className={`p-2 sm:p-3 rounded-lg text-xs sm:text-sm font-medium transition ${
-                          selectedSlot?.time === slot.time
-                            ? 'bg-blue-500 text-white'
-                            : slot.available
-                            ? 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-200'
-                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        onClick={() => setFormData(p => ({ ...p, type: type.value }))}
+                        className={`px-3 py-2.5 rounded-xl text-left border transition text-[13px] ${
+                          formData.type === type.value
+                            ? 'border-blue-500 bg-blue-50 text-blue-700'
+                            : 'border-gray-200 text-gray-700 hover:border-gray-300 bg-white'
                         }`}
                       >
-                        {slot.time}
+                        <p className="font-semibold leading-tight">{type.label}</p>
+                        <p className="text-[11px] opacity-60 mt-0.5">${type.price} · {type.duration} min</p>
                       </button>
                     ))}
                   </div>
-                )}
-              </div>
-
-              {/* Reason for Visit */}
-              {selectedSlot && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  className="space-y-3 sm:space-y-4"
-                >
-                  <div>
-                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-                      Motivo de la Consulta *
-                    </label>
-                    <textarea
-                      value={formData.reason}
-                      onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                      rows={3}
-                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Describe brevemente el motivo de tu consulta..."
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-                      Notas Adicionales (opcional)
-                    </label>
-                    <textarea
-                      value={formData.notes}
-                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                      rows={2}
-                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Información adicional..."
-                    />
-                  </div>
-                </motion.div>
-              )}
-
-              {/* Selected Slot Info */}
-              {selectedSlot && (
-                <div className="bg-blue-50 rounded-lg p-3 sm:p-4">
-                  <p className="text-xs sm:text-sm font-semibold text-gray-900 mb-2">📅 Resumen de Reserva:</p>
-                  <div className="space-y-0.5 sm:space-y-1 text-xs sm:text-sm text-gray-700">
-                    <p className="leading-relaxed"><span className="font-medium">Fecha:</span> {new Date(selectedDate).toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                    <p><span className="font-medium">Hora:</span> {selectedSlot.time}</p>
-                    <p><span className="font-medium">Tipo:</span> {appointmentTypes.find(t => t.value === formData.type)?.label}</p>
-                    <p className="text-base sm:text-lg font-bold text-blue-600 mt-2">Total: ${appointmentTypes.find(t => t.value === formData.type)?.price} MXN</p>
-                  </div>
                 </div>
-              )}
 
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="w-full sm:flex-1 order-2 sm:order-1 px-6 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  onClick={handleReserveSlot}
-                  disabled={loading || !selectedSlot || !formData.reason}
-                  className="w-full sm:flex-1 order-1 sm:order-2 px-6 py-2.5 sm:py-3 text-sm sm:text-base bg-linear-to-r from-blue-500 to-sky-400 text-white rounded-lg hover:from-blue-600 hover:to-sky-500 transition font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading ? 'Reservando...' : 'Continuar al Pago'}
-                </button>
-              </div>
-            </motion.div>
-          )}
-
-          {/* Step 2: Payment */}
-          {step === 2 && (
-            <motion.form
-              key="step2"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              onSubmit={handlePayment}
-              className="p-3 sm:p-6 space-y-4 sm:space-y-6"
-            >
-              <div className="bg-linear-to-r from-green-50 to-blue-50 rounded-lg p-3 sm:p-4">
-                <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-2">Resumen de Reserva</h3>
-                <div className="space-y-0.5 sm:space-y-1 text-xs sm:text-sm text-gray-700">
-                  <p className="leading-relaxed"><span className="font-medium">Fecha:</span> {new Date(selectedDate).toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                  <p><span className="font-medium">Hora:</span> {selectedSlot?.time}</p>
-                  <p><span className="font-medium">Tipo:</span> {appointmentTypes.find(t => t.value === formData.type)?.label}</p>
-                  <p><span className="font-medium">Duración:</span> {appointmentTypes.find(t => t.value === formData.type)?.duration} minutos</p>
-                  <p className="text-base sm:text-lg font-bold text-green-600 mt-2">Total a Pagar: ${paymentData.amount} MXN</p>
-                </div>
-              </div>
-
-              <div className="space-y-3 sm:space-y-4">
+                {/* Mode selector */}
                 <div>
-                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-                    Número de Tarjeta *
-                  </label>
+                  <label className={labelCls}>Modalidad</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setFormData(p => ({ ...p, mode: 'consultorio' }))}
+                      className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-[13px] font-semibold transition ${
+                        formData.mode === 'consultorio'
+                          ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-300 bg-white'
+                      }`}
+                    >
+                      <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                      Consultorio
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData(p => ({ ...p, mode: 'videollamada' }))}
+                      className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-[13px] font-semibold transition ${
+                        formData.mode === 'videollamada'
+                          ? 'border-blue-500 bg-blue-50 text-blue-700'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-300 bg-white'
+                      }`}
+                    >
+                      <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      Videollamada
+                    </button>
+                  </div>
+                </div>
+
+                {/* Date */}
+                <div>
+                  <label className={labelCls}>Fecha</label>
                   <input
-                    required
+                    type="date"
+                    value={selectedDate}
+                    onChange={e => setSelectedDate(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    className={inputCls}
+                  />
+                </div>
+
+                {/* Time slots */}
+                <div>
+                  <label className={labelCls}>Horario disponible</label>
+                  {loading ? (
+                    <div className="flex items-center justify-center gap-2 py-6 text-[13px] text-gray-400">
+                      <span className="inline-block w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
+                      Cargando horarios...
+                    </div>
+                  ) : availableSlots.length === 0 ? (
+                    <div className="bg-gray-50 rounded-xl border border-gray-100 px-4 py-5 text-center">
+                      <Clock className="w-6 h-6 text-gray-300 mx-auto mb-1.5" />
+                      <p className="text-[13px] text-gray-500 font-medium">Sin disponibilidad</p>
+                      <p className="text-[11px] text-gray-400 mt-0.5">El profesional no tiene horarios para este día.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-4 gap-1.5 max-h-36 overflow-y-auto pr-0.5">
+                      {availableSlots.map((slot, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          disabled={!slot.available}
+                          onClick={() => setSelectedSlot(slot)}
+                          className={`py-2 rounded-xl text-[12px] font-semibold transition border ${
+                            selectedSlot?.time === slot.time
+                              ? 'bg-blue-500 text-white border-blue-500'
+                              : slot.available
+                              ? 'bg-white border-gray-200 text-gray-700 hover:border-blue-300 hover:text-blue-600'
+                              : 'bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed'
+                          }`}
+                        >
+                          {slot.time}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Reason — appears after slot selection */}
+                <AnimatePresence>
+                {selectedSlot && (
+                  <motion.div
+                    key="reason"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="space-y-3 overflow-hidden"
+                  >
+                    <div>
+                      <label className={labelCls}>Motivo de la consulta *</label>
+                      <textarea
+                        value={formData.reason}
+                        onChange={e => setFormData(p => ({ ...p, reason: e.target.value }))}
+                        rows={2}
+                        className={`${inputCls} resize-none`}
+                        placeholder="Describe brevemente el motivo..."
+                      />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Notas adicionales <span className="normal-case font-normal">(opcional)</span></label>
+                      <textarea
+                        value={formData.notes}
+                        onChange={e => setFormData(p => ({ ...p, notes: e.target.value }))}
+                        rows={1}
+                        className={`${inputCls} resize-none`}
+                        placeholder="Información adicional..."
+                      />
+                    </div>
+
+                    {/* Summary pill */}
+                    <div className="flex items-center justify-between bg-blue-50 rounded-xl px-3 py-2.5 border border-blue-100">
+                      <div>
+                        <p className="text-[12px] font-semibold text-gray-800">
+                          {new Date(`${selectedDate}T00:00:00`).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
+                          {' · '}{selectedSlot.time}
+                        </p>
+                        <p className="text-[11px] text-gray-500">{selectedType?.label} · {selectedType?.duration} min</p>
+                      </div>
+                      <p className="text-[15px] font-bold text-blue-600">${selectedType?.price}</p>
+                    </div>
+                  </motion.div>
+                )}
+                </AnimatePresence>
+
+                {/* Actions */}
+                <div className="flex gap-2.5 pt-1">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="flex-1 px-4 py-2.5 text-[13px] font-semibold text-gray-600 bg-white hover:bg-gray-50 rounded-xl transition border border-gray-200"
+                  >
+                    Cancelar
+                  </button>
+                  <motion.button
+                    whileHover={{ scale: 1.015 }}
+                    whileTap={{ scale: 0.985 }}
+                    type="button"
+                    onClick={handleReserveSlot}
+                    disabled={loading || !selectedSlot || !formData.reason}
+                    className="flex-2 px-4 py-2.5 text-[13px] font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition shadow-sm disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {loading ? (
+                      <>
+                        <span className="inline-block w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Reservando...
+                      </>
+                    ) : 'Continuar al pago'}
+                  </motion.button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ─── Step 2: Payment ─── */}
+            {step === 2 && (
+              <motion.form
+                key="step2"
+                initial={{ opacity: 0, x: 16 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -16 }}
+                transition={{ duration: 0.2 }}
+                onSubmit={handlePayment}
+                className="px-5 pt-4 pb-5 space-y-3"
+              >
+                {/* Session summary */}
+                <div className="bg-gray-50 rounded-xl border border-gray-100 divide-y divide-gray-100 overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-2.5">
+                    <p className="text-[13px] font-semibold text-gray-800">{selectedType?.label}</p>
+                    <span className="text-[15px] font-bold text-blue-600">${paymentData.amount}</span>
+                  </div>
+                  <div className="px-4 py-2 text-[11px] text-gray-400">
+                    {new Date(`${selectedDate}T00:00:00`).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
+                    {' · '}{selectedSlot?.time}{' · '}{selectedType?.duration} min
+                  </div>
+                </div>
+
+                {/* Payment option toggle */}
+                <div>
+                  <label className={labelCls}>¿Cómo deseas pagar?</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentOption('full')}
+                      className={`px-3 py-2.5 rounded-xl text-left border transition text-[13px] ${
+                        paymentOption === 'full'
+                          ? 'border-blue-500 bg-blue-50 text-blue-700'
+                          : 'border-gray-200 text-gray-700 hover:border-gray-300 bg-white'
+                      }`}
+                    >
+                      <p className="font-semibold leading-tight">Pago completo</p>
+                      <p className="text-[11px] opacity-60 mt-0.5">${paymentData.amount} ahora</p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentOption('half')}
+                      className={`px-3 py-2.5 rounded-xl text-left border transition text-[13px] ${
+                        paymentOption === 'half'
+                          ? 'border-blue-500 bg-blue-50 text-blue-700'
+                          : 'border-gray-200 text-gray-700 hover:border-gray-300 bg-white'
+                      }`}
+                    >
+                      <p className="font-semibold leading-tight">Mitad ahora</p>
+                      <p className="text-[11px] opacity-60 mt-0.5">${Math.ceil(paymentData.amount / 2)} + ${Math.floor(paymentData.amount / 2)} en sesión</p>
+                    </button>
+                  </div>
+                  {paymentOption === 'half' && (
+                    <p className="text-[11px] text-amber-600 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 mt-2">
+                      Pagarás <strong>${Math.ceil(paymentData.amount / 2)}</strong> ahora para reservar. El saldo restante de <strong>${Math.floor(paymentData.amount / 2)}</strong> se abonará al iniciar la sesión.
+                    </p>
+                  )}
+                </div>
+
+                {/* Card name */}
+                <div>
+                  <label className={labelCls}>Nombre en la tarjeta</label>
+                  <input
                     type="text"
+                    required
+                    value={paymentData.cardName}
+                    onChange={e => setPaymentData(p => ({ ...p, cardName: e.target.value }))}
+                    className={inputCls}
+                    placeholder="Juan Pérez"
+                  />
+                </div>
+
+                {/* Card number */}
+                <div>
+                  <label className={labelCls}>Número de tarjeta</label>
+                  <input
+                    type="text"
+                    required
                     value={paymentData.cardNumber}
-                    onChange={(e) => setPaymentData({ ...paymentData, cardNumber: e.target.value.replace(/\D/g, '').slice(0, 16) })}
-                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    onChange={e => setPaymentData(p => ({ ...p, cardNumber: e.target.value.replace(/\D/g, '').slice(0, 16) }))}
+                    className={`${inputCls} font-mono`}
                     placeholder="1234 5678 9012 3456"
                     maxLength={16}
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-                    Nombre en la Tarjeta *
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    value={paymentData.cardName}
-                    onChange={(e) => setPaymentData({ ...paymentData, cardName: e.target.value })}
-                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="JUAN PEREZ"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                {/* Expiry + CVV */}
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-                      Fecha de Expiración *
-                    </label>
+                    <label className={labelCls}>Vencimiento</label>
                     <input
-                      required
                       type="text"
+                      required
                       value={paymentData.expiryDate}
-                      onChange={(e) => {
-                        let value = e.target.value.replace(/\D/g, '')
-                        if (value.length >= 2) {
-                          value = value.slice(0, 2) + '/' + value.slice(2, 4)
-                        }
-                        setPaymentData({ ...paymentData, expiryDate: value })
+                      onChange={e => {
+                        let v = e.target.value.replace(/\D/g, '')
+                        if (v.length >= 2) v = v.slice(0, 2) + '/' + v.slice(2, 4)
+                        setPaymentData(p => ({ ...p, expiryDate: v }))
                       }}
-                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className={`${inputCls} font-mono`}
                       placeholder="MM/YY"
                       maxLength={5}
                     />
                   </div>
-
                   <div>
-                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-                      CVV *
-                    </label>
+                    <label className={labelCls}>CVV</label>
                     <input
+                      type="password"
                       required
-                      type="text"
                       value={paymentData.cvv}
-                      onChange={(e) => setPaymentData({ ...paymentData, cvv: e.target.value.replace(/\D/g, '').slice(0, 4) })}
-                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="123"
+                      onChange={e => setPaymentData(p => ({ ...p, cvv: e.target.value.replace(/\D/g, '').slice(0, 4) }))}
+                      className={`${inputCls} font-mono`}
+                      placeholder="•••"
                       maxLength={4}
                     />
                   </div>
                 </div>
-              </div>
 
-              <div className="bg-yellow-50 rounded-lg p-3 sm:p-4">
-                <p className="text-xs sm:text-sm text-gray-700">
-                  🔒 <span className="font-semibold">Seguro:</span> Tu información de pago está protegida con encriptación SSL.
-                </p>
-              </div>
+                {/* Security note */}
+                <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2.5 border border-gray-100">
+                  <Lock className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                  <p className="text-[11px] text-gray-400">Pago seguro con cifrado SSL 256 bits.</p>
+                </div>
 
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  className="w-full sm:flex-1 order-2 sm:order-1 px-6 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium"
-                >
-                  Regresar
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full sm:flex-1 order-1 sm:order-2 px-6 py-2.5 sm:py-3 text-sm sm:text-base bg-linear-to-r from-green-500 to-blue-500 text-white rounded-lg hover:from-green-600 hover:to-blue-600 transition font-semibold shadow-lg disabled:opacity-50"
-                >
-                  {loading ? 'Procesando...' : `Pagar $${paymentData.amount}`}
-                </button>
-              </div>
-            </motion.form>
-          )}
+                {/* Actions */}
+                <div className="flex gap-2.5 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setStep(1)}
+                    className="flex-1 px-4 py-2.5 text-[13px] font-semibold text-gray-600 bg-white hover:bg-gray-50 rounded-xl transition border border-gray-200"
+                  >
+                    Atrás
+                  </button>
+                  <motion.button
+                    whileHover={{ scale: 1.015 }}
+                    whileTap={{ scale: 0.985 }}
+                    type="submit"
+                    disabled={loading}
+                    className="flex-2 px-4 py-2.5 text-[13px] font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition shadow-sm disabled:opacity-40 flex items-center justify-center gap-2"
+                  >
+                    {loading ? (
+                      <>
+                        <span className="inline-block w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Procesando...
+                      </>
+                    ) : `Pagar $${chargeAmount}`}
+                  </motion.button>
+                </div>
+              </motion.form>
+            )}
 
-          {/* Step 3: Success */}
-          {step === 3 && (
-            <motion.div
-              key="step3"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="p-4 sm:p-8 text-center"
-            >
-              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-green-100 rounded-full mx-auto mb-4 sm:mb-6 flex items-center justify-center">
-                <svg className="w-8 h-8 sm:w-10 sm:h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">¡Reserva Confirmada!</h3>
-              <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
-                Tu cita ha sido reservada y confirmada con pago exitoso. Te esperamos en la fecha y hora programada.
-              </p>
-              <div className="bg-blue-50 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
-                <p className="text-xs sm:text-sm text-gray-700">
-                  📧 Hemos enviado la confirmación y comprobante de pago a tu correo electrónico.
-                </p>
-                <p className="text-xs sm:text-sm text-gray-700 mt-2">
-                  📅 {new Date(selectedDate).toLocaleDateString('es-MX')} a las {selectedSlot?.time}
-                </p>
-              </div>
-              <button
-                onClick={onClose}
-                className="w-full sm:w-auto px-8 py-2.5 sm:py-3 text-sm sm:text-base bg-linear-to-r from-blue-500 to-sky-400 text-white rounded-lg hover:from-blue-600 hover:to-sky-500 transition font-semibold"
+            {/* ─── Step 3: Success ─── */}
+            {step === 3 && (
+              <motion.div
+                key="step3"
+                initial={{ opacity: 0, scale: 0.97 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="px-5 pt-6 pb-6 flex flex-col items-center text-center"
               >
-                Volver al Dashboard
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mb-4">
+                  <CheckCircle2 className="w-7 h-7 text-emerald-500" />
+                </div>
+                <h3 className="text-[16px] font-bold text-gray-900 mb-1">¡Reserva confirmada!</h3>
+                <p className="text-[13px] text-gray-500 mb-4 leading-relaxed">
+                  {paymentOption === 'half'
+                    ? `Pago parcial procesado. El saldo restante se abonará al iniciar la sesión.`
+                    : 'Tu pago fue procesado y la cita queda confirmada.'}
+                </p>
+                <div className="w-full bg-gray-50 rounded-xl border border-gray-100 divide-y divide-gray-100 mb-5 text-left overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-2.5">
+                    <p className="text-[13px] font-semibold text-gray-800">{selectedType?.label}</p>
+                    <span className="text-[13px] font-bold text-emerald-600">${chargeAmount} pagado</span>
+                  </div>
+                  {paymentOption === 'half' && (
+                    <div className="flex items-center justify-between px-4 py-2.5 bg-amber-50">
+                      <p className="text-[12px] text-amber-700 font-medium">Saldo pendiente en sesión</p>
+                      <span className="text-[13px] font-bold text-amber-600">${Math.floor(paymentData.amount / 2)}</span>
+                    </div>
+                  )}
+                  <div className="px-4 py-2 text-[11px] text-gray-400">
+                    {new Date(`${selectedDate}T00:00:00`).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'long' })}
+                    {' · '}{selectedSlot?.time}
+                  </div>
+                </div>
+                <button
+                  onClick={onClose}
+                  className="w-full px-4 py-2.5 text-[13px] font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition shadow-sm"
+                >
+                  Volver al dashboard
+                </button>
+              </motion.div>
+            )}
+
+          </AnimatePresence>
+        </div>
       </motion.div>
     </motion.div>
   )

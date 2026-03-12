@@ -162,10 +162,8 @@ export const VideoCallNotificationManager = () => {
     const checkInvitations = async () => {
       try {
         const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/video/active-invitations`
-        console.log('🔍 Checking for video call invitations...', apiUrl)
         
         const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken')
-        console.log('🔑 Auth token exists:', !!token)
         
         const response = await fetch(apiUrl, {
           headers: {
@@ -173,27 +171,18 @@ export const VideoCallNotificationManager = () => {
           }
         })
 
-        console.log('📡 Response status:', response.status)
-
         if (response.ok) {
           const data = await response.json()
-          console.log('📥 Received data:', data)
           
           if (data.invitations && data.invitations.length > 0) {
-            console.log('🔔 Found invitations:', data.invitations.length)
             setInvitations(data.invitations)
             if (!currentInvitation) {
-              console.log('✨ Setting current invitation:', data.invitations[0])
               setCurrentInvitation(data.invitations[0])
             }
-          } else {
-            console.log('📭 No active invitations')
           }
-        } else {
-          console.warn('⚠️ Response not OK:', await response.text())
         }
       } catch (error) {
-        console.error('❌ Error checking invitations:', error)
+        // silent — polling is best-effort
       }
     }
 

@@ -257,6 +257,19 @@ class WebRTCManager {
         body: JSON.stringify({ appointmentId })
       });
 
+      if (!response.ok) {
+        const text = await response.text();
+        let errorMsg = `Error del servidor (${response.status})`;
+        try {
+          const parsed = JSON.parse(text);
+          errorMsg = parsed.error || parsed.message || errorMsg;
+          if (parsed.details) {
+            console.error('Server error details:', parsed.details);
+          }
+        } catch { /* not JSON */ }
+        throw new Error(errorMsg);
+      }
+
       const data = await response.json();
 
       if (!data.success) {

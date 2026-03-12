@@ -29,4 +29,8 @@ export const patientsService = {
 
   remove: (id) =>
     apiClient.delete(`/patients/${id}`),
+
+  /** GET /api/professionals/:id — public info about a professional (returns userId for socket routing) */
+  getProfessionalInfo: (profileId) =>
+    apiClient.get(`/professionals/${profileId}`),
 }

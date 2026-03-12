@@ -84,6 +84,12 @@ class WebRTCManager {
       // Connect to the /webrtc namespace
       const socketUrl = `${this.socketUrl}/webrtc`;
       
+      // Timeout: resolve anyway after 8s so the UI doesn't hang forever
+      const timeout = setTimeout(() => {
+        console.warn('Socket registration timed out — proceeding without signaling');
+        resolve();
+      }, 8000);
+
       this.socket = io(socketUrl, {
         transports: ['websocket', 'polling'],
         reconnection: true,
@@ -108,12 +114,14 @@ class WebRTCManager {
 
       this.socket.on('registered', (data) => {
         console.log('User registered:', data);
+        clearTimeout(timeout);
         resolve();
       });
 
       this.socket.on('connect_error', (error) => {
         console.error('Socket connection error:', error);
-        reject(error);
+        // Don't reject — let the timeout resolve so the user can still
+        // attempt the REST-based room join. Socket will keep reconnecting.
       });
 
       // Setup event listeners
@@ -243,11 +251,10 @@ class WebRTCManager {
   }
 
   /**
-   * Join a video call room
+   * Join a video call room via /rtc/rooms/join.
    */
   async joinRoom(appointmentId) {
     try {
-      // 1. Join via REST API (authorization check)
       const response = await fetch(`${this.apiUrl}/rtc/rooms/join`, {
         method: 'POST',
         headers: {
@@ -257,24 +264,38 @@ class WebRTCManager {
         body: JSON.stringify({ appointmentId })
       });
 
-      const data = await response.json();
+      if (!response.ok) {
+        const text = await response.text();
+        let errorMsg = `Error del servidor (${response.status})`;
+        try {
+          const parsed = JSON.parse(text);
+          errorMsg = parsed.error || parsed.message || errorMsg;
+          if (parsed.details) {
+            console.error('Server error details:', parsed.details);
+          }
+        } catch { /* not JSON */ }
+        throw new Error(errorMsg);
+      }
 
+      const data = await response.json();
       if (!data.success) {
-        throw new Error(data.error || 'Failed to join room');
+        throw new Error(data.error || 'No se pudo unir a la sala');
       }
 
       this.currentRoomId = data.room.roomId;
 
-      // 2. Get local media
+      // Get local media
       await this.getLocalStream();
 
-      // 3. Join room via Socket.IO
-      this.socket.emit('join-room', {
-        roomId: this.currentRoomId,
-        userId: this.userId,
-        userName: this.userName,
-        role: this.userRole
-      });
+      // Join room via Socket.IO
+      if (this.socket?.connected) {
+        this.socket.emit('join-room', {
+          roomId: this.currentRoomId,
+          userId: this.userId,
+          userName: this.userName,
+          role: this.userRole
+        });
+      }
 
       console.log('Joined room:', this.currentRoomId);
       return data.room;

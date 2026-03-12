@@ -33,8 +33,7 @@ const DashboardSidebar = ({ userRole = 'professional', onClose }) => {
         effectiveIsCollapsed,
         prefersReducedMotion,
         isActive,
-        handleMouseEnter,
-        handleMouseLeave,
+        toggleCollapse,
     } = useSidebar()
 
     // Get menu items based on user role
@@ -77,13 +76,13 @@ const DashboardSidebar = ({ userRole = 'professional', onClose }) => {
             className="h-full glass-sidebar flex flex-col relative overflow-hidden"
             role="navigation"
             aria-label="Navegación principal"
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
         >
             {/* Header */}
             <SidebarHeader
                 isCollapsed={effectiveIsCollapsed}
                 userRole={userRole}
+                onToggle={toggleCollapse}
+                prefersReducedMotion={prefersReducedMotion}
             />
 
             {/* Navigation */}

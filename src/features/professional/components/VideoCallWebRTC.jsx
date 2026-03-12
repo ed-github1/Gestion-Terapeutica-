@@ -142,24 +142,33 @@ const ProfessionalVideoCallWebRTC = () => {
   // Check for error first
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-sky-50 to-sky-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full text-center"
+          className="bg-gray-800 border border-gray-700 rounded-xl shadow-2xl p-8 max-w-md w-full text-center"
         >
-          <div className="text-red-500 text-5xl mb-4">⚠️</div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Error en la Videollamada</h2>
-          <p className="text-gray-600 mb-2">{error.message}</p>
-          <p className="text-sm text-gray-500 mb-6">
-            Asegúrese de que el servidor backend esté ejecutándose en el puerto 3000.
-          </p>
-          <button
-            onClick={() => navigate('/dashboard/professional')}
-            className="bg-sky-500 text-white px-6 py-3 rounded-lg hover:bg-sky-600 transition-colors"
-          >
-            Volver al Dashboard
-          </button>
+          <div className="mx-auto mb-4 w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
+            <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-white mb-3">Error en la Videollamada</h2>
+          <p className="text-gray-400 mb-6 text-sm">{error.message}</p>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-sky-600 text-white px-6 py-2.5 rounded-lg hover:bg-sky-700 transition-colors text-sm font-medium"
+            >
+              Reintentar
+            </button>
+            <button
+              onClick={() => navigate('/dashboard/professional')}
+              className="bg-gray-700 text-gray-300 px-6 py-2.5 rounded-lg hover:bg-gray-600 transition-colors text-sm font-medium"
+            >
+              Volver
+            </button>
+          </div>
         </motion.div>
       </div>
     );
@@ -167,10 +176,10 @@ const ProfessionalVideoCallWebRTC = () => {
 
   if (!isInitialized) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-sky-50 to-sky-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-sky-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Inicializando sala de videollamada...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-500 mx-auto mb-4"></div>
+          <p className="text-gray-400 text-sm">Inicializando sala de videollamada...</p>
         </div>
       </div>
     );
@@ -178,10 +187,10 @@ const ProfessionalVideoCallWebRTC = () => {
 
   if (isConnecting) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-sky-50 to-sky-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-sky-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Preparando sesión...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-500 mx-auto mb-4"></div>
+          <p className="text-gray-400 text-sm">Preparando sesion...</p>
         </div>
       </div>
     );
@@ -250,8 +259,10 @@ const ProfessionalVideoCallWebRTC = () => {
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center">
-              <div className="w-16 h-16 bg-sky-500/50 rounded-full flex items-center justify-center mx-auto mb-3">
-                <span className="text-2xl">👤</span>
+              <div className="w-16 h-16 bg-sky-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                <svg className="w-8 h-8 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
               </div>
               <p className="text-white text-sm">Esperando al paciente...</p>
               <p className="text-gray-500 text-xs mt-1">La sesión comenzará cuando se conecte</p>
@@ -285,7 +296,9 @@ const ProfessionalVideoCallWebRTC = () => {
             </>
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gray-800">
-              <span className="text-lg">👤</span>
+              <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
             </div>
           )}
         </div>

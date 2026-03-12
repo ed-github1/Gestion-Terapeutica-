@@ -23,7 +23,8 @@ class SocketNotificationService {
   }
 
   connect(userId, token) {
-    if (this.socket?.connected && this.userId === userId) return
+    // If the same user already has a socket (connected or still connecting), reuse it
+    if (this.socket && this.userId === userId) return
     this.userId = userId
     this.token = token
 
@@ -44,7 +45,6 @@ class SocketNotificationService {
       // Flush any emissions that arrived while we were still connecting
       const pending = this._pendingEmits.splice(0)
       pending.forEach(({ event, data }) => {
-        console.debug('[SocketNotificationService] flushing queued emit:', event)
         this.socket.emit(event, data)
       })
     })
@@ -52,7 +52,6 @@ class SocketNotificationService {
     this.socket.on('call-invitation', (data) => {
       // Appointment notifications piggyback on call-invitation relay
       if (data?.type && data.type.startsWith('appointment-')) {
-        console.debug('[SocketNotificationService] routed appointment event:', data.type)
         this._emit(data.type, data)
         return
       }
@@ -77,6 +76,12 @@ class SocketNotificationService {
     })
     this.socket.on('appointment-paid', (data) => {
       this._emit('appointment-paid', data)
+    })
+    this.socket.on('appointment-accepted', (data) => {
+      this._emit('appointment-accepted', data)
+    })
+    this.socket.on('appointment-rejected', (data) => {
+      this._emit('appointment-rejected', data)
     })
 
     this.socket.on('disconnect', () => {
@@ -107,15 +112,47 @@ class SocketNotificationService {
   sendPaymentNotification(professionalUserId, appointmentData) {
     const payload = {
       targetUserId: professionalUserId,
-      type: 'appointment-paid',
       ...appointmentData,
+      type: 'appointment-paid',
     }
     if (this.socket?.connected) {
       this.socket.emit('call-invitation', payload)
-      console.debug('[SocketNotificationService] payment notification sent to professional', professionalUserId)
     } else {
       this._pendingEmits.push({ event: 'call-invitation', data: payload })
-      console.debug('[SocketNotificationService] payment notification queued for', professionalUserId)
+    }
+    return true
+  }
+
+  /**
+   * Patient → professional: notify that an appointment has been accepted.
+   */
+  sendAcceptanceNotification(professionalUserId, appointmentData) {
+    const payload = {
+      targetUserId: professionalUserId,
+      ...appointmentData,
+      type: 'appointment-accepted',
+    }
+    if (this.socket?.connected) {
+      this.socket.emit('call-invitation', payload)
+    } else {
+      this._pendingEmits.push({ event: 'call-invitation', data: payload })
+    }
+    return true
+  }
+
+  /**
+   * Patient → professional: notify that an appointment has been rejected.
+   */
+  sendRejectionNotification(professionalUserId, appointmentData) {
+    const payload = {
+      targetUserId: professionalUserId,
+      ...appointmentData,
+      type: 'appointment-rejected',
+    }
+    if (this.socket?.connected) {
+      this.socket.emit('call-invitation', payload)
+    } else {
+      this._pendingEmits.push({ event: 'call-invitation', data: payload })
     }
     return true
   }
@@ -134,11 +171,8 @@ class SocketNotificationService {
     }
     if (this.socket?.connected) {
       this.socket.emit('call-invitation', payload)
-      console.debug('[SocketNotificationService] appointment notification sent to', targetUserId)
     } else {
-      // Queue it — will be flushed once the socket connects
       this._pendingEmits.push({ event: 'call-invitation', data: payload })
-      console.debug('[SocketNotificationService] appointment notification queued for', targetUserId)
     }
     return true
   }

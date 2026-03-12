@@ -56,13 +56,15 @@ export const useAppointmentNotifications = () => {
     }
     setAlerts((prev) => [alert, ...prev].slice(0, 10))
     if (event !== 'request-pending') {
-      showToast(`${meta.emoji} ${meta.title}`, event.includes('cancel') ? 'error' : 'success')
+      showToast(meta.title, event.includes('cancel') ? 'error' : 'success')
     }
     if (event === 'appointment-booked' || event === 'appointment-confirmed' || event === 'appointment-pending' || event === 'appointment-paid') {
       setLastBooking(Date.now())
     }
-    // Auto-show acceptance modal for new pending appointments
-    if (event === 'appointment-pending' || event === 'appointment-booked') {
+    // Auto-show acceptance modal ONLY for professional-initiated appointments.
+    // 'appointment-booked' is emitted when the PATIENT books (sent to the professional),
+    // so it must NOT open the acceptance modal on the patient's side.
+    if (event === 'appointment-pending') {
       setPendingAppointment(data)
     }
   }, [])

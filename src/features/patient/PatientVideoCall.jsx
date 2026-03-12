@@ -51,23 +51,17 @@ const PatientVideoCallRoom = ({ token, roomName, patientName, onLeave }) => {
   }, [token, roomName])
 
   const handleParticipantConnected = (participant) => {
-    console.log('Participant connected:', participant);
-    console.log('Participant identity:', participant.identity);
     participant.tracks.forEach(publication => {
-      console.log('Publication:', publication);
       if (publication.isSubscribed) {
-        console.log('Subscribed track:', publication.track);
         attachTrack(publication.track, remoteVideoRef.current);
       }
     });
 
     participant.on('trackSubscribed', track => {
-      console.log('Track subscribed:', track);
       attachTrack(track, remoteVideoRef.current);
     });
 
     participant.on('trackUnsubscribed', track => {
-      console.log('Track unsubscribed:', track);
     });
 
     if (room) {
@@ -90,7 +84,6 @@ const PatientVideoCallRoom = ({ token, roomName, patientName, onLeave }) => {
       videoElement.style.height = '100%';
       videoElement.style.objectFit = 'cover';
       container.appendChild(videoElement);
-      console.log('Attaching video track', track, container);
     }
   }
 
@@ -276,14 +269,12 @@ const PatientVideoCall = () => {
   const [searchParams] = useSearchParams()
   const { user } = useAuth();
   let patientName = searchParams.get('name');
-  console.log('[VideoCall] patientName from URL:', patientName);
   if (!patientName || patientName === 'undefined' || patientName.trim() === '') {
     patientName = (user?.nombre && user?.apellido)
       ? `${user.nombre} ${user.apellido}`
       : (user?.firstName && user?.lastName)
         ? `${user.firstName} ${user.lastName}`
         : user?.nombre || user?.firstName || user?.name || user?.email || 'Paciente';
-    console.log('[VideoCall] fallback patientName:', patientName);
   }
 
   const [token, setToken] = useState(null)

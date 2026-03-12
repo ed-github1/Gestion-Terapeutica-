@@ -42,7 +42,7 @@ const NoteItem = ({ note, onToggle, onDelete }) => (
         exit={{ opacity: 0, x: -12 }}
         transition={{ duration: 0.18 }}
         className={`group flex items-start gap-2 px-2.5 py-2 rounded-lg transition-colors ${
-            note.done ? 'bg-gray-50/60' : 'hover:bg-stone-50'
+            note.done ? 'bg-gray-100' : 'hover:bg-stone-100'
         }`}
     >
         {/* Drag handle (visual only for now) */}
@@ -243,7 +243,7 @@ const GeneralNotes = ({ variant = 'panel' }) => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="bg-stone-50 rounded-2xl border border-stone-200 shadow-sm overflow-hidden"
+            className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden"
         >
             {/* Header */}
             <button

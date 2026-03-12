@@ -48,11 +48,11 @@ const getRelativeTime = (dateStr) => {
 }
 
 const SESSION_TYPE_STYLES = {
-    Consulta:    'bg-blue-100/70 text-blue-700',
-    Seguimiento: 'bg-violet-100/70 text-violet-700',
-    Evaluación:  'bg-amber-100/70 text-amber-700',
-    Primera:     'bg-teal-100/70 text-teal-700',
-    default:     'bg-gray-100 text-gray-600',
+    Consulta:    'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700',
+    Seguimiento: 'bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-700',
+    Evaluación:  'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-700',
+    Primera:     'bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-700',
+    default:     'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600',
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -92,32 +92,32 @@ const SessionCard = ({
         ? `${startTime.getDate()} ${shortMonths[startTime.getMonth()]}`
         : null
 
-    /* visual tokens ── next session gets indigo, risk gets rose, default cycles */
+    /* visual tokens — all cards white; next/risk shown via left border accent */
     const bgPalette = [
-        'bg-white border border-gray-100',
-        'bg-orange-50/70 border border-orange-100/60',
-        'bg-sky-50/70 border border-sky-100/60',
-        'bg-emerald-50/70 border border-emerald-100/60',
-        'bg-sky-50/70 border border-sky-100/60',
+        'bg-white dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600',
+        'bg-white dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600',
+        'bg-white dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600',
+        'bg-white dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600',
+        'bg-white dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600',
     ]
     const avatarPalette = [
-        'bg-gray-200 text-gray-800',
-        'bg-orange-200 text-orange-900',
-        'bg-sky-200 text-sky-900',
-        'bg-emerald-200 text-emerald-900',
-        'bg-sky-200 text-sky-800',
+        'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200',
+        'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200',
+        'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200',
+        'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200',
+        'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200',
     ]
 
     const bgClass = isNext
-        ? 'bg-sky-50 border border-sky-200/80'
+        ? 'bg-white dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600 border-l-[3px] border-l-blue-500'
         : riskLevel === 'high'
-            ? 'bg-rose-50/70 border border-rose-100/70'
+            ? 'bg-white dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600 border-l-[3px] border-l-rose-500'
             : bgPalette[index % bgPalette.length]
 
     const avatarClass = isNext
-        ? 'bg-blue-700 text-white'
+        ? 'bg-blue-600 text-white'
         : riskLevel === 'high'
-            ? 'bg-rose-200 text-rose-900'
+            ? 'bg-rose-100 text-rose-700'
             : avatarPalette[index % avatarPalette.length]
 
     return (
@@ -141,14 +141,14 @@ const SessionCard = ({
             <div className="flex items-start gap-2">
                 {/* Time stamp */}
                 <div className="w-9 shrink-0 text-right pt-2.5">
-                    <div className="text-[10px] font-bold text-gray-400 leading-none">{timeStr}</div>
-                    <div className="text-[9px] text-gray-400 uppercase mt-0.5">{dateLabel || ampm}</div>
+                    <div className="text-[10px] font-bold text-gray-700 dark:text-gray-300 leading-none">{timeStr}</div>
+                    <div className="text-[9px] text-gray-600 dark:text-gray-400 uppercase mt-0.5">{dateLabel || ampm}</div>
                 </div>
 
                 {/* Connector */}
                 <div className="flex flex-col items-center pt-3 shrink-0">
-                    <div className={`w-2 h-2 rounded-full shrink-0 ${isNext ? 'bg-sky-500' : 'bg-gray-300'}`} />
-                    <div className="w-px flex-1 bg-gray-200 mt-1 min-h-6" />
+                    <div className={`w-2 h-2 rounded-full shrink-0 ${isNext ? 'bg-sky-600' : 'bg-gray-500 dark:bg-gray-500'}`} />
+                    <div className="w-px flex-1 bg-gray-400 dark:bg-gray-600 mt-1 min-h-6" />
                 </div>
 
                 {/* Card */}
@@ -164,7 +164,7 @@ const SessionCard = ({
 
                             {/* Name */}
                             <div className="flex-1 min-w-0">
-                                <p className={`font-semibold text-xs leading-tight truncate ${isNext ? 'text-blue-950' : 'text-gray-900'}`}>
+                                <p className={`font-semibold text-xs leading-tight truncate ${isNext ? 'text-blue-950 dark:text-blue-300' : 'text-gray-900 dark:text-gray-100'}`}>
                                     {patientName}
                                 </p>
                             </div>
@@ -173,24 +173,25 @@ const SessionCard = ({
                             <div className="shrink-0 flex items-center gap-1">
                                 {isNext && countdown ? (
                                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 mr-0.5 ${
-                                        isImminent ? 'bg-emerald-100 text-emerald-700' : 'bg-sky-100 text-blue-800'
+                                        isImminent ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' : 'bg-sky-100 dark:bg-sky-900/40 text-blue-800 dark:text-sky-300'
                                     }`}>
                                         <span className={`w-1.5 h-1.5 rounded-full ${isImminent ? 'bg-emerald-500 animate-pulse' : 'bg-blue-500'}`} />
                                         {countdown}
                                     </span>
                                 ) : riskLevel === 'high' ? (
-                                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-600 mr-0.5">Alto riesgo</span>
+                                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 mr-0.5">Alto riesgo</span>
                                 ) : null}
 
                                 <button
                                     type="button"
                                     title="Mensaje"
                                     onClick={() => onMessage && onMessage(appointment)}
-                                    className="w-7 h-7 flex items-center justify-center rounded-full bg-white/80 border border-gray-200 text-gray-400 hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50 active:scale-90 transition-all shadow-sm"
+                                    className="w-7 h-7 flex items-center justify-center rounded-full bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 text-gray-500 dark:text-gray-300 hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50 active:scale-90 transition-all shadow-sm"
                                 >
                                     <MessageSquare className="w-3.5 h-3.5" />
                                 </button>
 
+                                {(appointment.isVideoCall || appointment.mode === 'videollamada') && (
                                 <button
                                     type="button"
                                     title={isImminent ? 'Iniciar videollamada' : 'Videollamada'}
@@ -198,11 +199,12 @@ const SessionCard = ({
                                     className={`w-7 h-7 flex items-center justify-center rounded-full active:scale-90 transition-all shadow-sm ${
                                         isImminent
                                             ? 'bg-emerald-500 hover:bg-emerald-600 text-white border border-emerald-400'
-                                            : 'bg-white/80 border border-gray-200 text-gray-400 hover:text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50'
+                                            : 'bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 text-gray-500 dark:text-gray-300 hover:text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50'
                                     }`}
                                 >
                                     <Video className="w-3.5 h-3.5" />
                                 </button>
+                                )}
 
                                 <button
                                     type="button"
@@ -217,9 +219,9 @@ const SessionCard = ({
 
                         {/* Row 2: time range + session type tag */}
                         <div className="flex items-center gap-1.5 mt-1.5 pl-10.5">
-                            <Clock className="w-2.5 h-2.5 text-gray-400 shrink-0" />
-                            <span className="text-[9px] text-gray-400">{timeRange}</span>
-                            <span className="text-gray-300">·</span>
+                            <Clock className="w-2.5 h-2.5 text-gray-500 dark:text-gray-400 shrink-0" />
+                            <span className="text-[9px] text-gray-600 dark:text-gray-400">{timeRange}</span>
+                            <span className="text-gray-400 dark:text-gray-600">·</span>
                             <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${typeStyle}`}>
                                 {sessionType}
                             </span>
@@ -229,25 +231,25 @@ const SessionCard = ({
                         {(treatmentGoal || lastVisit || true) && (
                             <div className="flex items-center gap-1.5 mt-1 pl-10.5 flex-wrap">
                                 {treatmentGoal && (
-                                    <span className="flex items-center gap-1 text-[9px] text-gray-500 truncate max-w-[45%]" title={treatmentGoal}>
-                                        <Target className="w-2.5 h-2.5 text-gray-400 shrink-0" />
+                                    <span className="flex items-center gap-1 text-[9px] text-gray-600 dark:text-gray-400 truncate max-w-[45%]" title={treatmentGoal}>
+                                        <Target className="w-2.5 h-2.5 text-gray-500 dark:text-gray-400 shrink-0" />
                                         {treatmentGoal}
                                     </span>
                                 )}
-                                {treatmentGoal && lastVisit && <span className="text-gray-300 text-[9px]">·</span>}
+                                {treatmentGoal && lastVisit && <span className="text-gray-500 dark:text-gray-600 text-[9px]">·</span>}
                                 {lastVisit && (
-                                    <span className="text-[9px] text-gray-400">
+                                    <span className="text-[9px] text-gray-600 dark:text-gray-400">
                                         {lastVisit}
                                     </span>
                                 )}
-                                {(treatmentGoal || lastVisit) && <span className="text-gray-300 text-[9px]">·</span>}
+                                {(treatmentGoal || lastVisit) && <span className="text-gray-500 dark:text-gray-600 text-[9px]">·</span>}
                                 {homeworkOk ? (
-                                    <span className="inline-flex items-center gap-0.5 text-[9px] font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
+                                    <span className="inline-flex items-center gap-0.5 text-[9px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded-full">
                                         <CheckCircle2 className="w-2.5 h-2.5" />
                                         Tarea
                                     </span>
                                 ) : (
-                                    <span className="inline-flex items-center gap-0.5 text-[9px] font-medium text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded-full">
+                                    <span className="inline-flex items-center gap-0.5 text-[9px] font-medium text-rose-500 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/30 px-1.5 py-0.5 rounded-full">
                                         <XCircle className="w-2.5 h-2.5" />
                                         Tarea
                                     </span>
@@ -277,16 +279,16 @@ const BreakCard = ({ time, index }) => {
             className="flex items-start gap-2 my-1"
         >
             <div className="w-9 shrink-0 text-right pt-2.5">
-                <div className="text-[10px] font-bold text-gray-400 leading-none">{timeStr}</div>
-                <div className="text-[9px] text-gray-400 uppercase mt-0.5">{ampm}</div>
+                <div className="text-[10px] font-bold text-gray-700 dark:text-gray-300 leading-none">{timeStr}</div>
+                <div className="text-[9px] text-gray-600 dark:text-gray-400 uppercase mt-0.5">{ampm}</div>
             </div>
             <div className="flex flex-col items-center pt-3 shrink-0">
-                <div className="w-2 h-2 rounded-full bg-blue-300 shrink-0" />
-                <div className="w-px flex-1 bg-gray-200 mt-1 min-h-6" />
+                <div className="w-2 h-2 rounded-full bg-blue-600 shrink-0" />
+                <div className="w-px flex-1 bg-gray-400 dark:bg-gray-600 mt-1 min-h-6" />
             </div>
             <div className="flex-1 pb-1.5">
-                <div className="relative overflow-hidden bg-blue-600/90 rounded-xl px-4 py-2.5 flex items-center justify-center">
-                    <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'repeating-linear-gradient(45deg,transparent,transparent 4px,white 4px,white 7px)' }} />
+                <div className="relative overflow-hidden bg-blue-600 rounded-xl px-4 py-2.5 flex items-center justify-center">
+                    <div className="absolute inset-0 opacity-15" style={{ backgroundImage: 'repeating-linear-gradient(45deg,transparent,transparent 4px,white 4px,white 7px)' }} />
                     <span className="relative text-white font-semibold text-xs">Hora de Descanso</span>
                 </div>
             </div>
@@ -309,17 +311,17 @@ const AvailableSlotCard = ({ slot, index }) => {
             className="flex items-start gap-2 my-1"
         >
             <div className="w-9 shrink-0 text-right pt-2.5">
-                <div className="text-[10px] font-bold text-gray-400 leading-none">{timeStr}</div>
-                <div className="text-[9px] text-gray-400 uppercase mt-0.5">{ampm}</div>
+                <div className="text-[10px] font-bold text-gray-700 dark:text-gray-300 leading-none">{timeStr}</div>
+                <div className="text-[9px] text-gray-600 dark:text-gray-400 uppercase mt-0.5">{ampm}</div>
             </div>
             <div className="flex flex-col items-center pt-3 shrink-0">
-                <div className="w-2 h-2 rounded-full bg-gray-300 shrink-0" />
-                <div className="w-px flex-1 bg-gray-200 mt-1 min-h-6" />
+                <div className="w-2 h-2 rounded-full bg-gray-500 dark:bg-gray-400 shrink-0" />
+                <div className="w-px flex-1 bg-gray-400 dark:bg-gray-600 mt-1 min-h-6" />
             </div>
             <div className="flex-1 pb-1.5">
-                <div className="relative overflow-hidden bg-gray-400/50 rounded-xl px-4 py-2.5 flex items-center justify-center">
-                    <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'repeating-linear-gradient(45deg,transparent,transparent 4px,white 4px,white 7px)' }} />
-                    <span className="relative text-white font-semibold text-xs">No Disponible</span>
+                <div className="relative overflow-hidden bg-gray-200 dark:bg-gray-600 border border-gray-400 dark:border-gray-500 rounded-xl px-4 py-2.5 flex items-center justify-center">
+                    <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(0,0,0,0.08) 4px,rgba(0,0,0,0.08) 7px)' }} />
+                    <span className="relative text-gray-700 dark:text-gray-200 font-semibold text-xs">No Disponible</span>
                 </div>
             </div>
         </motion.div>
@@ -331,11 +333,11 @@ const AvailableSlotCard = ({ slot, index }) => {
 ───────────────────────────────────────────────────────────────────────────── */
 const EmptyState = () => (
     <div className="text-center py-12">
-        <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-            <Calendar className="w-7 h-7 text-gray-400" />
+        <div className="w-14 h-14 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-3">
+            <Calendar className="w-7 h-7 text-gray-400 dark:text-gray-500" />
         </div>
-        <p className="text-gray-500 font-medium mb-1 text-sm">No hay sesiones hoy</p>
-        <p className="text-xs text-gray-400">Tu agenda está libre</p>
+        <p className="text-gray-500 dark:text-gray-400 font-medium mb-1 text-sm">No hay sesiones hoy</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500">Tu agenda está libre</p>
     </div>
 )
 
@@ -361,34 +363,34 @@ const SessionCardSkeleton = ({ index }) => {
         >
             {/* Time stamp column */}
             <div className="w-9 shrink-0 text-right pt-2.5 space-y-1">
-                <div className="w-8 h-3 bg-gray-200 rounded ml-auto" />
-                <div className="w-5 h-2 bg-gray-100 rounded ml-auto" />
+                <div className="w-8 h-3 bg-gray-200 dark:bg-gray-600 rounded ml-auto" />
+                <div className="w-5 h-2 bg-gray-100 dark:bg-gray-700 rounded ml-auto" />
             </div>
 
             {/* Timeline track */}
             <div className="flex flex-col items-center pt-3 shrink-0">
-                <div className={`w-2 h-2 rounded-full shrink-0 ${isFirst ? 'bg-sky-200' : 'bg-gray-200'}`} />
-                <div className="w-px flex-1 bg-gray-100 mt-1 min-h-10" />
+                <div className={`w-2 h-2 rounded-full shrink-0 ${isFirst ? 'bg-sky-200 dark:bg-sky-700' : 'bg-gray-200 dark:bg-gray-600'}`} />
+                <div className="w-px flex-1 bg-gray-100 dark:bg-gray-700 mt-1 min-h-10" />
             </div>
 
             {/* Card body */}
             <div
                 className={`flex-1 rounded-2xl px-3 py-3 mb-1.5 ${
-                    isFirst ? 'bg-sky-50/60 border border-sky-100/80' : 'bg-gray-50 border border-gray-100'
+                    isFirst ? 'bg-sky-50/60 dark:bg-sky-900/20 border border-sky-100/80 dark:border-sky-800/40' : 'bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600'
                 }`}
             >
                 <div className="flex items-center gap-3">
                     {/* Avatar */}
-                    <div className={`w-9 h-9 rounded-full shrink-0 ${isFirst ? 'bg-sky-200' : 'bg-gray-200'}`} />
+                    <div className={`w-9 h-9 rounded-full shrink-0 ${isFirst ? 'bg-sky-200 dark:bg-sky-700' : 'bg-gray-200 dark:bg-gray-600'}`} />
 
                     {/* Text lines */}
                     <div className="flex-1 space-y-2">
-                        <div className={`h-3 ${w.name} bg-gray-200 rounded`} />
-                        <div className={`h-2 ${w.detail} bg-gray-100 rounded`} />
+                        <div className={`h-3 ${w.name} bg-gray-200 dark:bg-gray-600 rounded`} />
+                        <div className={`h-2 ${w.detail} bg-gray-100 dark:bg-gray-700 rounded`} />
                     </div>
 
                     {/* Action pill */}
-                    <div className={`h-6 ${w.badge} bg-gray-200 rounded-full shrink-0`} />
+                    <div className={`h-6 ${w.badge} bg-gray-200 dark:bg-gray-600 rounded-full shrink-0`} />
                 </div>
             </div>
         </div>
@@ -476,13 +478,13 @@ const TodaysSessions = ({
                             }
                             if (item.isUnavailable) {
                                 return (
-                                    <div key={itemTs || index} ref={isAnchor ? currentRef : null}>
+                                    <div key={item._id || item.id || `unavailable-${itemTs}-${index}`} ref={isAnchor ? currentRef : null}>
                                         <AvailableSlotCard slot={item} index={index} />
                                     </div>
                                 )
                             }
                             return (
-                                <div key={itemTs || index} ref={isAnchor ? currentRef : null}>
+                                <div key={item._id || item.id || `session-${itemTs}-${index}`} ref={isAnchor ? currentRef : null}>
                                     <SessionCard
                                         appointment={item}
                                         index={index}

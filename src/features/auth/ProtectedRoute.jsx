@@ -38,7 +38,6 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
     return <Navigate to="/login" replace />
   }
   
-  console.log('ProtectedRoute: Access granted for role:', userRole)
 
   return children
 }

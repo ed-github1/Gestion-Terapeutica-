@@ -35,12 +35,12 @@ const PatientInvitation = ({ onClose, onSuccess, professionalName }) => {
 
   const copyLink = () => {
     navigator.clipboard.writeText(registrationLink)
-    showToast('🔗 Enlace copiado', 'success')
+    showToast('Enlace copiado', 'success')
   }
 
   const copyMessageAndLink = () => {
     navigator.clipboard.writeText(fullShareText)
-    showToast('📋 Mensaje y enlace copiados', 'success')
+    showToast('Mensaje y enlace copiados', 'success')
   }
 
   const shareWhatsApp = () => {

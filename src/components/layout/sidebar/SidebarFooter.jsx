@@ -23,17 +23,17 @@ const SidebarFooter = ({
     }`
 
     return (
-        <div className="p-3 border-t border-sky-100 bg-white/80 space-y-1.5">
+        <div className="p-3 border-t border-sky-100 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 space-y-1.5">
             {/* Settings Button */}
             <motion.button
                 onClick={onSettings}
                 whileHover={prefersReducedMotion ? {} : { x: isCollapsed ? 0 : 3 }}
                 whileTap={prefersReducedMotion ? {} : { scale: 0.98 }}
                 aria-label="Configuración"
-                className={`${buttonBaseClass} text-gray-600 hover:bg-sky-50 hover:text-blue-700 hover:shadow-sm focus-visible:ring-sky-500`}
+                className={`${buttonBaseClass} text-gray-600 dark:text-gray-400 hover:bg-sky-50 dark:hover:bg-gray-700 hover:text-blue-700 dark:hover:text-blue-300 hover:shadow-sm focus-visible:ring-sky-500`}
             >
                 <Settings 
-                    className="w-5 h-5 text-gray-400 group-hover:text-sky-500 transition-colors" 
+                    className="w-5 h-5 text-gray-400 dark:text-gray-500 group-hover:text-sky-500 transition-colors" 
                     strokeWidth={2} 
                 />
                 {!isCollapsed && (
@@ -47,10 +47,10 @@ const SidebarFooter = ({
                 whileHover={prefersReducedMotion ? {} : { x: isCollapsed ? 0 : 3 }}
                 whileTap={prefersReducedMotion ? {} : { scale: 0.98 }}
                 aria-label="Cerrar sesión"
-                className={`${buttonBaseClass} text-gray-600 hover:bg-red-50 hover:text-red-600 hover:shadow-sm focus-visible:ring-rose-500`}
+                className={`${buttonBaseClass} text-gray-600 dark:text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/25 hover:text-red-600 dark:hover:text-red-400 hover:shadow-sm focus-visible:ring-rose-500`}
             >
                 <LogOut 
-                    className="w-5 h-5 text-gray-400 group-hover:text-red-500 transition-colors" 
+                    className="w-5 h-5 text-gray-400 dark:text-gray-500 group-hover:text-red-500 transition-colors" 
                     strokeWidth={2} 
                 />
                 {!isCollapsed && (

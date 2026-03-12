@@ -104,10 +104,8 @@ const DashboardHeader = ({
                 >
                     {initials}
                 </button>
-            
             </div>
 
-        
         </motion.div>
     )
 }

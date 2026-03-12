@@ -12,7 +12,7 @@ import {
   CheckCircle2, Circle, ShieldAlert, Calendar, Clock, Target,
   Activity, Smile, Frown, Meh, AlertCircle, ChevronLeft, ChevronRight,
   Hash, MessageSquare, Dumbbell, Star, Pencil, User, Mail, Phone,
-  BarChart2, Zap, Heart, Wind, Moon, Sun, Coffee, Send, Plus,
+  BarChart2, Zap, Heart, Wind, Moon, Sun, Coffee, Send,
 } from 'lucide-react'
 import { useAuth } from '../../auth'
 import { diaryService } from '@shared/services/diaryService'
@@ -203,7 +203,7 @@ const buildMockData = (patient) => {
 // ─── Mood Bar ─────────────────────────────────────────────────────────────────
 const MoodBar = ({ value, max = 10 }) => (
   <div className="flex items-center gap-2">
-    <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+    <div className="flex-1 h-1.5 bg-gray-100 dark:bg-[#0f1623] rounded-full overflow-hidden">
       <div
         className={`h-full rounded-full transition-all ${
           value >= 7 ? 'bg-emerald-400' : value >= 4 ? 'bg-amber-400' : 'bg-rose-400'
@@ -211,7 +211,7 @@ const MoodBar = ({ value, max = 10 }) => (
         style={{ width: `${(value / max) * 100}%` }}
       />
     </div>
-    <span className="text-[10px] text-gray-400 font-medium w-4 text-right">{value}</span>
+    <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium w-4 text-right">{value}</span>
   </div>
 )
 
@@ -396,91 +396,92 @@ const PatientClinicalFile = ({ patient, onClose }) => {
   }
 
   return (
-    <AnimatePresence>
       <motion.div
-        key="backdrop"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
         className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-stretch justify-end"
         onClick={onClose}
       >
         <motion.div
-          key="panel"
           initial={{ x: '100%' }}
           animate={{ x: 0 }}
           exit={{ x: '100%' }}
-          transition={{ type: 'spring', stiffness: 500, damping: 42, mass: 0.9 }}
+          transition={{ type: 'spring', stiffness: 380, damping: 38, mass: 0.85 }}
           onClick={e => e.stopPropagation()}
-          className="relative bg-gray-50 shadow-2xl flex flex-col overflow-hidden"
+          className="relative bg-gray-50 dark:bg-[#0f1623] shadow-2xl flex flex-col overflow-hidden"
           style={{ width: 'min(860px, 100vw)', height: '100dvh' }}
         >
           {/* ── Top header ─────────────────────────────────────────────── */}
-          <div className={`bg-linear-to-r ${BRAND_GRAD} px-6 pt-6 pb-0 shrink-0`}>
+          <div className="shrink-0 bg-white dark:bg-[#1a2234] border-b border-gray-100 dark:border-[#2d3748]">
+            {/* Brand accent bar */}
+            <div className={`h-1 bg-linear-to-r ${BRAND_GRAD}`} />
+
             {/* Back + close */}
-            <div className="flex items-center justify-between mb-4">
-              <button onClick={onClose} className="flex items-center gap-1.5 text-white/80 hover:text-white text-sm transition">
+            <div className="flex items-center justify-between px-6 pt-4 mb-4">
+              <button onClick={onClose} className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 text-sm transition">
                 <ChevronLeft className="w-4 h-4" /> Carga de pacientes
               </button>
-              <button onClick={onClose} className="p-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white transition">
+              <button onClick={onClose} className="p-1.5 rounded-xl bg-gray-100 dark:bg-[#0f1623] hover:bg-gray-200 dark:hover:bg-[#2d3748] text-gray-500 dark:text-gray-400 transition">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Patient identity */}
-            <div className="flex items-end gap-4 mb-5">
-              <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center text-white text-xl font-black shrink-0 ring-2 ring-white/25 backdrop-blur-sm">
+            <div className="flex items-center gap-4 px-6 mb-4">
+              <div className={`w-14 h-14 rounded-2xl bg-linear-to-br ${BRAND_GRAD} flex items-center justify-center text-white text-lg font-black shrink-0`}>
                 {initials}
               </div>
-              <div className="flex-1 min-w-0 pb-1">
-                <h2 className="text-xl font-black text-white truncate">
+              <div className="flex-1 min-w-0">
+                <h2 className="text-lg font-black text-gray-900 dark:text-white truncate">
                   {pFirstName} {pLastName}
                 </h2>
                 <div className="flex flex-wrap items-center gap-2 mt-1">
+                  {pAge && (
+                    <span className="text-xs text-gray-400 dark:text-gray-500">{pAge} años</span>
+                  )}
                   {p.diagnosis && p.diagnosis !== 'Pendiente' && (
-                    <span className="text-xs font-semibold text-white/90 bg-white/20 px-2 py-0.5 rounded-full">
+                    <span className="text-xs font-semibold text-blue-700 dark:text-sky-400 bg-sky-50 dark:bg-sky-900/20 px-2 py-0.5 rounded-full">
                       {p.diagnosis}
                     </span>
                   )}
-                  {pAge && (
-                    <span className="text-xs text-white/70">{pAge} años</span>
-                  )}
                   {p.riskLevel === 'high' && (
-                    <span className="flex items-center gap-1 text-xs font-semibold bg-rose-500 text-white px-2 py-0.5 rounded-full">
+                    <span className="flex items-center gap-1 text-xs font-semibold bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 px-2 py-0.5 rounded-full">
                       <ShieldAlert className="w-3 h-3" /> Alto riesgo
                     </span>
                   )}
                   {p.riskLevel === 'medium' && (
-                    <span className="flex items-center gap-1 text-xs font-semibold bg-amber-400 text-amber-900 px-2 py-0.5 rounded-full">
+                    <span className="flex items-center gap-1 text-xs font-semibold bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-full">
                       <AlertCircle className="w-3 h-3" /> Riesgo medio
                     </span>
                   )}
                 </div>
               </div>
               {/* Quick stats */}
-              <div className="hidden sm:flex items-center gap-3 pb-1 shrink-0">
+              <div className="hidden sm:flex items-center gap-4 shrink-0">
                 {[
                   { value: p.totalSessions ?? sessionHistory.length, label: 'Sesiones' },
                   { value: `${completedHW}/${totalHW}`, label: 'Tareas' },
                 ].map(({ value, label }) => (
                   <div key={label} className="text-center">
-                    <p className="text-lg font-black text-white leading-none">{value}</p>
-                    <p className="text-[10px] text-white/60 uppercase tracking-wide mt-0.5">{label}</p>
+                    <p className="text-lg font-black text-gray-900 dark:text-white leading-none">{value}</p>
+                    <p className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mt-0.5">{label}</p>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-1 overflow-x-auto no-scrollbar">
+            <div className="flex gap-0.5 overflow-x-auto no-scrollbar px-4">
               {TABS.map(({ key, label, icon: Icon }) => (
                 <button
                   key={key}
                   onClick={() => setTab(key)}
-                  className={`flex items-center gap-1.5 px-4 py-2.5 rounded-t-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-t-lg text-xs font-semibold whitespace-nowrap transition-all ${
                     tab === key
-                      ? 'bg-gray-50 text-gray-900'
-                      : 'text-white/70 hover:text-white hover:bg-white/10'
+                      ? 'text-[#0075C9] dark:text-sky-400 border-b-2 border-[#0075C9] dark:border-sky-400 bg-sky-50/50 dark:bg-sky-900/10'
+                      : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#0f1623]/50'
                   }`}
                 >
                   <Icon className="w-3.5 h-3.5" /> {label}
@@ -490,7 +491,7 @@ const PatientClinicalFile = ({ patient, onClose }) => {
           </div>
 
           {/* ── Tab content ────────────────────────────────────────────── */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto dark:bg-[#0f1623]">
             <AnimatePresence mode="popLayout">
               <motion.div
                 key={tab}
@@ -505,12 +506,12 @@ const PatientClinicalFile = ({ patient, onClose }) => {
                 {isLoading && (
                   <div className="space-y-3 p-5">
                     {[1,2,3].map(i => (
-                      <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 animate-pulse">
+                      <div key={i} className="bg-white dark:bg-[#1a2234] rounded-2xl border border-gray-100 dark:border-[#2d3748] p-5 animate-pulse">
                         <div className="flex gap-3">
-                          <div className="w-8 h-8 rounded-xl bg-gray-200" />
+                          <div className="w-8 h-8 rounded-xl bg-gray-200 dark:bg-[#2d3748]" />
                           <div className="flex-1 space-y-2">
-                            <div className="h-4 bg-gray-200 rounded w-1/3" />
-                            <div className="h-3 bg-gray-100 rounded w-2/3" />
+                            <div className="h-4 bg-gray-200 dark:bg-[#2d3748] rounded w-1/3" />
+                            <div className="h-3 bg-gray-100 dark:bg-[#0f1623] rounded w-2/3" />
                           </div>
                         </div>
                       </div>
@@ -522,17 +523,11 @@ const PatientClinicalFile = ({ patient, onClose }) => {
                 {tab === 'caratula' && !isLoading && (
                   <div className="space-y-5">
                     {/* Datos del paciente */}
-                    <div className="bg-white rounded-2xl border border-gray-100 p-5">
-                      <div className="flex items-start justify-between mb-5">
-                        <h3 className="font-bold text-gray-900">Datos del paciente</h3>
-                        <button
-                          onClick={() => setTab('notes')}
-                          className="flex items-center gap-1.5 px-4 py-2 bg-emerald-400 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl transition-colors"
-                        >
-                          <Plus className="w-3.5 h-3.5" /> Nueva sesión
-                        </button>
+                    <div className="bg-white dark:bg-[#1a2234] rounded-2xl border border-gray-100 dark:border-[#2d3748] p-5">
+                      <div className="mb-5">
+                        <h3 className="font-bold text-gray-900 dark:text-white">Datos del paciente</h3>
                       </div>
-                      <div className="space-y-3 divide-y divide-gray-50">
+                      <div className="space-y-3 divide-y divide-gray-50 dark:divide-[#2d3748]">
                         {[
                           { label: 'Nombre',                 value: `${pFirstName} ${pLastName}`.trim() || '—' },
                           { label: 'Edad',                   value: pAge ? `${pAge} años` : '—' },
@@ -544,8 +539,8 @@ const PatientClinicalFile = ({ patient, onClose }) => {
                           { label: 'Diagnóstico',            value: p.diagnosis && p.diagnosis !== 'Pendiente' ? p.diagnosis : '—' },
                         ].filter(({ value }) => value !== '—' || true).map(({ label, value }) => (
                           <div key={label} className="grid grid-cols-[160px_1fr] gap-3 items-baseline pt-2.5 first:pt-0">
-                            <span className="text-xs text-gray-400 font-medium shrink-0">{label}:</span>
-                            <span className="text-sm text-gray-800 leading-relaxed">{value}</span>
+                            <span className="text-xs text-gray-400 dark:text-gray-500 font-medium shrink-0">{label}:</span>
+                            <span className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">{value}</span>
                           </div>
                         ))}
                       </div>
@@ -554,10 +549,10 @@ const PatientClinicalFile = ({ patient, onClose }) => {
                     {/* Notas recientes */}
                     <div>
                       <div className="flex items-center justify-between mb-3">
-                        <h3 className="font-bold text-gray-900">Notas recientes</h3>
+                        <h3 className="font-bold text-gray-900 dark:text-white">Notas recientes</h3>
                         <button
                           onClick={() => setTab('notes')}
-                          className="text-xs text-blue-700 hover:underline flex items-center gap-0.5"
+                          className="text-xs text-blue-700 dark:text-blue-400 hover:underline flex items-center gap-0.5"
                         >
                           Ver todas <ChevronRight className="w-3 h-3" />
                         </button>
@@ -565,13 +560,13 @@ const PatientClinicalFile = ({ patient, onClose }) => {
                       {(clinicalNotes.length > 0 ? clinicalNotes : mockClinicalNotes).slice(0, 3).map((note, i) => {
                         const dateStr = note.date || note.createdAt
                         return (
-                          <div key={note._id || note.id || i} className="bg-white rounded-2xl border border-gray-100 p-4 mb-3 last:mb-0">
+                          <div key={note._id || note.id || i} className="bg-white dark:bg-[#1a2234] rounded-2xl border border-gray-100 dark:border-[#2d3748] p-4 mb-3 last:mb-0">
                             {dateStr && (
-                              <p className="text-[11px] text-gray-400 mb-1.5">
+                              <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-1.5">
                                 {new Date(dateStr).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}
                               </p>
                             )}
-                            <p className="text-sm text-gray-700 leading-relaxed">{note.text || note.notes}</p>
+                            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{note.text || note.notes}</p>
                             {note.tags?.length > 0 && (
                               <div className="flex flex-wrap gap-1.5 mt-2.5">
                                 {note.tags.map(t => (
@@ -584,8 +579,8 @@ const PatientClinicalFile = ({ patient, onClose }) => {
                       })}
                       {clinicalNotes.length === 0 && mockClinicalNotes.length === 0 && (
                         <div className="text-center py-10">
-                          <FileText className="w-8 h-8 text-gray-200 mx-auto mb-2" />
-                          <p className="text-sm text-gray-400">Sin notas clínicas aún</p>
+                          <FileText className="w-8 h-8 text-gray-200 dark:text-gray-600 mx-auto mb-2" />
+                          <p className="text-sm text-gray-400 dark:text-gray-500">Sin notas clínicas aún</p>
                         </div>
                       )}
                     </div>
@@ -621,13 +616,13 @@ const PatientClinicalFile = ({ patient, onClose }) => {
                           color: 'text-sky-600',
                         },
                       ].map(({ label, value, sub, Icon, bg, color }) => (
-                        <div key={label} className="bg-white rounded-2xl border border-gray-100 p-4 flex flex-col gap-2">
+                        <div key={label} className="bg-white dark:bg-[#1a2234] rounded-2xl border border-gray-100 dark:border-[#2d3748] p-4 flex flex-col gap-2">
                           <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${bg}`}>
                             <Icon className={`w-4 h-4 ${color}`} />
                           </div>
                           <div>
-                            <p className="text-2xl font-black text-gray-900 leading-none">{value}</p>
-                            <p className="text-[10px] text-gray-500 mt-1 uppercase tracking-wide font-semibold">{label}</p>
+                            <p className="text-2xl font-black text-gray-900 dark:text-white leading-none">{value}</p>
+                            <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wide font-semibold">{label}</p>
                             {sub && <p className={`text-[10px] mt-0.5 font-medium ${color}`}>{sub}</p>}
                           </div>
                         </div>
@@ -636,35 +631,34 @@ const PatientClinicalFile = ({ patient, onClose }) => {
 
                     {/* Treatment goal + contact */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+                      <div className="bg-white dark:bg-[#1a2234] rounded-2xl border border-gray-100 dark:border-[#2d3748] p-5">
                         <div className="flex items-center gap-2 mb-3">
                           <Target className="w-4 h-4 text-sky-500" />
-                          <h3 className="font-bold text-gray-900 text-sm">Objetivo terapéutico</h3>
+                          <h3 className="font-bold text-gray-900 dark:text-white text-sm">Objetivo terapéutico</h3>
                         </div>
-                        <p className="text-sm text-gray-700 leading-relaxed">
+                        <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
                           {pConcern || 'No definido aún.'}
                         </p>
                       </div>
-                      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+                      <div className="bg-white dark:bg-[#1a2234] rounded-2xl border border-gray-100 dark:border-[#2d3748] p-5">
                         <div className="flex items-center gap-2 mb-3">
                           <User className="w-4 h-4 text-sky-500" />
-                          <h3 className="font-bold text-gray-900 text-sm">Datos de contacto</h3>
+                          <h3 className="font-bold text-gray-900 dark:text-white text-sm">Datos de contacto</h3>
                         </div>
                         <div className="space-y-2">
                           {p.email && (
-                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                              <Mail className="w-3.5 h-3.5 text-gray-400" /> {p.email}
+                            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                              <Mail className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" /> {p.email}
                             </div>
                           )}
                           {pPhone && (
-                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                              <Phone className="w-3.5 h-3.5 text-gray-400" /> {pPhone}
+                            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                              <Phone className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" /> {pPhone}
                             </div>
                           )}
                           {p.nextSession && (
-                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                              <Clock className="w-3.5 h-3.5 text-gray-400" />
-                              Próxima sesión: {new Date(p.nextSession).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                              <Clock className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" /> {new Date(p.nextSession).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
                             </div>
                           )}
                         </div>
@@ -673,13 +667,13 @@ const PatientClinicalFile = ({ patient, onClose }) => {
 
                     {/* Latest diary highlight */}
                     {diaryEntries[0] && (
-                      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+                      <div className="bg-white dark:bg-[#1a2234] rounded-2xl border border-gray-100 dark:border-[#2d3748] p-5">
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-2">
                             <BookOpen className="w-4 h-4 text-sky-500" />
-                            <h3 className="font-bold text-gray-900 text-sm">Última entrada del diario</h3>
+                            <h3 className="font-bold text-gray-900 dark:text-white text-sm">Última entrada del diario</h3>
                           </div>
-                          <button onClick={() => setTab('diary')} className="text-xs text-blue-700 hover:underline flex items-center gap-0.5">
+                          <button onClick={() => setTab('diary')} className="text-xs text-blue-700 dark:text-blue-400 hover:underline flex items-center gap-0.5">
                             Ver todo <ChevronRight className="w-3 h-3" />
                           </button>
                         </div>
@@ -693,16 +687,16 @@ const PatientClinicalFile = ({ patient, onClose }) => {
                 {tab === 'diary' && !isLoading && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <h3 className="font-bold text-gray-900">Entradas del diario</h3>
-                      <span className="text-xs text-gray-400">{diaryEntries.length} {diaryEntries.length === 1 ? 'entrada' : 'entradas'}</span>
+                      <h3 className="font-bold text-gray-900 dark:text-white">Entradas del diario</h3>
+                      <span className="text-xs text-gray-400 dark:text-gray-500">{diaryEntries.length} {diaryEntries.length === 1 ? 'entrada' : 'entradas'}</span>
                     </div>
                     {diaryEntries.length === 0 ? (
                       <div className="text-center py-14">
-                        <div className="w-14 h-14 bg-sky-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                          <BookOpen className="w-7 h-7 text-sky-300" />
+                        <div className="w-14 h-14 bg-sky-50 dark:bg-sky-900/20 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                          <BookOpen className="w-7 h-7 text-sky-300 dark:text-sky-600" />
                         </div>
-                        <p className="font-semibold text-gray-600">Sin entradas</p>
-                        <p className="text-sm text-gray-400 mt-1">El paciente aún no ha escrito en su diario</p>
+                        <p className="font-semibold text-gray-600 dark:text-gray-400">Sin entradas</p>
+                        <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">El paciente aún no ha escrito en su diario</p>
                       </div>
                     ) : (
                       diaryEntries.map((entry, i) => (
@@ -724,7 +718,7 @@ const PatientClinicalFile = ({ patient, onClose }) => {
                 {tab === 'homework' && !isLoading && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <h3 className="font-bold text-gray-900">Tareas terapéuticas</h3>
+                      <h3 className="font-bold text-gray-900 dark:text-white">Tareas terapéuticas</h3>
                       {hwTasks.length > 0 && (
                         <span className="text-xs font-semibold text-emerald-600">
                           {completedHW}/{hwTasks.length} completadas
@@ -733,21 +727,21 @@ const PatientClinicalFile = ({ patient, onClose }) => {
                     </div>
                     {hwTasks.length === 0 ? (
                       <div className="text-center py-14">
-                        <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                          <ClipboardList className="w-7 h-7 text-emerald-300" />
+                        <div className="w-14 h-14 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                          <ClipboardList className="w-7 h-7 text-emerald-300 dark:text-emerald-600" />
                         </div>
-                        <p className="font-semibold text-gray-600">Sin tareas asignadas</p>
-                        <p className="text-sm text-gray-400 mt-1">Las tareas aparecerán aquí cuando las asignes</p>
+                        <p className="font-semibold text-gray-600 dark:text-gray-400">Sin tareas asignadas</p>
+                        <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Las tareas aparecerán aquí cuando las asignes</p>
                       </div>
                     ) : (
                       <>
                         {/* Progress bar */}
-                        <div className="bg-white rounded-2xl border border-gray-100 p-4">
-                          <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
+                        <div className="bg-white dark:bg-[#1a2234] rounded-2xl border border-gray-100 dark:border-[#2d3748] p-4">
+                          <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-2">
                             <span>Adherencia general</span>
-                            <span className="font-bold text-gray-900">{Math.round((completedHW / totalHW) * 100)}%</span>
+                            <span className="font-bold text-gray-900 dark:text-white">{Math.round((completedHW / totalHW) * 100)}%</span>
                           </div>
-                          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                          <div className="h-2 bg-gray-100 dark:bg-[#0f1623] rounded-full overflow-hidden">
                             <motion.div
                               initial={{ width: 0 }}
                               animate={{ width: `${(completedHW / totalHW) * 100}%` }}
@@ -768,15 +762,15 @@ const PatientClinicalFile = ({ patient, onClose }) => {
                 {tab === 'notes' && !isLoading && (
                   <div className="space-y-4">
                     {/* Add note form */}
-                    <form onSubmit={handleAddNote} className="bg-white rounded-2xl border border-gray-100 p-4">
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Nueva nota clínica</p>
+                    <form onSubmit={handleAddNote} className="bg-white dark:bg-[#1a2234] rounded-2xl border border-gray-100 dark:border-[#2d3748] p-4">
+                      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Nueva nota clínica</p>
                       <div className="flex gap-2 items-end">
                         <textarea
                           value={newNote}
                           onChange={e => setNewNote(e.target.value)}
                           placeholder={`Añadir nota sobre ${pFirstName || 'el paciente'}…`}
                           rows={2}
-                          className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50"
+                          className="flex-1 px-3 py-2 text-sm border border-gray-200 dark:border-[#2d3748] rounded-xl resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 dark:bg-[#0f1623] dark:text-gray-100 dark:placeholder-gray-500"
                         />
                         <motion.button
                           type="submit"
@@ -799,16 +793,16 @@ const PatientClinicalFile = ({ patient, onClose }) => {
                     </form>
 
                     <div className="flex items-center justify-between">
-                      <h3 className="font-bold text-gray-900">Notas clínicas</h3>
-                      <span className="text-xs text-gray-400">{clinicalNotes.length} {clinicalNotes.length === 1 ? 'nota' : 'notas'}</span>
+                      <h3 className="font-bold text-gray-900 dark:text-white">Notas clínicas</h3>
+                      <span className="text-xs text-gray-400 dark:text-gray-500">{clinicalNotes.length} {clinicalNotes.length === 1 ? 'nota' : 'notas'}</span>
                     </div>
                     {clinicalNotes.length === 0 ? (
                       <div className="text-center py-10">
-                        <div className="w-14 h-14 bg-sky-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                          <FileText className="w-7 h-7 text-sky-300" />
+                        <div className="w-14 h-14 bg-sky-50 dark:bg-sky-900/20 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                          <FileText className="w-7 h-7 text-sky-300 dark:text-sky-600" />
                         </div>
-                        <p className="font-semibold text-gray-600">Sin notas clínicas</p>
-                        <p className="text-sm text-gray-400 mt-1">Usa el formulario de arriba para añadir la primera nota</p>
+                        <p className="font-semibold text-gray-600 dark:text-gray-400">Sin notas clínicas</p>
+                        <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Usa el formulario de arriba para añadir la primera nota</p>
                       </div>
                     ) : (
                       clinicalNotes.map((note, i) => (
@@ -822,8 +816,8 @@ const PatientClinicalFile = ({ patient, onClose }) => {
                 {tab === 'sessions' && !isLoading && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <h3 className="font-bold text-gray-900">Historial de sesiones</h3>
-                      <span className="text-xs text-gray-400">{sessionHistory.length} sesiones</span>
+                      <h3 className="font-bold text-gray-900 dark:text-white">Historial de sesiones</h3>
+                      <span className="text-xs text-gray-400 dark:text-gray-500">{sessionHistory.length} sesiones</span>
                     </div>
                     <div className="space-y-2">
                       {sessionHistory.map((session, i) => (
@@ -837,7 +831,6 @@ const PatientClinicalFile = ({ patient, onClose }) => {
           </div>
         </motion.div>
       </motion.div>
-    </AnimatePresence>
   )
 }
 
@@ -858,7 +851,7 @@ const StarRating = ({ value, onChange, readOnly = false }) => (
           className={`w-4 h-4 ${
             n <= (value || 0)
               ? 'fill-amber-400 text-amber-400'
-              : 'text-gray-200'
+              : 'text-gray-200 dark:text-gray-600'
           }`}
         />
       </button>
@@ -895,14 +888,14 @@ const EvaluationPanel = ({ entry, patientId, authorName, onSaved }) => {
 
   if (existing?.rating && !open) {
     return (
-      <div className="flex items-start justify-between gap-3 pt-3 border-t border-gray-50">
+      <div className="flex items-start justify-between gap-3 pt-3 border-t border-gray-50 dark:border-[#2d3748]">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <StarRating value={existing.rating} readOnly />
             <span className="text-[10px] text-gray-400">{existing.evaluatedBy}</span>
           </div>
           {existing.comment && (
-            <p className="text-xs text-gray-600 leading-relaxed italic">"{existing.comment}"</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed italic">"{existing.comment}"</p>
           )}
         </div>
         <button
@@ -917,10 +910,10 @@ const EvaluationPanel = ({ entry, patientId, authorName, onSaved }) => {
 
   if (!open) {
     return (
-      <div className="pt-3 border-t border-gray-50">
+      <div className="pt-3 border-t border-gray-50 dark:border-[#2d3748]">
         <button
           onClick={() => setOpen(true)}
-          className="flex items-center gap-1.5 text-[11px] font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+          className="flex items-center gap-1.5 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
         >
           <Star className="w-3.5 h-3.5" /> Evaluar esta entrada
         </button>
@@ -929,15 +922,15 @@ const EvaluationPanel = ({ entry, patientId, authorName, onSaved }) => {
   }
 
   return (
-    <div className="pt-3 border-t border-gray-50 space-y-2">
-      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Evaluación clínica</p>
+    <div className="pt-3 border-t border-gray-50 dark:border-[#2d3748] space-y-2">
+      <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Evaluación clínica</p>
       <StarRating value={rating} onChange={setRating} />
       <textarea
         value={comment}
         onChange={e => setComment(e.target.value)}
         placeholder="Observación clínica (opcional)…"
         rows={2}
-        className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-200"
+        className="w-full text-xs border border-gray-200 dark:border-[#2d3748] rounded-xl px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-200 dark:bg-[#0f1623] dark:text-gray-100 dark:placeholder-gray-500"
       />
       <div className="flex gap-2">
         <button
@@ -949,7 +942,7 @@ const EvaluationPanel = ({ entry, patientId, authorName, onSaved }) => {
         </button>
         <button
           onClick={() => setOpen(false)}
-          className="px-3 py-1.5 text-[11px] text-gray-500 hover:text-gray-700 transition-colors"
+          className="px-3 py-1.5 text-[11px] text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
         >
           Cancelar
         </button>
@@ -968,11 +961,11 @@ const DiaryCard = ({ entry, index = 0, expanded = false, patientId, authorName, 
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.15, delay: Math.min(index, 3) * 0.04 }}
-      className="bg-white rounded-2xl border border-gray-100 overflow-hidden"
+      className="bg-white dark:bg-[#1a2234] rounded-2xl border border-gray-100 dark:border-[#2d3748] overflow-hidden"
     >
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center gap-3 p-4 text-left hover:bg-gray-50/60 transition-colors"
+        className="w-full flex items-center gap-3 p-4 text-left hover:bg-gray-50/60 dark:hover:bg-[#2d3748]/50 transition-colors"
       >
         <span className="text-2xl">{meta.icon ?? entry.mood}</span>
         <div className="flex-1 min-w-0">
@@ -992,7 +985,7 @@ const DiaryCard = ({ entry, index = 0, expanded = false, patientId, authorName, 
             )}
           </div>
           {entry.notes && (
-            <p className="text-xs text-gray-500 mt-1 truncate leading-relaxed">{entry.notes}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate leading-relaxed">{entry.notes}</p>
           )}
         </div>
         <div className="text-right shrink-0">
@@ -1008,15 +1001,15 @@ const DiaryCard = ({ entry, index = 0, expanded = false, patientId, authorName, 
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-4 space-y-3 border-t border-gray-50 pt-3">
+            <div className="px-4 pb-4 space-y-3 border-t border-gray-50 dark:border-[#2d3748] pt-3">
               {entry.notes && (
-                <p className="text-sm text-gray-700 leading-relaxed">{entry.notes}</p>
+                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{entry.notes}</p>
               )}
               {(entry.energy != null || entry.sleep != null) && (
                 <div className="grid grid-cols-2 gap-3">
                   {entry.energy != null && (
                     <div>
-                      <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1.5 font-semibold flex items-center gap-1">
+                      <p className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1.5 font-semibold flex items-center gap-1">
                         <Zap className="w-3 h-3" /> Energía
                       </p>
                       <MoodBar value={entry.energy} />
@@ -1024,7 +1017,7 @@ const DiaryCard = ({ entry, index = 0, expanded = false, patientId, authorName, 
                   )}
                   {entry.sleep != null && (
                     <div>
-                      <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1.5 font-semibold flex items-center gap-1">
+                      <p className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1.5 font-semibold flex items-center gap-1">
                         <Moon className="w-3 h-3" /> Sueño
                       </p>
                       <MoodBar value={entry.sleep} />
@@ -1059,10 +1052,10 @@ const HomeworkCard = ({ task, index }) => {
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.15, delay: Math.min(index, 3) * 0.04 }}
-      className={`bg-white rounded-2xl border p-4 ${
-        task.completed ? 'border-emerald-100 opacity-75' :
-        isOverdue      ? 'border-rose-200'                :
-                         'border-gray-100'
+      className={`bg-white dark:bg-[#1a2234] rounded-2xl border p-4 ${
+        task.completed ? 'border-emerald-100 dark:border-emerald-900/40 opacity-75' :
+        isOverdue      ? 'border-rose-200 dark:border-rose-900/40'                :
+                         'border-gray-100 dark:border-[#2d3748]'
       }`}
     >
       <div className="flex items-start gap-3">
@@ -1074,7 +1067,7 @@ const HomeworkCard = ({ task, index }) => {
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-1">
-            <p className={`text-sm font-semibold ${task.completed ? 'line-through text-gray-400' : 'text-gray-800'}`}>
+            <p className={`text-sm font-semibold ${task.completed ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-800 dark:text-gray-100'}`}>
               {task.title}
             </p>
             <TypeBadge type={task.type} />
@@ -1084,8 +1077,8 @@ const HomeworkCard = ({ task, index }) => {
               </span>
             )}
           </div>
-          <p className="text-xs text-gray-500 leading-relaxed mb-2">{task.description}</p>
-          <div className="flex flex-wrap items-center gap-3 text-[10px] text-gray-400">
+          <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-2">{task.description}</p>
+          <div className="flex flex-wrap items-center gap-3 text-[10px] text-gray-400 dark:text-gray-500">
             {due && (
               <span className="flex items-center gap-1">
                 <Calendar className="w-3 h-3" />
@@ -1114,25 +1107,25 @@ const ClinicalNoteCard = ({ note, index }) => (
     initial={{ opacity: 0, y: 6 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.15, delay: Math.min(index, 3) * 0.04 }}
-    className="bg-white rounded-2xl border border-sky-100 p-5"
+    className="bg-white dark:bg-[#1a2234] rounded-2xl border border-sky-100 dark:border-sky-900/30 p-5"
   >
     <div className="flex items-start justify-between gap-3 mb-3">
       <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-xl bg-sky-50 flex items-center justify-center">
-          <FileText className="w-4 h-4 text-sky-500" />
+        <div className="w-8 h-8 rounded-xl bg-sky-50 dark:bg-sky-900/20 flex items-center justify-center">
+          <FileText className="w-4 h-4 text-sky-500 dark:text-sky-400" />
         </div>
         <div>
-          <p className="text-xs font-bold text-gray-800">Sesión #{note.sessionNumber}</p>
-          <p className="text-[10px] text-gray-400">{note.author}</p>
+          <p className="text-xs font-bold text-gray-800 dark:text-gray-200">Sesión #{note.sessionNumber}</p>
+          <p className="text-[10px] text-gray-400 dark:text-gray-500">{note.author}</p>
         </div>
       </div>
-      <span className="text-[10px] text-gray-400 shrink-0">{rel(note.date)}</span>
+      <span className="text-[10px] text-gray-400 dark:text-gray-500 shrink-0">{rel(note.date)}</span>
     </div>
-    <p className="text-sm text-gray-700 leading-relaxed">{note.text}</p>
+    <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{note.text}</p>
     {note.tags?.length > 0 && (
       <div className="flex flex-wrap gap-1.5 mt-3">
         {note.tags.map(tag => (
-          <span key={tag} className="flex items-center gap-0.5 text-[10px] font-medium text-blue-700 bg-sky-50 px-2 py-0.5 rounded-full">
+          <span key={tag} className="flex items-center gap-0.5 text-[10px] font-medium text-blue-700 dark:text-blue-400 bg-sky-50 dark:bg-sky-900/20 px-2 py-0.5 rounded-full">
             <Hash className="w-2.5 h-2.5" /> {tag}
           </span>
         ))}
@@ -1146,24 +1139,24 @@ const SessionRow = ({ session, index }) => (
       initial={{ opacity: 0, x: -6 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.15, delay: Math.min(index, 3) * 0.03 }}
-      className="bg-white rounded-2xl border border-gray-100 px-5 py-3.5 flex items-center gap-4"
+      className="bg-white dark:bg-[#1a2234] rounded-2xl border border-gray-100 dark:border-[#2d3748] px-5 py-3.5 flex items-center gap-4"
     >
-      <div className="w-9 h-9 rounded-xl bg-sky-50 flex items-center justify-center text-xs font-black text-blue-700 shrink-0">
+      <div className="w-9 h-9 rounded-xl bg-sky-50 dark:bg-sky-900/20 flex items-center justify-center text-xs font-black text-blue-700 dark:text-sky-400 shrink-0">
         #{session.number}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <p className="text-sm font-semibold text-gray-800">
+          <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
             {new Date(session.date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
           </p>
-          <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-medium">
+          <span className="text-[10px] bg-gray-100 dark:bg-[#0f1623] text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded-full font-medium">
             {session.type}
           </span>
         </div>
-        <p className="text-xs text-gray-400 mt-0.5">{session.duration} min</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{session.duration} min</p>
       </div>
-      <div className="w-8 h-8 rounded-xl bg-gray-50 flex items-center justify-center shrink-0">
-        <p className="text-sm font-bold text-gray-700">{session.mood}</p>
+      <div className="w-8 h-8 rounded-xl bg-gray-50 dark:bg-[#0f1623] flex items-center justify-center shrink-0">
+        <p className="text-sm font-bold text-gray-700 dark:text-gray-300">{session.mood}</p>
       </div>
     </motion.div>
 )

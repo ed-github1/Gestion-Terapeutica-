@@ -54,22 +54,22 @@ export const useVideoCallNotifications = () => {
     }
     setInvitations([demo])
     if (_notificationCallback) _notificationCallback(demo)
-    showToast('📞 Llamada entrante (Demo)', 'info')
+    showToast('Llamada entrante (Demo)', 'info')
   }
 
   const acceptInvitation = async (appointmentId) => {
     if (DEMO_MODE) {
       setInvitations([])
-      showToast('✅ Llamada aceptada (Demo)', 'success')
+      showToast('Llamada aceptada (Demo)', 'success')
       return true
     }
     try {
       await videoCallService.acceptInvitation(appointmentId)
       setInvitations((prev) => prev.filter((i) => i.appointmentId !== appointmentId))
-      showToast('✅ Llamada aceptada', 'success')
+      showToast('Llamada aceptada', 'success')
       return true
     } catch {
-      showToast('❌ Error al aceptar la llamada', 'error')
+      showToast('Error al aceptar la llamada', 'error')
       return false
     }
   }
@@ -77,16 +77,16 @@ export const useVideoCallNotifications = () => {
   const declineInvitation = async (appointmentId) => {
     if (DEMO_MODE) {
       setInvitations([])
-      showToast('📵 Llamada rechazada (Demo)', 'info')
+      showToast('Llamada rechazada (Demo)', 'info')
       return true
     }
     try {
       await videoCallService.rejectInvitation(appointmentId)
       setInvitations((prev) => prev.filter((i) => i.appointmentId !== appointmentId))
-      showToast('📵 Llamada rechazada', 'info')
+      showToast('Llamada rechazada', 'info')
       return true
     } catch {
-      showToast('❌ Error al rechazar la llamada', 'error')
+      showToast('Error al rechazar la llamada', 'error')
       return false
     }
   }

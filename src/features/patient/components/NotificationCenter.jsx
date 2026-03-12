@@ -20,10 +20,10 @@ const TYPE_MAP = {
 }
 
 const COLOR = {
-  blue:  { ring: 'ring-blue-200',  bg: 'bg-blue-50',   text: 'text-blue-800',  dot: 'bg-blue-500'  },
-  green: { ring: 'ring-green-200', bg: 'bg-green-50',  text: 'text-green-800', dot: 'bg-green-500' },
-  red:   { ring: 'ring-red-200',   bg: 'bg-red-50',    text: 'text-red-800',   dot: 'bg-red-500'   },
-  amber: { ring: 'ring-amber-200', bg: 'bg-amber-50',  text: 'text-amber-800', dot: 'bg-amber-500' },
+  blue:  { ring: 'ring-blue-200',  bg: 'bg-blue-50 dark:bg-blue-900/20',   text: 'text-blue-800 dark:text-blue-300',  dot: 'bg-blue-500'  },
+  green: { ring: 'ring-green-200', bg: 'bg-green-50 dark:bg-green-900/20', text: 'text-green-800 dark:text-green-300', dot: 'bg-green-500' },
+  red:   { ring: 'ring-red-200',   bg: 'bg-red-50 dark:bg-red-900/20',     text: 'text-red-800 dark:text-red-300',    dot: 'bg-red-500'   },
+  amber: { ring: 'ring-amber-200', bg: 'bg-amber-50 dark:bg-amber-900/20', text: 'text-amber-800 dark:text-amber-300', dot: 'bg-amber-500' },
 }
 
 const NotificationCenter = ({ notifications = [], onDismiss, onDismissAll, onAction }) => {
@@ -48,10 +48,10 @@ const NotificationCenter = ({ notifications = [], onDismiss, onDismissAll, onAct
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setOpen((v) => !v)}
-        className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-white border border-stone-200 shadow-sm hover:border-stone-300 transition-colors"
+        className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-white dark:bg-gray-800 border border-stone-200 dark:border-gray-700 shadow-sm hover:border-stone-300 dark:hover:border-gray-600 transition-colors"
         aria-label="Notificaciones"
       >
-        <svg className="w-4.5 h-4.5 text-stone-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-4.5 h-4.5 text-stone-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
             d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
         </svg>
@@ -79,15 +79,15 @@ const NotificationCenter = ({ notifications = [], onDismiss, onDismissAll, onAct
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.97 }}
             transition={{ type: 'spring', stiffness: 340, damping: 26 }}
-            className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-stone-100 z-50 overflow-hidden"
+            className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-stone-100 dark:border-gray-700 z-50 overflow-hidden"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-stone-100">
-              <span className="text-sm font-bold text-stone-800">Notificaciones</span>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-stone-100 dark:border-gray-700">
+              <span className="text-sm font-bold text-stone-800 dark:text-white">Notificaciones</span>
               {unread > 0 && (
                 <button
                   onClick={() => { onDismissAll(); setOpen(false) }}
-                  className="text-[11px] font-medium text-stone-400 hover:text-stone-600 transition-colors"
+                  className="text-[11px] font-medium text-stone-400 dark:text-gray-500 hover:text-stone-600 dark:hover:text-gray-300 transition-colors"
                 >
                   Limpiar todas
                 </button>
@@ -95,14 +95,14 @@ const NotificationCenter = ({ notifications = [], onDismiss, onDismissAll, onAct
             </div>
 
             {/* List */}
-            <div className="max-h-90 overflow-y-auto divide-y divide-stone-50">
+            <div className="max-h-90 overflow-y-auto divide-y divide-stone-50 dark:divide-gray-700">
               {notifications.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-10 text-center gap-2">
-                  <svg className="w-8 h-8 text-stone-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-8 h-8 text-stone-200 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                       d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                   </svg>
-                  <p className="text-xs text-stone-400 font-medium">Sin notificaciones</p>
+                  <p className="text-xs text-stone-400 dark:text-gray-500 font-medium">Sin notificaciones</p>
                 </div>
               ) : (
                 <AnimatePresence initial={false}>
@@ -131,7 +131,7 @@ const NotificationCenter = ({ notifications = [], onDismiss, onDismissAll, onAct
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: 24, height: 0 }}
                         transition={{ duration: 0.18 }}
-                        className={`flex items-start gap-3 px-4 py-3 hover:bg-stone-50 transition-colors ${c.bg}`}
+                        className={`flex items-start gap-3 px-4 py-3 hover:bg-stone-50 dark:hover:bg-gray-700/50 transition-colors ${c.bg}`}
                       >
                         {/* Animated live dot */}
                         <span className="mt-1 shrink-0 relative flex h-2.5 w-2.5">
@@ -146,17 +146,17 @@ const NotificationCenter = ({ notifications = [], onDismiss, onDismissAll, onAct
                             {meta.emoji}&nbsp;{meta.label}
                           </p>
                           {(date || time) && (
-                            <p className="text-[11px] text-stone-500 mt-0.5">
+                            <p className="text-[11px] text-stone-500 dark:text-gray-400 mt-0.5">
                               {[date, time].filter(Boolean).join(' · ')}
                             </p>
                           )}
                           {n.data?.professionalName && (
-                            <p className="text-[10px] text-stone-400 mt-0.5 truncate">
+                            <p className="text-[10px] text-stone-400 dark:text-gray-500 mt-0.5 truncate">
                               {n.data.professionalName}
                             </p>
                           )}
                           {n.message && (
-                            <p className="text-[10px] text-stone-400 mt-0.5">{n.message}</p>
+                            <p className="text-[10px] text-stone-400 dark:text-gray-500 mt-0.5">{n.message}</p>
                           )}
                           {(n.event === 'appointment-pending' || n.event === 'appointment-booked') && n.data && (
                             <button
@@ -170,14 +170,14 @@ const NotificationCenter = ({ notifications = [], onDismiss, onDismissAll, onAct
 
                         <div className="flex flex-col items-end gap-1 shrink-0">
                           {relTime && (
-                            <span className="text-[10px] text-stone-400">{relTime}</span>
+                            <span className="text-[10px] text-stone-400 dark:text-gray-500">{relTime}</span>
                           )}
                           <button
                             onClick={() => onDismiss(n.id)}
-                            className="p-0.5 rounded-md hover:bg-black/5 transition-colors"
+                            className="p-0.5 rounded-md hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
                             aria-label="Descartar"
                           >
-                            <svg className="w-3 h-3 text-stone-300 hover:text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-3 h-3 text-stone-300 dark:text-gray-600 hover:text-stone-500 dark:hover:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
                           </button>

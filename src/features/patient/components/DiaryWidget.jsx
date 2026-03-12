@@ -104,18 +104,18 @@ const DiaryWidget = () => {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.12 }}
-      className="bg-white rounded-3xl border border-stone-100 shadow-sm overflow-hidden"
+      className="bg-white dark:bg-gray-800 rounded-3xl border border-stone-100 dark:border-gray-700 shadow-sm overflow-hidden"
     >
       {/* Header */}
-      <div className="flex items-center gap-2.5 px-5 pt-5 pb-4 border-b border-stone-100">
-        <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
-          <BookOpen className="w-4 h-4 text-emerald-600" strokeWidth={1.8} />
+      <div className="flex items-center gap-2.5 px-5 pt-5 pb-4 border-b border-stone-100 dark:border-gray-700">
+        <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
+          <BookOpen className="w-4 h-4 text-emerald-600 dark:text-emerald-400" strokeWidth={1.8} />
         </div>
-        <p className="text-sm font-bold text-stone-900">Mi Diario</p>
+        <p className="text-sm font-bold text-stone-900 dark:text-white">Mi Diario</p>
       </div>
 
       {/* Compose — always visible */}
-      <form onSubmit={handleSave} className="px-5 py-4 space-y-3 border-b border-stone-100">
+      <form onSubmit={handleSave} className="px-5 py-4 space-y-3 border-b border-stone-100 dark:border-gray-700">
         {/* Mood selector */}
         <div className="flex gap-1.5 flex-wrap">
           {MOOD_OPTIONS.map(({ key, label, Icon, colors }) => {
@@ -130,7 +130,7 @@ const DiaryWidget = () => {
                 className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium border transition select-none
                   ${active
                     ? `${bg} ${text} ${border} ring-2 ring-offset-1 ${ring}`
-                    : 'bg-stone-50 border-stone-200 text-stone-500 hover:bg-stone-100'
+                    : 'bg-stone-50 dark:bg-gray-700 border-stone-200 dark:border-gray-600 text-stone-500 dark:text-gray-400 hover:bg-stone-100 dark:hover:bg-gray-600'
                   }`}
               >
                 <Icon className="w-3.5 h-3.5" strokeWidth={active ? 2.2 : 1.8} />
@@ -148,7 +148,7 @@ const DiaryWidget = () => {
             onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSave(e) }}
             placeholder="¿Cómo te sientes hoy? (Ctrl+Enter para guardar)"
             rows={2}
-            className="w-full px-3 py-2.5 pr-10 text-sm border border-stone-200 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:border-transparent outline-none bg-stone-50 resize-none"
+            className="w-full px-3 py-2.5 pr-10 text-sm border border-stone-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:border-transparent outline-none bg-stone-50 dark:bg-gray-700 dark:text-gray-200 dark:placeholder-gray-500 resize-none"
           />
           <motion.button
             type="submit"
@@ -181,13 +181,13 @@ const DiaryWidget = () => {
         {loading ? (
           <div className="space-y-2">
             {[1, 2].map(i => (
-              <div key={i} className="h-12 bg-stone-100 rounded-2xl animate-pulse" />
+              <div key={i} className="h-12 bg-stone-100 dark:bg-gray-700 rounded-2xl animate-pulse" />
             ))}
           </div>
         ) : entries.length === 0 ? (
           <div className="flex flex-col items-center py-5 gap-1.5">
-            <BookOpen className="w-8 h-8 text-stone-200" strokeWidth={1.2} />
-            <p className="text-xs text-stone-400">Sin entradas todavía. ¡Escribe la primera!</p>
+            <BookOpen className="w-8 h-8 text-stone-200 dark:text-gray-600" strokeWidth={1.2} />
+            <p className="text-xs text-stone-400 dark:text-gray-500">Sin entradas todavía. ¡Escribe la primera!</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -201,7 +201,7 @@ const DiaryWidget = () => {
                   initial={{ opacity: 0, x: -6 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  className="flex items-start gap-3 p-3 rounded-2xl bg-stone-50"
+                  className="flex items-start gap-3 p-3 rounded-2xl bg-stone-50 dark:bg-gray-700/50"
                 >
                   <span className={`shrink-0 mt-0.5 flex items-center gap-1 px-2 py-0.5 rounded-lg border text-xs font-medium ${bg} ${text} ${border}`}>
                     <m.Icon className="w-3 h-3" strokeWidth={2} />
@@ -209,9 +209,9 @@ const DiaryWidget = () => {
                   </span>
                   <div className="flex-1 min-w-0">
                     {entry.notes && (
-                      <p className="text-xs text-stone-700 leading-snug line-clamp-2">{entry.notes}</p>
+                      <p className="text-xs text-stone-700 dark:text-gray-300 leading-snug line-clamp-2">{entry.notes}</p>
                     )}
-                    <p className="flex items-center gap-1 text-[10px] text-stone-400 mt-1">
+                    <p className="flex items-center gap-1 text-[10px] text-stone-400 dark:text-gray-500 mt-1">
                       <Clock className="w-2.5 h-2.5" />
                       {relDate(entry.date || entry.createdAt)}
                     </p>

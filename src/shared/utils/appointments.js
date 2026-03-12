@@ -97,8 +97,23 @@ export function normalizeAppointment(apt) {
     duration:       apt.duration ?? apt.durationMinutes ?? 60,
     reason:         apt.reason ?? apt.motivo ?? apt.notes ?? null,
     notes:          apt.notes ?? apt.notas ?? null,
-    isVideoCall:    apt.isVideoCall ?? apt.videoCall ?? apt.online ?? false,
+    isVideoCall:    !!(apt.mode === 'videollamada' || apt.isVideoCall || apt.videoCall || apt.online),
+    mode:           apt.mode ?? apt.modalidad ?? ((apt.isVideoCall || apt.videoCall || apt.online) ? 'videollamada' : 'consultorio'),
     professionalName,
+    // Extract professional's user account ID (for socket routing) from any shape.
+    // Backend may populate: professionalId.userId = { _id: '...', email: '...' }
+    professionalUserId: (() => {
+      if (apt.professionalUserId && typeof apt.professionalUserId === 'string') return apt.professionalUserId
+      if (typeof apt.professionalId === 'object' && apt.professionalId !== null) {
+        const uid = apt.professionalId.userId
+        if (uid) {
+          if (typeof uid === 'string') return uid
+          if (typeof uid === 'object') return uid._id || uid.id || null
+        }
+        return apt.professionalId.user?._id || apt.professionalId.user?.id || null
+      }
+      return null
+    })(),
   }
 }
 

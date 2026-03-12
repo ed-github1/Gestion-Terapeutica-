@@ -71,7 +71,7 @@ const PatientRegister = () => {
       }
     } catch (error) {
       console.error('❌ Error verifying code:', error)
-      showToast(`❌ ${error.message}`, 'error')
+      showToast(`${error.message}`, 'error')
     } finally {
       setLoading(false)
     }
@@ -98,13 +98,13 @@ const PatientRegister = () => {
 
       if (response.ok) {
         setOtpSent(true)
-        showToast('📱 Código enviado a tu teléfono', 'success')
+        showToast('Código enviado a tu teléfono', 'success')
       } else {
         throw new Error(data.message || 'Error al enviar código')
       }
     } catch (error) {
       console.error('Error sending OTP:', error)
-      showToast(`❌ ${error.message}`, 'error')
+      showToast(`${error.message}`, 'error')
     } finally {
       setLoading(false)
     }
@@ -134,13 +134,13 @@ const PatientRegister = () => {
 
       if (response.ok) {
         setStep(3) // Move to registration form
-        showToast('✅ Teléfono verificado', 'success')
+        showToast('Teléfono verificado', 'success')
       } else {
         throw new Error(data.message || 'Código incorrecto')
       }
     } catch (error) {
       console.error('Error verifying OTP:', error)
-      showToast(`❌ ${error.message}`, 'error')
+      showToast(`${error.message}`, 'error')
     } finally {
       setLoading(false)
     }
@@ -206,7 +206,7 @@ const PatientRegister = () => {
       }
     } catch (error) {
       console.error('Error registering:', error)
-      showToast(`❌ ${error.message}`, 'error')
+      showToast(`${error.message}`, 'error')
     } finally {
       setLoading(false)
     }

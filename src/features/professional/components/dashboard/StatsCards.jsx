@@ -68,7 +68,7 @@ const StatsCards = ({ stats, todayAppointments, mockRevenue, monthGrowth, revenu
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: card.delay, duration: 0.25 }}
-                    className="bg-white rounded-xl px-3 py-2 border border-gray-100 flex items-center gap-2.5 hover:shadow-sm transition-shadow cursor-default"
+                    className="bg-white rounded-xl px-3 py-2 border border-gray-200 flex items-center gap-2.5 hover:shadow-md transition-shadow cursor-default shadow-sm"
                 >
                     <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${card.iconBg}`}>
                         <card.icon className={`w-3.5 h-3.5 ${card.iconColor}`} strokeWidth={2} />
@@ -76,7 +76,7 @@ const StatsCards = ({ stats, todayAppointments, mockRevenue, monthGrowth, revenu
 
                     <div className="flex-1 min-w-0">
                         <p className="text-base font-bold text-gray-900 leading-none">{card.value}</p>
-                        <p className="text-[10px] text-gray-400 mt-0.5 truncate leading-none">
+                        <p className="text-[10px] text-gray-600 mt-0.5 truncate leading-none">
                             <span className="sm:hidden">{card.labelShort}</span>
                             <span className="hidden sm:inline">{card.label}</span>
                         </p>

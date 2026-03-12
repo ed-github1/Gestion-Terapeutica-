@@ -36,15 +36,15 @@ const SidebarNavItem = ({
             aria-current={isActive ? 'page' : undefined}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 ${
                 isActive 
-                    ? 'bg-sky-100 text-blue-700 shadow-sm' 
-                    : 'text-gray-600 hover:bg-sky-50 hover:text-blue-700'
+                    ? 'bg-sky-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 shadow-sm' 
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-sky-50 dark:hover:bg-gray-700 hover:text-blue-700 dark:hover:text-blue-300'
             } ${isCollapsed ? 'justify-center px-0' : ''}`}
         >
             {/* Icon with security indicator */}
             <div className="relative">
                 <IconComponent 
                     className={`w-5 h-5 flex-shrink-0 transition-colors ${
-                        isActive ? 'text-blue-700' : 'text-gray-400 group-hover:text-sky-500'
+                        isActive ? 'text-blue-700 dark:text-blue-300' : 'text-gray-400 group-hover:text-sky-500'
                     }`}
                     strokeWidth={isActive ? 2.5 : 2}
                 />
@@ -61,7 +61,7 @@ const SidebarNavItem = ({
                 <div className="flex-1 text-left min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
                         <span className={`text-sm font-semibold ${
-                            isActive ? 'text-blue-700' : 'text-gray-700'
+                            isActive ? 'text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-200'
                         }`}>
                             {item.label}
                         </span>
@@ -72,7 +72,7 @@ const SidebarNavItem = ({
                                 className={`px-2 py-0.5 text-xs font-bold rounded-full shadow-sm ${
                                     isActive 
                                         ? 'bg-blue-700 text-white' 
-                                        : 'bg-sky-100 text-blue-700'
+                                        : 'bg-sky-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300'
                                 }`}
                                 aria-label={`${item.badge} notificaciones`}
                             >
@@ -81,7 +81,7 @@ const SidebarNavItem = ({
                         )}
                     </div>
                     <p className={`text-xs truncate font-medium ${
-                        isActive ? 'text-blue-500' : 'text-gray-400'
+                        isActive ? 'text-blue-500 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'
                     }`}>
                         {item.description}
                     </p>

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { CalendarCheck, ChevronLeft, ChevronRight } from 'lucide-react'
+import { CalendarCheck, ChevronLeft, ChevronRight, TrendingUp, TrendingDown } from 'lucide-react'
 import TodaysSessions from '../TodaysSessions'
 import { formatTime } from '../../dashboard/dashboardUtils'
 
@@ -71,18 +71,13 @@ const CalendarDayCell = ({ day, cellDate, isToday, isSelected, info, onSelect, c
     const isLarge = cellSize === 'lg'
 
     const sessionCount = info?.count ?? 0
-    const dotColor =
-        sessionCount >= 4 ? 'bg-gray-800' : sessionCount >= 2 ? 'bg-gray-600' : 'bg-gray-400'
 
+    // Button: no square hover, no bg on selected
     let buttonClass = isLarge
         ? 'relative flex flex-col items-center justify-center py-1.5 rounded-2xl transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-1 '
         : isSmall
             ? 'relative flex flex-col items-center justify-center py-0.5 rounded-xl transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-1 '
             : 'relative flex flex-col items-center justify-center py-1 rounded-2xl transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-1 '
-
-    if (!isSelected && !isToday) {
-        buttonClass += info ? 'hover:bg-gray-100' : 'hover:bg-gray-50'
-    }
 
     // Subtle availability ring on empty days that have open slots
     if (!isSelected && !isToday && !info && hasAvailability) {
@@ -96,14 +91,19 @@ const CalendarDayCell = ({ day, cellDate, isToday, isSelected, info, onSelect, c
             ? 'w-8 h-8 text-xs font-medium '
             : 'w-9 h-9 text-sm font-medium '
 
-    if (isSelected) {
-        circleClass += 'bg-[#0075C9] text-white font-bold shadow-md shadow-blue-300/50'
+    if (isSelected && isToday) {
+        // Today + selected: filled bg
+        circleClass += 'bg-[#0075C9] text-white font-bold'
+    } else if (isSelected) {
+        // Other day selected: border only, no fill
+        circleClass += 'border-2 border-[#0075C9] text-[#0075C9] font-bold'
     } else if (isToday) {
-        circleClass += 'bg-[#0075C9] text-white font-bold ring-2 ring-[#54C0E8] ring-offset-2'
+        // Today not selected: filled bg
+        circleClass += 'bg-[#0075C9] text-white font-bold'
     } else if (info) {
-        circleClass += 'text-gray-900 font-semibold'
+        circleClass += 'text-gray-900 dark:text-gray-100 font-semibold hover:bg-gray-100 dark:hover:bg-gray-700'
     } else {
-        circleClass += 'text-gray-400'
+        circleClass += 'text-gray-500 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
     }
 
     const ariaLabel = [
@@ -125,26 +125,20 @@ const CalendarDayCell = ({ day, cellDate, isToday, isSelected, info, onSelect, c
         >
             <span className={circleClass}>{day}</span>
 
+            {/* Pill chip session count */}
             {info ? (
                 <span
-                    className={`rounded-full mt-1 ${dotColor} ${
-                        isLarge ? 'w-2 h-2' : isSmall ? 'w-1 h-1' : 'w-1.5 h-1.5'
-                    } ${isSelected ? 'opacity-60' : 'opacity-90'}`}
-                    aria-hidden="true"
-                />
-            ) : (
-                <span className={isLarge ? 'h-3' : isSmall ? 'h-2' : 'h-2.5'} aria-hidden="true" />
-            )}
-
-            {info && sessionCount > 1 && (
-                <span
-                    className={`absolute -top-0.5 -right-0.5 font-bold flex items-center justify-center rounded-full ${
-                        isSmall ? 'text-[8px] w-3.5 h-3.5' : 'text-[9px] w-4 h-4'
-                    } ${isSelected || isToday ? 'bg-white text-[#0075C9]' : 'bg-[#0075C9] text-white'}`}
+                    className={`inline-flex items-center justify-center rounded-full px-1.5 mt-1 leading-none font-bold ${
+                        isSmall ? 'text-[7px] py-0.5' : 'text-[8px] py-0.5'
+                    } ${
+                        isToday ? 'bg-white/25 text-white' : 'bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300'
+                    }`}
                     aria-hidden="true"
                 >
                     {sessionCount}
                 </span>
+            ) : (
+                <span className={isSmall ? 'h-4' : 'h-4'} aria-hidden="true" />
             )}
         </motion.button>
     )
@@ -193,7 +187,7 @@ const CalendarGrid = ({
                 {DOW_MON.map((d) => (
                     <div
                         key={d}
-                        className={`text-center font-bold text-gray-400 ${
+                        className={`text-center font-bold text-gray-500 dark:text-gray-400 ${
                             isLarge ? 'text-sm py-2.5' : isSmall ? 'text-[10px] py-1' : 'text-xs py-1.5'
                         }`}
                     >
@@ -254,17 +248,33 @@ const CalendarStats = ({ calendarData, compact = false }) => {
         { label: 'Completadas', value: calendarData.completedSessions },
         { label: 'Canceladas',  value: calendarData.cancelledSessions },
     ]
+    const pct = calendarData.totalSessions > 0
+        ? Math.round(calendarData.completedSessions / calendarData.totalSessions * 100)
+        : 0
 
     return (
-        <div className={`grid grid-cols-3 gap-2 ${compact ? 'mt-3 pt-3' : 'mt-5 pt-4'} border-t border-gray-100`}>
-            {items.map(({ label, value }) => (
-                <div key={label} className="bg-gray-50 rounded-xl px-2 py-2 text-center border border-gray-100">
-                    <p className={`${compact ? 'text-base' : 'text-xl'} font-bold text-gray-900 leading-none`}>
-                        {value}
-                    </p>
-                    <p className="text-[10px] font-medium text-gray-500 mt-1 leading-none">{label}</p>
+        <div className={`${compact ? 'mt-3 pt-3' : 'mt-5 pt-4'} border-t border-gray-100 dark:border-gray-700`}>
+            <div className="grid grid-cols-3 gap-2">
+                {items.map(({ label, value }) => (
+                    <div key={label} className="bg-gray-50 dark:bg-gray-700/50 rounded-xl px-2 py-2 text-center border border-gray-100 dark:border-gray-700">
+                        <p className={`${compact ? 'text-base' : 'text-xl'} font-bold text-gray-900 dark:text-white leading-none`}>
+                            {value}
+                        </p>
+                        <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 mt-1 leading-none">{label}</p>
+                    </div>
+                ))}
+            </div>
+            {calendarData.totalSessions > 0 && (
+                <div className="mt-2.5">
+                    <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div
+                            className="h-full bg-emerald-400 rounded-full transition-all duration-700"
+                            style={{ width: `${pct}%` }}
+                        />
+                    </div>
+                    <p className="text-[9px] text-gray-400 dark:text-gray-500 mt-1 text-right leading-none">{pct}% completado</p>
                 </div>
-            ))}
+            )}
         </div>
     )
 }
@@ -312,7 +322,7 @@ const MonthNav = ({ calendarData, setCalendarMonth, compact = false, inlineMode 
                 <button onClick={() => navigate(-1)} className="flex items-center justify-center text-[#0075C9] hover:text-[#54C0E8] transition-colors" aria-label="Mes anterior">
                     <ChevronLeft size={14} />
                 </button>
-                <AnimatedTitle className="text-xs md:text-sm font-bold text-gray-900 leading-none whitespace-nowrap min-w-22.5 md:min-w-0 text-center" />
+                <AnimatedTitle className="text-xs md:text-sm font-bold text-gray-900 dark:text-gray-100 leading-none whitespace-nowrap min-w-22.5 md:min-w-0 text-center" />
                 <button onClick={() => navigate(1)} className="flex items-center justify-center text-[#0075C9] hover:text-[#54C0E8] transition-colors" aria-label="Mes siguiente">
                     <ChevronRight size={14} />
                 </button>
@@ -333,11 +343,16 @@ const MonthNav = ({ calendarData, setCalendarMonth, compact = false, inlineMode 
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: dir > 0 ? -8 : 8 }}
                         transition={{ duration: 0.18, ease: 'easeOut' }}
-                        className={`font-bold text-gray-900 leading-tight mt-0.5 ${compact ? 'text-base' : 'text-xl'}`}
+                        className={`font-bold text-gray-900 dark:text-gray-100 leading-tight mt-0.5 ${compact ? 'text-base' : 'text-xl'}`}
                     >
                         {calendarData.monthName} {calendarData.year}
                     </motion.p>
                 </AnimatePresence>
+                {calendarData.totalSessions > 0 && (
+                    <p className="text-[10px] text-gray-400 mt-0.5 leading-none">
+                        {calendarData.totalSessions} sesiones · {calendarData.completedSessions} completadas
+                    </p>
+                )}
             </div>
             <div className="flex items-center gap-1.5">
                 <button onClick={() => navigate(-1)} className={btnClass} aria-label="Mes anterior">
@@ -360,15 +375,22 @@ const MonthNav = ({ calendarData, setCalendarMonth, compact = false, inlineMode 
  *
  * @param {{ value, label, trend?, trendPos? }} props
  */
-const KpiChip = ({ value, label, trend, trendPos }) => (
-    <div className="bg-gray-50/80 border border-gray-100 rounded-lg px-2.5 py-1.5 md:rounded-xl md:px-2 md:py-1.5 flex items-baseline gap-1.5 md:flex-col md:items-start md:gap-0">
-        <p className="text-xs md:text-[13px] font-bold text-gray-900 leading-none whitespace-nowrap">{value}</p>
-        {trend != null && (
-            <span className={`text-[8px] md:text-[9px] font-bold leading-none ${trendPos ? 'text-emerald-600' : 'text-rose-500'}`}>
-                {trendPos ? '↑' : '↓'}{Math.abs(trend)}%
-            </span>
-        )}
-        <p className="text-[9px] md:text-[10px] text-gray-400 leading-none md:mt-0.5">{label}</p>
+const KpiChip = ({ value, label, trend, trendPos, Icon, iconColor = 'text-gray-400' }) => (
+    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-2xl px-3 pt-2.5 pb-3 w-full flex flex-col gap-1.5">
+        <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+                {Icon && <Icon size={12} className={iconColor} strokeWidth={2.5} />}
+                <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 tracking-wide uppercase">{label}</span>
+            </div>
+            {trend != null && (
+                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+                    trendPos ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : 'bg-rose-50 dark:bg-rose-900/30 text-rose-500 dark:text-rose-400'
+                }`}>
+                    {trendPos ? '↑' : '↓'}{Math.abs(trend)}%
+                </span>
+            )}
+        </div>
+        <p className="text-[22px] font-black text-gray-900 dark:text-white leading-none tabular-nums tracking-tight">{value}</p>
     </div>
 )
 
@@ -378,9 +400,9 @@ const KpiChip = ({ value, label, trend, trendPos }) => (
 
 /** Pulsing placeholder matching KpiChip dimensions */
 const KpiChipSkeleton = () => (
-    <div className="bg-gray-50/80 border border-gray-100 rounded-lg px-2.5 py-1.5 md:rounded-xl md:px-2 md:py-1.5 animate-pulse flex flex-col gap-1.5">
-        <div className="h-3 w-10 bg-gray-200 rounded" />
-        <div className="h-2 w-7 bg-gray-100 rounded" />
+    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-2xl px-3 pt-2.5 pb-3 animate-pulse w-full flex flex-col gap-1.5">
+        <div className="h-2.5 w-16 bg-gray-200 dark:bg-gray-600 rounded-full" />
+        <div className="h-6 w-12 bg-gray-200 dark:bg-gray-600 rounded" />
     </div>
 )
 
@@ -399,7 +421,7 @@ const CalendarGridSkeleton = () => {
             <div className="grid grid-cols-7 mb-1">
                 {Array.from({ length: HEADER_CELLS }).map((_, i) => (
                     <div key={i} className="flex justify-center py-1.5">
-                        <div className="w-4 h-2 bg-gray-200 rounded" />
+                        <div className="w-4 h-2 bg-gray-200 dark:bg-gray-600 rounded" />
                     </div>
                 ))}
             </div>
@@ -408,7 +430,7 @@ const CalendarGridSkeleton = () => {
                 {Array.from({ length: DAY_CELLS }).map((_, i) => (
                     <div key={i} className="flex flex-col items-center py-1 gap-1">
                         <div
-                            className="w-9 h-9 rounded-full bg-gray-100"
+                            className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-700"
                             style={{ opacity: 0.4 + ((i % 5) * 0.12) }}
                         />
                         <div className="w-1.5 h-1.5 rounded-full bg-transparent" />
@@ -440,46 +462,27 @@ const CalendarCardHeader = ({
     quickActionsSlot,
     onToday,
 }) => (
-    <div className="border-b border-gray-100 shrink-0">
-        {/* Row 1: Avatar + name — always visible */}
-        <div className="flex items-center justify-between px-3 pt-2 pb-1.5 md:px-6 md:pt-5 md:pb-3">
+    <div className="border-b border-gray-200 dark:border-gray-700 shrink-0">
+
+        {/* ── Mobile (< md): avatar + name + month nav in one row ── */}
+        <div className="flex md:hidden items-center justify-between px-3 pt-2 pb-1.5">
             <div className="flex items-center gap-2">
                 <button
                     onClick={profile.onNavigate}
-                    className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-[#0075C9] flex items-center justify-center text-white font-bold text-[10px] md:text-xs shrink-0 hover:bg-gray-700 transition-colors"
+                    className="w-8 h-8 rounded-full bg-[#0075C9] flex items-center justify-center text-white font-bold text-[10px] shrink-0 hover:bg-gray-700 transition-colors"
                     title="Ver Perfil"
                 >
                     {profile.initials}
                 </button>
-                <div className="hidden md:block">
-                    <p className="text-[10px] text-gray-400 leading-none">{profile.greeting}</p>
-                    <p className="text-[14px] font-bold text-gray-900 leading-tight mt-0.5">{profile.name}</p>
-                </div>
-                <p className="md:hidden text-[13px] font-bold text-gray-900 leading-none">{profile.name}</p>
+                <p className="text-[13px] font-bold text-gray-900 dark:text-gray-100 leading-none">{profile.name}</p>
             </div>
-
-            {/* Month nav — inline on mobile, same row as name */}
             <MonthNav calendarData={calendarData} setCalendarMonth={setCalendarMonth} inlineMode onToday={onToday} />
         </div>
 
-        {/* Row 2: KPIs — horizontal scroll on mobile, grid on md–lg; hidden on xl (right col takes over) */}
+        {/* Mobile KPIs: 2×2 */}
         {kpis?.length > 0 && (
-            <div className="px-3 pb-2 md:px-6 md:pb-3 xl:hidden">
-                {/* Mobile: horizontal scrollable strip */}
-                <div className="flex md:hidden gap-2 overflow-x-auto scrollbar-hide -mx-3 px-3 snap-x">
-                    {kpisLoading
-                        ? Array.from({ length: 4 }).map((_, i) => (
-                            <div key={i} className="snap-start shrink-0"><KpiChipSkeleton /></div>
-                        ))
-                        : kpis.map((k) => (
-                            <div key={k.label} className="snap-start shrink-0">
-                                <KpiChip {...k} />
-                            </div>
-                        ))
-                    }
-                </div>
-                {/* md–lg: standard grid */}
-                <div className="hidden md:grid grid-cols-4 gap-1.5">
+            <div className="md:hidden px-3 pb-3">
+                <div className="grid grid-cols-2 gap-2">
                     {kpisLoading
                         ? Array.from({ length: 4 }).map((_, i) => <KpiChipSkeleton key={i} />)
                         : kpis.map((k) => <KpiChip key={k.label} {...k} />)
@@ -488,9 +491,67 @@ const CalendarCardHeader = ({
             </div>
         )}
 
-        {/* Quick actions — ONLY on md+ inside header; mobile gets bottom bar */}
+        {/* ── md–lg: single row — avatar/name · KPIs · MonthNav ── */}
+        <div className="hidden md:flex xl:hidden items-center gap-3 px-4 lg:px-5 pt-3 pb-3">
+            {/* Profile */}
+            <div className="flex items-center gap-2.5 shrink-0">
+                <button
+                    onClick={profile.onNavigate}
+                    className="w-10 h-10 rounded-full bg-[#0075C9] flex items-center justify-center text-white font-bold text-xs shrink-0 hover:bg-gray-700 transition-colors"
+                    title="Ver Perfil"
+                >
+                    {profile.initials}
+                </button>
+                <div>
+                    <p className="text-[10px] text-gray-400 leading-none">{profile.greeting}</p>
+                    <p className="text-[13px] font-bold text-gray-900 dark:text-gray-100 leading-tight mt-0.5 whitespace-nowrap">{profile.name}</p>
+                </div>
+            </div>
+
+            {/* KPIs — fill available space */}
+            {kpis?.length > 0 && (
+                <div className="flex-1 grid grid-cols-4 gap-2 min-w-0">
+                    {kpisLoading
+                        ? Array.from({ length: 4 }).map((_, i) => <KpiChipSkeleton key={i} />)
+                        : kpis.map((k) => <KpiChip key={k.label} {...k} />)
+                    }
+                </div>
+            )}
+
+            {/* Month nav — far right */}
+            <div className="shrink-0">
+                <MonthNav calendarData={calendarData} setCalendarMonth={setCalendarMonth} inlineMode onToday={onToday} />
+            </div>
+        </div>
+
+        {/* Quick actions — all sizes below xl */}
         {quickActionsSlot && (
-            <div className="hidden md:block px-6 pb-3">
+            <div className="xl:hidden px-3 md:px-4 lg:px-5 pb-3">
+                {quickActionsSlot}
+            </div>
+        )}
+
+        {/* ── xl: profile + month nav only (KPIs live in right-col stats bar) ── */}
+        <div className="hidden xl:flex items-center justify-between px-5 pt-4 pb-3">
+            <div className="flex items-center gap-2.5">
+                <button
+                    onClick={profile.onNavigate}
+                    className="w-10 h-10 rounded-full bg-[#0075C9] flex items-center justify-center text-white font-bold text-xs shrink-0 hover:bg-gray-700 transition-colors"
+                    title="Ver Perfil"
+                >
+                    {profile.initials}
+                </button>
+                <div>
+                    <p className="text-[10px] text-gray-400 leading-none">{profile.greeting}</p>
+                    <p className="text-[14px] font-bold text-gray-900 dark:text-gray-100 leading-tight mt-0.5">{profile.name}</p>
+                </div>
+            </div>
+            <MonthNav calendarData={calendarData} setCalendarMonth={setCalendarMonth} inlineMode onToday={onToday} />
+        </div>
+
+        {/* Quick actions — xl (below the profile row) */}
+        {quickActionsSlot && (
+            <div className="hidden xl:block px-5 pb-3">
                 {quickActionsSlot}
             </div>
         )}
@@ -512,7 +573,7 @@ const CountdownBadge = ({ countdown, isNow, isImminent }) => {
     const urgent = isNow || isImminent
     return (
         <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full ${
-            urgent ? 'bg-teal-50 text-teal-700' : 'bg-sky-50 text-sky-600'
+            urgent ? 'bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300' : 'bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400'
         }`}>
             <span className={`w-1.5 h-1.5 rounded-full ${urgent ? 'bg-teal-400' : 'bg-sky-400'}`} />
             Próxima: {countdown}
@@ -531,7 +592,7 @@ const CountdownBadge = ({ countdown, isNow, isImminent }) => {
  */
 const SessionsHeader = ({ label, visibleCount, completedCount, countdownProps, compact = false }) => (
     <div className={`flex items-center justify-between ${compact ? 'mb-4' : 'mb-5'} shrink-0`}>
-        <h2 className={`font-bold text-gray-900 leading-tight ${compact ? 'text-[13px]' : 'text-[15px] font-semibold'}`}>
+        <h2 className={`font-bold text-gray-900 dark:text-gray-100 leading-tight ${compact ? 'text-[13px]' : 'text-[15px] font-semibold'}`}>
             {label}
         </h2>
         <CountdownBadge {...countdownProps} />
@@ -602,6 +663,53 @@ const SessionsContent = ({
 }
 
 // 
+// WeekdaySparkline
+// 
+
+/**
+ * Bar chart showing aggregated session load per weekday (Mon–Sun) for the viewed month.
+ *
+ * @param {{ calendarData }} props
+ */
+const WeekdaySparkline = ({ calendarData }) => {
+    const DOW_LABELS = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
+    const buckets = [0, 0, 0, 0, 0, 0, 0] // index 0=Mon … 6=Sun
+    const { firstDay, daysInMonth, dayMap } = calendarData
+
+    for (let d = 1; d <= daysInMonth; d++) {
+        const monIdx = (firstDay + d - 1 + 6) % 7 // convert Sun-based to Mon-based
+        buckets[monIdx] += dayMap[d]?.count ?? 0
+    }
+
+    const max = Math.max(...buckets, 1)
+
+    return (
+        <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
+            <p className="text-[9px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-2 leading-none">
+                Carga por día
+            </p>
+            <div className="flex items-end gap-1" style={{ height: 40 }}>
+                {buckets.map((count, i) => (
+                    <div key={i} className="flex-1 flex flex-col items-center gap-0.5 h-full justify-end">
+                        <div
+                            className="w-full rounded-t-sm transition-all duration-500"
+                            style={{
+                                height: count === 0 ? 3 : `${Math.max(count / max * 100, 12)}%`,
+                                backgroundColor: count === 0 ? '#e5e7eb'
+                                    : count >= max * 0.75 ? '#0075C9'
+                                    : count >= max * 0.4  ? '#54C0E8'
+                                    : '#BAE6FD',
+                            }}
+                        />
+                        <span className="text-[9px] text-gray-400 leading-none">{DOW_LABELS[i]}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    )
+}
+
+// 
 // MiniCalendarFull
 // 
 
@@ -631,6 +739,7 @@ const MiniCalendarFull = ({
             cellSize="md"
         />
         <CalendarStats calendarData={calendarData} compact={false} />
+        <WeekdaySparkline calendarData={calendarData} />
     </div>
 )
 
@@ -703,11 +812,13 @@ const MiniCalendarCompact = ({
             {sessionsSlot ? (
                 <>
                     {/* Desktop: grid only, sessions in right column */}
-                    <div className="hidden xl:block flex-1 overflow-hidden px-6 py-5">
+                    <div className="hidden xl:flex xl:flex-col flex-1 overflow-y-auto calendar-scrollbar px-6 py-4">
                         {!profile && (
                             <MonthNav calendarData={calendarData} setCalendarMonth={setCalendarMonth} compact={false} />
                         )}
                         {grid}
+                        <CalendarStats calendarData={calendarData} compact />
+                        <WeekdaySparkline calendarData={calendarData} />
                     </div>
 
                     {/* Mobile: calendar + sessions stacked inline */}
@@ -728,7 +839,7 @@ const MiniCalendarCompact = ({
                         </div>
 
                         {/* Sessions for selected date — always visible below calendar */}
-                        <div className="border-t border-gray-100">
+                        <div className="border-t border-gray-200 dark:border-gray-700">
                             {sessionsSlot}
                         </div>
                     </div>
@@ -851,7 +962,7 @@ const SessionsCalendarPanel = ({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.24 }}
-                className="bg-stone-50 rounded-2xl border border-stone-100 flex flex-col flex-1 min-h-0 overflow-hidden"
+                className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 flex flex-col flex-1 min-h-0 overflow-hidden shadow-sm"
             >
                 <div className="p-6 flex flex-col h-full overflow-hidden">
                     {header}
@@ -866,21 +977,21 @@ const SessionsCalendarPanel = ({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.24 }}
-            className="bg-stone-50 rounded-2xl border border-stone-100 mb-6 xl:mb-0 xl:flex-1 xl:min-h-0 overflow-hidden xl:flex xl:flex-col"
+            className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 mb-6 xl:mb-0 xl:flex-1 xl:min-h-0 overflow-hidden xl:flex xl:flex-col shadow-sm"
         >
             {/* xl: two-column layout */}
             <div className="hidden xl:grid xl:grid-cols-[1fr_400px] xl:h-full">
-                <div className="p-6 flex flex-col border-r border-gray-100 xl:overflow-hidden">
+                <div className="p-6 flex flex-col border-r border-gray-200 dark:border-gray-700 xl:overflow-hidden">
                     <div className="flex items-center justify-between mb-5 shrink-0">
-                        <h2 className="text-[15px] font-semibold text-gray-900">{selectedDateLabel}</h2>
+                        <h2 className="text-[15px] font-semibold text-gray-900 dark:text-gray-100">{selectedDateLabel}</h2>
                         <CountdownBadge {...countdownProps} />
                     </div>
                     {sessionsContent}
                 </div>
 
-                <div className="flex flex-col bg-[#F7F5FF] border-l border-sky-100/60 overflow-y-auto calendar-scrollbar">
+                <div className="flex flex-col bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 overflow-y-auto calendar-scrollbar">
                     {quickActionsSlot && (
-                        <div className="px-4 pt-4 pb-3 border-b border-sky-100">
+                        <div className="px-4 pt-4 pb-3 border-b border-sky-100 dark:border-gray-700">
                             {quickActionsSlot}
                         </div>
                     )}
@@ -911,8 +1022,8 @@ const SessionsCalendarPanel = ({
                         >
                             <div className="flex items-center justify-between mb-5">
                                 <div>
-                                    <h2 className="text-[15px] font-semibold text-gray-900">{selectedDateLabel}</h2>
-                                    <p className="text-xs text-gray-400 mt-0.5">{visibleSessions.length} citas</p>
+                                    <h2 className="text-[15px] font-semibold text-gray-900 dark:text-gray-100">{selectedDateLabel}</h2>
+                                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{visibleSessions.length} citas</p>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <CountdownBadge {...countdownProps} />

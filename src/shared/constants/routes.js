@@ -15,6 +15,7 @@ export const ROUTES = {
   PROFESSIONAL_PATIENTS: '/dashboard/professional/patients',
   PROFESSIONAL_APPOINTMENTS: '/dashboard/professional/appointments',
   PROFESSIONAL_PROFILE: '/dashboard/professional/profile',
+  PROFESSIONAL_SETTINGS: '/dashboard/professional/settings',
   PROFESSIONAL_VIDEO: '/professional/video/:appointmentId',
 
   // Patient

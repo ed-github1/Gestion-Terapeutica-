@@ -26,6 +26,10 @@ export const videoCallService = {
   healthCheck: () =>
     apiClient.get('/rtc/health'),
 
+  // Start a video call (creates room on backend)
+  startCall: (appointmentId) =>
+    apiClient.post('/video/start-call', { appointmentId }),
+
   // Video invitations
   sendVideoInvitation: (appointmentId, patientId, patientName, professionalName) =>
     apiClient.post('/video/notify-patient', { appointmentId, patientId, patientName, professionalName }),

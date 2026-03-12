@@ -2,30 +2,60 @@ import { useState } from 'react'
 import { motion } from 'motion/react'
 import { useAuth } from '@features/auth'
 import { useNavigate } from 'react-router-dom'
-import { User, Mail, Phone, Calendar, MapPin, Briefcase, Save, ArrowLeft } from 'lucide-react'
+import { User, Mail, Phone, MapPin, Briefcase, Save, ArrowLeft, Hash, LogOut, Shield } from 'lucide-react'
 
+// ─── Field helper ─────────────────────────────────────────────────────────────
+const Field = ({ label, icon: Icon, type = 'text', value, onChange, disabled }) => (
+    <div>
+        <label className="block text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-1.5">
+            {Icon && <Icon className="inline w-3 h-3 mr-1 -mt-0.5" />}
+            {label}
+        </label>
+        <input
+            type={type}
+            value={value}
+            onChange={onChange}
+            disabled={disabled}
+            className="w-full px-3 py-2 text-sm bg-stone-50 border border-gray-200 rounded-lg text-gray-900
+                       focus:ring-2 focus:ring-sky-400 focus:border-transparent transition outline-none
+                       disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-stone-50"
+        />
+    </div>
+)
+
+// ─── KPI chip ─────────────────────────────────────────────────────────────────
+const KpiItem = ({ value, label, border }) => (
+    <div className={`flex-1 flex flex-col gap-0.5 px-4 py-2 ${border ? 'border-l border-gray-200' : ''}`}>
+        <span className="text-[15px] font-bold text-gray-900 leading-none">{value}</span>
+        <span className="text-[11px] text-gray-500 leading-none">{label}</span>
+    </div>
+)
+
+// ─── Component ────────────────────────────────────────────────────────────────
 const ProfessionalProfile = () => {
     const { user, logout } = useAuth()
     const navigate = useNavigate()
     const [isEditing, setIsEditing] = useState(false)
 
-    // Extract user data with fallbacks
     const fullName = user?.name || user?.nombre || 'Professional'
-    const firstName = fullName.split(' ')[0]
     const initials = fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+    const joinDate  = user?.joinDate || user?.fechaRegistro
+        ? new Date(user.joinDate || user.fechaRegistro).toLocaleDateString('es-ES', { month: 'short', year: 'numeric' })
+        : new Date().toLocaleDateString('es-ES', { month: 'short', year: 'numeric' })
 
     const [profileData, setProfileData] = useState({
-        name: fullName,
-        email: user?.email || user?.correo || '',
-        phone: user?.phone || user?.telefono || '',
-        specialty: user?.specialty || user?.especialidad || '',
+        name:          fullName,
+        email:         user?.email         || user?.correo         || '',
+        phone:         user?.phone         || user?.telefono       || '',
+        specialty:     user?.specialty     || user?.especialidad   || '',
         licenseNumber: user?.licenseNumber || user?.numeroLicencia || '',
-        address: user?.address || user?.direccion || '',
-        joinDate: user?.joinDate || user?.fechaRegistro || new Date().toLocaleDateString(),
+        address:       user?.address       || user?.direccion      || '',
     })
 
+    const set = (key) => (e) => setProfileData(prev => ({ ...prev, [key]: e.target.value }))
+
     const handleSave = () => {
-        // TODO: Implement API call to update profile
+        // TODO: connect to API
         setIsEditing(false)
     }
 
@@ -35,196 +65,147 @@ const ProfessionalProfile = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 p-8">
-            <div className="max-w-5xl mx-auto">
-                {/* Header */}
+        <div className="min-h-screen bg-stone-50 p-3 md:p-6 lg:p-8">
+            <div className="max-w-5xl mx-auto space-y-4">
+
+                {/* ── Page header ── */}
                 <motion.div
-                    initial={{ opacity: 0, y: -20 }}
+                    initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="mb-8"
+                    className="flex items-center gap-3"
                 >
                     <button
                         onClick={() => navigate(-1)}
-                        className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
+                        className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-white hover:shadow-sm transition-all text-gray-400 hover:text-gray-700 border border-transparent hover:border-gray-200 shrink-0"
+                        aria-label="Volver"
                     >
-                        <ArrowLeft className="w-5 h-5" />
-                        <span className="font-medium">Volver</span>
+                        <ArrowLeft className="w-4 h-4" />
                     </button>
-                    <h1 className="text-4xl font-bold text-gray-900">Mi Perfil</h1>
-                    <p className="text-gray-600 mt-2">Gestiona tu información personal</p>
+                    <div>
+                        <h1 className="text-base font-bold text-gray-900 leading-none">Mi Perfil</h1>
+                        <p className="text-[11px] text-gray-400 mt-0.5">Gestiona tu información personal</p>
+                    </div>
                 </motion.div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Profile Card */}
+                {/* ── KPI bar ── */}
+                <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.06 }}
+                    className="bg-white rounded-2xl border border-gray-200 shadow-sm flex items-center overflow-hidden"
+                >
+                    <KpiItem value={initials}       label="Iniciales"       border={false} />
+                    <KpiItem value="—"              label="Pacientes"       border />
+                    <KpiItem value="—"              label="Sesiones"        border />
+                    <KpiItem value={joinDate}       label="Miembro desde"   border />
+                </motion.div>
+
+                {/* ── Main grid ── */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+                    {/* LEFT — identity card */}
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1 }}
-                        className="lg:col-span-1"
+                        className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 flex flex-col items-center text-center"
                     >
-                        <div className="bg-white rounded-3xl p-8 shadow-sm text-center">
-                            {/* Avatar */}
-                            <div className="inline-flex items-center justify-center w-32 h-32 rounded-full bg-linear-to-br from-blue-700 to-sky-400 text-white text-4xl font-bold mb-4 shadow-xl">
-                                {initials}
-                            </div>
-
-                            <h2 className="text-2xl font-bold text-gray-900 mb-1">{fullName}</h2>
-                            <p className="text-gray-600 mb-6">{profileData.specialty || 'Profesional de Salud'}</p>
-
-                            {/* Stats */}
-                            <div className="space-y-3 mb-6">
-                                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                                    <span className="text-sm text-gray-600">Pacientes Activos</span>
-                                    <span className="text-lg font-bold text-gray-900">-</span>
-                                </div>
-                                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                                    <span className="text-sm text-gray-600">Sesiones Totales</span>
-                                    <span className="text-lg font-bold text-gray-900">-</span>
-                                </div>
-                                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                                    <span className="text-sm text-gray-600">Miembro Desde</span>
-                                    <span className="text-sm font-semibold text-gray-900">{profileData.joinDate}</span>
-                                </div>
-                            </div>
-
-                            {/* Action Buttons */}
-                            <button
-                                onClick={handleLogout}
-                                className="w-full py-3 bg-red-50 text-red-600 rounded-xl font-semibold hover:bg-red-100 transition-colors"
-                            >
-                                Cerrar Sesión
-                            </button>
+                        {/* Avatar */}
+                        <div className="w-20 h-20 rounded-full bg-linear-to-br from-blue-700 to-sky-400 flex items-center justify-center text-white text-2xl font-bold shadow-lg mb-3">
+                            {initials}
                         </div>
+
+                        <h2 className="text-sm font-bold text-gray-900 leading-tight">{fullName}</h2>
+                        <p className="text-[11px] text-gray-400 mt-0.5 mb-5">
+                            {profileData.specialty || 'Profesional de Salud'}
+                        </p>
+
+                        {/* Role badge */}
+                        <div className="flex items-center gap-1.5 bg-sky-50 border border-sky-100 rounded-lg px-3 py-1.5 mb-5 w-full justify-center">
+                            <Shield className="w-3 h-3 text-sky-500" />
+                            <span className="text-[11px] font-semibold text-sky-700">Profesional verificado</span>
+                        </div>
+
+                        {/* Email quick-view */}
+                        <div className="w-full p-3 bg-stone-50 border border-gray-100 rounded-xl text-left mb-3">
+                            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-0.5">Email</p>
+                            <p className="text-xs font-medium text-gray-700 truncate">{profileData.email || '—'}</p>
+                        </div>
+
+                        {/* License quick-view */}
+                        <div className="w-full p-3 bg-stone-50 border border-gray-100 rounded-xl text-left mb-5">
+                            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-0.5">Licencia</p>
+                            <p className="text-xs font-medium text-gray-700">{profileData.licenseNumber || '—'}</p>
+                        </div>
+
+                        {/* Logout */}
+                        <button
+                            onClick={handleLogout}
+                            className="w-full flex items-center justify-center gap-2 py-2 bg-red-50 text-red-500 rounded-xl text-sm font-semibold hover:bg-red-100 transition-colors"
+                        >
+                            <LogOut className="w-3.5 h-3.5" />
+                            Cerrar Sesión
+                        </button>
                     </motion.div>
 
-                    {/* Information Card */}
+                    {/* RIGHT — editable info */}
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.2 }}
-                        className="lg:col-span-2"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.14 }}
+                        className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm p-6"
                     >
-                        <div className="bg-white rounded-3xl p-8 shadow-sm">
-                            <div className="flex items-center justify-between mb-8">
-                                <h3 className="text-2xl font-bold text-gray-900">Información Personal</h3>
-                                {!isEditing ? (
+                        {/* Section header */}
+                        <div className="flex items-center justify-between mb-5">
+                            <div>
+                                <h3 className="text-sm font-bold text-gray-900 leading-none">Información Personal</h3>
+                                <p className="text-[11px] text-gray-400 mt-0.5">Actualiza tus datos de contacto y profesionales</p>
+                            </div>
+                            {!isEditing ? (
+                                <button
+                                    onClick={() => setIsEditing(true)}
+                                    className="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-semibold transition-colors"
+                                >
+                                    Editar
+                                </button>
+                            ) : (
+                                <div className="flex gap-2">
                                     <button
-                                        onClick={() => setIsEditing(true)}
-                                        className="px-4 py-2 bg-gray-900 text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors"
+                                        onClick={() => setIsEditing(false)}
+                                        className="px-3 py-1.5 bg-stone-100 text-gray-600 rounded-lg text-xs font-semibold hover:bg-stone-200 transition-colors"
                                     >
-                                        Editar Perfil
+                                        Cancelar
                                     </button>
-                                ) : (
-                                    <div className="flex gap-3">
-                                        <button
-                                            onClick={() => setIsEditing(false)}
-                                            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
-                                        >
-                                            Cancelar
-                                        </button>
-                                        <button
-                                            onClick={handleSave}
-                                            className="px-4 py-2 bg-gray-900 text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors flex items-center gap-2"
-                                        >
-                                            <Save className="w-4 h-4" />
-                                            Guardar
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {/* Name */}
-                                <div>
-                                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-                                        <User className="w-4 h-4" />
-                                        Nombre Completo
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={profileData.name}
-                                        onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
-                                        disabled={!isEditing}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:opacity-60 disabled:cursor-not-allowed"
-                                    />
+                                    <button
+                                        onClick={handleSave}
+                                        className="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5"
+                                    >
+                                        <Save className="w-3 h-3" />
+                                        Guardar
+                                    </button>
                                 </div>
-
-                                {/* Email */}
-                                <div>
-                                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-                                        <Mail className="w-4 h-4" />
-                                        Correo Electrónico
-                                    </label>
-                                    <input
-                                        type="email"
-                                        value={profileData.email}
-                                        onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                                        disabled={!isEditing}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:opacity-60 disabled:cursor-not-allowed"
-                                    />
-                                </div>
-
-                                {/* Phone */}
-                                <div>
-                                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-                                        <Phone className="w-4 h-4" />
-                                        Teléfono
-                                    </label>
-                                    <input
-                                        type="tel"
-                                        value={profileData.phone}
-                                        onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
-                                        disabled={!isEditing}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:opacity-60 disabled:cursor-not-allowed"
-                                    />
-                                </div>
-
-                                {/* Specialty */}
-                                <div>
-                                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-                                        <Briefcase className="w-4 h-4" />
-                                        Especialidad
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={profileData.specialty}
-                                        onChange={(e) => setProfileData({ ...profileData, specialty: e.target.value })}
-                                        disabled={!isEditing}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:opacity-60 disabled:cursor-not-allowed"
-                                    />
-                                </div>
-
-                                {/* License Number */}
-                                <div>
-                                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-                                        <Calendar className="w-4 h-4" />
-                                        Número de Licencia
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={profileData.licenseNumber}
-                                        onChange={(e) => setProfileData({ ...profileData, licenseNumber: e.target.value })}
-                                        disabled={!isEditing}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:opacity-60 disabled:cursor-not-allowed"
-                                    />
-                                </div>
-
-                                {/* Address */}
-                                <div>
-                                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-                                        <MapPin className="w-4 h-4" />
-                                        Dirección
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={profileData.address}
-                                        onChange={(e) => setProfileData({ ...profileData, address: e.target.value })}
-                                        disabled={!isEditing}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:opacity-60 disabled:cursor-not-allowed"
-                                    />
-                                </div>
-                            </div>
+                            )}
                         </div>
+
+                        {/* Divider */}
+                        <div className="border-t border-gray-100 mb-5" />
+
+                        {/* Fields grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <Field label="Nombre completo"    icon={User}     value={profileData.name}          onChange={set('name')}          disabled={!isEditing} />
+                            <Field label="Correo electrónico" icon={Mail}     type="email" value={profileData.email} onChange={set('email')}     disabled={!isEditing} />
+                            <Field label="Teléfono"           icon={Phone}    type="tel"   value={profileData.phone} onChange={set('phone')}     disabled={!isEditing} />
+                            <Field label="Especialidad"       icon={Briefcase} value={profileData.specialty}    onChange={set('specialty')}     disabled={!isEditing} />
+                            <Field label="Número de licencia" icon={Hash}     value={profileData.licenseNumber} onChange={set('licenseNumber')} disabled={!isEditing} />
+                            <Field label="Dirección"          icon={MapPin}   value={profileData.address}       onChange={set('address')}       disabled={!isEditing} />
+                        </div>
+
+                        {/* Edit hint */}
+                        {!isEditing && (
+                            <p className="text-[10px] text-gray-300 mt-5">
+                                Pulsa <span className="font-semibold text-sky-400">Editar</span> para modificar tu información
+                            </p>
+                        )}
                     </motion.div>
                 </div>
             </div>

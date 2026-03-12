@@ -114,7 +114,10 @@ export const useDashboardData = () => {
         pendingTasks: 0,
         pendingNotes: 0,
         noShowCount: 0,
-        unreadMessages: 0
+        unreadMessages: 0,
+        revenueThisMonth: 0,
+        revenueLastMonth: 0,
+        outstandingAmount: 0,
     })
     const [patients, setPatients] = useState([])
     const [appointments, setAppointments] = useState([])
@@ -178,7 +181,6 @@ export const useDashboardData = () => {
                 }
             })
 
-            console.log('[useDashboard] appointments resolved:', appointmentsList.length, appointmentsList?.[0])
             setAppointments(appointmentsList)
 
                 // Compare date-only strings to avoid UTC-vs-local day shift
@@ -208,6 +210,27 @@ export const useDashboardData = () => {
                     apt.status === 'completed' && !apt.sessionNotes && !apt.notes
                 )
 
+                // Revenue: sum price of paid appointments this & last calendar month
+                const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+                const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+                const lastMonthEnd   = new Date(now.getFullYear(), now.getMonth(), 1)
+
+                const isPaid = apt => apt.paymentStatus === 'paid' || apt.paymentStatus === 'completed'
+                const aptDate = apt => new Date(apt.date || apt.fechaHora)
+
+                const revenueThisMonth = appointmentsList
+                    .filter(apt => isPaid(apt) && aptDate(apt) >= thisMonthStart)
+                    .reduce((sum, apt) => sum + (Number(apt.price) || 0), 0)
+
+                const revenueLastMonth = appointmentsList
+                    .filter(apt => isPaid(apt) && aptDate(apt) >= lastMonthStart && aptDate(apt) < lastMonthEnd)
+                    .reduce((sum, apt) => sum + (Number(apt.price) || 0), 0)
+
+                // Outstanding: pending-payment appointments that are not cancelled
+                const outstandingAmount = appointmentsList
+                    .filter(apt => apt.paymentStatus === 'pending' && apt.status !== 'cancelled')
+                    .reduce((sum, apt) => sum + (Number(apt.price) || 0), 0)
+
                 setStats(prev => ({
                     ...prev,
                     todayAppointments: todayApts.length,
@@ -215,7 +238,10 @@ export const useDashboardData = () => {
                     completedThisWeek: completed.length,
                     pendingTasks: appointmentsList.filter(a => a.status === 'pending').length,
                     pendingNotes: pendingNotes.length,
-                    noShowCount: noShows.length
+                    noShowCount: noShows.length,
+                    revenueThisMonth,
+                    revenueLastMonth,
+                    outstandingAmount,
                 }))
 
             return appointmentsList
@@ -235,6 +261,32 @@ export const useDashboardData = () => {
                 fetchPatients().catch(() => []),
                 fetchAppointments().catch(() => []),
             ])
+
+            // Build a quick lookup map: patientId -> display name
+            const patientMap = new Map()
+            ;(Array.isArray(fetchedPatients) ? fetchedPatients : []).forEach(p => {
+                const id = String(p._id || p.id || '')
+                if (!id) return
+                const name = sanitizeName(
+                    p.name ||
+                    p.nombre ||
+                    `${p.firstName || ''} ${p.lastName || ''}`.trim() ||
+                    `${p.nombre || ''} ${p.apellido || ''}`.trim()
+                )
+                if (name) patientMap.set(id, name)
+            })
+
+            // Re-enrich appointments whose name still fell back to 'Paciente'
+            if (patientMap.size > 0 && Array.isArray(fetchedAppointments)) {
+                const enriched = fetchedAppointments.map(apt => {
+                    if (apt.nombrePaciente && apt.nombrePaciente !== 'Paciente') return apt
+                    const pid = String(apt.patientId?._id || apt.patientId || '')
+                    const name = patientMap.get(pid)
+                    return name ? { ...apt, nombrePaciente: name } : apt
+                })
+                setAppointments(enriched)
+            }
+
             setActivities(buildActivitiesFromData(
                 Array.isArray(fetchedAppointments) ? fetchedAppointments : [],
                 Array.isArray(fetchedPatients)     ? fetchedPatients     : []

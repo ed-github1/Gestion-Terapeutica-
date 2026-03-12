@@ -4,9 +4,7 @@ import {
   Users,
   MessageSquare,
   FileText,
-  TrendingUp,
-  BookOpen,
-  BarChart2
+  BookOpen
 } from 'lucide-react'
 
 /**
@@ -26,8 +24,7 @@ export const professionalMenuItems = [
     path: '/dashboard/professional/patients',
     label: 'Pacientes',
     description: 'Gestionar clientes',
-    badge: 12,
-    ariaLabel: 'Pacientes, 12 activos'
+    ariaLabel: 'Gestionar pacientes'
   },
   {
     icon: Calendar,
@@ -35,13 +32,6 @@ export const professionalMenuItems = [
     label: 'Citas',
     description: 'Sesiones y citas',
     ariaLabel: 'Citas y sesiones programadas'
-  },
-  {
-    icon: BarChart2,
-    path: '/dashboard/professional/stats',
-    label: 'Estadísticas',
-    description: 'Crecimiento y métricas',
-    ariaLabel: 'Estadísticas de tu consulta'
   }
 ]
 
@@ -72,13 +62,7 @@ export const patientMenuItems = [
     ariaLabel: 'Mi diario personal privado',
     secure: true
   },
-  {
-    icon: TrendingUp,
-    path: '/dashboard/patient/progress',
-    label: 'Mi Progreso',
-    description: 'Tu camino de crecimiento',
-    ariaLabel: 'Mi progreso personal'
-  }
+
 ]
 
 /**

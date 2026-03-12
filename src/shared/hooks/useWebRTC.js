@@ -106,8 +106,8 @@ export const useWebRTC = () => {
       managerRef.current = manager
       setIsInitialized(true)
     } catch (err) {
-      setError({ type: 'error', message: 'Error al inicializar videollamada' })
-      throw err
+      console.error('WebRTC initialization error:', err)
+      setError({ type: 'error', message: err.message || 'Error al inicializar videollamada' })
     }
   }, [user, token, isInitialized])
 
