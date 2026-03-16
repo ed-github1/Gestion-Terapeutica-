@@ -62,7 +62,11 @@ class WebRTCManager {
    */
   async fetchIceServers() {
     try {
-      const response = await fetch(`${this.apiUrl}/rtc/ice-servers`);
+      const response = await fetch(`${this.apiUrl}/rtc/ice-servers`, {
+        headers: {
+          'Authorization': `Bearer ${this.userToken}`
+        }
+      });
       const data = await response.json();
       
       if (data.success) {
@@ -284,8 +288,13 @@ class WebRTCManager {
 
       this.currentRoomId = data.room.roomId;
 
-      // Get local media
-      await this.getLocalStream();
+      // Get local media — non-fatal so the room join still completes
+      try {
+        await this.getLocalStream();
+      } catch (mediaError) {
+        console.warn('Could not access camera/microphone:', mediaError.message);
+        // Continue without local media — user can grant permission later
+      }
 
       // Join room via Socket.IO
       if (this.socket?.connected) {

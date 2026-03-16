@@ -142,7 +142,7 @@ const PatientVideoCallWebRTC = () => {
     );
   }
 
-  if (error) {
+  if (error && error.type === 'error') {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
         <motion.div
@@ -178,6 +178,13 @@ const PatientVideoCallWebRTC = () => {
 
   return (
     <div className="fixed inset-0 bg-gray-900 flex flex-col">
+      {/* Warning banner (e.g. camera permission denied) */}
+      {error && error.type === 'warning' && (
+        <div className="bg-amber-600/90 text-white text-xs sm:text-sm px-4 py-2 flex items-center justify-between shrink-0 z-30">
+          <span>{error.message}</span>
+          <button onClick={() => window.location.reload()} className="ml-3 underline font-medium whitespace-nowrap">Reintentar</button>
+        </div>
+      )}
       {/* Header - Compact */}
       <div className="bg-gray-800/90 border-b border-gray-700/50 px-3 sm:px-6 py-2 flex items-center justify-between shrink-0 z-20">
         <div className="flex items-center gap-2 min-w-0">

@@ -138,10 +138,10 @@ export const videoCallAPI = {
     }
   },
 
-  // Start video call session
+  // Start video call session (creates room via RTC)
   startCall: async (appointmentId) => {
     try {
-      const response = await apiClient.post(`/video/start-call`, {
+      const response = await apiClient.post(`/rtc/rooms/join`, {
         appointmentId
       })
       return response
@@ -153,7 +153,7 @@ export const videoCallAPI = {
   // End video call session
   endCall: async (appointmentId, duration) => {
     try {
-      const response = await apiClient.post(`/video/end-call`, {
+      const response = await apiClient.post(`/video/end`, {
         appointmentId,
         duration
       })

@@ -15,6 +15,9 @@ import PatientOnboardingPage from '@features/patient/PatientOnboardingPage'
 import LandingPage from '@pages/LandingPage'
 import PricingPlans from '@pages/PricingPlans'
 import CheckoutPage from '@pages/CheckoutPage'
+import PrivacyPolicyPage from '@pages/PrivacyPolicyPage'
+import TermsPage from '@pages/TermsPage'
+import CookiesPage from '@pages/CookiesPage'
 import { Toast } from '@shared/ui'
 import { ROUTES, ROLES } from '@shared/constants/routes'
 import DashboardLayout from '@shared/layouts/DashboardLayout'
@@ -66,6 +69,9 @@ function App() {
           <Route path={ROUTES.HOME} element={<LandingPage />} />
           <Route path="/pricing" element={<PricingPlans />} />
           <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path={ROUTES.PRIVACY} element={<PrivacyPolicyPage />} />
+          <Route path={ROUTES.TERMS} element={<TermsPage />} />
+          <Route path={ROUTES.COOKIES} element={<CookiesPage />} />
           <Route path={ROUTES.LOGIN} element={<LoginRoute />} />
           <Route path="/verify-2fa" element={<Verify2FAPage />} />
           <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
@@ -173,7 +179,7 @@ function App() {
           <Route 
             path="/video/join/:appointmentId" 
             element={
-              <ProtectedRoute allowedRoles={[ROLES.PATIENT]}>
+              <ProtectedRoute allowedRoles={[ROLES.PATIENT, ROLES.PACIENT]}>
                 <PatientVideoCallWebRTC />
               </ProtectedRoute>
             } 

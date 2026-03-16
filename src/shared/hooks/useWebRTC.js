@@ -24,9 +24,17 @@ export const useWebRTC = () => {
 
   const managerRef = useRef(null)
   const currentRoomIdRef = useRef(null)
+  const initializingRef = useRef(false)
+  const mountedRef = useRef(false)
 
   const initialize = useCallback(async () => {
-    if (isInitialized || !user || !token) return
+    // If we already have a working manager (StrictMode remount), just re-adopt it
+    if (managerRef.current && !isInitialized) {
+      setIsInitialized(true)
+      return
+    }
+    if (isInitialized || initializingRef.current || !user || !token) return
+    initializingRef.current = true
     try {
       const isProduction =
         window.location.hostname !== 'localhost' &&
@@ -107,6 +115,7 @@ export const useWebRTC = () => {
       setIsInitialized(true)
     } catch (err) {
       console.error('WebRTC initialization error:', err)
+      initializingRef.current = false
       setError({ type: 'error', message: err.message || 'Error al inicializar videollamada' })
     }
   }, [user, token, isInitialized])
@@ -118,6 +127,9 @@ export const useWebRTC = () => {
       setError(null)
       const room = await managerRef.current.joinRoom(appointmentId)
       setLocalStream(managerRef.current.localStream)
+      if (!managerRef.current.localStream) {
+        setError({ type: 'warning', message: 'No se pudo acceder a la cámara/micrófono. Permite el acceso en tu navegador y recarga la página.' })
+      }
       currentRoomIdRef.current = room.roomId
       setIsInRoom(true)
       setIsConnecting(false)
@@ -192,7 +204,22 @@ export const useWebRTC = () => {
     }
   }, [])
 
-  useEffect(() => () => { managerRef.current?.disconnect() }, [])
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+      // Delay disconnect so StrictMode remount can reclaim the manager.
+      // On real unmount the timeout fires and cleans up.
+      const mgr = managerRef.current
+      setTimeout(() => {
+        if (!mountedRef.current && mgr) {
+          mgr.disconnect()
+          managerRef.current = null
+          initializingRef.current = false
+        }
+      }, 100)
+    }
+  }, [])
 
   useEffect(() => {
     if (user && token && !isInitialized) initialize()

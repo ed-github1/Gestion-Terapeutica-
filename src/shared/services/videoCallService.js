@@ -26,9 +26,9 @@ export const videoCallService = {
   healthCheck: () =>
     apiClient.get('/rtc/health'),
 
-  // Start a video call (creates room on backend)
+  // Start a video call (creates room on backend via RTC)
   startCall: (appointmentId) =>
-    apiClient.post('/video/start-call', { appointmentId }),
+    apiClient.post('/rtc/rooms/join', { appointmentId }),
 
   // Video invitations
   sendVideoInvitation: (appointmentId, patientId, patientName, professionalName) =>
@@ -42,4 +42,8 @@ export const videoCallService = {
 
   rejectInvitation: (appointmentId) =>
     apiClient.post('/video/decline-invitation', { appointmentId }),
+
+  // End video call and track duration
+  endCall: (appointmentId, duration) =>
+    apiClient.post('/video/end', { appointmentId, duration }),
 }
