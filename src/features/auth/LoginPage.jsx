@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { Mail, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from './AuthContext'
@@ -228,13 +228,13 @@ const LoginPage = () => {
         <div className="mt-6 text-center">
           <p className="text-xs text-gray-400">
             Al continuar, aceptas nuestros{' '}
-            <a href="#" className="underline hover:text-gray-600">
+            <Link to="/terminos" className="underline hover:text-gray-600">
               Términos
-            </a>{' '}
+            </Link>{' '}
             y{' '}
-            <a href="#" className="underline hover:text-gray-600">
+            <Link to="/privacidad" className="underline hover:text-gray-600">
               Privacidad
-            </a>
+            </Link>
           </p>
         </div>
       </div>

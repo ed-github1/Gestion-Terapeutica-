@@ -127,9 +127,9 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                         <SessionsCalendarPanel
                                             sessionsOnly
                                             bare
-                                            selectedDateLabel={isShowingUpcoming ? 'Próximas sesiones' : 'Sesiones de hoy'}
-                                            selectedDateSessions={allDaySlots.length > 0 ? allDaySlots : upcomingSessions}
-                                            isViewingToday={true}
+                                            selectedDateLabel={selectedDateLabel}
+                                            selectedDateSessions={selectedDateSessions}
+                                            isViewingToday={isViewingToday}
                                             nextUpcomingSession={nextUpcomingSession}
                                             calendarData={calendarData}
                                             calendarMonth={calendarMonth}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { motion } from 'motion/react'
 import { authService } from '@shared/services/authService'
@@ -44,6 +44,9 @@ const PatientRegisterPage = () => {
       emergencyContactName: '',
       emergencyContactPhone: '',
       address: '',
+      acceptTerms: false,
+      acceptPrivacy: false,
+      acceptSensitiveData: false,
     }
   })
 
@@ -464,6 +467,65 @@ const PatientRegisterPage = () => {
                   disabled={isSubmitting}
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Submit Button */}
+          {/* Consent */}
+          <div className="space-y-3 pt-2">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                {...register('acceptTerms', { required: 'Debes aceptar los términos y condiciones' })}
+                className="mt-0.5 w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                disabled={isSubmitting}
+              />
+              <span className="text-xs text-gray-600 leading-relaxed">
+                Acepto los{' '}
+                <Link to="/terminos" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline font-medium">Términos y Condiciones</Link>{' '}y la{' '}
+                <Link to="/privacidad" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline font-medium">Política de Privacidad</Link>.
+              </span>
+            </label>
+            {errors.acceptTerms && (
+              <p className="text-xs text-red-500 flex items-center gap-1 ml-7">{errors.acceptTerms.message}</p>
+            )}
+
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                {...register('acceptPrivacy', { required: 'Debes aceptar la política de privacidad' })}
+                className="mt-0.5 w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                disabled={isSubmitting}
+              />
+              <span className="text-xs text-gray-600 leading-relaxed">
+                He leído y acepto el{' '}
+                <Link to="/privacidad" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline font-medium">Aviso de Privacidad Integral</Link>{' '}y el tratamiento de mis datos personales.
+              </span>
+            </label>
+            {errors.acceptPrivacy && (
+              <p className="text-xs text-red-500 flex items-center gap-1 ml-7">{errors.acceptPrivacy.message}</p>
+            )}
+
+            {/* Sensitive data consent — Art. 9 LFPDPPP */}
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl">
+              <p className="text-xs text-amber-800 font-semibold mb-2">Consentimiento expreso — Datos de salud mental (Art. 9 LFPDPPP)</p>
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  {...register('acceptSensitiveData', { required: 'Debes otorgar consentimiento expreso para el tratamiento de tus datos de salud' })}
+                  className="mt-0.5 w-4 h-4 rounded border-amber-400 text-amber-600 focus:ring-amber-500"
+                  disabled={isSubmitting}
+                />
+                <span className="text-xs text-amber-800 leading-relaxed">
+                  Otorgo consentimiento <strong>expreso, específico e informado</strong> para el tratamiento
+                  de mis datos personales sensibles de <strong>salud mental</strong> (diagnósticos, notas terapéuticas,
+                  diario personal) por parte de TotalMente y mi terapeuta, conforme al{' '}
+                  <Link to="/privacidad#datos-sensibles" target="_blank" rel="noopener noreferrer" className="underline font-medium">Aviso de Privacidad Integral</Link>.
+                </span>
+              </label>
+              {errors.acceptSensitiveData && (
+                <p className="text-xs text-red-500 flex items-center gap-1 ml-7 mt-1">{errors.acceptSensitiveData.message}</p>
+              )}
             </div>
           </div>
 

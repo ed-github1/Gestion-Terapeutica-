@@ -796,7 +796,7 @@ const MiniCalendarCompact = ({
     )
 
     return (
-        <div className="flex flex-col h-full" role="region" aria-label="Mini calendario">
+        <div className="flex flex-col xl:h-full" role="region" aria-label="Mini calendario">
             {profile && (
                 <CalendarCardHeader
                     profile={profile}
@@ -950,7 +950,7 @@ const SessionsCalendarPanel = ({
 
         if (bare) {
             return (
-                <div className="px-4 pt-2 pb-3 flex flex-col h-full overflow-hidden">
+                <div className="px-4 pt-2 pb-3 flex flex-col">
                     {header}
                     {sessionsContent}
                 </div>

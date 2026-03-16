@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { motion, AnimatePresence } from 'motion/react'
 import apiClient, { setAuthToken } from '@shared/api/client'
@@ -165,6 +165,7 @@ const PatientOnboardingPage = () => {
       emergencyContactPhone: '',
       acceptTerms:           false,
       acceptPrivacy:         false,
+      acceptSensitiveData:   false,
     },
     mode: 'onTouched', // show errors only after user touches a field
   })
@@ -613,7 +614,9 @@ const PatientOnboardingPage = () => {
                         className="mt-0.5 w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
                       <span className="text-xs text-gray-600 leading-relaxed">
-                        Acepto los <a href="#" className="text-blue-600 underline">Términos y Condiciones</a> del servicio.
+                        Acepto los{' '}
+                        <Link to="/terminos" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline font-medium">Términos y Condiciones</Link>{' '}
+                        del servicio.
                       </span>
                     </label>
                     {errors.acceptTerms && (
@@ -627,12 +630,36 @@ const PatientOnboardingPage = () => {
                         className="mt-0.5 w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
                       <span className="text-xs text-gray-600 leading-relaxed">
-                        Acepto la <a href="#" className="text-blue-600 underline">Política de Privacidad</a> y el tratamiento de mis datos.
+                        He leído y acepto la{' '}
+                        <Link to="/privacidad" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline font-medium">Política de Privacidad</Link>{' '}
+                        y el tratamiento de mis datos.
                       </span>
                     </label>
                     {errors.acceptPrivacy && (
                       <p className="text-[11px] text-red-500 font-medium ml-7">{errors.acceptPrivacy.message}</p>
                     )}
+
+                    {/* Consentimiento expreso datos sensibles — Art. 9 LFPDPPP */}
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                      <p className="text-[11px] text-amber-800 font-semibold mb-2">Consentimiento expreso — Datos de salud mental (Art. 9 LFPDPPP)</p>
+                      <label className="flex items-start gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          {...register('acceptSensitiveData', { required: 'Debes otorgar consentimiento expreso para datos de salud' })}
+                          className="mt-0.5 w-4 h-4 rounded border-amber-400 text-amber-600 focus:ring-amber-500"
+                        />
+                        <span className="text-xs text-amber-800 leading-relaxed">
+                          Otorgo consentimiento <strong>expreso, específico e informado</strong> para el tratamiento
+                          de mis datos personales sensibles de{' '}
+                          <strong>salud mental</strong> (diagnósticos, notas terapéuticas, diario) por parte de
+                          TotalMente y mi terapeuta asignado, conforme al{' '}
+                          <Link to="/privacidad#datos-sensibles" target="_blank" rel="noopener noreferrer" className="underline font-medium">Aviso de Privacidad Integral</Link>.
+                        </span>
+                      </label>
+                      {errors.acceptSensitiveData && (
+                        <p className="text-[11px] text-red-500 font-medium ml-7 mt-1">{errors.acceptSensitiveData.message}</p>
+                      )}
+                    </div>
                   </div>
                 </motion.div>
               )}

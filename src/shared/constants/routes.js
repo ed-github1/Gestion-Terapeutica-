@@ -9,6 +9,9 @@ export const ROUTES = {
   REGISTER: '/register',
   PRICING: '/pricing',
   CHECKOUT: '/checkout',
+  PRIVACY: '/privacidad',
+  TERMS: '/terminos',
+  COOKIES: '/cookies',
 
   // Professional
   PROFESSIONAL_DASHBOARD: '/dashboard/professional',

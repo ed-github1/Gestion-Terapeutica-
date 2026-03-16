@@ -6,7 +6,7 @@ import {
     Bell, Shield, Palette, Building2, Globe, Moon, Sun,
     Mail, Smartphone, MessageSquare, Video, Lock,
     Key, Trash2, AlertTriangle, Check, ChevronRight,
-    Volume2, VolumeX, Eye, EyeOff,
+    Volume2, VolumeX, Eye, EyeOff, DollarSign,
 } from 'lucide-react'
 
 // ─── Toggle switch ─────────────────────────────────────────────────────────────
@@ -121,12 +121,29 @@ const ProfessionalSettings = () => {
     })
 
     // Practice
-    const [practice, setPractice] = useState({
-        videoCallEnabled: true,
-        autoConfirm: false,
-        reminderHours: '24',
-        sessionDuration: '60',
-        currency: 'MXN',
+    const [practice, setPractice] = useState(() => {
+        try {
+            const saved = localStorage.getItem('professionalSettings')
+            if (saved) {
+                const parsed = JSON.parse(saved)
+                return { ...{
+                    videoCallEnabled: true,
+                    autoConfirm: false,
+                    reminderHours: '24',
+                    sessionDuration: '60',
+                    currency: 'MXN',
+                    sessionTypePrices: { consultation: 50, followup: 40, therapy: 70, emergency: 90 },
+                }, ...parsed }
+            }
+        } catch { /* ignore */ }
+        return {
+            videoCallEnabled: true,
+            autoConfirm: false,
+            reminderHours: '24',
+            sessionDuration: '60',
+            currency: 'MXN',
+            sessionTypePrices: { consultation: 50, followup: 40, therapy: 70, emergency: 90 },
+        }
     })
 
     const setN = (key) => (val) => setNotif(prev => ({ ...prev, [key]: val }))
@@ -136,6 +153,7 @@ const ProfessionalSettings = () => {
 
     const handleSave = () => {
         // TODO: connect to API
+        try { localStorage.setItem('professionalSettings', JSON.stringify(practice)) } catch { /* ignore */ }
         setSaved(true)
         setTimeout(() => setSaved(false), 2500)
     }
@@ -375,6 +393,50 @@ const ProfessionalSettings = () => {
                             ]}
                         />
                     </SettingRow>
+
+                    {/* ── Prices per session type ── */}
+                    <div className="px-5 py-4 border-t border-gray-700/50">
+                        <div className="flex items-center gap-2 mb-3">
+                            <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
+                            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">Precio por tipo de sesión</p>
+                        </div>
+                        <p className="text-[11px] text-gray-500 mb-4">Estos precios se usarán como valor predeterminado al crear una nueva cita.</p>
+                        <div className="grid grid-cols-2 gap-3">
+                            {[
+                                { key: 'consultation', label: 'Consulta general',  color: 'text-blue-400',   dot: 'bg-blue-400' },
+                                { key: 'followup',     label: 'Seguimiento',        color: 'text-emerald-400', dot: 'bg-emerald-400' },
+                                { key: 'therapy',      label: 'Terapia',            color: 'text-violet-400', dot: 'bg-violet-400' },
+                                { key: 'emergency',    label: 'Emergencia',         color: 'text-red-400',    dot: 'bg-red-400' },
+                            ].map(({ key, label, color, dot }) => (
+                                <div key={key} className="bg-gray-700/50 rounded-xl p-3 border border-gray-600/60">
+                                    <div className="flex items-center gap-1.5 mb-2">
+                                        <span className={`w-2 h-2 rounded-full ${dot} shrink-0`} />
+                                        <span className={`text-[11px] font-semibold ${color}`}>{label}</span>
+                                    </div>
+                                    <div className="relative">
+                                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 pointer-events-none">
+                                            {practice.currency === 'EUR' ? '€' : practice.currency === 'USD' ? '$' : '$'}
+                                        </span>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            value={practice.sessionTypePrices?.[key] ?? ''}
+                                            onChange={(e) => setPractice(prev => ({
+                                                ...prev,
+                                                sessionTypePrices: {
+                                                    ...prev.sessionTypePrices,
+                                                    [key]: parseFloat(e.target.value) || 0,
+                                                },
+                                            }))}
+                                            className="w-full pl-6 pr-2 py-1.5 text-sm bg-gray-800 border border-gray-600 rounded-lg text-gray-100 focus:ring-2 focus:ring-sky-400 focus:border-transparent outline-none transition"
+                                            placeholder="0.00"
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </SectionCard>
 
                 {/* ── Danger zone ── */}

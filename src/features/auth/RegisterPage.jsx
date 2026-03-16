@@ -314,7 +314,8 @@ const RegisterPage = () => {
                         </div>
 
                         {/* Terms & Conditions */}
-                        <label className="flex items-start gap-2 cursor-pointer">
+                        <div className="space-y-3">
+                          <label className="flex items-start gap-2 cursor-pointer">
                             <input
                                 id="terms"
                                 type="checkbox"
@@ -327,20 +328,49 @@ const RegisterPage = () => {
                             />
                             <span className="text-xs text-gray-600 leading-relaxed">
                                 Acepto los{' '}
-                                <a href="#" onClick={(e) => e.preventDefault()} className="text-blue-700 hover:text-blue-800 font-medium">
-                                    Términos
-                                </a>{' '}
-                                y{' '}
-                                <a href="#" onClick={(e) => e.preventDefault()} className="text-blue-700 hover:text-blue-800 font-medium">
-                                    Políticas de Privacidad
-                                </a>
+                                <Link to="/terminos" target="_blank" rel="noopener noreferrer" className="text-blue-700 hover:text-blue-800 font-medium underline">
+                                    Términos y Condiciones
+                                </Link>{' '}
+                                y la{' '}
+                                <Link to="/privacidad" target="_blank" rel="noopener noreferrer" className="text-blue-700 hover:text-blue-800 font-medium underline">
+                                    Política de Privacidad
+                                </Link>
                             </span>
-                        </label>
-                        {errors.terms && (
-                            <p className="text-xs text-rose-600 flex items-center gap-1 -mt-2">
+                          </label>
+                          {errors.terms && (
+                            <p className="text-xs text-rose-600 flex items-center gap-1">
                                 <AlertCircle className="w-3 h-3 shrink-0" /> {errors.terms.message}
                             </p>
-                        )}
+                          )}
+
+                          {/* Sensitive data consent — Art. 9 LFPDPPP */}
+                          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                            <p className="text-xs text-amber-800 font-semibold mb-2">Consentimiento para datos sensibles (Art. 9 LFPDPPP)</p>
+                            <label className="flex items-start gap-2 cursor-pointer">
+                              <input
+                                  id="sensitiveConsent"
+                                  type="checkbox"
+                                  {...register('sensitiveConsent', {
+                                      validate: value => value === true || 'Debes otorgar consentimiento expreso para datos de salud'
+                                  })}
+                                  className={`w-3.5 h-3.5 mt-0.5 text-amber-600 border-amber-300 rounded focus:ring-amber-500 ${errors.sensitiveConsent ? 'border-rose-500' : ''}`}
+                                  disabled={isSubmitting}
+                              />
+                              <span className="text-xs text-amber-800 leading-relaxed">
+                                  Otorgo consentimiento <strong>expreso, específico e informado</strong> para el tratamiento
+                                  de datos personales sensibles relativos a la salud mental de mis pacientes, conforme al{' '}
+                                  <Link to="/privacidad#datos-sensibles" target="_blank" rel="noopener noreferrer" className="underline font-medium">
+                                      Aviso de Privacidad Integral
+                                  </Link>.
+                              </span>
+                            </label>
+                            {errors.sensitiveConsent && (
+                              <p className="text-xs text-rose-600 flex items-center gap-1 mt-1.5">
+                                  <AlertCircle className="w-3 h-3 shrink-0" /> {errors.sensitiveConsent.message}
+                              </p>
+                            )}
+                          </div>
+                        </div>
 
                         {/* Submit Button */}
                         <motion.button

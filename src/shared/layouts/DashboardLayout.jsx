@@ -154,7 +154,7 @@ const DashboardLayout = ({ children, userRole }) => {
             <>
               <NavBtn path={`/dashboard/${userRole}`} exact label="Inicio" Icon={Home} />
               <NavBtn path={`/dashboard/${userRole}/appointments`} label="Citas" Icon={Calendar} />
-              <NavBtn path={`/dashboard/${userRole}/messages`} label="Chat" Icon={MessageCircle} badge />
+              <NavBtn path={`/dashboard/${userRole}/diary`} label="Diario" Icon={BookOpen} />
               <MoreBtn badge onClick={() => setShowNotifications(!showNotifications)} />
             </>
           )}
@@ -258,7 +258,7 @@ const DashboardLayout = ({ children, userRole }) => {
 const NavBtn = ({ path, exact, label, Icon, badge }) => {
   const location = useLocation()
   const navigate = useNavigate()
-  const active = exact ? location.pathname === path : location.pathname.includes(path.split('/').pop())
+  const active = exact ? location.pathname === path : location.pathname.startsWith(path)
   return (
     <motion.button
       whileTap={{ scale: 0.9 }}

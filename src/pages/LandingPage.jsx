@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import BrandLogo from '@/shared/ui/BrandLogo';
 import { 
@@ -860,11 +860,17 @@ const LandingPage = () => {
             <div>
               <h4 className="font-bold text-slate-900 mb-4">Empresa</h4>
               <ul className="space-y-3">
-                {['Nosotros', 'Contacto', 'Carreras', 'Legal', 'Privacidad'].map((item) => (
-                  <li key={item}>
-                    <a href="#" className="text-slate-600 hover:text-blue-600 transition-colors">
-                      {item}
-                    </a>
+                {[
+                  { label: 'Nosotros', href: '#' },
+                  { label: 'Contacto', href: '#' },
+                  { label: 'Carreras', href: '#' },
+                  { label: 'Legal', href: '/terminos' },
+                  { label: 'Privacidad', href: '/privacidad' },
+                ].map(({ label, href }) => (
+                  <li key={label}>
+                    <Link to={href} className="text-slate-600 hover:text-blue-600 transition-colors">
+                      {label}
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -876,15 +882,15 @@ const LandingPage = () => {
               © 2026 TotalMente. Todos los derechos reservados.
             </p>
             <div className="flex items-center gap-6 text-sm">
-              <a href="#" className="text-slate-600 hover:text-blue-600 transition-colors">
+              <Link to="/terminos" className="text-slate-600 hover:text-blue-600 transition-colors">
                 Términos
-              </a>
-              <a href="#" className="text-slate-600 hover:text-blue-600 transition-colors">
+              </Link>
+              <Link to="/privacidad" className="text-slate-600 hover:text-blue-600 transition-colors">
                 Privacidad
-              </a>
-              <a href="#" className="text-slate-600 hover:text-blue-600 transition-colors">
+              </Link>
+              <Link to="/cookies" className="text-slate-600 hover:text-blue-600 transition-colors">
                 Cookies
-              </a>
+              </Link>
             </div>
           </div>
         </div>

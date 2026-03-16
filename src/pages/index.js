@@ -1,2 +1,5 @@
 export { default as HomePage } from './HomePage'
 export { default as LandingPage } from './LandingPage'
+export { default as PrivacyPolicyPage } from './PrivacyPolicyPage'
+export { default as TermsPage } from './TermsPage'
+export { default as CookiesPage } from './CookiesPage'
