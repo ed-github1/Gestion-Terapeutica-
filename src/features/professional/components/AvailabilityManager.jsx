@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { X, Clock } from 'lucide-react'
-import { showToast } from '@components'
+import { showToast } from '@shared/ui/Toast'
 import { appointmentsService } from '@shared/services/appointmentsService'
 import { useDarkModeContext } from '@shared/DarkModeContext'
 
@@ -48,13 +48,13 @@ const AvailabilityManager = ({ onClose }) => {
           Object.entries(raw).forEach(([k, v]) => { normalized[Number(k)] = v })
           setAvailability(normalized)
           // Sync to localStorage for quick local reads
-          localStorage.setItem('professionalAvailability', JSON.stringify(normalized))
+          sessionStorage.setItem('professionalAvailability', JSON.stringify(normalized))
           return
         }
       } catch {
         // Backend unavailable — fall through to localStorage
       }
-      const local = localStorage.getItem('professionalAvailability')
+      const local = sessionStorage.getItem('professionalAvailability')
       if (local) {
         const parsed = JSON.parse(local)
         const normalized = {}
@@ -123,7 +123,7 @@ const AvailabilityManager = ({ onClose }) => {
       // Save to backend so patients can fetch it
       await appointmentsService.updateAvailability(availability)
       // Also sync to localStorage for immediate local access
-      localStorage.setItem('professionalAvailability', JSON.stringify(availability))
+      sessionStorage.setItem('professionalAvailability', JSON.stringify(availability))
       
       // Dispatch custom event to notify dashboard
       window.dispatchEvent(new Event('availabilityUpdated'))
@@ -132,8 +132,8 @@ const AvailabilityManager = ({ onClose }) => {
       onClose?.()
     } catch (error) {
       console.error('Error saving availability:', error)
-      // Save to localStorage as fallback
-      localStorage.setItem('professionalAvailability', JSON.stringify(availability))
+      // Save to sessionStorage as fallback
+      sessionStorage.setItem('professionalAvailability', JSON.stringify(availability))
       
       // Dispatch custom event even on fallback
       window.dispatchEvent(new Event('availabilityUpdated'))
@@ -189,7 +189,7 @@ const AvailabilityManager = ({ onClose }) => {
             </div>
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
+          <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-6 custom-scrollbar">
             {/* Day Selection */}
             <div>
               <h3 className={`text-xs sm:text-sm font-semibold uppercase tracking-wide mb-2 sm:mb-3 ${dark ? 'text-gray-400' : 'text-gray-500'}`}>Días de Atención</h3>

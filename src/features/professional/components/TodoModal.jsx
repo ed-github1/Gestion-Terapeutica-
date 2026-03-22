@@ -313,7 +313,7 @@ export default function TodoModal({ open, onClose }) {
                         </div>
 
                         {/* ── Todo list ── */}
-                        <div className="flex-1 overflow-y-auto px-5 py-3 space-y-1.5">
+                        <div className="flex-1 overflow-y-auto px-5 py-3 space-y-1.5 custom-scrollbar">
                             {sorted.length === 0 && done.length === 0 && (
                                 <div className="flex flex-col items-center justify-center py-12 text-center">
                                     <CheckSquare className="w-10 h-10 text-gray-200 mb-3" />

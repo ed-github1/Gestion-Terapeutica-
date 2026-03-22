@@ -32,10 +32,16 @@ class WebRTCManager {
     this.onRoomEnded = null;
     this.onError = null;
     this.onConnectionStateChange = null;
+    this.onReconnecting = null;
+    this.onReconnectFailed = null;
+    this.onRecordingStateChanged = null;
     
     // Track state
     this.isAudioEnabled = true;
     this.isVideoEnabled = true;
+    this.isRecording = false;
+    this._reconnectAttempts = 0;
+    this._maxReconnectAttempts = 3;
   }
 
   /**
@@ -114,6 +120,19 @@ class WebRTCManager {
           userName: this.userName,
           role: this.userRole
         });
+
+        // If we were in a room, re-join after reconnect
+        if (this._reconnectAttempts > 0 && this.currentRoomId) {
+          console.log(`Reconnected — re-joining room ${this.currentRoomId} (attempt ${this._reconnectAttempts})`);
+          this.socket.emit('join-room', {
+            roomId: this.currentRoomId,
+            userId: this.userId,
+            userName: this.userName,
+            role: this.userRole,
+          });
+          this._reconnectAttempts = 0;
+          if (this.onReconnecting) this.onReconnecting({ reconnecting: false });
+        }
       });
 
       this.socket.on('registered', (data) => {
@@ -124,8 +143,16 @@ class WebRTCManager {
 
       this.socket.on('connect_error', (error) => {
         console.error('Socket connection error:', error);
-        // Don't reject — let the timeout resolve so the user can still
-        // attempt the REST-based room join. Socket will keep reconnecting.
+        if (this.currentRoomId) {
+          this._reconnectAttempts++;
+          console.warn(`Reconnect attempt ${this._reconnectAttempts}/${this._maxReconnectAttempts}`);
+          if (this.onReconnecting) this.onReconnecting({ reconnecting: true, attempt: this._reconnectAttempts });
+          if (this._reconnectAttempts >= this._maxReconnectAttempts) {
+            console.error('Max reconnect attempts reached — giving up');
+            if (this.onReconnectFailed) this.onReconnectFailed();
+            this.cleanup();
+          }
+        }
       });
 
       // Setup event listeners
@@ -202,6 +229,23 @@ class WebRTCManager {
       }
     });
 
+    // Recording state events from server
+    this.socket.on('recording-started', ({ roomId }) => {
+      console.log('Recording started for room:', roomId);
+      this.isRecording = true;
+      if (this.onRecordingStateChanged) {
+        this.onRecordingStateChanged({ isRecording: true });
+      }
+    });
+
+    this.socket.on('recording-stopped', ({ roomId }) => {
+      console.log('Recording stopped for room:', roomId);
+      this.isRecording = false;
+      if (this.onRecordingStateChanged) {
+        this.onRecordingStateChanged({ isRecording: false });
+      }
+    });
+
     // Room ended
     this.socket.on('room-ended', ({ roomId, message }) => {
       console.log('Room ended:', message);
@@ -220,8 +264,13 @@ class WebRTCManager {
     });
 
     // Disconnect
-    this.socket.on('disconnect', () => {
-      console.log('Disconnected from signaling server');
+    this.socket.on('disconnect', (reason) => {
+      console.log('Disconnected from signaling server:', reason);
+      // If the server kicked us or transport closed while in a room, start tracking reconnects
+      if (this.currentRoomId && reason !== 'io client disconnect') {
+        this._reconnectAttempts = 0;
+        if (this.onReconnecting) this.onReconnecting({ reconnecting: true, attempt: 0 });
+      }
     });
   }
 
@@ -257,7 +306,7 @@ class WebRTCManager {
   /**
    * Join a video call room via /rtc/rooms/join.
    */
-  async joinRoom(appointmentId) {
+  async joinRoom(appointmentId, { recordingConsent = false } = {}) {
     try {
       const response = await fetch(`${this.apiUrl}/rtc/rooms/join`, {
         method: 'POST',
@@ -265,7 +314,7 @@ class WebRTCManager {
           'Authorization': `Bearer ${this.userToken}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ appointmentId })
+        body: JSON.stringify({ appointmentId, recordingConsent })
       });
 
       if (!response.ok) {
@@ -559,13 +608,15 @@ class WebRTCManager {
   /**
    * End room (Professional only)
    */
-  async endRoom(appointmentId) {
+  async endRoom(appointmentId, { sessionNotes } = {}) {
     try {
       const response = await fetch(`${this.apiUrl}/rtc/rooms/${appointmentId}/end`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.userToken}`
-        }
+          'Authorization': `Bearer ${this.userToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ sessionNotes: sessionNotes || '' })
       });
 
       const data = await response.json();
@@ -580,6 +631,29 @@ class WebRTCManager {
       this.handleError(error);
       throw error;
     }
+  }
+
+  /**
+   * Start recording (Professional only).
+   * Emits socket event; backend starts the media server recorder.
+   */
+  async startRecording(appointmentId) {
+    if (!this.currentRoomId) throw new Error('Not in a room');
+    this.socket.emit('start-recording', {
+      roomId: this.currentRoomId,
+      appointmentId,
+    });
+  }
+
+  /**
+   * Stop recording.
+   */
+  async stopRecording(appointmentId) {
+    if (!this.currentRoomId) throw new Error('Not in a room');
+    this.socket.emit('stop-recording', {
+      roomId: this.currentRoomId,
+      appointmentId,
+    });
   }
 
   /**

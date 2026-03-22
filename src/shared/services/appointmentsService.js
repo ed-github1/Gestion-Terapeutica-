@@ -24,15 +24,18 @@ export const appointmentsService = {
       professionalId: data.professionalId,
       status: 'reserved',
       paymentStatus: 'pending',
+      createdBy: 'patient',
     }),
 
   create: (data) =>
     apiClient.post('/appointments', data),
 
   // General list with optional filters (used by professional side)
+  // Only status, type, mode, and date are accepted by the backend.
   getAll: (filters = {}) => {
     const params = new URLSearchParams()
-    Object.entries(filters).forEach(([k, v]) => { if (v) params.append(k, v) })
+    const allowed = ['status', 'type', 'mode', 'date']
+    allowed.forEach(k => { if (filters[k]) params.append(k, filters[k]) })
     const qs = params.toString()
     return apiClient.get(`/appointments${qs ? `?${qs}` : ''}`)
   },
@@ -53,8 +56,11 @@ export const appointmentsService = {
   updateStatus: (id, status) =>
     apiClient.patch(`/appointments/${id}/status`, { status }),
 
+  updateSessionNotes: (id, sessionNotes) =>
+    apiClient.patch(`/appointments/${id}/session-notes`, { sessionNotes }),
+
   cancel: (id, reason) =>
-    apiClient.patch(`/appointments/${id}/cancel`, { reason }),
+    apiClient.put(`/appointments/${id}/cancel`, { reason }),
 
   getById: (id) =>
     apiClient.get(`/appointments/${id}`),
@@ -96,6 +102,7 @@ export const appointmentsService = {
       reason: data.reason || data.notes || '',
       status: 'reserved',
       paymentStatus: 'pending',
+      createdBy: 'professional',
     }),
 
   /** Get a professional's weekly availability (day-of-week → time-slot map) */

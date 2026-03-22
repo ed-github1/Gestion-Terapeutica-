@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react'
 import { Clock, Plus, AlertTriangle, Phone, Bell, Search } from 'lucide-react'
-import { getGreeting, formatDate, formatTime } from "../dashboard/dashboardUtils"
+import { getGreeting, formatDate, formatTime } from '../utils/dashboardUtils'
 import { Calendar } from 'lucide-react'
 /**
  * DashboardHeader Component

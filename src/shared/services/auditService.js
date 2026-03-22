@@ -26,8 +26,10 @@ export const auditLog = (action, details = {}) => {
     ...details,
   }
 
-  // Always emit to console so log aggregators can capture it
-  console.info('[AUDIT]', JSON.stringify(entry))
+  // Only emit to console in development — never expose audit entries in prod
+  if (import.meta.env.DEV) {
+    console.info('[AUDIT]', entry.action, entry.sessionId)
+  }
 
   // Best-effort POST — only attempted when the audit endpoint is explicitly enabled.
   // Set VITE_AUDIT_API_ENABLED=true once the backend /audit/log route is deployed

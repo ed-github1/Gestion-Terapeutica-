@@ -10,14 +10,14 @@ import {
 } from 'lucide-react'
 import logoSymbol from '@/assets/SIMBOLO_LOGO_TOTALMENTE.png'
 import { motion, AnimatePresence } from 'motion/react'
-import DashboardSidebar from '@components/layout/DashboardSidebar'
+import DashboardSidebar from '@shared/layouts/sidebar/DashboardSidebar'
 import { useAuth } from '@features/auth'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useDarkModeContext } from '@shared/DarkModeContext'
 import { useSocketNotifications } from '@features/professional/hooks'
 import NotificationsPanel from '@features/professional/components/NotificationsPanel'
 import DashboardSearchBar from '@features/professional/components/DashboardSearchBar'
-import { VideoCallNotificationManager } from '@components'
+import { VideoCallNotificationManager } from '@shared/ui'
 
 const ROUTE_TITLES = {
   '/dashboard/professional': 'Mi Consulta',
@@ -102,7 +102,7 @@ const DashboardLayout = ({ children, userRole }) => {
           <div className="flex-1 overflow-y-auto overflow-x-hidden touch-pan-y">
             {/* Desktop Header Bar — hidden for patients (controls are in PatientDashboard header) */}
             {userRole !== 'patient' && (
-              <div className="hidden md:flex items-center gap-3 px-4 lg:px-6 py-2.5 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-b border-gray-100/80 dark:border-gray-800/60 sticky top-0 z-40">
+              <div className="hidden md:flex items-center gap-3 px-4 lg:px-6 py-2.5 bg-transparent border-b border-gray-100/80 dark:border-gray-800/60">
                 {/* Search — only for professional role */}
                 {userRole === 'professional' && (
                   <DashboardSearchBar className="w-56 lg:w-72" />
@@ -214,13 +214,12 @@ const DashboardLayout = ({ children, userRole }) => {
                   <>
                     <MenuOption icon={MessageCircle} label="Mensajes" badge={3} onClick={() => { navigate(`/dashboard/${userRole}/messages`); setShowNotifications(false) }} />
                     <MenuOption icon={FileText} label="Reportes" onClick={() => { navigate(`/dashboard/${userRole}/reports`); setShowNotifications(false) }} />
+                    <MenuOption icon={User} label="Mi Perfil" onClick={() => { navigate(`/dashboard/${userRole}/profile`); setShowNotifications(false) }} />
+                    <MenuOption icon={Settings} label="Configuración" onClick={() => { navigate(`/dashboard/${userRole}/settings`); setShowNotifications(false) }} />
                   </>
                 ) : (
                   <MenuOption icon={BookOpen} label="Mi Diario" onClick={() => { navigate(`/dashboard/${userRole}/diary`); setShowNotifications(false) }} />
                 )}
-                <MenuOption icon={User} label="Mi Perfil" onClick={() => { navigate(`/dashboard/${userRole}/profile`); setShowNotifications(false) }} />
-                <MenuOption icon={Bell} label="Notificaciones" badge={3} onClick={() => { navigate(`/dashboard/${userRole}/notifications`); setShowNotifications(false) }} />
-                <MenuOption icon={Settings} label="Configuración" onClick={() => { navigate(`/dashboard/${userRole}/settings`); setShowNotifications(false) }} />
               </div>
 
               {/* Recent Notifications */}
@@ -258,7 +257,7 @@ const DashboardLayout = ({ children, userRole }) => {
 const NavBtn = ({ path, exact, label, Icon, badge }) => {
   const location = useLocation()
   const navigate = useNavigate()
-  const active = exact ? location.pathname === path : location.pathname.startsWith(path)
+  const active = exact ? location.pathname === path : location.pathname.includes(path.split('/').pop())
   return (
     <motion.button
       whileTap={{ scale: 0.9 }}

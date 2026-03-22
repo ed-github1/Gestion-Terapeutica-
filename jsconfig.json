@@ -4,15 +4,9 @@
     "paths": {
       "@/*": ["./src/*"],
       "@shared/*": ["./src/shared/*"],
-      "@components/*": ["./src/components/*"],
       "@features/*": ["./src/features/*"],
-      "@layouts/*": ["./src/layouts/*"],
       "@pages/*": ["./src/pages/*"],
-      "@services/*": ["./src/services/*"],
-      "@hooks/*": ["./src/hooks/*"],
-      "@utils/*": ["./src/utils/*"],
-      "@assets/*": ["./src/assets/*"],
-      "@constants/*": ["./src/constants/*"]
+      "@assets/*": ["./src/assets/*"]
     }
   },
   "exclude": ["node_modules", "dist"]

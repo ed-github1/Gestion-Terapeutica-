@@ -3,7 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { Mail, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from './AuthContext'
-import { getTrustToken } from '@utils/deviceTrust'
+import { getTrustToken } from '@shared/utils/deviceTrust'
 import { BrandLogo } from '@shared/ui'
 
 const LoginPage = () => {

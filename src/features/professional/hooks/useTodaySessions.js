@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { getTodayAppointments, resolvePatientName } from '../dashboard/dashboardUtils'
+import { getTodayAppointments, resolvePatientName } from '../utils/dashboardUtils'
 
 /**
  * Derives today's appointments (merged from API + localStorage),

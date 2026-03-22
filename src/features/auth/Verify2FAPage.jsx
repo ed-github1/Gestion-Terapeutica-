@@ -4,7 +4,7 @@ import { ShieldCheck, AlertCircle, RefreshCw } from 'lucide-react'
 import apiClient from '@shared/api/client'
 import { useAuth } from './AuthContext'
 import { BrandLogo } from '@shared/ui'
-import { storeTrustToken } from '@utils/deviceTrust'
+import { storeTrustToken } from '@shared/utils/deviceTrust'
 
 const Verify2FAPage = () => {
   const navigate = useNavigate()

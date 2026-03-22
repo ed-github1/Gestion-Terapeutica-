@@ -40,16 +40,19 @@ class SocketNotificationService {
     })
 
     this.socket.on('connect', () => {
+      console.log('[SocketNotificationService] connected, registering userId:', userId)
       // Register so the server knows which socket belongs to this user
       this.socket.emit('register', { userId, role: 'notification-listener' })
       // Flush any emissions that arrived while we were still connecting
       const pending = this._pendingEmits.splice(0)
+      if (pending.length > 0) console.log('[SocketNotificationService] flushing', pending.length, 'pending emits')
       pending.forEach(({ event, data }) => {
         this.socket.emit(event, data)
       })
     })
 
     this.socket.on('call-invitation', (data) => {
+      console.log('[SocketNotificationService] received call-invitation:', data)
       // Appointment notifications piggyback on call-invitation relay
       if (data?.type && data.type.startsWith('appointment-')) {
         this._emit(data.type, data)
@@ -87,6 +90,11 @@ class SocketNotificationService {
     this.socket.on('disconnect', () => {
       console.debug('[SocketNotificationService] disconnected')
     })
+
+    this.socket.on('reconnect', () => {
+      console.debug('[SocketNotificationService] reconnected')
+      this._emit('reconnect', {})
+    })
   }
 
   disconnect() {
@@ -96,85 +104,51 @@ class SocketNotificationService {
 
   /** Professional → patient: emit a call invitation via socket */
   sendCallInvitation(patientUserId, payload) {
-    if (!this.socket?.connected) {
-      console.warn('[SocketNotificationService] not connected, cannot send invitation')
-      return false
+    const data = { targetUserId: patientUserId, ...payload }
+    if (this.socket?.connected) {
+      console.log('[SocketNotificationService] sending call-invitation to', patientUserId)
+      this.socket.emit('call-invitation', data)
+    } else {
+      console.log('[SocketNotificationService] socket not ready, queuing call-invitation for', patientUserId)
+      this._pendingEmits.push({ event: 'call-invitation', data })
     }
-    this.socket.emit('call-invitation', { targetUserId: patientUserId, ...payload })
     return true
   }
 
-  /**
-   * Patient → professional: notify that an appointment has been paid.
-   * Piggybacks on the call-invitation relay so the server forwards it
-   * to the professional's socket.
-   */
+  // ─── Appointment lifecycle notifications ───────────────────────────────────
+  // All routed through the server's `call-invitation` relay (single relay point).
+  // The receiver discriminates by `data.type`. To swap the relay event in the
+  // future, only `_notifyUser` needs updating.
+
+  /** @private — single place that knows the server relay event name */
+  _notifyUser(targetUserId, type, data = {}) {
+    const payload = { targetUserId, type, ...data }
+    if (this.socket?.connected) {
+      this.socket.emit('call-invitation', payload)
+    } else {
+      this._pendingEmits.push({ event: 'call-invitation', data: payload })
+    }
+    return true
+  }
+
+  /** Patient → professional: appointment has been paid */
   sendPaymentNotification(professionalUserId, appointmentData) {
-    const payload = {
-      targetUserId: professionalUserId,
-      ...appointmentData,
-      type: 'appointment-paid',
-    }
-    if (this.socket?.connected) {
-      this.socket.emit('call-invitation', payload)
-    } else {
-      this._pendingEmits.push({ event: 'call-invitation', data: payload })
-    }
-    return true
+    return this._notifyUser(professionalUserId, 'appointment-paid', appointmentData)
   }
 
-  /**
-   * Patient → professional: notify that an appointment has been accepted.
-   */
+  /** Patient → professional: appointment has been accepted */
   sendAcceptanceNotification(professionalUserId, appointmentData) {
-    const payload = {
-      targetUserId: professionalUserId,
-      ...appointmentData,
-      type: 'appointment-accepted',
-    }
-    if (this.socket?.connected) {
-      this.socket.emit('call-invitation', payload)
-    } else {
-      this._pendingEmits.push({ event: 'call-invitation', data: payload })
-    }
-    return true
+    return this._notifyUser(professionalUserId, 'appointment-accepted', appointmentData)
   }
 
-  /**
-   * Patient → professional: notify that an appointment has been rejected.
-   */
+  /** Patient → professional: appointment has been rejected */
   sendRejectionNotification(professionalUserId, appointmentData) {
-    const payload = {
-      targetUserId: professionalUserId,
-      ...appointmentData,
-      type: 'appointment-rejected',
-    }
-    if (this.socket?.connected) {
-      this.socket.emit('call-invitation', payload)
-    } else {
-      this._pendingEmits.push({ event: 'call-invitation', data: payload })
-    }
-    return true
+    return this._notifyUser(professionalUserId, 'appointment-rejected', appointmentData)
   }
 
-  /**
-   * Professional → patient: send an appointment notification via socket.
-   * Piggybacks on the call-invitation relay so the server forwards it
-   * to the patient's socket. The receiver detects data.type and routes
-   * the event to the appropriate appointment handler.
-   */
+  /** Professional → patient: new appointment is pending patient acceptance */
   sendAppointmentNotification(targetUserId, appointmentData) {
-    const payload = {
-      targetUserId,
-      type: 'appointment-pending',
-      ...appointmentData,
-    }
-    if (this.socket?.connected) {
-      this.socket.emit('call-invitation', payload)
-    } else {
-      this._pendingEmits.push({ event: 'call-invitation', data: payload })
-    }
-    return true
+    return this._notifyUser(targetUserId, 'appointment-pending', appointmentData)
   }
 
   on(event, cb) {

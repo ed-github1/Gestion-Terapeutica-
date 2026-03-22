@@ -23,11 +23,40 @@ const REFERRAL_SOURCES = [
   { value: 'other',     label: 'Otro' },
 ]
 
+const THERAPY_REASONS = [
+  'Ansiedad', 'Depresión', 'Estrés', 'Duelo', 'Autoestima',
+  'Problemas de pareja', 'Problemas familiares', 'Trauma / TEPT',
+  'Adicciones', 'Trastorno alimentario',
+]
+
 const GENDER_OPTIONS = [
   { value: 'male',              label: 'Masculino' },
   { value: 'female',            label: 'Femenino' },
   { value: 'non-binary',        label: 'No binario' },
   { value: 'prefer-not-to-say', label: 'Prefiero no decirlo' },
+]
+
+const LATAM_COUNTRIES = [
+  { value: 'AR', label: 'Argentina' },
+  { value: 'BO', label: 'Bolivia' },
+  { value: 'BR', label: 'Brasil' },
+  { value: 'CL', label: 'Chile' },
+  { value: 'CO', label: 'Colombia' },
+  { value: 'CR', label: 'Costa Rica' },
+  { value: 'CU', label: 'Cuba' },
+  { value: 'DO', label: 'República Dominicana' },
+  { value: 'EC', label: 'Ecuador' },
+  { value: 'SV', label: 'El Salvador' },
+  { value: 'GT', label: 'Guatemala' },
+  { value: 'HN', label: 'Honduras' },
+  { value: 'MX', label: 'México' },
+  { value: 'NI', label: 'Nicaragua' },
+  { value: 'PA', label: 'Panamá' },
+  { value: 'PY', label: 'Paraguay' },
+  { value: 'PE', label: 'Perú' },
+  { value: 'PR', label: 'Puerto Rico' },
+  { value: 'UY', label: 'Uruguay' },
+  { value: 'VE', label: 'Venezuela' },
 ]
 
 /**
@@ -45,7 +74,7 @@ const BLOCKED_STATUSES = new Set([
  */
 const STEP_REQUIRED_FIELDS = {
   1: ['firstName', 'lastName', 'email', 'dateOfBirth'],
-  2: ['password', 'confirmPassword'],
+  2: ['password', 'confirmPassword', 'presentingConcern', 'presentingConcernOther'],
   3: ['acceptTerms', 'acceptPrivacy'],
 }
 
@@ -171,6 +200,7 @@ const PatientOnboardingPage = () => {
   })
 
   const password = watch('password')
+  const presentingConcernValue = watch('presentingConcern')
 
   /* ── Verify invitation on mount ─────────────────────────────────────────── */
   useEffect(() => {
@@ -253,7 +283,7 @@ const PatientOnboardingPage = () => {
         gender:                data.gender               || undefined,
         address:               data.address              || undefined,
         sessionType:           data.sessionType,
-        presentingConcern:     data.presentingConcern    || undefined,
+        presentingConcern:     data.presentingConcern === 'Otro' ? (data.presentingConcernOther || undefined) : (data.presentingConcern || undefined),
         referralSource:        data.referralSource,
         emergencyContactName:  data.emergencyContactName  || undefined,
         emergencyContactPhone: data.emergencyContactPhone || undefined,
@@ -505,6 +535,15 @@ const PatientOnboardingPage = () => {
                   <Field label="Dirección" optional>
                     <input {...register('address')} className={inputCls(false)} placeholder="Ciudad, Estado" />
                   </Field>
+
+                  <Field label="País" optional>
+                    <select {...register('country')} className={inputCls(false)}>
+                      <option value="">Seleccionar...</option>
+                      {LATAM_COUNTRIES.map(({ value, label }) => (
+                        <option key={value} value={value}>{label}</option>
+                      ))}
+                    </select>
+                  </Field>
                 </motion.div>
               )}
 
@@ -553,14 +592,26 @@ const PatientOnboardingPage = () => {
                     </select>
                   </Field>
 
-                  <Field label="Motivo de consulta" optional>
-                    <textarea
-                      {...register('presentingConcern')}
-                      rows={3}
-                      className={`${inputCls(false)} resize-none`}
-                      placeholder="Breve descripción del motivo de consulta"
-                    />
+                  <Field label="Motivo de consulta" error={errors.presentingConcern?.message}>
+                    <select
+                      {...register('presentingConcern', { required: 'El motivo de consulta es obligatorio' })}
+                      className={inputCls(!!errors.presentingConcern)}
+                    >
+                      <option value="">Selecciona un motivo</option>
+                      {THERAPY_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
+                      <option value="Otro">Otro</option>
+                    </select>
                   </Field>
+                  {presentingConcernValue === 'Otro' && (
+                    <Field label="Especifica el motivo" error={errors.presentingConcernOther?.message}>
+                      <input
+                        type="text"
+                        {...register('presentingConcernOther', { required: presentingConcernValue === 'Otro' ? 'Especifica el motivo' : false })}
+                        className={inputCls(!!errors.presentingConcernOther)}
+                        placeholder="Describe tu motivo de consulta"
+                      />
+                    </Field>
+                  )}
 
                   <Field label="¿Cómo nos conociste?">
                     <select {...register('referralSource')} className={inputCls(false)}>

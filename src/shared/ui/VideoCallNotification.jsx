@@ -4,11 +4,13 @@
  * Uses videoCallService for all HTTP calls, with socket fallback for
  * real-time delivery when the REST /video/send-invitation endpoint is unavailable.
  */
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useNavigate } from 'react-router-dom'
+import { Video, X, Phone, PhoneOff, Clock, User } from 'lucide-react'
 import { useAuth } from '@features/auth'
 import { videoCallService } from '@shared/services/videoCallService'
+import { appointmentsService } from '@shared/services/appointmentsService'
 import { socketNotificationService } from '@shared/services/socketNotificationService'
 
 // ── Single invitation card ────────────────────────────────────────────────────
@@ -23,8 +25,8 @@ const VideoCallNotification = ({ invitation, onAccept, onDecline, onClose }) => 
     return () => clearInterval(t)
   }, [timeLeft, onClose])
 
-  const handleAccept = () => {
-    onAccept(invitation)
+  const handleAccept = async () => {
+    await onAccept(invitation)
     const name = user?.name || user?.username || invitation.patientName || 'Paciente'
     navigate(`/video/join/${invitation.appointmentId}?name=${encodeURIComponent(name)}`)
   }
@@ -34,105 +36,105 @@ const VideoCallNotification = ({ invitation, onAccept, onDecline, onClose }) => 
     followup: 'Seguimiento',
   }[invitation.appointmentType] ?? 'Sesión terapéutica'
 
+  const progress = timeLeft / 45
+
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.8, y: 50 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.8, y: 50 }}
-      className="fixed z-9999 max-w-md w-full bottom-6 right-6
-        md:bottom-6 md:right-6
-        left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2
-        md:left-auto md:top-auto md:translate-x-0 md:translate-y-0
-        flex items-center justify-center"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-9999 flex items-center justify-center bg-black/30 backdrop-blur-[2px] p-4"
     >
-      <div className="bg-white rounded-3xl shadow-2xl border-2 border-sky-400 overflow-hidden w-full">
-        {/* Header */}
-        <div className="bg-linear-to-r from-sky-400 to-teal-400 p-4 relative overflow-hidden">
-          <div className="absolute inset-0 bg-white/20 animate-pulse" />
-          <div className="relative flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-white/30 backdrop-blur-sm rounded-full flex items-center justify-center animate-bounce">
-                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="text-white font-bold text-lg">Videollamada Entrante</h3>
-                <p className="text-white/90 text-sm">Tu profesional te está llamando</p>
-              </div>
+      <motion.div
+        initial={{ scale: 0.96, opacity: 0, y: 12 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.96, opacity: 0, y: 12 }}
+        transition={{ type: 'spring', duration: 0.35, bounce: 0.1 }}
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-90 overflow-hidden"
+      >
+        {/* Compact header */}
+        <div className="px-5 pt-5 pb-0 flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#0075C9]/10 dark:bg-[#0075C9]/20 flex items-center justify-center shrink-0">
+              <Video className="w-5 h-5 text-[#0075C9]" />
             </div>
-            <button onClick={onClose} className="text-white/80 hover:text-white transition">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+            <div>
+              <h3 className="text-[15px] font-bold text-gray-900 dark:text-white leading-tight">Videollamada entrante</h3>
+              <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">Tu profesional te está llamando</p>
+            </div>
           </div>
+          <button
+            onClick={onClose}
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors -mr-1 -mt-1"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
         {/* Body */}
-        <div className="p-6">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-16 h-16 bg-linear-to-br from-sky-100 to-teal-100 rounded-full flex items-center justify-center">
-              <svg className="w-8 h-8 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
+        <div className="px-5 pt-4 pb-5">
+          {/* Professional info */}
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-11 h-11 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0">
+              <User className="w-5 h-5 text-gray-400 dark:text-gray-500" />
             </div>
-            <div className="flex-1">
-              <p className="text-lg font-semibold text-gray-900">
-                {invitation.professionalName || 'Tu profesional de salud'}
+            <div className="min-w-0">
+              <p className="text-[14px] font-semibold text-gray-900 dark:text-white truncate">
+                {invitation.professionalName || 'Tu profesional'}
               </p>
-              <p className="text-sm text-gray-600">{appointmentLabel}</p>
+              <p className="text-[12px] text-gray-500 dark:text-gray-400">{appointmentLabel}</p>
             </div>
           </div>
 
+          {/* Time info row */}
           {invitation.appointmentTime && (
-            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-6">
-              <div className="flex items-center gap-2 text-blue-700">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span className="font-medium">Programada para: {invitation.appointmentTime}</span>
-              </div>
+            <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl px-3.5 py-2.5 mb-4 flex items-center gap-2">
+              <Clock className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+              <span className="text-[12px] text-gray-600 dark:text-gray-300">
+                Programada: <span className="font-medium">{invitation.appointmentTime}</span>
+              </span>
             </div>
           )}
 
-          <div className="text-center mb-6">
-            <div className="inline-flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-full">
-              <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          {/* Countdown with progress ring */}
+          <div className="flex items-center justify-center gap-2 mb-5">
+            <div className="relative w-6 h-6">
+              <svg className="w-6 h-6 -rotate-90" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-100 dark:text-gray-700" />
+                <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2"
+                  className={timeLeft <= 10 ? 'text-red-500' : 'text-[#0075C9]'}
+                  strokeDasharray={`${progress * 62.83} 62.83`}
+                  strokeLinecap="round"
+                  style={{ transition: 'stroke-dasharray 1s linear' }}
+                />
               </svg>
-              <span className="text-sm font-medium text-gray-700">Expira en {timeLeft} segundos</span>
             </div>
+            <span className={`text-[13px] font-semibold tabular-nums ${timeLeft <= 10 ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'}`}>
+              {timeLeft}s
+            </span>
           </div>
 
-          <div className="flex gap-3">
+          {/* Action buttons */}
+          <div className="flex gap-2.5">
             <motion.button
-              whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+              whileHover={{ scale: 1.015 }} whileTap={{ scale: 0.985 }}
               onClick={onDecline}
-              className="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-2xl font-semibold hover:bg-gray-300 transition flex items-center justify-center gap-2"
+              className="flex-1 h-11 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-xl text-[13px] font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors flex items-center justify-center gap-2"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <PhoneOff className="w-4 h-4" />
               Rechazar
             </motion.button>
             <motion.button
-              whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+              whileHover={{ scale: 1.015 }} whileTap={{ scale: 0.985 }}
               onClick={handleAccept}
-              className="flex-1 px-6 py-3 bg-linear-to-r from-green-500 to-emerald-500 text-white rounded-2xl font-bold hover:from-green-600 hover:to-emerald-600 transition shadow-lg flex items-center justify-center gap-2"
+              className="flex-2 h-11 bg-[#0075C9] text-white rounded-xl text-[13px] font-semibold hover:bg-[#005fa0] transition-colors shadow-sm flex items-center justify-center gap-2"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-              Unirse
+              <Phone className="w-4 h-4" />
+              Unirse a la sesión
             </motion.button>
           </div>
-
-          <p className="text-xs text-gray-500 text-center mt-4">
-            Asegúrate de tener tu cámara y micrófono listos
-          </p>
         </div>
-      </div>
+      </motion.div>
     </motion.div>
   )
 }
@@ -141,38 +143,124 @@ const VideoCallNotification = ({ invitation, onAccept, onDecline, onClose }) => 
 export const VideoCallNotificationManager = () => {
   const [invitations, setInvitations] = useState([])
   const [current, setCurrent] = useState(null)
+  const { user } = useAuth()
+  const currentRef = useRef(current)
+  const checkedRoomsRef = useRef(new Set()) // track dismissed/accepted rooms
+  currentRef.current = current
 
+  const showInvitation = (invitation) => {
+    if (!invitation?.appointmentId) return
+    if (checkedRoomsRef.current.has(invitation.appointmentId)) return
+    setInvitations((prev) => {
+      if (prev.some((i) => i.appointmentId === invitation.appointmentId)) return prev
+      return [...prev, invitation]
+    })
+    if (!currentRef.current) setCurrent(invitation)
+  }
+
+  // ── Channel 1: Socket listener for real-time call-invitation events ──
+  useEffect(() => {
+    const userId = user?._id || user?.id
+    if (!userId) return
+
+    console.log('[VideoCallNotificationManager] mounted for user:', userId)
+    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || ''
+    socketNotificationService.connect(userId, token)
+
+    const unsub = socketNotificationService.on('call-invitation', (data) => {
+      console.log('[VideoCallNotificationManager] socket call-invitation received:', data)
+      showInvitation(data)
+    })
+
+    return () => unsub()
+  }, [user?._id, user?.id])
+
+  // ── Channel 2: REST polling /video/active-invitations ──
   useEffect(() => {
     const poll = async () => {
       try {
         const { data } = await videoCallService.getActiveInvitations()
+        console.log('[VideoCallNotificationManager] poll /video/active-invitations:', data)
         if (data?.invitations?.length > 0) {
-          setInvitations(data.invitations)
-          if (!current) setCurrent(data.invitations[0])
-        } else {
-          // Clear stale state when server returns no active invitations
-          setInvitations((prev) => (prev.length > 0 ? [] : prev))
-          setCurrent((prev) => (prev ? null : prev))
+          data.invitations.forEach(showInvitation)
         }
       } catch {
-        // ignore polling errors
+        // endpoint may not exist — silently skip
       }
     }
     poll()
-    const interval = setInterval(poll, 5_000)
+    const interval = setInterval(poll, 6_000)
     return () => clearInterval(interval)
-  }, [current])
+  }, [])
+
+  // ── Channel 3: Poll patient's video appointments for active rooms ──
+  // This is the most reliable fallback — uses known-working endpoints:
+  //   GET /appointments  →  GET /rtc/rooms/:appointmentId
+  useEffect(() => {
+    const userId = user?._id || user?.id
+    if (!userId) return
+
+    const checkRooms = async () => {
+      try {
+        const res = await appointmentsService.getPatientAppointments()
+        const raw = res.data?.data || res.data?.appointments || res.data || []
+        const appointments = Array.isArray(raw) ? raw : []
+        
+        console.log('[VideoCallNotificationManager] channel 3: total appointments:', appointments.length)
+
+        // Check all non-completed/cancelled appointments (broad filter)
+        const candidateApts = appointments.filter((a) => {
+          const st = a.status || a.estado || ''
+          return st !== 'completed' && st !== 'cancelled'
+        })
+        
+        console.log('[VideoCallNotificationManager] channel 3: candidate (non-completed) appointments:', candidateApts.length,
+          candidateApts.map(a => ({ id: a._id || a.id, mode: a.mode, isVideoCall: a.isVideoCall, status: a.status || a.estado, date: a.date })))
+
+        for (const apt of candidateApts.slice(0, 8)) {
+          const aptId = apt._id || apt.id
+          if (!aptId) continue
+          if (checkedRoomsRef.current.has(aptId)) continue
+          if (currentRef.current?.appointmentId === aptId) continue
+          try {
+            const roomRes = await videoCallService.getRoomStatus(aptId)
+            const room = roomRes.data?.room || roomRes.data
+            console.log('[VideoCallNotificationManager] room status for', aptId, ':', room)
+            if (room && (room.isActive || room.status === 'active' || room.participants?.length > 0)) {
+              console.log('[VideoCallNotificationManager] ✅ active room found for appointment:', aptId)
+              showInvitation({
+                appointmentId: aptId,
+                professionalName: apt.professionalName || apt.professional?.name || 'Tu profesional',
+                patientName: apt.patientName || user?.name || '',
+                appointmentType: apt.type || 'consultation',
+                appointmentTime: apt.date ? new Date(apt.date).toLocaleString('es-ES') : '',
+              })
+              break
+            }
+          } catch {
+            // room doesn't exist yet — normal
+          }
+        }
+      } catch (err) {
+        console.warn('[VideoCallNotificationManager] room check error:', err.message || err)
+      }
+    }
+
+    checkRooms()
+    const interval = setInterval(checkRooms, 8_000)
+    return () => clearInterval(interval)
+  }, [user?._id, user?.id])
 
   const handleAccept = async (invitation) => {
-    try {
-      await videoCallService.acceptInvitation(invitation.appointmentId)
-    } catch { /* noop */ }
+    checkedRoomsRef.current.add(invitation.appointmentId)
+    try { await videoCallService.acceptInvitation(invitation.appointmentId) } catch { /* noop */ }
     setCurrent(null)
     setInvitations([])
   }
 
   const handleDecline = async () => {
     if (current) {
+      checkedRoomsRef.current.add(current.appointmentId)
       try { await videoCallService.rejectInvitation(current.appointmentId) } catch { /* noop */ }
     }
     setCurrent(null)
@@ -180,6 +268,7 @@ export const VideoCallNotificationManager = () => {
   }
 
   const handleClose = () => {
+    if (current) checkedRoomsRef.current.add(current.appointmentId)
     setCurrent(invitations.length > 1 ? invitations[1] : null)
   }
 

@@ -1,11 +1,11 @@
 import { motion, AnimatePresence } from 'motion/react'
 import { useEffect, useRef } from 'react'
-import { Calendar, Clock, Video, FileText, MessageSquare, CheckCircle2, XCircle, Target } from 'lucide-react'
+import { Calendar, Video, FileText, MessageSquare, CheckCircle2, Ban, Coffee } from 'lucide-react'
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   Helpers
-───────────────────────────────────────────────────────────────────────────── */
-/** Strip stray "undefined" / "null" words that may leak into display names. */
+/* ═══════════════════════════════════════════════════════════════════════════
+   1. HELPERS & CONSTANTS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 const sanitize = (s) => {
     if (!s || typeof s !== 'string') return ''
     return s.replace(/\bundefined\b/gi, '').replace(/\bnull\b/gi, '').replace(/\s{2,}/g, ' ').trim()
@@ -20,311 +20,307 @@ const getInitials = (name) => {
         : clean.substring(0, 2).toUpperCase()
 }
 
-const getTimeComponents = (date) => {
-    const h = date.getHours()
-    const m = date.getMinutes()
-    const ampm = h >= 12 ? 'PM' : 'AM'
-    const dh = h % 12 || 12
+const pad = (n) => String(n).padStart(2, '0')
+const fmtTime = (d) => `${pad(d.getHours())}:${pad(d.getMinutes())}`
+
+const SHORT_MONTHS = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
+
+const SESSION_TYPE_DOT = {
+    Consulta: 'bg-sky-500', Seguimiento: 'bg-emerald-500',
+    Evaluación: 'bg-amber-500', Primera: 'bg-cyan-500', default: 'bg-gray-400',
+}
+
+const AVATAR_PALETTES = [
+    'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300',
+    'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
+    'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300',
+    'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+    'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300',
+    'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300',
+    'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+    'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300',
+    'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300',
+    'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300',
+]
+
+const getAvatarColor = (name) => {
+    let hash = 0
+    for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
+    return AVATAR_PALETTES[Math.abs(hash) % AVATAR_PALETTES.length]
+}
+
+const GHOST_BTN = 'w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/70 active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-1'
+const GHOST_BTN_IMMINENT = 'w-8 h-8 flex items-center justify-center rounded-lg text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-1'
+
+/** Derive all appointment metadata from raw data */
+const parseAppointment = (appointment) => {
+    const patientName = sanitize(appointment.nombrePaciente || appointment.patient?.name) || 'Paciente'
+    const startTime   = new Date(appointment.fechaHora)
+    const endTime     = new Date(startTime.getTime() + (appointment.duration || 60) * 60 * 1000)
+    const riskLevel   = appointment.riskLevel || 'low'
+    const sessionType = appointment.type || 'Consulta'
+    const isVideoCall = appointment.isVideoCall || appointment.mode === 'videollamada'
+
+    const rawStatus   = appointment.estado || appointment.status || ''
+    const isCompleted = rawStatus === 'completed' || rawStatus === 'completada'
+    const isCancelled = rawStatus === 'cancelled' || rawStatus === 'cancelada' || appointment.isCancelled === true
+
+    const isToday     = startTime.toDateString() === new Date().toDateString()
+    const dateLabel   = !isToday ? `${startTime.getDate()} ${SHORT_MONTHS[startTime.getMonth()]}` : null
+    const timeRange   = `${fmtTime(startTime)} – ${fmtTime(endTime)}`
+    const nowMs       = Date.now()
+    const isInProgress = !isCompleted && !isCancelled && nowMs >= startTime.getTime() && nowMs < endTime.getTime()
+    const isDone      = isCompleted || isCancelled
+
     return {
-        timeStr: `${String(dh).padStart(2, '0')}:${String(m).padStart(2, '0')}`,
-        ampm,
+        patientName, startTime, endTime, riskLevel, sessionType,
+        isVideoCall, isCompleted, isCancelled, isDone, dateLabel,
+        timeRange, isInProgress,
     }
 }
 
-const getRelativeTime = (dateStr) => {
-    if (!dateStr) return null
-    const now = new Date()
-    const then = new Date(dateStr)
-    const diffMs = now - then
-    if (diffMs < 0) return null
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-    if (diffDays === 0) return 'Hoy'
-    if (diffDays === 1) return 'Ayer'
-    if (diffDays < 7) return `Hace ${diffDays} días`
-    const weeks = Math.floor(diffDays / 7)
-    if (weeks < 4) return `Hace ${weeks} sem.`
-    const months = Math.floor(diffDays / 30)
-    return months <= 1 ? 'Hace 1 mes' : `Hace ${months} meses`
+/* ═══════════════════════════════════════════════════════════════════════════
+   2. STYLE RESOLVERS — keep all conditional class logic here
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const getCardBg = ({ isCancelled, isCompleted, isNext, riskLevel }) => {
+    if (isCancelled) return 'bg-white dark:bg-gray-800/50 border border-dashed border-gray-300 dark:border-gray-600'
+    if (isCompleted) return 'bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/60'
+    if (isNext)      return 'bg-white dark:bg-gray-800 border border-sky-200 dark:border-sky-700/40 shadow-sm ring-1 ring-inset ring-sky-500/10 dark:ring-sky-500/15'
+    if (riskLevel === 'high') return 'bg-white dark:bg-gray-800/80 border border-rose-200 dark:border-rose-700/30'
+    return 'bg-white dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700/60'
 }
 
-const SESSION_TYPE_STYLES = {
-    Consulta:    'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700',
-    Seguimiento: 'bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-700',
-    Evaluación:  'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-700',
-    Primera:     'bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-700',
-    default:     'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600',
+const getAvatarClass = ({ isCancelled, isCompleted, patientName }) => {
+    if (isCancelled) return 'bg-gray-100 text-gray-400 dark:bg-gray-700/60 dark:text-gray-500'
+    if (isCompleted) return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+    return getAvatarColor(patientName)
 }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   SessionCard — pill with inline action tray (no modal)
-───────────────────────────────────────────────────────────────────────────── */
-const SessionCard = ({
-    appointment,
-    index,
-    isNext = false,
-    countdown = null,
-    isImminent = false,
-    onJoinVideo,
-    onViewDiary,
-    onMessage,
-}) => {
-    const patientName   = sanitize(appointment.nombrePaciente || appointment.patient?.name) || 'Paciente'
-    const startTime      = new Date(appointment.fechaHora)
-    const endTime        = new Date(startTime.getTime() + (appointment.duration || 60) * 60 * 1000)
-    const riskLevel      = appointment.riskLevel || 'low'
-    const homeworkOk     = appointment.homeworkCompleted !== false
-    const sessionType    = appointment.type || 'Consulta'
-    const treatmentGoal  = appointment.treatmentGoal || ''
-    const lastVisit      = getRelativeTime(appointment.ultimaVisita)
+const getNameClass = ({ isCancelled, isCompleted }) => {
+    if (isCancelled) return 'line-through text-gray-400 dark:text-gray-500'
+    if (isCompleted) return 'text-gray-400 dark:text-gray-500'
+    return 'text-gray-900 dark:text-gray-100'
+}
 
-    const { timeStr, ampm }     = getTimeComponents(startTime)
-    const { timeStr: endStr, ampm: endAmpm } = getTimeComponents(endTime)
-    const timeRange = `${timeStr} – ${endStr} ${endAmpm}`
-    const typeStyle = SESSION_TYPE_STYLES[sessionType] || SESSION_TYPE_STYLES.default
+const getTimelineDot = ({ isNext, isCancelled, isCompleted }) => {
+    if (isNext)      return 'w-3 h-3 bg-sky-500 ring-2 ring-sky-300 dark:ring-sky-700'
+    if (isCancelled) return 'w-2 h-2 bg-gray-400/50 dark:bg-gray-600'
+    if (isCompleted) return 'w-2.5 h-2.5 bg-emerald-500 dark:bg-emerald-400'
+    return 'w-2 h-2 bg-gray-400/60 dark:bg-gray-500/60'
+}
 
-    // Show date label when the appointment is NOT today
-    const now = new Date()
-    const isToday = startTime.getDate() === now.getDate() &&
-        startTime.getMonth() === now.getMonth() &&
-        startTime.getFullYear() === now.getFullYear()
-    const shortMonths = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
-    const dateLabel = !isToday
-        ? `${startTime.getDate()} ${shortMonths[startTime.getMonth()]}`
-        : null
+const getSpineColor = (isCompleted) =>
+    isCompleted ? 'border-emerald-400/50 dark:border-emerald-700/60' : 'border-gray-400/70 dark:border-gray-400/40'
 
-    /* visual tokens — all cards white; next/risk shown via left border accent */
-    const bgPalette = [
-        'bg-white dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600',
-        'bg-white dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600',
-        'bg-white dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600',
-        'bg-white dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600',
-        'bg-white dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600',
-    ]
-    const avatarPalette = [
-        'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200',
-        'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200',
-        'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200',
-        'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200',
-        'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200',
-    ]
+const CHIP_FADED = 'border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-600'
 
-    const bgClass = isNext
-        ? 'bg-white dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600 border-l-[3px] border-l-blue-500'
-        : riskLevel === 'high'
-            ? 'bg-white dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600 border-l-[3px] border-l-rose-500'
-            : bgPalette[index % bgPalette.length]
+/* ═══════════════════════════════════════════════════════════════════════════
+   3. SHARED LAYOUT — TimelineRow (used by Session, Break & Unavailable)
+   ═══════════════════════════════════════════════════════════════════════════ */
 
-    const avatarClass = isNext
-        ? 'bg-blue-600 text-white'
-        : riskLevel === 'high'
-            ? 'bg-rose-100 text-rose-700'
-            : avatarPalette[index % avatarPalette.length]
+const TimeStamp = ({ time, dateLabel, dimmed }) => (
+    <div className={`w-9 shrink-0 text-right pt-3 ${dimmed ? 'opacity-50' : ''}`}>
+        <div className={`text-[10px] font-bold leading-none ${dimmed ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-700 dark:text-gray-300'}`}>
+            {time}
+        </div>
+        {dateLabel && <div className="text-[9px] text-gray-500 dark:text-gray-500 uppercase mt-0.5">{dateLabel}</div>}
+    </div>
+)
+
+const TimelineSpine = ({ isFirst, isLast, dotClass, spineColor = 'border-gray-400/70 dark:border-gray-400/40' }) => (
+    <div className="relative flex flex-col items-center shrink-0 self-stretch" style={{ width: '10px' }}>
+        {isFirst ? <div style={{ height: '15px' }} /> : (
+            <div className={`w-0 border-l-2 border-dashed ${spineColor}`} style={{ height: '15px' }} />
+        )}
+        <div className={`rounded-full shrink-0 z-10 transition-all ${dotClass}`} />
+        {!isLast && <div className={`w-0 border-l-2 border-dashed flex-1 ${spineColor}`} />}
+    </div>
+)
+
+const DEFAULT_DOT = 'w-2 h-2 rounded-full bg-gray-400/60 dark:bg-gray-500/60'
+
+const TimelineRow = ({ index, isFirst, isLast, timeStr, dateLabel, dotClass = DEFAULT_DOT, spineColor, dimmed, children }) => (
+    <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.055, duration: 0.28 }}
+        className="flex items-stretch gap-2"
+    >
+        <TimeStamp time={timeStr} dateLabel={dateLabel} dimmed={dimmed} />
+        <TimelineSpine isFirst={isFirst} isLast={isLast} dotClass={dotClass} spineColor={spineColor} />
+        <div className="flex-1 pb-1.5">{children}</div>
+    </motion.div>
+)
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   4. SESSION CARD SUB-COMPONENTS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/** Action buttons (message, video, complete, file) */
+const SessionActions = ({ appointment, data, isImminent, onJoinVideo, onViewDiary, onMessage, onMarkComplete }) => {
+    const { isCancelled, isCompleted, isVideoCall } = data
+    return (
+        <div className="flex items-center gap-0.5 shrink-0">
+            {!isCancelled && (
+                <button type="button" title="Mensaje" onClick={() => onMessage?.(appointment)} className={GHOST_BTN}>
+                    <MessageSquare className="w-4 h-4" />
+                </button>
+            )}
+            {!isCancelled && !isCompleted && isVideoCall && (
+                <button
+                    type="button"
+                    title={isImminent ? 'Iniciar videollamada' : 'Videollamada'}
+                    onClick={() => onJoinVideo?.(appointment)}
+                    className={isImminent ? GHOST_BTN_IMMINENT : GHOST_BTN}
+                >
+                    <Video className="w-4 h-4" />
+                </button>
+            )}
+            {!isCancelled && !isCompleted && !isVideoCall && (
+                <button type="button" title="Marcar como completada" onClick={() => onMarkComplete?.(appointment)} className={GHOST_BTN}>
+                    <CheckCircle2 className="w-4 h-4" />
+                </button>
+            )}
+            <button type="button" title="Expediente" onClick={() => onViewDiary?.(appointment)} className={GHOST_BTN}>
+                <FileText className="w-4 h-4" />
+            </button>
+        </div>
+    )
+}
+
+/** Status + type + mode chips */
+const SessionChips = ({ data }) => {
+    const { isCompleted, isCancelled, isDone, riskLevel, sessionType, isVideoCall } = data
+    const typeDot = SESSION_TYPE_DOT[sessionType] || SESSION_TYPE_DOT.default
+    const hasStatusChip = isCompleted || isCancelled || riskLevel === 'high'
+
+    const modeLabel = isVideoCall ? 'Videollamada' : 'Presencial'
+    const modeColor = isDone ? CHIP_FADED
+        : isVideoCall ? 'border-sky-200 dark:border-sky-700/60 text-sky-600 dark:text-sky-400'
+        : 'border-amber-200 dark:border-amber-700/60 text-amber-600 dark:text-amber-400'
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.055, duration: 0.28 }}
-            className="min-w-0 w-full"
-        >
-            {/* ── PRÓXIMA label ─────────────────────────────── */}
+        <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
+            {isCompleted && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-700/60">
+                    <CheckCircle2 className="w-3 h-3" /> Completada
+                </span>
+            )}
+            {isCancelled && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-700/60">
+                    <Ban className="w-3 h-3" /> Cancelada
+                </span>
+            )}
+            {!isDone && riskLevel === 'high' && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-700/60">
+                    Alto riesgo
+                </span>
+            )}
+
+            {hasStatusChip && <span className="text-gray-300 dark:text-gray-600 text-xs select-none">·</span>}
+
+            {/* Session type */}
+            <span className={`inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-full border ${isDone ? CHIP_FADED : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300'}`}>
+                {!isDone && <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${typeDot}`} />}
+                <span className={isDone ? 'line-through' : ''}>{sessionType}</span>
+            </span>
+
+            <span className="text-gray-300 dark:text-gray-600 text-xs select-none">·</span>
+
+            {/* Mode */}
+            <span className={`inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-full border ${modeColor}`}>
+                <span className={isDone ? 'line-through' : ''}>{modeLabel}</span>
+            </span>
+        </div>
+    )
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   5. SESSION CARD (composed from sub-components)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const SessionCard = ({ appointment, index, isFirst, isNext, isLast, countdown, isImminent, onJoinVideo, onViewDiary, onMessage, onMarkComplete }) => {
+    const data = parseAppointment(appointment)
+    const { patientName, startTime, isCancelled, isCompleted, isInProgress, dateLabel, timeRange } = data
+
+    const bgClass    = getCardBg({ ...data, isNext })
+    const nameClass  = getNameClass(data)
+    const dotClass   = getTimelineDot({ isNext, ...data })
+    const spineColor = getSpineColor(isCompleted)
+
+    return (
+        <div className="min-w-0 w-full group">
             {isNext && (
                 <div className="flex items-center gap-1.5 pl-12 mb-1">
-                    <span className={`w-1.5 h-1.5 rounded-full ${isImminent ? 'bg-emerald-500 animate-pulse' : 'bg-blue-500'}`} />
+                    <span className={`w-1.5 h-1.5 rounded-full ${isImminent ? 'bg-emerald-500 animate-pulse' : 'bg-sky-500'}`} />
                     <span className={`text-[9px] font-bold uppercase tracking-widest ${isImminent ? 'text-emerald-600' : 'text-sky-500'}`}>
                         Próxima sesión
                     </span>
                 </div>
             )}
 
-            {/* ── Timeline row ──────────────────────────────── */}
-            <div className="flex items-start gap-2">
-                {/* Time stamp */}
-                <div className="w-9 shrink-0 text-right pt-2.5">
-                    <div className="text-[10px] font-bold text-gray-700 dark:text-gray-300 leading-none">{timeStr}</div>
-                    <div className="text-[9px] text-gray-600 dark:text-gray-400 uppercase mt-0.5">{dateLabel || ampm}</div>
-                </div>
-
-                {/* Connector */}
-                <div className="flex flex-col items-center pt-3 shrink-0">
-                    <div className={`w-2 h-2 rounded-full shrink-0 ${isNext ? 'bg-sky-600' : 'bg-gray-500 dark:bg-gray-500'}`} />
-                    <div className="w-px flex-1 bg-gray-400 dark:bg-gray-600 mt-1 min-h-6" />
-                </div>
-
-                {/* Card */}
-                <div className="flex-1 pb-1.5">
-                    {/* Pill — 3-line layout with inline actions */}
-                    <div className={`w-full ${bgClass} rounded-xl px-3 py-2.5`}>
-                        {/* Row 1: avatar + name + action icons */}
-                        <div className="flex items-center gap-2.5">
-                            {/* Avatar */}
-                            <div className={`w-8 h-8 rounded-full ${avatarClass} flex items-center justify-center font-bold text-[10px] shrink-0 shadow-sm`}>
-                                {getInitials(patientName)}
-                            </div>
-
-                            {/* Name */}
-                            <div className="flex-1 min-w-0">
-                                <p className={`font-semibold text-xs leading-tight truncate ${isNext ? 'text-blue-950 dark:text-blue-300' : 'text-gray-900 dark:text-gray-100'}`}>
-                                    {patientName}
-                                </p>
-                            </div>
-
-                            {/* Badges + action icons */}
-                            <div className="shrink-0 flex items-center gap-1">
-                                {isNext && countdown ? (
-                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 mr-0.5 ${
-                                        isImminent ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' : 'bg-sky-100 dark:bg-sky-900/40 text-blue-800 dark:text-sky-300'
-                                    }`}>
-                                        <span className={`w-1.5 h-1.5 rounded-full ${isImminent ? 'bg-emerald-500 animate-pulse' : 'bg-blue-500'}`} />
-                                        {countdown}
-                                    </span>
-                                ) : riskLevel === 'high' ? (
-                                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 mr-0.5">Alto riesgo</span>
-                                ) : null}
-
-                                <button
-                                    type="button"
-                                    title="Mensaje"
-                                    onClick={() => onMessage && onMessage(appointment)}
-                                    className="w-7 h-7 flex items-center justify-center rounded-full bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 text-gray-500 dark:text-gray-300 hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50 active:scale-90 transition-all shadow-sm"
-                                >
-                                    <MessageSquare className="w-3.5 h-3.5" />
-                                </button>
-
-                                {(appointment.isVideoCall || appointment.mode === 'videollamada') && (
-                                <button
-                                    type="button"
-                                    title={isImminent ? 'Iniciar videollamada' : 'Videollamada'}
-                                    onClick={() => onJoinVideo && onJoinVideo(appointment)}
-                                    className={`w-7 h-7 flex items-center justify-center rounded-full active:scale-90 transition-all shadow-sm ${
-                                        isImminent
-                                            ? 'bg-emerald-500 hover:bg-emerald-600 text-white border border-emerald-400'
-                                            : 'bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 text-gray-500 dark:text-gray-300 hover:text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50'
-                                    }`}
-                                >
-                                    <Video className="w-3.5 h-3.5" />
-                                </button>
-                                )}
-
-                                <button
-                                    type="button"
-                                    title="Expediente"
-                                    onClick={() => onViewDiary && onViewDiary(appointment)}
-                                    className="w-7 h-7 flex items-center justify-center rounded-full bg-blue-700 hover:bg-blue-800 text-white active:scale-90 transition-all shadow-sm border border-blue-600"
-                                >
-                                    <FileText className="w-3.5 h-3.5" />
-                                </button>
-                            </div>
+            <TimelineRow index={index} isFirst={isFirst} isLast={isLast} timeStr={fmtTime(startTime)} dateLabel={dateLabel} dotClass={dotClass} spineColor={spineColor} dimmed={isCancelled}>
+                <div className={`${bgClass} rounded-2xl px-4 py-3 transition-shadow duration-200 ${!isCancelled ? 'group-hover:shadow-md' : ''}`}>
+                    <div className="flex items-start gap-3">
+                        {/* Avatar */}
+                        <div className={`w-11 h-11 rounded-full ${getAvatarClass(data)} flex items-center justify-center font-bold text-sm shrink-0 shadow-sm`}>
+                            {getInitials(patientName)}
                         </div>
 
-                        {/* Row 2: time range + session type tag */}
-                        <div className="flex items-center gap-1.5 mt-1.5 pl-10.5">
-                            <Clock className="w-2.5 h-2.5 text-gray-500 dark:text-gray-400 shrink-0" />
-                            <span className="text-[9px] text-gray-600 dark:text-gray-400">{timeRange}</span>
-                            <span className="text-gray-400 dark:text-gray-600">·</span>
-                            <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${typeStyle}`}>
-                                {sessionType}
-                            </span>
-                        </div>
-
-                        {/* Row 3: treatment goal · last visit · homework chip */}
-                        {(treatmentGoal || lastVisit || true) && (
-                            <div className="flex items-center gap-1.5 mt-1 pl-10.5 flex-wrap">
-                                {treatmentGoal && (
-                                    <span className="flex items-center gap-1 text-[9px] text-gray-600 dark:text-gray-400 truncate max-w-[45%]" title={treatmentGoal}>
-                                        <Target className="w-2.5 h-2.5 text-gray-500 dark:text-gray-400 shrink-0" />
-                                        {treatmentGoal}
-                                    </span>
-                                )}
-                                {treatmentGoal && lastVisit && <span className="text-gray-500 dark:text-gray-600 text-[9px]">·</span>}
-                                {lastVisit && (
-                                    <span className="text-[9px] text-gray-600 dark:text-gray-400">
-                                        {lastVisit}
-                                    </span>
-                                )}
-                                {(treatmentGoal || lastVisit) && <span className="text-gray-500 dark:text-gray-600 text-[9px]">·</span>}
-                                {homeworkOk ? (
-                                    <span className="inline-flex items-center gap-0.5 text-[9px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded-full">
-                                        <CheckCircle2 className="w-2.5 h-2.5" />
-                                        Tarea
-                                    </span>
-                                ) : (
-                                    <span className="inline-flex items-center gap-0.5 text-[9px] font-medium text-rose-500 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/30 px-1.5 py-0.5 rounded-full">
-                                        <XCircle className="w-2.5 h-2.5" />
-                                        Tarea
-                                    </span>
-                                )}
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-1">
+                                <div className="min-w-0">
+                                    <p className={`font-semibold text-sm leading-snug truncate ${nameClass}`}>{patientName}</p>
+                                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                        <span className={`text-xs leading-none ${isCancelled ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-500 dark:text-gray-400'}`}>{timeRange}</span>
+                                        {dateLabel && <span className="text-[10px] text-gray-400 dark:text-gray-500 uppercase">{dateLabel}</span>}
+                                        {isInProgress && <span className="text-[10px] font-semibold text-amber-500 dark:text-amber-400">En curso</span>}
+                                        {isNext && countdown && !isInProgress && (
+                                            <span className={`text-[10px] font-semibold ${isImminent ? 'text-emerald-500 dark:text-emerald-400' : 'text-sky-500 dark:text-sky-400'}`}>{countdown}</span>
+                                        )}
+                                    </div>
+                                </div>
+                                <SessionActions appointment={appointment} data={data} isImminent={isImminent} onJoinVideo={onJoinVideo} onViewDiary={onViewDiary} onMessage={onMessage} onMarkComplete={onMarkComplete} />
                             </div>
-                        )}
+                            <SessionChips data={data} />
+                        </div>
                     </div>
                 </div>
-            </div>
-        </motion.div>
+            </TimelineRow>
+        </div>
     )
 }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   BreakCard
-───────────────────────────────────────────────────────────────────────────── */
-const BreakCard = ({ time, index }) => {
-    const [h, m, meridiem] = (time + ' ').split(/[\s:]/)
-    const timeStr = `${String(h).padStart(2, '0')}:${String(m || '00').padStart(2, '0')}`
-    const ampm = meridiem || (parseInt(h) >= 12 ? 'PM' : 'AM')
+/* ═══════════════════════════════════════════════════════════════════════════
+   6. BREAK & UNAVAILABLE CARDS (use shared TimelineRow)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const BreakCard = ({ time, index, isFirst = false, isLast = false }) => {
+    const [h, m] = (time + ' ').split(/[\s:]/)
+    const timeStr = `${pad(h)}:${pad(m || '00')}`
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.055, duration: 0.28 }}
-            className="flex items-start gap-2 my-1"
-        >
-            <div className="w-9 shrink-0 text-right pt-2.5">
-                <div className="text-[10px] font-bold text-gray-700 dark:text-gray-300 leading-none">{timeStr}</div>
-                <div className="text-[9px] text-gray-600 dark:text-gray-400 uppercase mt-0.5">{ampm}</div>
+        <TimelineRow index={index} isFirst={isFirst} isLast={isLast} timeStr={timeStr}>
+            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-700/40 rounded-xl px-4 py-2.5 flex items-center justify-center gap-2">
+                <Coffee className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400 shrink-0" />
+                <span className="text-amber-700 dark:text-amber-400 font-medium text-xs">Hora de Descanso</span>
             </div>
-            <div className="flex flex-col items-center pt-3 shrink-0">
-                <div className="w-2 h-2 rounded-full bg-blue-600 shrink-0" />
-                <div className="w-px flex-1 bg-gray-400 dark:bg-gray-600 mt-1 min-h-6" />
-            </div>
-            <div className="flex-1 pb-1.5">
-                <div className="relative overflow-hidden bg-blue-600 rounded-xl px-4 py-2.5 flex items-center justify-center">
-                    <div className="absolute inset-0 opacity-15" style={{ backgroundImage: 'repeating-linear-gradient(45deg,transparent,transparent 4px,white 4px,white 7px)' }} />
-                    <span className="relative text-white font-semibold text-xs">Hora de Descanso</span>
-                </div>
-            </div>
-        </motion.div>
+        </TimelineRow>
     )
 }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   AvailableSlotCard — "No disponible" stripe
-───────────────────────────────────────────────────────────────────────────── */
-const AvailableSlotCard = ({ slot, index }) => {
-    const startTime = new Date(slot.fechaHora)
-    const { timeStr, ampm } = getTimeComponents(startTime)
+const AvailableSlotCard = ({ slot, index, isFirst = false, isLast = false }) => {
+    const timeStr = fmtTime(new Date(slot.fechaHora))
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.055, duration: 0.28 }}
-            className="flex items-start gap-2 my-1"
-        >
-            <div className="w-9 shrink-0 text-right pt-2.5">
-                <div className="text-[10px] font-bold text-gray-700 dark:text-gray-300 leading-none">{timeStr}</div>
-                <div className="text-[9px] text-gray-600 dark:text-gray-400 uppercase mt-0.5">{ampm}</div>
+        <TimelineRow index={index} isFirst={isFirst} isLast={isLast} timeStr={timeStr}>
+            <div className="relative overflow-hidden bg-gray-200 dark:bg-gray-600 border border-gray-400 dark:border-gray-500 rounded-xl px-4 py-2.5 flex items-center justify-center">
+                <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(0,0,0,0.08) 4px,rgba(0,0,0,0.08) 7px)' }} />
+                <span className="relative text-gray-700 dark:text-gray-200 font-semibold text-xs">No Disponible</span>
             </div>
-            <div className="flex flex-col items-center pt-3 shrink-0">
-                <div className="w-2 h-2 rounded-full bg-gray-500 dark:bg-gray-400 shrink-0" />
-                <div className="w-px flex-1 bg-gray-400 dark:bg-gray-600 mt-1 min-h-6" />
-            </div>
-            <div className="flex-1 pb-1.5">
-                <div className="relative overflow-hidden bg-gray-200 dark:bg-gray-600 border border-gray-400 dark:border-gray-500 rounded-xl px-4 py-2.5 flex items-center justify-center">
-                    <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(0,0,0,0.08) 4px,rgba(0,0,0,0.08) 7px)' }} />
-                    <span className="relative text-gray-700 dark:text-gray-200 font-semibold text-xs">No Disponible</span>
-                </div>
-            </div>
-        </motion.div>
+        </TimelineRow>
     )
 }
 
@@ -414,6 +410,7 @@ const TodaysSessions = ({
     onJoinVideo,
     onViewDiary,
     onMessage,
+    onMarkComplete,
     nextSessionTime = null,
     nextSessionCountdown = null,
     nextIsImminent = false,
@@ -472,28 +469,35 @@ const TodaysSessions = ({
                             const itemTs = item.fechaHora ? new Date(item.fechaHora).getTime() : null
                             const isNext = nextSessionTime !== null && itemTs !== null && itemTs === nextSessionTime
                             const isAnchor = index === anchorIndex
+                            const isLast = index === sessions.length - 1
+
+                            const isFirst = index === 0
 
                             if (item.isBreak) {
-                                return <BreakCard key={`break-${index}`} time={item.time} index={index} />
+                                return <BreakCard key={`break-${index}`} time={item.time} index={index} isFirst={isFirst} isLast={isLast} />
                             }
                             if (item.isUnavailable) {
                                 return (
                                     <div key={item._id || item.id || `unavailable-${itemTs}-${index}`} ref={isAnchor ? currentRef : null}>
-                                        <AvailableSlotCard slot={item} index={index} />
+                                        <AvailableSlotCard slot={item} index={index} isFirst={isFirst} isLast={isLast} />
                                     </div>
                                 )
                             }
                             return (
                                 <div key={item._id || item.id || `session-${itemTs}-${index}`} ref={isAnchor ? currentRef : null}>
+
                                     <SessionCard
                                         appointment={item}
                                         index={index}
+                                        isFirst={isFirst}
                                         isNext={isNext}
+                                        isLast={isLast}
                                         countdown={isNext ? nextSessionCountdown : null}
                                         isImminent={isNext && nextIsImminent}
                                         onJoinVideo={onJoinVideo}
                                         onViewDiary={onViewDiary}
                                         onMessage={onMessage}
+                                        onMarkComplete={onMarkComplete}
                                     />
                                 </div>
                             )

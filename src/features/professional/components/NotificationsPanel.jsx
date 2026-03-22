@@ -56,7 +56,7 @@ const NotificationsPanel = ({
                             </div>
                         </div>
 
-                        <div className="flex flex-col max-h-80 overflow-y-auto">
+                        <div className="flex flex-col max-h-80 overflow-y-auto custom-scrollbar">
                             {paidNotifications.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-10 text-gray-400 dark:text-gray-600">
                                     <Bell size={28} strokeWidth={1.4} className="mb-2 opacity-40" />

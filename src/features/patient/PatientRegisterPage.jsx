@@ -21,6 +21,12 @@ const REFERRAL_SOURCES = [
   { value: 'other', label: 'Otro' },
 ]
 
+const THERAPY_REASONS = [
+  'Ansiedad', 'Depresión', 'Estrés', 'Duelo', 'Autoestima',
+  'Problemas de pareja', 'Problemas familiares', 'Trauma / TEPT',
+  'Adicciones', 'Trastorno alimentario',
+]
+
 const PatientRegisterPage = () => {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
@@ -51,6 +57,7 @@ const PatientRegisterPage = () => {
   })
 
   const password = watch('password')
+  const presentingConcernValue = watch('presentingConcern')
 
   useEffect(() => {
     // Verify invitation token/code and get patient info
@@ -109,7 +116,7 @@ const PatientRegisterPage = () => {
         
         // Clinical information
         sessionType: data.sessionType,
-        presentingConcern: data.presentingConcern,
+        presentingConcern: data.presentingConcern === 'Otro' ? data.presentingConcernOther : data.presentingConcern,
         referralSource: data.referralSource,
         
         // Emergency contact
@@ -396,17 +403,40 @@ const PatientRegisterPage = () => {
             {/* Presenting Concern */}
             <div>
               <label htmlFor="presentingConcern" className="block text-sm font-medium text-gray-700 mb-2">
-                Motivo de Consulta
+                Motivo de Consulta *
               </label>
-              <textarea
+              <select
                 id="presentingConcern"
-                {...register('presentingConcern')}
-                rows={3}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 outline-none resize-none"
-                placeholder="Describe brevemente el motivo por el que buscas ayuda profesional"
+                {...register('presentingConcern', { required: 'El motivo de consulta es obligatorio' })}
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 outline-none ${errors.presentingConcern ? 'border-red-300' : 'border-gray-300'}`}
                 disabled={isSubmitting}
-              />
+              >
+                <option value="">Selecciona un motivo</option>
+                {THERAPY_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
+                <option value="Otro">Otro</option>
+              </select>
+              {errors.presentingConcern && (
+                <p className="mt-1 text-sm text-red-600">{errors.presentingConcern.message}</p>
+              )}
             </div>
+            {presentingConcernValue === 'Otro' && (
+              <div>
+                <label htmlFor="presentingConcernOther" className="block text-sm font-medium text-gray-700 mb-2">
+                  Especifica el motivo *
+                </label>
+                <input
+                  type="text"
+                  id="presentingConcernOther"
+                  {...register('presentingConcernOther', { required: 'Especifica el motivo de consulta' })}
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 outline-none ${errors.presentingConcernOther ? 'border-red-300' : 'border-gray-300'}`}
+                  placeholder="Describe brevemente tu motivo de consulta"
+                  disabled={isSubmitting}
+                />
+                {errors.presentingConcernOther && (
+                  <p className="mt-1 text-sm text-red-600">{errors.presentingConcernOther.message}</p>
+                )}
+              </div>
+            )}
 
             {/* Referral Source */}
             <div>

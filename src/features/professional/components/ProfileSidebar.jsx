@@ -1,6 +1,6 @@
 import { motion } from 'motion/react'
 import { MessageCircle, User, Calendar, FileText } from 'lucide-react'
-import { getPatientInitials } from "../dashboard/dashboardUtils"
+import { getPatientInitials } from '../utils/dashboardUtils'
 
 /**
  * ActivePatientCard Component

@@ -3,10 +3,10 @@ import { flushSync } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { authService } from '@shared/services/authService'
 import { auditLog } from '@shared/services/auditService'
-import { useIdleTimeout } from '@hooks/useIdleTimeout'
+import { useIdleTimeout } from '@shared/hooks/useIdleTimeout'
 import { setAuthToken } from '@shared/api/client'
-import { revokeTrustToken, getTrustToken } from '@utils/deviceTrust'
-import SessionLockOverlay from '@components/common/SessionLockOverlay'
+import { revokeTrustToken } from '@shared/utils/deviceTrust'
+import SessionLockOverlay from '@shared/ui/SessionLockOverlay'
 
 const AuthContext = createContext(null)
 
@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }) => {
           try {
             const res = await authService.getMe()
             let userData = res.data?.data?.user || res.data?.data || res.data?.user || res.data
-            console.debug('[initAuth] getMe response:', JSON.stringify(res.data))
+            if (import.meta.env.DEV) console.debug('[initAuth] getMe OK')
             // Normalise every known role field name to `role`
             if (userData) {
               userData.role =
@@ -59,11 +59,16 @@ export const AuthProvider = ({ children }) => {
                 undefined
             }
             setUser(userData)
+            // Restore the session lock if it was active before the page refresh
+            if (sessionStorage.getItem('sessionLocked') === '1') {
+              setLocked(true)
+            }
           } catch (err) {
             // Token is invalid / expired — purge it
             console.warn('[initAuth] getMe failed, purging token:', err.status, err.message)
             localStorage.removeItem('authToken')
             sessionStorage.removeItem('authToken')
+            sessionStorage.removeItem('sessionLocked')
           }
         }
       } finally {
@@ -166,7 +171,7 @@ export const AuthProvider = ({ children }) => {
       console.error('[completeLogin] received invalid token:', token)
       throw new Error('Token inválido recibido del servidor. Intentá de nuevo.')
     }
-    console.debug('[completeLogin] storing token, rememberMe:', rememberMe)
+    if (import.meta.env.DEV) console.debug('[completeLogin] storing token')
     // Always use localStorage so the session survives a tab refresh
     setAuthToken(token)
     try {
@@ -175,7 +180,7 @@ export const AuthProvider = ({ children }) => {
       // { data: { ...user } } | { data: { user: {...} } } | { user: {...} } | { ...user }
       let userData = res.data?.data?.user || res.data?.data || res.data?.user || res.data
 
-      console.debug('[completeLogin] raw getMe response:', JSON.stringify(res.data))
+      if (import.meta.env.DEV) console.debug('[completeLogin] getMe OK')
 
       // Normalise every known role field name to `role`
       if (userData) {
@@ -213,8 +218,15 @@ export const AuthProvider = ({ children }) => {
 
     try { await authService.logout() } catch { /* ignore network errors */ }
     setUser(null)
+    sessionStorage.removeItem('sessionLocked')
     setLocked(false)
     setAuthToken(null)
+
+    // Purge all cached sensitive data
+    sessionStorage.removeItem('professionalAppointments')
+    sessionStorage.removeItem('professionalSettings')
+    sessionStorage.removeItem('professionalAvailability')
+    localStorage.removeItem('professional_todos')
   }, [user])
 
   // ── Session lock (replaces full logout on idle) ───────────────────────────
@@ -222,6 +234,7 @@ export const AuthProvider = ({ children }) => {
   // screen so no data is visible. A full logout is NOT required.
   const lockSession = useCallback(() => {
     auditLog('SESSION_LOCKED', { userId: user?.id || user?._id, reason: 'idle_timeout' })
+    sessionStorage.setItem('sessionLocked', '1')
     setLocked(true)
   }, [user])
 
@@ -230,60 +243,21 @@ export const AuthProvider = ({ children }) => {
    *
    * Strategy
    * ────────
-   * 1. Call POST /auth/login with email + password + device token.
-   * 2a. Backend returns a new JWT (no 2FA) → store it, unlock.
-   * 2b. Backend says requires2FA but the existing JWT is still valid (getMe
-   *     succeeds) AND the device is trusted → treat as verified, unlock.
-   * 2c. Anything else → throw so the overlay can show an error.
+   * The session is only *locked* in the UI — the JWT is still valid.
+   * We call POST /auth/verify-password (with the existing JWT attached by the
+   * interceptor) so the backend can confirm the password WITHOUT triggering
+   * the 2FA flow that a full /auth/login call would cause.
    */
   const unlockSession = useCallback(async (password) => {
-    const email  = userEmailRef.current
-    if (!email)  throw new Error('No hay sesión activa.')
+    const email = userEmailRef.current
+    if (!email) throw new Error('No hay sesión activa.')
 
-    const deviceToken = getTrustToken(email)
-    const response    = await authService.login(email, password, deviceToken)
-    const data        = response.data
-
-    const requires2FA =
-      data.requires2FA === true || data.data?.requires2FA === true
-
-    if (!requires2FA) {
-      // Happy path: backend issued a fresh token (device was recognised)
-      const newToken =
-        data.data?.token ?? data.data?.accessToken ??
-        data.token       ?? data.accessToken       ?? null
-      if (newToken) {
-        setAuthToken(newToken)
-        scheduleTokenRefresh(newToken)
-      }
-      auditLog('SESSION_UNLOCKED', { userId: user?.id || user?._id })
-      setLocked(false)
-      return
-    }
-
-    // Backend still wants 2FA on this device — but the existing JWT is still
-    // valid, so we verify it silently and skip the email challenge.
-    // This is safe because:
-    //  (a) the user just proved they know the password (login credentials accepted),
-    //  (b) the device has a valid trust token (set at initial 2FA completion),
-    //  (c) the existing session JWT is still accepted by the server.
-    if (deviceToken) {
-      try {
-        await authService.getMe()   // verifies existing JWT is still valid
-        auditLog('SESSION_UNLOCKED', { userId: user?.id || user?._id, note: 'device_trust' })
-        setLocked(false)
-        return
-      } catch {
-        // JWT expired — fall through to error
-      }
-    }
-
-    // Device not trusted and/or JWT expired — user must do a full login
-    throw Object.assign(
-      new Error('Se requiere verificación completa. Por favor iniciá sesión nuevamente.'),
-      { requiresFullLogin: true },
-    )
-  }, [user, scheduleTokenRefresh])
+    await authService.verifyPassword(email, password)
+    // If the call succeeds the JWT is still valid — no new token needed.
+    auditLog('SESSION_UNLOCKED', { userId: user?.id || user?._id })
+    sessionStorage.removeItem('sessionLocked')
+    setLocked(false)
+  }, [user])
 
   // ── Idle timeout (HIPAA §164.312(a)(2)(iii)) ──────────────────────────────
   const handleIdle = useCallback(() => {

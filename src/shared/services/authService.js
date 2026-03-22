@@ -45,6 +45,18 @@ export const authService = {
   refresh: () =>
     apiClient.post('/auth/refresh'),
 
+  /**
+   * Verify the user's password during a session-lock unlock.
+   * This is intentionally different from `login` — it must NEVER trigger 2FA.
+   * The existing JWT (sent automatically by the request interceptor) proves the
+   * user is already authenticated; this call only re-confirms the password.
+   * Endpoint: POST /auth/verify-password
+   * Body: { email, password }
+   * Response: { valid: true } | 401
+   */
+  verifyPassword: (email, password) =>
+    apiClient.post('/auth/verify-password', { email, password }),
+
   sendOTP: (phone) =>
     apiClient.post('/auth/send-otp', { phone }),
 

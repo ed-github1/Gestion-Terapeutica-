@@ -129,7 +129,7 @@ const SessionDetailsModal = ({ session, onClose, onJoinVideo, onAddNote, onMessa
                     </div>
 
                     {/* Content */}
-                    <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                    <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
                         {/* Prep actions — equal weight, full row */}
                         <div className="grid grid-cols-3 gap-2">
                             <motion.button

@@ -49,9 +49,13 @@ apiClient.interceptors.response.use(
   (error) => {
     if (error.response) {
       const { status, data } = error.response
-      // Only auto-redirect on 401 when outside of auth pages
+      // Only auto-redirect on 401 when outside of auth pages.
+      // Skip the redirect for /auth/verify-password — a 401 there means
+      // "wrong password" during a session-lock unlock attempt, NOT an expired
+      // token. The SessionLockOverlay handles retries and max-attempts itself.
       const onAuthPage = ['/login', '/register', '/verify-2fa'].some(p => window.location.pathname.startsWith(p))
-      if (status === 401 && !onAuthPage) {
+      const isVerifyPassword = error.config?.url?.includes('/auth/verify-password')
+      if (status === 401 && !onAuthPage && !isVerifyPassword) {
         localStorage.removeItem('authToken')
         sessionStorage.removeItem('authToken')
         window.location.href = '/login'

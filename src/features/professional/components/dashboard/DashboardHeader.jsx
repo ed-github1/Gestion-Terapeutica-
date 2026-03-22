@@ -1,7 +1,7 @@
 import { motion } from 'motion/react'
 import { Clock, Users, CalendarCheck, TrendingUp, DollarSign, ArrowUpRight, ArrowDownRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { formatTime } from '../../dashboard/dashboardUtils'
+import { formatTime } from '../../utils/dashboardUtils'
 import { ROUTES } from '@shared/constants/routes'
 
 /**

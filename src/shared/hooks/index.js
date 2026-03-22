@@ -5,3 +5,4 @@ export { useVideoCallNotifications, default as useVideoCallNotificationsDefault 
 export { useWebRTC, default as useWebRTCDefault } from './useWebRTC'
 export { usePageTitle } from './usePageTitle'
 export { useDarkMode } from './useDarkMode'
+export { useIdleTimeout } from './useIdleTimeout'

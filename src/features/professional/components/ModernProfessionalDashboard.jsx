@@ -3,8 +3,11 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useAuth } from '@features/auth'
 import { useNavigate } from 'react-router-dom'
 import NewPatientLinkModal from './NewPatientLinkModal'
-import { useDashboardData, useCurrentTime } from '../dashboard/useDashboard'
+import { useDashboardData, useCurrentTime } from '../hooks/useDashboard'
 import { videoCallService } from '@shared/services/videoCallService'
+import { appointmentsService } from '@shared/services/appointmentsService'
+import { socketNotificationService } from '@shared/services/socketNotificationService'
+import { showToast } from '@shared/ui/Toast'
 import { ROUTES } from '@shared/constants/routes'
 import {
     SessionsCalendarPanel,
@@ -24,7 +27,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
     const { user } = useAuth()
     const navigate = useNavigate()
     const currentTime = useCurrentTime()
-    const { stats, patients, appointments, loading } = useDashboardData()
+    const { stats, patients, appointments, loading, refreshData } = useDashboardData()
 
     // Extracted hooks
     const availability = useAvailability()
@@ -69,17 +72,45 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
             await videoCallService.startCall(appointment.id)
         } catch { /* Room may already exist */ }
 
-        // 2. Notify patient
+        // 2. Notify patient (REST + socket for instant delivery)
+        const targetUserId = appointment.patientUserId || appointment.patientId
         try {
             await videoCallService.sendVideoInvitation(
-                appointment.id, appointment.patientId, patientName, professionalName,
+                appointment.id, targetUserId, patientName, professionalName,
             )
         } catch (err) {
-            console.warn('Could not notify patient:', err.message)
+            console.warn('Could not notify patient via REST:', err.message)
         }
+
+        // 3. Also send via socket for real-time delivery
+        const proUserId = user?._id || user?.id
+        const proToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || ''
+        console.log('[handleJoinVideo] sending call-invitation to targetUserId:', targetUserId, '| patientUserId:', appointment.patientUserId, '| patientId:', appointment.patientId)
+        socketNotificationService.connect(proUserId, proToken)
+        socketNotificationService.sendCallInvitation(targetUserId, {
+            appointmentId: appointment.id,
+            professionalName,
+            patientName,
+            appointmentType: appointment.type || appointment.appointmentType || 'consultation',
+            appointmentTime: appointment.start ? new Date(appointment.start).toLocaleString('es-ES') : '',
+        })
 
         navigate(`/professional/video/${appointment.id}`)
     }, [navigate, user])
+
+    // Handler for marking a presencial session as completed
+    const handleMarkComplete = useCallback(async (appointment) => {
+        const id = appointment._id || appointment.id
+        if (!id) return
+        try {
+            await appointmentsService.updateStatus(id, 'completed')
+            showToast('Sesión marcada como completada', 'success')
+            refreshData()
+        } catch (err) {
+            console.error('Mark complete error:', err)
+            showToast('No se pudo completar la sesión', 'error')
+        }
+    }, [refreshData])
 
     // Filtered patient search results removed — search bar now lives in layout header
 
@@ -143,6 +174,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                             handleJoinVideo={handleJoinVideo}
                                             setDiaryPatient={setDiaryPatient}
                                             setShowCalendar={setShowCalendar}
+                                            handleMarkComplete={handleMarkComplete}
                                             totalPatients={stats?.totalPatients}
                                         />
                                     }
@@ -212,6 +244,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                         handleJoinVideo={handleJoinVideo}
                                         setDiaryPatient={setDiaryPatient}
                                         setShowCalendar={setShowCalendar}
+                                        handleMarkComplete={handleMarkComplete}
                                         totalPatients={stats?.totalPatients}
                                     />
                                 </motion.div>

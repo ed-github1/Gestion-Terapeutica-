@@ -1,44 +1,32 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { Calendar, Clock, CreditCard, Lock, X, CheckCircle2 } from 'lucide-react'
-import { showToast } from '@components'
+import { Calendar, Clock, CreditCard, X, CheckCircle2 } from 'lucide-react'
+import { showToast } from '@shared/ui/Toast'
 import { useAuth } from '@features/auth/AuthContext'
 import { appointmentsService } from '@shared/services/appointmentsService'
-import { patientsService } from '@shared/services/patientsService'
+import { resolveLinkedProfessional } from '@shared/services/patientsService'
 import { socketNotificationService } from '@shared/services/socketNotificationService'
+import PaymentForm from './components/PaymentForm'
 
-const AppointmentRequest = ({ onClose, onSuccess, professionalId = null, professionalUserId: professionalUserIdProp = null }) => {
+const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professionalId = null, professionalUserId: professionalUserIdProp = null }) => {
   const { user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState(1) // 1: select slot, 2: payment, 3: success
   const [appointmentData, setAppointmentData] = useState(null)
   const [availableSlots, setAvailableSlots] = useState([])
-  const [resolvedProUserId, setResolvedProUserId] = useState(professionalUserIdProp)
+  const [professionalUserId, setProfessionalUserId] = useState(
+    professionalUserIdProp || localStorage.getItem('_linkedProUserId') || null
+  )
 
-  // Resolve the professional's user account ID for socket routing.
-  // The prop may be null when /patients/me and /patients/my-professional are unavailable.
+  // Resolve professionalUserId via the centralised helper if not already known
   useEffect(() => {
-    if (resolvedProUserId || !professionalId) return
-    const cached = localStorage.getItem('_linkedProUserId')
-    if (cached) { setResolvedProUserId(cached); return }
+    if (professionalUserId) return
     let cancelled = false
-    ;(async () => {
-      try {
-        const res = await patientsService.getProfessionalInfo(professionalId)
-        const p   = res.data?.data || res.data
-        const raw = p?.userId || p?.user?._id || p?.user?.id || p?.user || null
-        const uid = raw && typeof raw === 'object' ? (raw._id || raw.id || null) : raw
-        if (!cancelled && uid) {
-          setResolvedProUserId(uid)
-          localStorage.setItem('_linkedProUserId', uid)
-        }
-      } catch { /* endpoint may not exist */ }
-    })()
+    resolveLinkedProfessional(user).then(({ professionalUserId: uid }) => {
+      if (!cancelled && uid) setProfessionalUserId(uid)
+    }).catch(() => {})
     return () => { cancelled = true }
-  }, [professionalId, resolvedProUserId])
-
-  // Derive the best socket target: resolved user ID → prop → profile ID fallback
-  const professionalUserId = resolvedProUserId || professionalUserIdProp
+  }, [user, professionalUserId])
 
   // Ensure the socket is connected so notifications can be sent to the professional
   useEffect(() => {
@@ -61,13 +49,7 @@ const AppointmentRequest = ({ onClose, onSuccess, professionalId = null, profess
     notes: ''
   })
 
-  const [paymentData, setPaymentData] = useState({
-    cardNumber: '',
-    cardName: '',
-    expiryDate: '',
-    cvv: '',
-    amount: 500 // Default amount in pesos
-  })
+  const [paymentData, setPaymentData] = useState({ amount: 500 })
   const [paymentOption, setPaymentOption] = useState('full') // 'full' or 'half'
 
   const appointmentTypes = [
@@ -144,22 +126,7 @@ const AppointmentRequest = ({ onClose, onSuccess, professionalId = null, profess
         console.warn('⚠️ getAvailability endpoint failed:', err.message)
       }
 
-      // ── Strategy 3: localStorage fallback (only useful when patient IS the professional in dev) ──
-      try {
-        const localRaw = localStorage.getItem('professionalAvailability')
-        if (localRaw) {
-          const localMap = JSON.parse(localRaw)
-          const localSlots = slotsFromAvailabilityMap(localMap, date)
-          if (localSlots.length > 0) {
-            console.log('ℹ️ Using local availability slots:', localSlots)
-            setAvailableSlots(localSlots)
-            return
-          }
-        }
-      } catch { /* ignore */ }
-
       // Nothing found
-      console.log('ℹ️ No slots available for', date)
       setAvailableSlots([])
     } finally {
       setLoading(false)
@@ -187,7 +154,7 @@ const AppointmentRequest = ({ onClose, onSuccess, professionalId = null, profess
       
       let appointmentId
       try {
-        // Try to reserve with backend
+        // Reserve with backend
         const response = await appointmentsService.reserve({
           date: selectedDate,
           time: selectedSlot.time,
@@ -198,62 +165,19 @@ const AppointmentRequest = ({ onClose, onSuccess, professionalId = null, profess
           duration: selectedType?.duration || 60,
           professionalId,
         })
-        // Unwrap: API returns { success, data: appointment }
         const apptData = response.data?.data || response.data
         setAppointmentData(apptData)
         appointmentId = apptData?._id || apptData?.id
       } catch (error) {
-        // 4xx errors from the backend are real business errors — don't mask them as demo mode.
-        // The axios interceptor in client.js strips error.response and puts status at error.status.
-        // e.g. 403 = subscription limit exceeded, 400 = no professional assigned.
+        // Surface real business errors (4xx) directly to the user.
         const httpStatus = error?.status ?? error?.response?.status
-        if (httpStatus >= 400 && httpStatus < 500) {
-          const msg = error.data?.message || error.response?.data?.message || error.message
-          throw new Error(msg)
-        }
-        console.warn('⚠️ Backend not available, using demo mode for reservation')
-        // Demo mode: create mock appointment data
-        appointmentId = 'patient_' + Date.now()
-        const mockAppointment = {
-          id: appointmentId,
-          date: selectedDate,
-          time: selectedSlot.time,
-          type: formData.type,
-          reason: formData.reason,
-          notes: formData.notes,
-          duration: selectedType?.duration || 60,
-          status: 'reserved',
-          paymentStatus: 'pending',
-          patientName: 'Paciente Demo' // This would come from user context in real app
-        }
-        setAppointmentData(mockAppointment)
-        
-        // Save to localStorage for professional to see
-        const [hours, minutes] = selectedSlot.time.split(':')
-        const startDate = new Date(`${selectedDate}T00:00:00`)
-        startDate.setHours(parseInt(hours), parseInt(minutes), 0)
-        const endDate = new Date(startDate)
-        endDate.setMinutes(endDate.getMinutes() + (selectedType?.duration || 60))
-        
-        const calendarAppointment = {
-          id: appointmentId,
-          patientName: 'Paciente Demo',
-          type: formData.type,
-          start: startDate.toISOString(),
-          end: endDate.toISOString(),
-          duration: String(selectedType?.duration || 60),
-          notes: formData.reason,
-          isVideoCall: false,
-          status: 'reserved'
-        }
-        
-        // Add to professional's appointments in localStorage
-        const savedAppointments = localStorage.getItem('professionalAppointments')
-        const appointments = savedAppointments ? JSON.parse(savedAppointments) : []
-        appointments.push(calendarAppointment)
-        localStorage.setItem('professionalAppointments', JSON.stringify(appointments))
+        const msg = error.data?.message || error.response?.data?.message || error.message
+        throw new Error(httpStatus >= 400 && httpStatus < 500 ? msg : 'No se pudo conectar con el servidor. Intenta nuevamente.')
       }
 
+      // Notify parent immediately so it can dismiss this ID from polling —
+      // prevents the AppointmentAcceptanceModal from opening for patient-created appointments.
+      if (appointmentId) onPatientCreated?.(String(appointmentId))
       setPaymentData(prev => ({ ...prev, amount: selectedType?.price || 500 }))
       setStep(2) // Move to payment
       showToast('Horario reservado, procede con el pago', 'success')
@@ -265,46 +189,26 @@ const AppointmentRequest = ({ onClose, onSuccess, professionalId = null, profess
     }
   }
 
-  const handlePayment = async (e) => {
-    e.preventDefault()
-
-    if (!paymentData.cardNumber || !paymentData.cardName || !paymentData.expiryDate || !paymentData.cvv) {
-      showToast('Por favor completa todos los datos de pago', 'warning')
-      return
-    }
+  const handlePayment = async (cardFields) => {
+    setPaymentData(prev => ({ ...prev, ...cardFields }))
 
     setLoading(true)
     try {
-      // Process payment (demo mode enabled)
       const aptId = appointmentData?._id || appointmentData?.id || null
-      const isDemoId = !aptId || String(aptId).startsWith('patient_')
-      if (isDemoId) {
-        // Mock appointment — skip backend, simulate payment delay
-        console.info('ℹ️ Demo appointment ID detected, using demo payment mode')
-        await new Promise(resolve => setTimeout(resolve, 1500))
-      } else {
-        try {
-          await appointmentsService.pay(aptId, {
-            amount: chargeAmount,
-            totalAmount: paymentData.amount,
-            currency: 'MXN',
-            paymentMethod: 'card',
-            cardLast4: paymentData.cardNumber.replace(/\s/g, '').slice(-4),
-            splitPayment: paymentOption === 'half',
-            remainingAmount: paymentOption === 'half' ? Math.floor(paymentData.amount / 2) : 0,
-          })
-          console.log('✅ Payment processed via backend')
-        } catch (error) {
-          console.warn('⚠️ Backend payment failed, using demo mode for payment:', error.message)
-          // Demo mode: simulate successful payment
-          await new Promise(resolve => setTimeout(resolve, 1500))
-        }
-      }
+      await appointmentsService.pay(aptId, {
+        amount: chargeAmount,
+        totalAmount: paymentData.amount,
+        currency: 'MXN',
+        paymentMethod: 'card',
+        cardLast4: (cardFields.cardNumber || paymentData.cardNumber || '').replace(/\s/g, '').slice(-4),
+        splitPayment: paymentOption === 'half',
+        remainingAmount: paymentOption === 'half' ? Math.floor(paymentData.amount / 2) : 0,
+      })
 
       setStep(3) // Success
       showToast('Pago procesado exitosamente', 'success')
       setTimeout(() => {
-        onSuccess?.()
+        onSuccess?.(appointmentData)
         onClose()
       }, 3000)
     } catch (error) {
@@ -317,7 +221,8 @@ const AppointmentRequest = ({ onClose, onSuccess, professionalId = null, profess
 
   const inputCls =
     'w-full px-3 py-2.5 text-[13px] border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-transparent transition bg-white placeholder:text-gray-300'
-  const labelCls = 'block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5'
+  const labelCls =
+    'block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5'
 
   const selectedType = appointmentTypes.find(t => t.value === formData.type)
   const chargeAmount = paymentOption === 'half'
@@ -380,7 +285,7 @@ const AppointmentRequest = ({ onClose, onSuccess, professionalId = null, profess
         </div>
 
         {/* ── Scrollable body ── */}
-        <div className="overflow-y-auto flex-1">
+        <div className="overflow-y-auto flex-1 custom-scrollbar">
           <AnimatePresence mode="wait">
 
             {/* ─── Step 1: Select slot ─── */}
@@ -477,7 +382,7 @@ const AppointmentRequest = ({ onClose, onSuccess, professionalId = null, profess
                       <p className="text-[11px] text-gray-400 mt-0.5">El profesional no tiene horarios para este día.</p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-4 gap-1.5 max-h-36 overflow-y-auto pr-0.5">
+                    <div className="grid grid-cols-4 gap-1.5 max-h-36 overflow-y-auto pr-0.5 custom-scrollbar">
                       {availableSlots.map((slot, i) => (
                         <button
                           key={i}
@@ -575,13 +480,12 @@ const AppointmentRequest = ({ onClose, onSuccess, professionalId = null, profess
 
             {/* ─── Step 2: Payment ─── */}
             {step === 2 && (
-              <motion.form
+              <motion.div
                 key="step2"
                 initial={{ opacity: 0, x: 16 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -16 }}
                 transition={{ duration: 0.2 }}
-                onSubmit={handlePayment}
                 className="px-5 pt-4 pb-5 space-y-3"
               >
                 {/* Session summary */}
@@ -598,7 +502,7 @@ const AppointmentRequest = ({ onClose, onSuccess, professionalId = null, profess
 
                 {/* Payment option toggle */}
                 <div>
-                  <label className={labelCls}>¿Cómo deseas pagar?</label>
+                  <p className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">¿Cómo deseas pagar?</p>
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
@@ -632,96 +536,15 @@ const AppointmentRequest = ({ onClose, onSuccess, professionalId = null, profess
                   )}
                 </div>
 
-                {/* Card name */}
-                <div>
-                  <label className={labelCls}>Nombre en la tarjeta</label>
-                  <input
-                    type="text"
-                    required
-                    value={paymentData.cardName}
-                    onChange={e => setPaymentData(p => ({ ...p, cardName: e.target.value }))}
-                    className={inputCls}
-                    placeholder="Juan Pérez"
-                  />
-                </div>
-
-                {/* Card number */}
-                <div>
-                  <label className={labelCls}>Número de tarjeta</label>
-                  <input
-                    type="text"
-                    required
-                    value={paymentData.cardNumber}
-                    onChange={e => setPaymentData(p => ({ ...p, cardNumber: e.target.value.replace(/\D/g, '').slice(0, 16) }))}
-                    className={`${inputCls} font-mono`}
-                    placeholder="1234 5678 9012 3456"
-                    maxLength={16}
-                  />
-                </div>
-
-                {/* Expiry + CVV */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className={labelCls}>Vencimiento</label>
-                    <input
-                      type="text"
-                      required
-                      value={paymentData.expiryDate}
-                      onChange={e => {
-                        let v = e.target.value.replace(/\D/g, '')
-                        if (v.length >= 2) v = v.slice(0, 2) + '/' + v.slice(2, 4)
-                        setPaymentData(p => ({ ...p, expiryDate: v }))
-                      }}
-                      className={`${inputCls} font-mono`}
-                      placeholder="MM/YY"
-                      maxLength={5}
-                    />
-                  </div>
-                  <div>
-                    <label className={labelCls}>CVV</label>
-                    <input
-                      type="password"
-                      required
-                      value={paymentData.cvv}
-                      onChange={e => setPaymentData(p => ({ ...p, cvv: e.target.value.replace(/\D/g, '').slice(0, 4) }))}
-                      className={`${inputCls} font-mono`}
-                      placeholder="•••"
-                      maxLength={4}
-                    />
-                  </div>
-                </div>
-
-                {/* Security note */}
-                <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2.5 border border-gray-100">
-                  <Lock className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                  <p className="text-[11px] text-gray-400">Pago seguro con cifrado SSL 256 bits.</p>
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-2.5 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setStep(1)}
-                    className="flex-1 px-4 py-2.5 text-[13px] font-semibold text-gray-600 bg-white hover:bg-gray-50 rounded-xl transition border border-gray-200"
-                  >
-                    Atrás
-                  </button>
-                  <motion.button
-                    whileHover={{ scale: 1.015 }}
-                    whileTap={{ scale: 0.985 }}
-                    type="submit"
-                    disabled={loading}
-                    className="flex-2 px-4 py-2.5 text-[13px] font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition shadow-sm disabled:opacity-40 flex items-center justify-center gap-2"
-                  >
-                    {loading ? (
-                      <>
-                        <span className="inline-block w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Procesando...
-                      </>
-                    ) : `Pagar $${chargeAmount}`}
-                  </motion.button>
-                </div>
-              </motion.form>
+                <PaymentForm
+                  amount={chargeAmount}
+                  loading={loading}
+                  onSubmit={handlePayment}
+                  onCancel={() => setStep(1)}
+                  cancelLabel="Atrás"
+                  currency="$"
+                />
+              </motion.div>
             )}
 
             {/* ─── Step 3: Success ─── */}

@@ -7,17 +7,20 @@
  */
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
+import { useNavigate } from 'react-router-dom'
 import {
   X, BookOpen, ClipboardList, FileText,
   CheckCircle2, Circle, ShieldAlert, Calendar, Clock, Target,
   Activity, Smile, Frown, Meh, AlertCircle, ChevronLeft, ChevronRight,
   Hash, MessageSquare, Dumbbell, Star, Pencil, User, Mail, Phone,
-  BarChart2, Zap, Heart, Wind, Moon, Sun, Coffee, Send,
+  BarChart2, Zap, Heart, Wind, Moon, Sun, Coffee, Send, Mic, Video,
+  ExternalLink,
 } from 'lucide-react'
 import { useAuth } from '../../auth'
 import { diaryService } from '@shared/services/diaryService'
 import { homeworkService } from '@shared/services/homeworkService'
 import { patientsService } from '@shared/services/patientsService'
+import { appointmentsService } from '@shared/services/appointmentsService'
 
 // ─── Palette helpers ──────────────────────────────────────────────────────────
 const BRAND_GRAD = 'from-[#54C0E8] to-[#0075C9]'
@@ -230,8 +233,9 @@ const TABS = [
   { key: 'summary',  label: 'Evolución',      icon: BarChart2   },
   { key: 'diary',    label: 'Diario',         icon: BookOpen    },
   { key: 'homework', label: 'Tareas',          icon: ClipboardList },
-  { key: 'notes',    label: 'Notas clínicas', icon: FileText    },
-  { key: 'sessions', label: 'Historial',      icon: Calendar    },
+  { key: 'notes',      label: 'Notas clínicas',    icon: FileText    },
+  { key: 'summaries',  label: 'Resúmenes',         icon: Mic         },
+  { key: 'sessions',   label: 'Historial',          icon: Calendar    },
 ]
 
 // ─── Badge component ──────────────────────────────────────────────────────────
@@ -249,9 +253,11 @@ const TypeBadge = ({ type }) => {
 // ─── Main component ───────────────────────────────────────────────────────────
 const PatientClinicalFile = ({ patient, onClose }) => {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [tab, setTab]                   = useState('caratula')
   const [entries, setEntries]           = useState([])
   const [hwTasks, setHwTasks]           = useState([])
+  const [sessionSummaries, setSessionSummaries] = useState([])
   const [isLoading, setIsLoading]       = useState(true)
   const [error, setError]               = useState(null)
   const [newNote, setNewNote]           = useState('')
@@ -271,10 +277,11 @@ const PatientClinicalFile = ({ patient, onClose }) => {
       const fetches = [
         diaryService.getNotes(patientId),
         homeworkService.getAll(patientId),
+        appointmentsService.getAll({ status: 'completed' }),
         ...(needsFullProfile ? [patientsService.getAll({ limit: 200 })] : []),
       ]
       const results = await Promise.allSettled(fetches)
-      const [notesResult, hwResult, listResult] = results
+      const [notesResult, hwResult, apptResult, listResult] = results
 
       // Merge full patient from the list when needed
       if (needsFullProfile && listResult?.status === 'fulfilled') {
@@ -322,6 +329,29 @@ const PatientClinicalFile = ({ patient, onClose }) => {
         )
       } else {
         console.warn('Homework endpoint unavailable:', hwResult.reason?.message)
+      }
+
+      // ── Session summaries (completed appointments for this patient)
+      if (apptResult?.status === 'fulfilled') {
+        const rawAppt = apptResult.value?.data
+        const allAppts = Array.isArray(rawAppt) ? rawAppt
+          : Array.isArray(rawAppt?.data) ? rawAppt.data
+          : Array.isArray(rawAppt?.appointments) ? rawAppt.appointments
+          : Array.isArray(rawAppt?.data?.data) ? rawAppt.data?.data
+          : []
+        // Filter completed appointments belonging to this patient
+        const patientAppts = allAppts.filter(apt => {
+          if (apt.status !== 'completed') return false
+          const aptPatientId = typeof apt.patientId === 'object'
+            ? (apt.patientId?._id || apt.patientId?.id)
+            : apt.patientId
+          return aptPatientId?.toString() === patientId?.toString()
+        })
+        // Sort by date descending
+        patientAppts.sort((a, b) =>
+          new Date(b.callStartedAt || b.fechaHora || b.date) - new Date(a.callStartedAt || a.fechaHora || a.date)
+        )
+        setSessionSummaries(patientAppts)
       }
     } catch (err) {
       console.error('Error loading clinical file:', err)
@@ -491,7 +521,7 @@ const PatientClinicalFile = ({ patient, onClose }) => {
           </div>
 
           {/* ── Tab content ────────────────────────────────────────────── */}
-          <div className="flex-1 overflow-y-auto dark:bg-[#0f1623]">
+          <div className="flex-1 overflow-y-auto dark:bg-[#0f1623] custom-scrollbar">
             <AnimatePresence mode="popLayout">
               <motion.div
                 key={tab}
@@ -808,6 +838,40 @@ const PatientClinicalFile = ({ patient, onClose }) => {
                       clinicalNotes.map((note, i) => (
                         <ClinicalNoteCard key={note._id || note.id || i} note={note} index={i} />
                       ))
+                    )}
+                  </div>
+                )}
+
+                {/* ── SESSION SUMMARIES ──────────────────────────────── */}
+                {tab === 'summaries' && !isLoading && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-bold text-gray-900 dark:text-white">Resúmenes de sesión</h3>
+                      <span className="text-xs text-gray-400 dark:text-gray-500">
+                        {sessionSummaries.length} {sessionSummaries.length === 1 ? 'sesión' : 'sesiones'}
+                      </span>
+                    </div>
+                    {sessionSummaries.length === 0 ? (
+                      <div className="text-center py-14">
+                        <div className="w-14 h-14 bg-sky-50 dark:bg-sky-900/20 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                          <Mic className="w-7 h-7 text-sky-300 dark:text-sky-600" />
+                        </div>
+                        <p className="font-semibold text-gray-600 dark:text-gray-400">Sin resúmenes de sesión</p>
+                        <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
+                          Los resúmenes aparecerán aquí cuando completes sesiones con este paciente
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {sessionSummaries.map((appt, i) => (
+                          <SessionSummaryCard
+                            key={appt._id || appt.id || i}
+                            appointment={appt}
+                            index={i}
+                            onOpen={() => navigate(`/professional/session-summary/${appt._id || appt.id}`)}
+                          />
+                        ))}
+                      </div>
                     )}
                   </div>
                 )}
@@ -1133,6 +1197,104 @@ const ClinicalNoteCard = ({ note, index }) => (
     )}
   </motion.div>
 )
+
+// ─── SessionSummaryCard ───────────────────────────────────────────────────────
+const SessionSummaryCard = ({ appointment, index, onOpen }) => {
+  const appt = appointment
+  const dateStr = appt.callStartedAt || appt.fechaHora || appt.date
+  const formattedDate = dateStr
+    ? new Date(dateStr).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    : '—'
+  const formattedTime = dateStr
+    ? new Date(dateStr).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+    : ''
+  const duration = appt.callDuration
+    ? (appt.callDuration >= 60
+        ? `${Math.floor(appt.callDuration / 60)}h ${Math.round(appt.callDuration % 60)}min`
+        : `${Math.round(appt.callDuration)} min`)
+    : appt.duration ? `${appt.duration} min` : null
+  const isVideoCall = appt.isVideoCall || appt.mode === 'videollamada'
+  const hasNotes = !!(appt.sessionNotes || appt.notes)
+  const hasTranscript = !!(appt.transcript || appt.transcriptStatus === 'ready')
+  const notePreview = (appt.sessionNotes || appt.notes || '').slice(0, 120)
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.18, delay: Math.min(index, 5) * 0.04 }}
+      className="bg-white dark:bg-[#1a2234] rounded-2xl border border-gray-100 dark:border-[#2d3748] overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+      onClick={onOpen}
+    >
+      {/* Header */}
+      <div className="px-5 pt-4 pb-3 flex items-start gap-3">
+        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+          isVideoCall ? 'bg-sky-50 dark:bg-sky-900/20' : 'bg-amber-50 dark:bg-amber-900/20'
+        }`}>
+          {isVideoCall
+            ? <Video className="w-4 h-4 text-sky-600 dark:text-sky-400" />
+            : <User className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+          }
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 capitalize">
+            {formattedDate}
+          </p>
+          <div className="flex flex-wrap items-center gap-2 mt-1">
+            {formattedTime && (
+              <span className="inline-flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-500">
+                <Clock className="w-3 h-3" /> {formattedTime}
+              </span>
+            )}
+            {duration && (
+              <span className="inline-flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-500">
+                <Clock className="w-3 h-3" /> {duration}
+              </span>
+            )}
+            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+              isVideoCall
+                ? 'bg-sky-50 dark:bg-sky-900/20 text-sky-600 dark:text-sky-400'
+                : 'bg-gray-100 dark:bg-[#0f1623] text-gray-500 dark:text-gray-400'
+            }`}>
+              {isVideoCall ? 'Videollamada' : 'Presencial'}
+            </span>
+          </div>
+        </div>
+        <ExternalLink className="w-4 h-4 text-gray-300 dark:text-gray-600 shrink-0 mt-1" />
+      </div>
+
+      {/* Notes preview / empty indicator */}
+      <div className="px-5 pb-4">
+        {hasNotes ? (
+          <div className="bg-gray-50 dark:bg-[#0f1623] rounded-xl px-3.5 py-2.5">
+            <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-3">
+              {notePreview}{notePreview.length >= 120 ? '…' : ''}
+            </p>
+          </div>
+        ) : (
+          <p className="text-xs text-gray-300 dark:text-gray-600 italic">Sin notas de sesión</p>
+        )}
+
+        {/* Tags row */}
+        <div className="flex flex-wrap gap-1.5 mt-2.5">
+          {hasNotes && (
+            <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">
+              <FileText className="w-2.5 h-2.5" /> Notas
+            </span>
+          )}
+          {hasTranscript && (
+            <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
+              <Mic className="w-2.5 h-2.5" /> Transcripción
+            </span>
+          )}
+          <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">
+            <CheckCircle2 className="w-2.5 h-2.5" /> Completada
+          </span>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
 
 const SessionRow = ({ session, index }) => (
     <motion.div

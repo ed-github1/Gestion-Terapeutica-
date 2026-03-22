@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { motion, AnimatePresence } from 'motion/react'
 import { useAuth } from './AuthContext'
 import { authService } from '@shared/services/authService'
-import { showToast } from '@components'
+import { showToast } from '@shared/ui/Toast'
 import { Mail, Lock, User, Phone, ArrowRight, AlertCircle, CheckCircle2, Eye, EyeOff, WifiOff } from 'lucide-react'
 import { BrandLogo } from '@shared/ui'
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { appointmentsService } from '@shared/services/appointmentsService'
-import { showToast } from '@components'
+import { showToast } from '@shared/ui/Toast'
 
 const loadAppointmentsFromSources = async () => {
   let allAppointments = []
@@ -37,8 +37,8 @@ const loadAppointmentsFromSources = async () => {
     console.warn('⚠️ Could not load from backend, using localStorage')
   }
 
-  // localStorage (offline bookings)
-  const savedAppointments = localStorage.getItem('professionalAppointments')
+  // sessionStorage (offline bookings — cleared on browser close)
+  const savedAppointments = sessionStorage.getItem('professionalAppointments')
   if (savedAppointments) {
     try {
       const parsed = JSON.parse(savedAppointments)
@@ -77,7 +77,7 @@ const computeStats = (appointments) => {
 
 const persistToLocalStorage = (appointments) => {
   const toSave = appointments.filter(apt => !apt.id.toString().startsWith('demo_'))
-  localStorage.setItem('professionalAppointments', JSON.stringify(toSave))
+  sessionStorage.setItem('professionalAppointments', JSON.stringify(toSave))
 }
 
 /**

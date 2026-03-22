@@ -2,9 +2,10 @@ import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth, ProtectedRoute, LoginPage, RegisterPage, Verify2FAPage } from '@features/auth'
 import { ProfessionalDashboard, AppointmentsCalendar, ProfessionalStats } from '@features/professional'
-import PatientsList from '@features/professional/components/PatientsList'
+import PatientsList from '@features/professional/components/ModernPatientsList'
 import ProfessionalProfile from '@features/professional/components/ProfessionalProfile'
 import ProfessionalVideoCallWebRTC from '@features/professional/components/VideoCallWebRTC'
+import SessionSummary from '@features/professional/components/SessionSummary'
 import ProfessionalSettings from '@features/professional/components/ProfessionalSettings'
 import { PatientDashboard, PatientPersonalDiary } from '@features/patient'
 import PatientSessionsPage from '@features/patient/PatientSessionsPage'
@@ -142,6 +143,16 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={[ROLES.HEALTH_PROFESSIONAL, ROLES.PROFESSIONAL]}>
                 <ProfessionalVideoCallWebRTC />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/professional/session-summary/:appointmentId"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.HEALTH_PROFESSIONAL, ROLES.PROFESSIONAL]}>
+                <DashboardLayout userRole="professional">
+                  <SessionSummary />
+                </DashboardLayout>
               </ProtectedRoute>
             }
           />

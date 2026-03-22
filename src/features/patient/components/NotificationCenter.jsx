@@ -95,7 +95,7 @@ const NotificationCenter = ({ notifications = [], onDismiss, onDismissAll, onAct
             </div>
 
             {/* List */}
-            <div className="max-h-90 overflow-y-auto divide-y divide-stone-50 dark:divide-gray-700">
+            <div className="max-h-90 overflow-y-auto divide-y divide-stone-50 dark:divide-gray-700 custom-scrollbar">
               {notifications.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-10 text-center gap-2">
                     <svg className="w-8 h-8 text-stone-200 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { motion } from 'motion/react'
 import VideoCallLauncher from './VideoCall'
-import { showToast } from '@components'
+import { showToast } from '@shared/ui/Toast'
 import { appointmentsService } from '@shared/services/appointmentsService'
 import { patientsService } from '@shared/services/patientsService'
 import { socketNotificationService } from '@shared/services/socketNotificationService'
@@ -18,12 +18,22 @@ const buildPatientName = (pt) => {
 const cleanDisplayName = (name) =>
   (name || '').replace(/\bundefined\b/gi, '').replace(/\bnull\b/gi, '').replace(/\s{2,}/g, ' ').trim() || name
 
+const getSavedPriceForType = (type) => {
+  try {
+    const saved = JSON.parse(localStorage.getItem('professionalSettings') || '{}')
+    return saved.sessionTypePrices?.[type] ?? null
+  } catch {
+    return null
+  }
+}
+
 const AppointmentModal = ({ appointment, onClose, onSave, onDelete }) => {
   const { user } = useAuth()
   const [showVideoCall, setShowVideoCall] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
   const [sendingNotification, setSendingNotification] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
   const [patients, setPatients] = useState([])
   const [loadingPatients, setLoadingPatients] = useState(false)
   const [formData, setFormData] = useState({
@@ -36,7 +46,7 @@ const AppointmentModal = ({ appointment, onClose, onSave, onDelete }) => {
     duration: appointment?.duration || '60',
     notes: appointment?.notes || '',
     mode: appointment?.mode ?? (appointment?.isVideoCall ? 'videollamada' : 'consultorio'),
-    price: appointment?.price || 50,
+    price: appointment?.price ?? getSavedPriceForType(appointment?.type || 'consultation') ?? 50,
   })
 
   useEffect(() => {
@@ -63,6 +73,35 @@ const AppointmentModal = ({ appointment, onClose, onSave, onDelete }) => {
       setLinkCopied(true)
       setTimeout(() => setLinkCopied(false), 3000)
       showToast('Enlace de videollamada copiado', 'success')
+    }
+  }
+
+  const handleCancelAppointment = async () => {
+    if (!appointment?.id) return
+    if (!confirm('¿Cancelar esta cita? El paciente será notificado.')) return
+    setCancelling(true)
+    try {
+      await appointmentsService.cancel(appointment.id, 'Cancelada por el profesional')
+      showToast('Cita cancelada exitosamente', 'success')
+      onSave({
+        id: appointment.id,
+        patientName: formData.patientName,
+        patientId: formData.patientId || appointment.patientId,
+        type: formData.type,
+        start: appointment.start,
+        end: appointment.end,
+        duration: formData.duration,
+        notes: formData.notes,
+        mode: formData.mode,
+        isVideoCall: formData.mode === 'videollamada',
+        status: 'cancelled',
+        price: formData.price,
+      })
+    } catch (err) {
+      console.error('Cancel error:', err)
+      showToast('No se pudo cancelar la cita. Intenta de nuevo.', 'error')
+    } finally {
+      setCancelling(false)
     }
   }
 
@@ -193,10 +232,12 @@ const AppointmentModal = ({ appointment, onClose, onSave, onDelete }) => {
   }
 
   const statusMeta = {
-    scheduled: { label: 'Programada',              cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' },
-    completed:  { label: 'Completada',              cls: 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400' },
-    cancelled:  { label: 'Cancelada',               cls: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' },
-    reserved:   { label: 'Pendiente de aceptación', cls: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' },
+    scheduled:   { label: 'Programada',              cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' },
+    completed:   { label: 'Completada',              cls: 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400' },
+    cancelled:   { label: 'Cancelada',               cls: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' },
+    reserved:    { label: 'Pendiente de aceptación', cls: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' },
+    rescheduled: { label: 'Reprogramada',            cls: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' },
+    'no-show':   { label: 'No asistió',              cls: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' },
   }
   const status = statusMeta[appointment?.status] ?? { label: 'Reservada', cls: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300' }
 
@@ -262,7 +303,7 @@ const AppointmentModal = ({ appointment, onClose, onSave, onDelete }) => {
         </div>
 
         {/* ── Form body ── */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto custom-scrollbar">
           <div className="px-6 py-5 space-y-6">
 
             {/* ─ Section: Patient & type ─ */}
@@ -317,7 +358,15 @@ const AppointmentModal = ({ appointment, onClose, onSave, onDelete }) => {
                     </svg>
                     <select
                       value={formData.type}
-                      onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                      onChange={(e) => {
+                        const newType = e.target.value
+                        const savedPrice = !appointment?.id ? getSavedPriceForType(newType) : null
+                        setFormData(prev => ({
+                          ...prev,
+                          type: newType,
+                          ...(savedPrice !== null ? { price: savedPrice } : {}),
+                        }))
+                      }}
                       className={`${inputCls} pl-9`}
                     >
                       <option value="consultation">Consulta General</option>
@@ -497,6 +546,26 @@ const AppointmentModal = ({ appointment, onClose, onSave, onDelete }) => {
                 Eliminar
               </motion.button>
             ) : <div />}
+
+            {/* ── Cancel appointment (edit mode, not already cancelled/completed) ── */}
+            {appointment?.id && !['cancelled', 'completed'].includes(appointment.status) && (
+              <motion.button
+                whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                type="button"
+                onClick={handleCancelAppointment}
+                disabled={cancelling}
+                className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-xl transition disabled:opacity-50"
+              >
+                {cancelling ? (
+                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+                  </svg>
+                )}
+                {cancelling ? 'Cancelando…' : 'Cancelar cita'}
+              </motion.button>
+            )}
 
             <div className="flex items-center gap-2">
               <motion.button

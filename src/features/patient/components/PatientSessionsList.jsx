@@ -3,22 +3,23 @@ import { motion, AnimatePresence } from 'motion/react'
 import { Calendar, Clock, Video, CheckCircle2, Plus } from 'lucide-react'
 import { appointmentsService } from '@shared/services/appointmentsService'
 import { normalizeAppointmentsResponse, toLocalDateObj, isToday } from '@shared/utils/appointments'
-import { showToast } from '@components'
+import { showToast } from '@shared/ui/Toast'
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Helpers
 ───────────────────────────────────────────────────────────────────────────── */
 
 const STATUS_CONFIG = {
-  confirmed:  { label: 'Confirmada',  bg: 'bg-emerald-50 dark:bg-emerald-900/30',  text: 'text-emerald-700 dark:text-emerald-400', border: 'border-emerald-200 dark:border-emerald-700/50', dot: 'bg-emerald-500' },
-  scheduled:  { label: 'Programada',  bg: 'bg-emerald-50 dark:bg-emerald-900/30',  text: 'text-emerald-700 dark:text-emerald-400', border: 'border-emerald-200 dark:border-emerald-700/50', dot: 'bg-emerald-500' },
-  completed:  { label: 'Completada',  bg: 'bg-stone-50 dark:bg-gray-700/50',       text: 'text-stone-500 dark:text-gray-400',     border: 'border-stone-200 dark:border-gray-600',        dot: 'bg-stone-400'   },
-  pending:    { label: 'Pendiente',   bg: 'bg-amber-50 dark:bg-amber-900/30',      text: 'text-amber-700 dark:text-amber-400',    border: 'border-amber-200 dark:border-amber-700/50',    dot: 'bg-amber-500'   },
-  reserved:   { label: 'Reservada',   bg: 'bg-blue-50 dark:bg-blue-900/30',        text: 'text-blue-700 dark:text-blue-400',      border: 'border-blue-200 dark:border-blue-700/50',      dot: 'bg-blue-500'    },
-  accepted:   { label: 'Aceptada',    bg: 'bg-emerald-50 dark:bg-emerald-900/30',  text: 'text-emerald-700 dark:text-emerald-400', border: 'border-emerald-200 dark:border-emerald-700/50', dot: 'bg-emerald-500' },
-  cancelled:  { label: 'Cancelada',   bg: 'bg-red-50 dark:bg-red-900/30',          text: 'text-red-600 dark:text-red-400',        border: 'border-red-200 dark:border-red-700/50',        dot: 'bg-red-400'     },
+  confirmed:   { label: 'Confirmada',   bg: 'bg-emerald-50 dark:bg-emerald-900/30',  text: 'text-emerald-700 dark:text-emerald-400', border: 'border-emerald-200 dark:border-emerald-700/50', dot: 'bg-emerald-500'  },
+  scheduled:   { label: 'Programada',   bg: 'bg-emerald-50 dark:bg-emerald-900/30',  text: 'text-emerald-700 dark:text-emerald-400', border: 'border-emerald-200 dark:border-emerald-700/50', dot: 'bg-emerald-500'  },
+  completed:   { label: 'Completada',   bg: 'bg-stone-50 dark:bg-gray-700/50',       text: 'text-stone-500 dark:text-gray-400',     border: 'border-stone-200 dark:border-gray-600',        dot: 'bg-stone-400'    },
+  reserved:    { label: 'Reservada',    bg: 'bg-blue-50 dark:bg-blue-900/30',        text: 'text-blue-700 dark:text-blue-400',      border: 'border-blue-200 dark:border-blue-700/50',      dot: 'bg-blue-500'     },
+  accepted:    { label: 'Aceptada',     bg: 'bg-emerald-50 dark:bg-emerald-900/30',  text: 'text-emerald-700 dark:text-emerald-400', border: 'border-emerald-200 dark:border-emerald-700/50', dot: 'bg-emerald-500'  },
+  cancelled:   { label: 'Cancelada',    bg: 'bg-red-50 dark:bg-red-900/30',          text: 'text-red-600 dark:text-red-400',        border: 'border-red-200 dark:border-red-700/50',        dot: 'bg-red-400'      },
+  rescheduled: { label: 'Reprogramada', bg: 'bg-purple-50 dark:bg-purple-900/30',    text: 'text-purple-700 dark:text-purple-400',  border: 'border-purple-200 dark:border-purple-700/50',  dot: 'bg-purple-500'   },
+  'no-show':   { label: 'No asistió',   bg: 'bg-orange-50 dark:bg-orange-900/30',    text: 'text-orange-700 dark:text-orange-400',  border: 'border-orange-200 dark:border-orange-700/50',  dot: 'bg-orange-400'   },
 }
-const statusCfg = (s) => STATUS_CONFIG[s] || STATUS_CONFIG.pending
+const statusCfg = (s) => STATUS_CONFIG[s] || STATUS_CONFIG.reserved
 
 /**
  * Returns the appointment end time Date.

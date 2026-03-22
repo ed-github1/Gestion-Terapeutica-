@@ -11,6 +11,11 @@ export const subscriptionService = {
   getCurrentPlan: () =>
     apiClient.get('/subscriptions/current'),
 
+  /** Returns { clientSecret } to confirm with Stripe.js on the frontend */
+  createPaymentIntent: (planId, billingCycle, email) =>
+    apiClient.post('/subscriptions/payment-intent', { planId, billingCycle, email }),
+
+  /** Legacy: returns { checkoutUrl } for Stripe Hosted Checkout redirect */
   createCheckoutSession: (planId, billingCycle) =>
     apiClient.post('/subscriptions/checkout', { planId, billingCycle }),
 

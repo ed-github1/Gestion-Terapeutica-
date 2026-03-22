@@ -17,6 +17,13 @@
   --safe-area-inset-right: env(safe-area-inset-right);
 }
 
+/* Smooth dark-mode transition for all elements */
+*,
+*::before,
+*::after {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
 /* Clean neutral page background */
 .tm-bg {
   background: #F5F6F8;
@@ -28,7 +35,7 @@
 
 /* Sidebar */
 .glass-sidebar {
-  background: #ffffff;
+  background: transparent;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   border-right: 1px solid #E5E7EB;
@@ -36,20 +43,20 @@
 }
 
 .dark .glass-sidebar {
-  background: #1a2234;
-  border-right-color: #2d3748;
+  background: transparent;
+  border-right: 1px solid #2d3748;
 }
 
 /* Top bar */
 .glass-topbar {
-  background: #ffffff;
+  background: transparent;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   border-bottom: 1px solid #E5E7EB;
 }
 
 .dark .glass-topbar {
-  background: #1a2234;
+  background: transparent;
   border-bottom-color: #2d3748;
 }
 
@@ -74,35 +81,60 @@ html, body, #root {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Custom scrollbar styles */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* ─── Global scrollbar baseline ──────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
+::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
+::-webkit-scrollbar-thumb {
+  background: #dde3ec;
+  border-radius: 99px;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca8b8;
 }
 
-/* Firefox scrollbar styles */
+/* Firefox global */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #dde3ec transparent;
+}
+
+/* Dark mode global */
+.dark ::-webkit-scrollbar-thumb {
+  background: #2d3748;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #4a5568;
+}
+
+.dark * {
+  scrollbar-color: #2d3748 transparent;
+}
+
+/* ─── .custom-scrollbar utility ──────────────────────────────────────────── */
+/* Explicit class for components that need the polished minimal scrollbar.    */
+/* Inherits the global design above; kept as a semantic hook.                 */
 .custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 transparent;
+  scrollbar-color: #dde3ec transparent;
 }
 
-/* Brand calendar scrollbar */
+.dark .custom-scrollbar {
+  scrollbar-color: #2d3748 transparent;
+}
+
+/* ─── Calendar scrollbar (neutral) ──────────────────────────────────────── */
 .calendar-scrollbar::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 4px;
+  height: 4px;
 }
 
 .calendar-scrollbar::-webkit-scrollbar-track {
@@ -111,16 +143,20 @@ html, body, #root {
 }
 
 .calendar-scrollbar::-webkit-scrollbar-thumb {
-  background: #29ABE2;
+  background: #dde3ec;
   border-radius: 99px;
 }
 
 .calendar-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #1565C0;
+  background: #9ca8b8;
 }
 
 /* Firefox */
 .calendar-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: #29ABE2 transparent;
+  scrollbar-color: #dde3ec transparent;
+}
+
+.dark .calendar-scrollbar {
+  scrollbar-color: #2d3748 transparent;
 }

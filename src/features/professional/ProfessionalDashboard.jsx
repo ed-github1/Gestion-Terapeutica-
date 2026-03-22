@@ -84,7 +84,7 @@ const ProfessionalDashboardWrapper = () => {
                             animate={{ x: 0 }}
                             exit={{ x: '100%' }}
                             transition={{ type: 'spring', damping: 28, stiffness: 260 }}
-                            className="fixed right-0 top-0 bottom-0 w-full max-w-5xl  z-50 overflow-y-auto shadow-2xl flex flex-col"
+                            className="fixed right-0 top-0 bottom-0 w-full max-w-5xl  z-50 overflow-y-auto custom-scrollbar shadow-2xl flex flex-col"
                         >
                             {/* Drawer header */}
                             <div className="sticky top-0 z-10 flex items-center gap-3 px-5 py-3.5 bg-white border-b border-gray-100 shrink-0">

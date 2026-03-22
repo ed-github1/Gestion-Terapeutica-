@@ -21,6 +21,11 @@ export const useWebRTC = () => {
   const [connectionState, setConnectionState] = useState('disconnected')
   const [isAudioEnabled, setIsAudioEnabled] = useState(true)
   const [isVideoEnabled, setIsVideoEnabled] = useState(true)
+  const [isReconnecting, setIsReconnecting] = useState(false)
+  const [reconnectFailed, setReconnectFailed] = useState(false)
+  const [roomEnded, setRoomEnded] = useState(false)
+  const [userLeft, setUserLeft] = useState(null)
+  const [isRecording, setIsRecording] = useState(false)
 
   const managerRef = useRef(null)
   const currentRoomIdRef = useRef(null)
@@ -79,11 +84,15 @@ export const useWebRTC = () => {
         setRemoteStreamsVersion((v) => v + 1)
       }
 
-      manager.onUserJoined = ({ userId, userName, role }) =>
+      manager.onUserJoined = ({ userId, userName, role }) => {
         setParticipants((prev) => [...prev, { userId, userName, role }])
+        setUserLeft(null)
+      }
 
-      manager.onUserLeft = ({ userId }) =>
+      manager.onUserLeft = ({ userId, userName }) => {
         setParticipants((prev) => prev.filter((p) => p.userId !== userId))
+        setUserLeft({ userId, userName })
+      }
 
       manager.onChatMessage = ({ userId, userName, message, timestamp }) => {
         const currentUserId = user.id || user._id
@@ -101,14 +110,38 @@ export const useWebRTC = () => {
         )
 
       manager.onRoomEnded = ({ message }) => {
+        console.log('Room ended:', message)
+        setRoomEnded(true)
         setIsInRoom(false)
-        setError({ type: 'info', message })
+        setLocalStream(null)
+        setRemoteStreams(new Map())
+        setRemoteStreamsVersion(0)
+        setParticipants([])
+        setChatMessages([])
+        currentRoomIdRef.current = null
       }
 
       manager.onError = (err) =>
         setError({ type: 'error', message: err.message || 'Error en la videollamada' })
 
       manager.onConnectionStateChange = ({ state }) => setConnectionState(state)
+
+      manager.onReconnecting = ({ reconnecting }) => setIsReconnecting(reconnecting)
+
+      manager.onReconnectFailed = () => {
+        setIsReconnecting(false)
+        setReconnectFailed(true)
+        setIsInRoom(false)
+        setLocalStream(null)
+        setRemoteStreams(new Map())
+        setRemoteStreamsVersion(0)
+        setParticipants([])
+        currentRoomIdRef.current = null
+      }
+
+      manager.onRecordingStateChanged = ({ isRecording: recording }) => {
+        setIsRecording(recording)
+      }
 
       await manager.initialize()
       managerRef.current = manager
@@ -120,12 +153,12 @@ export const useWebRTC = () => {
     }
   }, [user, token, isInitialized])
 
-  const joinRoom = useCallback(async (appointmentId) => {
+  const joinRoom = useCallback(async (appointmentId, { recordingConsent = false } = {}) => {
     if (!managerRef.current) throw new Error('WebRTC Manager not initialized')
     try {
       setIsConnecting(true)
       setError(null)
-      const room = await managerRef.current.joinRoom(appointmentId)
+      const room = await managerRef.current.joinRoom(appointmentId, { recordingConsent })
       setLocalStream(managerRef.current.localStream)
       if (!managerRef.current.localStream) {
         setError({ type: 'warning', message: 'No se pudo acceder a la cámara/micrófono. Permite el acceso en tu navegador y recarga la página.' })
@@ -154,10 +187,10 @@ export const useWebRTC = () => {
   }, [])
 
   const endRoom = useCallback(
-    async (appointmentId) => {
+    async (appointmentId, { sessionNotes } = {}) => {
       if (!managerRef.current) return
       try {
-        await managerRef.current.endRoom(appointmentId)
+        await managerRef.current.endRoom(appointmentId, { sessionNotes })
         leaveRoom()
       } catch (err) {
         setError({ type: 'error', message: err.message })
@@ -193,6 +226,24 @@ export const useWebRTC = () => {
     },
     [user],
   )
+
+  const startRecording = useCallback(async (appointmentId) => {
+    if (!managerRef.current) return
+    try {
+      await managerRef.current.startRecording(appointmentId)
+    } catch (err) {
+      setError({ type: 'error', message: err.message || 'Error al iniciar grabación' })
+    }
+  }, [])
+
+  const stopRecording = useCallback(async (appointmentId) => {
+    if (!managerRef.current) return
+    try {
+      await managerRef.current.stopRecording(appointmentId)
+    } catch (err) {
+      setError({ type: 'error', message: err.message || 'Error al detener grabación' })
+    }
+  }, [])
 
   const getRoomStatus = useCallback(async (appointmentId) => {
     if (!managerRef.current) return null
@@ -235,6 +286,8 @@ export const useWebRTC = () => {
     isInitialized,
     isConnecting,
     isInRoom,
+    roomEnded,
+    userLeft,
     localStream,
     remoteStreams: remoteStreamsArray,
     participants,
@@ -243,6 +296,9 @@ export const useWebRTC = () => {
     connectionState,
     isAudioEnabled,
     isVideoEnabled,
+    isReconnecting,
+    reconnectFailed,
+    isRecording,
     initialize,
     joinRoom,
     leaveRoom,
@@ -250,6 +306,8 @@ export const useWebRTC = () => {
     toggleAudio,
     toggleVideo,
     sendMessage,
+    startRecording,
+    stopRecording,
     getRoomStatus,
     manager: managerRef.current,
   }

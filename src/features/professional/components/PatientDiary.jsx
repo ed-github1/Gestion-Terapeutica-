@@ -393,13 +393,13 @@ const PatientDiary = ({ patientId, patientName, onClose }) => {
 
                 {/* Homework tab */}
                 {tab === 'homework' && (
-                    <div className="flex-1 overflow-y-auto p-5">
+                    <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
                         <HomeworkPanel patientId={patientId} patientName={patientName} />
                     </div>
                 )}
 
                 {/* Entries */}
-                <div className={`flex-1 overflow-y-auto p-5 space-y-3 ${tab === 'homework' ? 'hidden' : ''}`}>
+                <div className={`flex-1 overflow-y-auto p-5 space-y-3 custom-scrollbar ${tab === 'homework' ? 'hidden' : ''}`}>
                     {isLoading ? (
                         <div className="space-y-3">
                             {[1, 2, 3].map(i => (

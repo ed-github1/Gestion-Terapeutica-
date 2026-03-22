@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'motion/react'
 import { X, Copy, UserPlus, MessageCircle, Loader2, Link } from 'lucide-react'
-import { showToast } from '@components'
+import { showToast } from '@shared/ui/Toast'
 import { invitationsService } from '@shared/services/invitationsService'
 
 const MAX_MESSAGE_LENGTH = 500
@@ -53,7 +53,7 @@ const PatientInvitation = ({ onClose, onSuccess, professionalName }) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center z-[60] p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]"
       onClick={onClose}
     >
       <motion.div
@@ -61,11 +61,12 @@ const PatientInvitation = ({ onClose, onSuccess, professionalName }) => {
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
         transition={{ type: 'spring', duration: 0.3, bounce: 0.2 }}
-        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm flex flex-col overflow-hidden"
+        style={{ maxHeight: 'calc(100dvh - 2rem)' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="relative px-5 pt-5 pb-4 border-b border-gray-100 dark:border-gray-700">
+        <div className="relative px-5 pt-5 pb-4 border-b border-gray-100 dark:border-gray-700 shrink-0">
           <button
             onClick={onClose}
             className="absolute top-4 right-4 p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
@@ -85,7 +86,7 @@ const PatientInvitation = ({ onClose, onSuccess, professionalName }) => {
         </div>
 
         {/* Body */}
-        <div className="px-5 py-4 space-y-4">
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 custom-scrollbar">
 
           {/* Registration Link */}
           <div className="space-y-1.5">
@@ -136,7 +137,7 @@ const PatientInvitation = ({ onClose, onSuccess, professionalName }) => {
         </div>
 
         {/* Footer */}
-        <div className="px-5 pb-5 space-y-2">
+        <div className="px-5 pb-5 pt-1 space-y-2 border-t border-gray-100 dark:border-gray-700 shrink-0">
           <button
             onClick={shareWhatsApp}
             disabled={isLoading}

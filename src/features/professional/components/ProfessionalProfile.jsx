@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { User, Mail, Phone, MapPin, Briefcase, Save, ArrowLeft, Hash, LogOut, Shield } from 'lucide-react'
 import { KpiChip, KpiChipSkeleton } from './dashboard'
 import { buildKpis } from '../hooks'
-import { useDashboardData } from '../dashboard/useDashboard'
+import { useDashboardData } from '../hooks/useDashboard'
 
 // ─── Field helper (dark) ──────────────────────────────────────────────────────
 const Field = ({ label, icon: Icon, type = 'text', value, onChange, disabled }) => (

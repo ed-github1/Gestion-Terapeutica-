@@ -3,9 +3,8 @@ import { useState } from 'react'
 import AppointmentRequest from './AppointmentRequest'
 import { useAuth } from '@features/auth/AuthContext'
 import { AnimatePresence } from 'motion/react'
-import { patientsService } from '@shared/services/patientsService'
-import { invitationsService } from '@shared/services/invitationsService'
-import { VideoCallNotificationManager } from '@components'
+import { resolveLinkedProfessional } from '@shared/services/patientsService'
+import { VideoCallNotificationManager } from '@shared/ui'
 
 /**
  * Full-page wrapper for PatientSessionsList — used as a route target
@@ -24,29 +23,7 @@ const PatientSessionsPage = () => {
   // Resolve professionalId lazily when opening the request form
   const openRequest = async () => {
     if (!professionalId) {
-      let pid = null
-      try {
-        const res = await patientsService.getMyProfile()
-        const p   = res.data?.data || res.data
-        pid = p?.professionalId || p?.professional_id || p?.professional?._id || null
-      } catch { /* continue */ }
-      if (!pid) {
-        try {
-          const res = await patientsService.getMyProfessional()
-          const p   = res.data?.data || res.data
-          pid = p?._id || p?.id || null
-        } catch { /* continue */ }
-      }
-      if (!pid) {
-        try {
-          const res  = await invitationsService.getAll()
-          const list = res.data?.data || res.data || []
-          const acc  = Array.isArray(list)
-            ? list.find(i => i.status === 'accepted' || i.status === 'completed' || i.professionalId)
-            : null
-          pid = acc?.professionalId || acc?.professional_id || acc?.professional?._id || null
-        } catch { /* continue */ }
-      }
+      const { professionalId: pid } = await resolveLinkedProfessional(user)
       if (pid) setProfessionalId(pid)
     }
     setShowRequest(true)

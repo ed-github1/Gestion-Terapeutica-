@@ -3,11 +3,10 @@ import { motion } from 'motion/react'
 import { useAuth } from '@features/auth'
 import { useNavigate } from 'react-router-dom'
 import {
-    Bell, Shield, Palette, Building2, Globe, Moon, Sun,
-    Mail, Smartphone, MessageSquare, Video, Lock,
-    Key, Trash2, AlertTriangle, Check, ChevronRight,
-    Volume2, VolumeX, Eye, EyeOff, DollarSign,
+    Bell, Shield, Building2, Check, ChevronRight,
+    Key, DollarSign, Crown, Sparkles, ArrowUpRight,
 } from 'lucide-react'
+import { PLAN_TYPES, PLAN_LIMITS } from '@shared/constants/subscriptionPlans'
 
 // ─── Toggle switch ─────────────────────────────────────────────────────────────
 const Toggle = ({ checked, onChange, disabled }) => (
@@ -88,6 +87,87 @@ const Select = ({ value, onChange, options }) => (
     </select>
 )
 
+// ─── Plan & Subscription Section ──────────────────────────────────────────────
+const planMeta = {
+    [PLAN_TYPES.GRATUITO]: { label: 'Gratuito', color: 'amber', icon: null },
+    [PLAN_TYPES.PRO]:      { label: 'Pro',       color: 'blue',  icon: Crown },
+    [PLAN_TYPES.EMPRESA]:  { label: 'Empresa',   color: 'green', icon: Crown },
+}
+
+const PlanSection = ({ user, navigate }) => {
+    const rawPlan = (user?.plan || user?.subscriptionPlan || user?.planType || PLAN_TYPES.GRATUITO).toUpperCase()
+    const plan    = planMeta[rawPlan] ? rawPlan : PLAN_TYPES.GRATUITO
+    const meta    = planMeta[plan]
+    const limits  = PLAN_LIMITS[plan]
+    const isFree  = plan === PLAN_TYPES.GRATUITO
+
+    return (
+        <SectionCard
+            title="Plan y suscripción"
+            subtitle="Gestiona tu plan y accede a funciones avanzadas"
+            icon={Crown}
+            iconColor="text-blue-400"
+            iconBg="bg-blue-900/40"
+        >
+            {/* Current plan row */}
+            <div className="px-5 py-4 flex items-center justify-between gap-4">
+                <div>
+                    <p className="text-sm font-medium text-gray-200 leading-none">Plan actual</p>
+                    <p className="text-[11px] text-gray-500 mt-1">
+                        {isFree
+                            ? `Hasta ${limits.maxPatients} pacientes · ${limits.videoCallMinutes} min de videollamada`
+                            : `Hasta ${limits.maxPatients} pacientes · ${limits.videoCallMinutes} min de videollamada · ${limits.storageGB} GB`}
+                    </p>
+                </div>
+                <Badge label={meta.label} color={meta.color} />
+            </div>
+
+            {/* Upgrade CTA — only for free plan */}
+            {isFree && (
+                <div className="px-5 py-4 border-t border-gray-700/50">
+                    <div className="relative rounded-xl overflow-hidden border border-blue-800/50 bg-blue-950/40 p-4">
+                        {/* gradient accent bar */}
+                        <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: 'linear-gradient(to right, #0075C9, #54C0E8, #AEE058)' }} />
+                        <div className="flex items-start gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-blue-900/60 border border-blue-800/50 flex items-center justify-center shrink-0">
+                                <Crown className="w-4.5 h-4.5 text-blue-300" strokeWidth={2.5} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 mb-0.5">
+                                    <p className="text-sm font-bold text-blue-100">Actualiza al Plan Pro</p>
+                                    <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+                                </div>
+                                <p className="text-[11px] text-blue-300/70 leading-relaxed mb-3">
+                                    Citas ilimitadas, hasta 50 pacientes, estadísticas avanzadas y soporte prioritario.
+                                </p>
+                                <motion.button
+                                    onClick={() => navigate('/pricing')}
+                                    whileTap={{ scale: 0.97 }}
+                                    className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-colors shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
+                                >
+                                    Ver planes <ArrowUpRight className="w-3.5 h-3.5" />
+                                </motion.button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Manage subscription — for paid plans */}
+            {!isFree && (
+                <SettingRow label="Gestionar suscripción" description="Facturación, facturas y cancelación">
+                    <button
+                        onClick={() => navigate('/pricing')}
+                        className="flex items-center gap-1.5 text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors"
+                    >
+                        Gestionar <ArrowUpRight className="w-3.5 h-3.5" />
+                    </button>
+                </SettingRow>
+            )}
+        </SectionCard>
+    )
+}
+
 // ─── Main component ────────────────────────────────────────────────────────────
 const ProfessionalSettings = () => {
     const { user } = useAuth()
@@ -98,32 +178,19 @@ const ProfessionalSettings = () => {
     const [notif, setNotif] = useState({
         emailAppointments: true,
         emailReminders: true,
-        emailMarketing: false,
         pushAppointments: true,
         pushMessages: true,
-        pushPayments: true,
-        smsReminders: false,
-        soundEnabled: true,
     })
 
     // Security
     const [security, setSecurity] = useState({
         twoFactor: user?.twoFactorEnabled || false,
         sessionLock: true,
-        showActivity: true,
     })
 
-    // Appearance
-    const [appearance, setAppearance] = useState({
-        theme: 'light',
-        language: 'es',
-        compactMode: false,
-    })
-
-    // Practice
     const [practice, setPractice] = useState(() => {
         try {
-            const saved = localStorage.getItem('professionalSettings')
+            const saved = sessionStorage.getItem('professionalSettings')
             if (saved) {
                 const parsed = JSON.parse(saved)
                 return { ...{
@@ -148,12 +215,11 @@ const ProfessionalSettings = () => {
 
     const setN = (key) => (val) => setNotif(prev => ({ ...prev, [key]: val }))
     const setS = (key) => (val) => setSecurity(prev => ({ ...prev, [key]: val }))
-    const setA = (key) => (val) => setAppearance(prev => ({ ...prev, [key]: val }))
     const setP = (key) => (val) => setPractice(prev => ({ ...prev, [key]: val }))
 
     const handleSave = () => {
         // TODO: connect to API
-        try { localStorage.setItem('professionalSettings', JSON.stringify(practice)) } catch { /* ignore */ }
+        try { sessionStorage.setItem('professionalSettings', JSON.stringify(practice)) } catch { /* ignore */ }
         setSaved(true)
         setTimeout(() => setSaved(false), 2500)
     }
@@ -222,43 +288,17 @@ const ProfessionalSettings = () => {
                     iconColor="text-sky-400"
                     iconBg="bg-sky-900/40"
                 >
-                    <div className="px-5 pt-3 pb-1">
-                        <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
-                            <Mail className="w-3 h-3" /> Correo electrónico
-                        </p>
-                    </div>
-                    <SettingRow label="Nuevas citas" description="Recibe un correo cuando un paciente agende">
+                    <SettingRow label="Nuevas citas por correo" description="Recibe un correo cuando un paciente agende">
                         <Toggle checked={notif.emailAppointments} onChange={setN('emailAppointments')} />
                     </SettingRow>
-                    <SettingRow label="Recordatorios" description="24 h antes de cada sesión programada">
+                    <SettingRow label="Recordatorios por correo" description="24 h antes de cada sesión programada">
                         <Toggle checked={notif.emailReminders} onChange={setN('emailReminders')} />
                     </SettingRow>
-                    <SettingRow label="Novedades y promociones" description="Actualizaciones de producto y ofertas">
-                        <Toggle checked={notif.emailMarketing} onChange={setN('emailMarketing')} />
-                    </SettingRow>
-
-                    <div className="px-5 pt-4 pb-1">
-                        <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
-                            <Smartphone className="w-3 h-3" /> Notificaciones push
-                        </p>
-                    </div>
-                    <SettingRow label="Citas y sesiones">
+                    <SettingRow label="Push: citas y sesiones">
                         <Toggle checked={notif.pushAppointments} onChange={setN('pushAppointments')} />
                     </SettingRow>
-                    <SettingRow label="Mensajes de pacientes">
+                    <SettingRow label="Push: mensajes de pacientes">
                         <Toggle checked={notif.pushMessages} onChange={setN('pushMessages')} />
-                    </SettingRow>
-                    <SettingRow label="Confirmaciones de pago">
-                        <Toggle checked={notif.pushPayments} onChange={setN('pushPayments')} />
-                    </SettingRow>
-
-                    <div className="px-5 pt-4 pb-1">
-                        <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
-                            <Volume2 className="w-3 h-3" /> Sonido
-                        </p>
-                    </div>
-                    <SettingRow label="Sonidos de notificación" description="Reproducir audio al recibir alertas">
-                        <Toggle checked={notif.soundEnabled} onChange={setN('soundEnabled')} />
                     </SettingRow>
                 </SectionCard>
 
@@ -285,12 +325,6 @@ const ProfessionalSettings = () => {
                     >
                         <Toggle checked={security.sessionLock} onChange={setS('sessionLock')} />
                     </SettingRow>
-                    <SettingRow
-                        label="Registro de actividad"
-                        description="Mostrar historial de inicios de sesión y dispositivos"
-                    >
-                        <Toggle checked={security.showActivity} onChange={setS('showActivity')} />
-                    </SettingRow>
                     <SettingRow label="Cambiar contraseña" description="Última actualización hace 90 días">
                         <button
                             onClick={() => {/* TODO */}}
@@ -298,49 +332,6 @@ const ProfessionalSettings = () => {
                         >
                             <Key className="w-3.5 h-3.5" /> Actualizar
                         </button>
-                    </SettingRow>
-                </SectionCard>
-
-                {/* ── Appearance ── */}
-                <SectionCard
-                    title="Apariencia"
-                    subtitle="Adapta la interfaz a tu gusto"
-                    icon={Palette}
-                    iconColor="text-pink-400"
-                    iconBg="bg-pink-900/40"
-                >
-                    <SettingRow label="Tema" description="Elige entre claro u oscuro">
-                        <div className="flex items-center gap-1 bg-gray-700 rounded-lg p-1">
-                            {[
-                                { value: 'light', icon: Sun, label: 'Claro' },
-                                { value: 'dark', icon: Moon, label: 'Oscuro' },
-                            ].map(({ value, icon: Icon, label }) => (
-                                <button
-                                    key={value}
-                                    onClick={() => setA('theme')(value)}
-                                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all ${
-                                        appearance.theme === value
-                                            ? 'bg-gray-600 shadow-sm text-gray-100'
-                                            : 'text-gray-400 hover:text-gray-200'
-                                    }`}
-                                >
-                                    <Icon className="w-3.5 h-3.5" /> {label}
-                                </button>
-                            ))}
-                        </div>
-                    </SettingRow>
-                    <SettingRow label="Idioma">
-                        <Select
-                            value={appearance.language}
-                            onChange={setA('language')}
-                            options={[
-                                { value: 'es', label: 'Español' },
-                                { value: 'en', label: 'English' },
-                            ]}
-                        />
-                    </SettingRow>
-                    <SettingRow label="Modo compacto" description="Reduce el espaciado para ver más contenido">
-                        <Toggle checked={appearance.compactMode} onChange={setA('compactMode')} />
                     </SettingRow>
                 </SectionCard>
 
@@ -439,33 +430,8 @@ const ProfessionalSettings = () => {
                     </div>
                 </SectionCard>
 
-                {/* ── Danger zone ── */}
-                <SectionCard
-                    title="Zona de peligro"
-                    subtitle="Acciones irreversibles para tu cuenta"
-                    icon={AlertTriangle}
-                    iconColor="text-red-400"
-                    iconBg="bg-red-900/40"
-                >
-                    <SettingRow
-                        label="Exportar mis datos"
-                        description="Descarga una copia de toda tu información"
-                        danger
-                    >
-                        <button className="text-xs font-semibold text-gray-300 hover:text-gray-100 border border-gray-600 rounded-lg px-3 py-1.5 hover:bg-gray-700 transition-all">
-                            Exportar
-                        </button>
-                    </SettingRow>
-                    <SettingRow
-                        label="Eliminar cuenta"
-                        description="Borra permanentemente tu cuenta y todos tus datos"
-                        danger
-                    >
-                        <button className="flex items-center gap-1.5 text-xs font-semibold text-red-400 hover:text-red-300 border border-red-700 rounded-lg px-3 py-1.5 hover:bg-red-900/40 transition-all">
-                            <Trash2 className="w-3.5 h-3.5" /> Eliminar
-                        </button>
-                    </SettingRow>
-                </SectionCard>
+                {/* ── Plan & Subscription ── */}
+                <PlanSection user={user} navigate={navigate} />
 
                 {/* bottom spacer for mobile nav */}
                 <div className="h-4" />

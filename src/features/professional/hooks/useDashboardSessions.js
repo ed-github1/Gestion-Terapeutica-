@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { resolvePatientName } from '../dashboard/dashboardUtils'
+import { resolvePatientName } from '../utils/dashboardUtils'
 
 const SHORT_MONTH_NAMES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
 
@@ -70,8 +70,7 @@ export const useDashboardSessions = ({
             })
             .map(apt => ({
                 id: apt._id || apt.id,
-                patientId: apt.patientId?._id || apt.patientId || null,
-                nombrePaciente: resolvePatientName(apt),
+                patientId: apt.patientId?._id || apt.patientId || null,                patientUserId: apt.patientUserId || apt.patientId?.userId || apt.patientId?.user || null,                nombrePaciente: resolvePatientName(apt),
                 fechaHora: apt.fechaHora || apt.date,
                 estado: apt.estado || apt.status,
                 riskLevel: apt.riskLevel || 'low',
@@ -114,6 +113,7 @@ export const useDashboardSessions = ({
                 .map(apt => ({
                     id: apt._id || apt.id,
                     patientId: apt.patientId?._id || apt.patientId || null,
+                    patientUserId: apt.patientUserId || apt.patientId?.userId || apt.patientId?.user || null,
                     nombrePaciente: resolvePatientName(apt),
                     fechaHora: apt.fechaHora || apt.date,
                     estado: apt.estado || apt.status,

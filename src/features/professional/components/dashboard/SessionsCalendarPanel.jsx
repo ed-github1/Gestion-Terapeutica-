@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { CalendarCheck, ChevronLeft, ChevronRight, TrendingUp, TrendingDown } from 'lucide-react'
 import TodaysSessions from '../TodaysSessions'
-import { formatTime } from '../../dashboard/dashboardUtils'
+import { formatTime } from '../../utils/dashboardUtils'
 
 // 
 // Constants
@@ -638,6 +638,7 @@ const SessionsContent = ({
     onJoinVideo,
     onViewDiary,
     onSchedule,
+    onMarkComplete,
     nextTimestamp,
     nextCountdown,
     nextIsImminent,
@@ -654,6 +655,7 @@ const SessionsContent = ({
             onJoinVideo={onJoinVideo}
             onViewDiary={onViewDiary}
             onMessage={(apt) => console.log('Message patient:', apt?.nombrePaciente)}
+            onMarkComplete={onMarkComplete}
             nextSessionTime={nextTimestamp}
             nextSessionCountdown={nextCountdown}
             nextIsImminent={nextIsImminent || nextIsNow}
@@ -888,6 +890,7 @@ export { MiniCalendarCompact as MiniCalendarWidget, KpiChip, KpiChipSkeleton, Ca
  * @param {Function}  props.handleJoinVideo
  * @param {Function}  props.setDiaryPatient
  * @param {Function}  props.setShowCalendar
+ * @param {Function}  [props.handleMarkComplete]
  * @param {ReactNode} [props.quickActionsSlot]
  * @param {number}    [props.totalPatients]
  * @param {boolean}   [props.sessionsOnly=false]
@@ -910,6 +913,7 @@ const SessionsCalendarPanel = ({
     handleJoinVideo,
     setDiaryPatient,
     setShowCalendar,
+    handleMarkComplete,
     quickActionsSlot,
     totalPatients,
     sessionsOnly = false,
@@ -930,6 +934,7 @@ const SessionsCalendarPanel = ({
             onJoinVideo={handleJoinVideo}
             onViewDiary={setDiaryPatient}
             onSchedule={() => setShowCalendar(true)}
+            onMarkComplete={handleMarkComplete}
             nextTimestamp={nextTimestamp}
             nextCountdown={nextCountdown}
             nextIsImminent={nextIsImminent}

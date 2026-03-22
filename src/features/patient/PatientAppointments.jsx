@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { motion, AnimatePresence } from 'motion/react'
-import { showToast } from '@components'
+import { showToast } from '@shared/ui/Toast'
 import { appointmentsService } from '@shared/services/appointmentsService'
 import {
   normalizeAppointmentsResponse,
@@ -93,12 +93,13 @@ const PatientAppointments = ({ onClose }) => {
 
   const getStatusBadge = (status) => {
     const badges = {
-      scheduled:            { color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',     text: '✓ Programada' },
-      reserved:             { color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',    text: '📩 Pendiente de aceptación' },
-      completed:            { color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',        text: '✓ Completada' },
-      cancelled:            { color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',           text: '✗ Cancelada'  },
-      pending:              { color: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400',          text: '… Pendiente'  },
-      accepted:             { color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', text: '✓ Aceptada — Pago pendiente' },
+      scheduled:    { color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',          text: '✓ Programada' },
+      reserved:     { color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',         text: '📩 Pendiente de aceptación' },
+      completed:    { color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',             text: '✓ Completada' },
+      cancelled:    { color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',                text: '✗ Cancelada'  },
+      accepted:     { color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', text: '✓ Aceptada — Pago pendiente' },
+      rescheduled:  { color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',    text: '🔄 Reprogramada' },
+      'no-show':    { color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',    text: '⚠ No asistió' },
     }
     return badges[status] ?? badges.scheduled
   }
@@ -183,7 +184,7 @@ const PatientAppointments = ({ onClose }) => {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
 
           {/* Error banner */}
           <AnimatePresence>

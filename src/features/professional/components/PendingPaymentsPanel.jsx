@@ -144,7 +144,7 @@ export default function PendingPaymentsPanel({ className = '' }) {
                                 ))}
                             </div>
                         ) : (
-                            <div className="px-3 pb-3 flex flex-col gap-1.5 max-h-64 overflow-y-auto">
+                            <div className="px-3 pb-3 flex flex-col gap-1.5 max-h-64 overflow-y-auto custom-scrollbar">
                                 <AnimatePresence mode="popLayout">
                                     {/* Just-paid flash rows */}
                                     {justPaid.map(id => (

@@ -21,6 +21,29 @@ const REFERRAL_SOURCES = [
   { value: 'other',     label: 'Otro' },
 ]
 
+const LATAM_COUNTRIES = [
+  { value: 'AR', label: 'Argentina' },
+  { value: 'BO', label: 'Bolivia' },
+  { value: 'BR', label: 'Brasil' },
+  { value: 'CL', label: 'Chile' },
+  { value: 'CO', label: 'Colombia' },
+  { value: 'CR', label: 'Costa Rica' },
+  { value: 'CU', label: 'Cuba' },
+  { value: 'DO', label: 'República Dominicana' },
+  { value: 'EC', label: 'Ecuador' },
+  { value: 'SV', label: 'El Salvador' },
+  { value: 'GT', label: 'Guatemala' },
+  { value: 'HN', label: 'Honduras' },
+  { value: 'MX', label: 'México' },
+  { value: 'NI', label: 'Nicaragua' },
+  { value: 'PA', label: 'Panamá' },
+  { value: 'PY', label: 'Paraguay' },
+  { value: 'PE', label: 'Perú' },
+  { value: 'PR', label: 'Puerto Rico' },
+  { value: 'UY', label: 'Uruguay' },
+  { value: 'VE', label: 'Venezuela' },
+]
+
 const Field = ({ label, icon: Icon, error, children }) => (
   <div className="flex flex-col gap-1.5">
     <label className="text-xs font-semibold text-gray-600 flex items-center gap-1.5">
@@ -118,7 +141,7 @@ const PatientForm = ({ onClose }) => {
         </div>
 
         {/* Scrollable form body */}
-        <form onSubmit={handleSubmit(onSubmit)} className="overflow-y-auto flex-1 px-5 py-5 space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="overflow-y-auto flex-1 px-5 py-5 space-y-4 custom-scrollbar">
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Nombre" icon={User} error={errors.nombre?.message}>
@@ -149,6 +172,15 @@ const PatientForm = ({ onClose }) => {
                 className={inputCls(!!errors.dateOfBirth)} />
             </Field>
           </div>
+
+          <Field label="País (opcional)">
+            <select {...register('country')} className={inputCls(false)}>
+              <option value="">Seleccionar...</option>
+              {LATAM_COUNTRIES.map(({ value, label }) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+          </Field>
 
           <Field label="Tipo de sesión" icon={Stethoscope}>
             <select {...register('sessionType')} className={inputCls(false)}>

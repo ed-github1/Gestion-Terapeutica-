@@ -13,10 +13,11 @@ import AppointmentPaymentModal from './components/AppointmentPaymentModal'
 import { useAppointmentNotifications } from './hooks/useAppointmentNotifications'
 import { appointmentsService } from '@shared/services/appointmentsService'
 import { notificationsService } from '@shared/services/notificationsService'
-import { patientsService } from '@shared/services/patientsService'
+import { patientsService, resolveLinkedProfessional } from '@shared/services/patientsService'
 import { invitationsService } from '@shared/services/invitationsService'
+import { socketNotificationService } from '@shared/services/socketNotificationService'
 import { normalizeAppointmentsResponse, toLocalDateObj } from '@shared/utils/appointments'
-import { VideoCallNotificationManager } from '@components'
+import { VideoCallNotificationManager } from '@shared/ui'
 
 /**
  * PatientDashboard — minimal, clean layout.
@@ -87,113 +88,63 @@ const PatientDashboard = () => {
     if (id) dismissedAptIds.current.add(String(id))
   }
 
-  // ── Polling fallback: check for pending appointments & unread notifications ──
-  // Runs on mount and every 30s so the patient sees reserved appointments
-  // even if the real-time socket notification was missed (offline / reopen tab).
+  // ── Fallback check for pending appointments & unread notifications ──
+  // Runs once on mount and again after a socket reconnect so the patient
+  // never misses a professional-initiated appointment. No polling interval —
+  // real-time socket events handle the happy path.
+  const checkPendingRef = useRef(null)
   useEffect(() => {
     const checkPending = async () => {
-      // Step 1: Check server-side notification inbox — wrapped in its own
-      // try/catch so a missing/erroring notifications endpoint does NOT abort
-      // the appointment-list fallback in step 2.
+      // Step 1: Check server-side notification inbox.
       try {
         const notifRes = await notificationsService.getUnread()
         const notifs = notifRes.data?.data || notifRes.data || []
         const pendingNotif = Array.isArray(notifs)
           ? notifs.find(n => {
-              // Only surface notifications that were professional-initiated.
-              // 'appointment-booked' is sent by the patient to the professional,
-              // so receiving it back must NOT open the acceptance modal.
               if (n.type !== 'appointment-pending') return false
               const id = n.data?.appointmentId || n.data?._id || n._id
               return id ? !dismissedAptIds.current.has(String(id)) : true
             })
           : null
         if (pendingNotif && !appointmentToAcceptRef.current && !appointmentToPayRef.current) {
-          // Open the acceptance modal directly — avoids toasting "Nueva cita pendiente"
-          // every 30 s while the patient hasn't acted yet.
           setAppointmentToAccept(pendingNotif.data || pendingNotif)
-          // Mark as read so subsequent polls don't find it again.
           const notifId = pendingNotif._id || pendingNotif.id
           if (notifId) notificationsService.markRead(notifId).catch(() => {})
           return
         }
       } catch { /* notifications endpoint may not exist — fall through to step 2 */ }
 
-      // Step 2: Fallback — look for reserved/pending appointments in the list
+      // Step 2: Fallback — look for professional-created reserved/pending appointments.
       try {
         const res = await appointmentsService.getPatientAppointments()
         const all = normalizeAppointmentsResponse(res)
         const pending = all.find(a => {
           if (a.status !== 'reserved' && a.status !== 'pending') return false
+          // Only surface appointments the professional created, not patient self-bookings.
+          if (a.createdBy === 'patient') return false
           const id = a._id || a.id
           return id ? !dismissedAptIds.current.has(String(id)) : true
         })
         if (pending && !appointmentToAcceptRef.current && !appointmentToPayRef.current) {
           setAppointmentToAccept(pending)
-          // Cache the professional's user account ID so the rejection/acceptance
-          // notification can reach the professional via socket
           if (pending.professionalUserId) _setProUserId(pending.professionalUserId)
         }
-      } catch { /* silent — polling is best-effort */ }
+      } catch { /* silent — check is best-effort */ }
     }
 
+    checkPendingRef.current = checkPending
+
+    // Run once on mount
     checkPending()
-    const interval = setInterval(checkPending, 30_000)
-    return () => clearInterval(interval)
+
+    // Re-run whenever the socket reconnects (covers tab reopen / network blip)
+    const unsubReconnect = socketNotificationService.on('reconnect', checkPending)
+    return () => unsubReconnect()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadDashboardData = async () => {
     try {
-      // Resolve professionalId (profile ID) and professionalUserId (user account ID for socket routing)
-      // These are fetched INDEPENDENTLY — finding pid early must not skip puid resolution.
-      let pid = user?.professionalId || user?.professional_id || user?.professional?._id || null
-      let puid = null
-
-      // Always try getMyProfile — may return both
-      try {
-        const res = await patientsService.getMyProfile()
-        const p   = res.data?.data || res.data
-        if (!pid) pid = p?.professionalId || p?.professional_id || p?.professional?._id || p?.professional?.id || null
-        const rawPuid = p?.professionalUserId || p?.professional?.userId || p?.professional?.user?._id || p?.professional?.user?.id || null
-        // Backend may return a populated object instead of a plain ID string
-        puid = rawPuid && typeof rawPuid === 'object' ? (rawPuid._id || rawPuid.id || null) : rawPuid
-      } catch { /* continue */ }
-
-      // Always try getMyProfessional — returns the pro object which carries userId
-      if (!puid || !pid) {
-        try {
-          const res = await patientsService.getMyProfessional()
-          const p   = res.data?.data || res.data
-          if (!pid)  pid  = p?._id || p?.id || null
-          const rawPuid = p?.userId || p?.user?._id || p?.user?.id || null
-          if (!puid) puid = rawPuid && typeof rawPuid === 'object' ? (rawPuid._id || rawPuid.id || null) : rawPuid
-        } catch { /* continue */ }
-      }
-
-      // Fallback: invitations list
-      if (!pid || !puid) {
-        try {
-          const res  = await invitationsService.getAll()
-          const list = res.data?.data || res.data || []
-          const acc  = Array.isArray(list)
-            ? list.find(i => i.status === 'accepted' || i.status === 'completed' || i.professionalId)
-            : null
-          if (!pid)  pid  = acc?.professionalId || acc?.professional_id || acc?.professional?._id || null
-          const rawPuid = acc?.professionalUserId || acc?.professional?.userId || null
-          if (!puid) puid = rawPuid && typeof rawPuid === 'object' ? (rawPuid._id || rawPuid.id || null) : rawPuid
-        } catch { /* continue */ }
-      }
-
-      // Fallback: fetch professional profile by ID to extract their user account ID
-      if (pid && !puid) {
-        try {
-          const res = await patientsService.getProfessionalInfo(pid)
-          const p   = res.data?.data || res.data
-          const rawPuid = p?.userId || p?.user?._id || p?.user?.id || p?.user || null
-          puid = rawPuid && typeof rawPuid === 'object' ? (rawPuid._id || rawPuid.id || null) : rawPuid
-        } catch { /* endpoint may not exist — continue */ }
-      }
-
+      const { professionalId: pid, professionalUserId: puid } = await resolveLinkedProfessional(user)
       if (pid)  setProfessionalId(pid)
       if (puid) _setProUserId(puid)
 
@@ -217,7 +168,7 @@ const PatientDashboard = () => {
         total:     all.filter(a => a.status !== 'cancelled').length,
         upcoming:  upcoming.length,
         completed: all.filter(a => a.status === 'completed').length,
-        pending:   all.filter(a => a.status === 'pending' || a.status === 'reserved').length,
+        pending:   all.filter(a => a.status === 'reserved').length,
       })
     } catch {
       const stored   = JSON.parse(localStorage.getItem('patientAppointments') || '[]')
@@ -228,7 +179,7 @@ const PatientDashboard = () => {
         total:     stored.filter(a => a.status !== 'cancelled').length,
         upcoming:  upcoming.length,
         completed: stored.filter(a => a.status === 'completed').length,
-        pending:   stored.filter(a => a.status === 'pending' || a.status === 'reserved').length,
+        pending:   stored.filter(a => a.status === 'reserved').length,
       })
     } finally {
       setLoading(false)
@@ -253,6 +204,9 @@ const PatientDashboard = () => {
 
   const handleAppointmentRequestSuccess = (data) => {
     setShowAppointmentRequest(false)
+    // Dismiss the patient-created appointment so polling never surfaces it
+    // in the AppointmentAcceptanceModal (which is for professional-initiated ones).
+    _markDismissed(data)
     addPatientAlert('request-pending', data, 'Tu solicitud fue enviada al profesional.')
     loadDashboardData()
   }
@@ -502,6 +456,7 @@ const PatientDashboard = () => {
             }
             professionalUserId={professionalUserId}
             onSuccess={handleAppointmentRequestSuccess}
+            onPatientCreated={(id) => { if (id) dismissedAptIds.current.add(id) }}
           />
         )}
 

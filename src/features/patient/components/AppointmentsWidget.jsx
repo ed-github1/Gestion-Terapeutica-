@@ -5,15 +5,16 @@ import { appointmentsService } from '@shared/services/appointmentsService'
 import { normalizeAppointmentsResponse, toLocalDateObj } from '@shared/utils/appointments'
 
 const STATUS_CONFIG = {
-  confirmed:  { label: 'Confirmada',  bg: 'bg-emerald-50 dark:bg-emerald-900/30',  text: 'text-emerald-700 dark:text-emerald-400', border: 'border-emerald-200 dark:border-emerald-700/50', Icon: CheckCircle2 },
-  completed:  { label: 'Completada',  bg: 'bg-stone-50 dark:bg-stone-800',          text: 'text-stone-500 dark:text-stone-400',     border: 'border-stone-200 dark:border-stone-600',       Icon: CheckCircle2 },
-  pending:    { label: 'Pendiente',   bg: 'bg-amber-50 dark:bg-amber-900/30',       text: 'text-amber-700 dark:text-amber-400',    border: 'border-amber-200 dark:border-amber-700/50',    Icon: Clock       },
-  reserved:   { label: 'Reservada',  bg: 'bg-blue-50 dark:bg-blue-900/30',         text: 'text-blue-700 dark:text-blue-400',      border: 'border-blue-200 dark:border-blue-700/50',      Icon: Clock       },
-  cancelled:  { label: 'Cancelada',   bg: 'bg-red-50 dark:bg-red-900/30',           text: 'text-red-600 dark:text-red-400',        border: 'border-red-200 dark:border-red-700/50',        Icon: XCircle     },
+  confirmed:   { label: 'Confirmada',   bg: 'bg-emerald-50 dark:bg-emerald-900/30',  text: 'text-emerald-700 dark:text-emerald-400', border: 'border-emerald-200 dark:border-emerald-700/50', Icon: CheckCircle2 },
+  completed:   { label: 'Completada',   bg: 'bg-stone-50 dark:bg-stone-800',          text: 'text-stone-500 dark:text-stone-400',     border: 'border-stone-200 dark:border-stone-600',       Icon: CheckCircle2 },
+  reserved:    { label: 'Reservada',    bg: 'bg-blue-50 dark:bg-blue-900/30',         text: 'text-blue-700 dark:text-blue-400',      border: 'border-blue-200 dark:border-blue-700/50',      Icon: Clock        },
+  cancelled:   { label: 'Cancelada',    bg: 'bg-red-50 dark:bg-red-900/30',           text: 'text-red-600 dark:text-red-400',        border: 'border-red-200 dark:border-red-700/50',        Icon: XCircle      },
+  rescheduled: { label: 'Reprogramada', bg: 'bg-purple-50 dark:bg-purple-900/30',     text: 'text-purple-700 dark:text-purple-400',  border: 'border-purple-200 dark:border-purple-700/50',  Icon: Clock        },
+  'no-show':   { label: 'No asistió',   bg: 'bg-orange-50 dark:bg-orange-900/30',     text: 'text-orange-700 dark:text-orange-400',  border: 'border-orange-200 dark:border-orange-700/50',  Icon: XCircle      },
 }
 
 function statusCfg(status) {
-  return STATUS_CONFIG[status] || STATUS_CONFIG.pending
+  return STATUS_CONFIG[status] || STATUS_CONFIG.reserved
 }
 
 function fmtApptDate(date, time) {

@@ -4,17 +4,18 @@
 // treatment goals, and outcome trends for each patient.
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { showToast } from '@components'
+import { showToast } from '@shared/ui/Toast'
 import { patientsService } from '@shared/services/patientsService'
 import { invitationsService } from '@shared/services/invitationsService'
+import { appointmentsService } from '@shared/services/appointmentsService'
 import PatientInvitation from './PatientInvitation'
 import PatientClinicalFile from './PatientClinicalFile'
 import {
     Users, UserPlus, Search, RefreshCw,
     LayoutGrid, List, ShieldAlert,
     BookOpen, MessageSquare, CalendarPlus, Calendar,
-    ChevronRight, Minus,
-    Clock, MoreHorizontal, CheckCircle2,
+    ChevronRight, TrendingUp, TrendingDown,
+    Clock, MoreHorizontal,
     XCircle, TimerOff
 } from 'lucide-react'
 
@@ -23,6 +24,7 @@ import {
 // Clinical fields (riskLevel, etc.) not yet on backend default to null.
 const normalizePatient = (p) => ({
     id:                p._id || p.id,
+    userId:            p.userId || null,
     nombre:            p.firstName  || p.nombre  || '',
     apellido:          p.lastName   || p.apellido || '',
     email:             p.email      || '',
@@ -71,6 +73,43 @@ const daysSince = (dateStr) => {
     if (diff === 0) return 'Hoy'
     if (diff === 1) return 'Ayer'
     return `Hace ${diff}d`
+}
+
+// ─── Therapy Reasons & Motivo Colors ──────────────────────────────────────────
+const THERAPY_REASONS = [
+    'Ansiedad', 'Depresión', 'Estrés', 'Duelo', 'Autoestima',
+    'Problemas de pareja', 'Problemas familiares', 'Trauma / TEPT',
+    'Adicciones', 'Trastorno alimentario',
+]
+
+const motivoColors = {
+    'Ansiedad':             'bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400',
+    'Depresión':            'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+    'Estrés':               'bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+    'Duelo':                'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
+    'Autoestima':           'bg-pink-50 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400',
+    'Problemas de pareja':  'bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
+    'Problemas familiares': 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+    'Trauma / TEPT':        'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+    'Adicciones':           'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+    'Trastorno alimentario':'bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
+}
+const defaultMotivoCls = 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
+const getMotivoCls = (motivo) => motivoColors[motivo] || defaultMotivoCls
+
+const getSessionTrend = (patient) => {
+    if (!patient.totalSessions) return { label: 'Sin sesiones', cls: 'text-gray-400 dark:text-gray-500', up: null }
+    if (!patient.lastSession) return { label: `${patient.totalSessions} ses.`, cls: 'text-gray-500 dark:text-gray-400', up: null }
+    const d = Math.floor((Date.now() - new Date(patient.lastSession).getTime()) / 86400000)
+    if (d <= 7)  return { label: 'Al día',    cls: 'text-emerald-600 dark:text-emerald-400', up: true }
+    if (d <= 14) return { label: 'Regular',   cls: 'text-sky-600 dark:text-sky-400',        up: true }
+    if (d <= 30) return { label: 'Espaciado', cls: 'text-amber-600 dark:text-amber-400',    up: false }
+    return { label: 'Inactivo', cls: 'text-rose-500 dark:text-rose-400', up: false }
+}
+
+const nextSessionLabel = (dateStr) => {
+    if (!dateStr) return '—'
+    return new Date(dateStr).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
 }
 
 // ─── Alert Banner ─────────────────────────────────────────────────────────────
@@ -141,6 +180,11 @@ const PatientCard = ({ patient, onOpenDiary, onDelete, index }) => {
                                 <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">{patient.diagnosis}{patient.age ? ` · ${patient.age}a` : ''}</span>
                             )}
                         </div>
+                        {patient.treatmentGoal && (
+                            <span className={`inline-flex text-[10px] font-medium px-2 py-0.5 rounded-full mt-1 ${getMotivoCls(patient.treatmentGoal)}`}>
+                                {patient.treatmentGoal}
+                            </span>
+                        )}
                     </div>
                     <div className="relative shrink-0">
                         <button onClick={() => setMenuOpen(o => !o)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
@@ -183,26 +227,23 @@ const PatientCard = ({ patient, onOpenDiary, onDelete, index }) => {
                         <p className="text-sm font-bold text-gray-800 dark:text-gray-200">{daysSince(patient.lastSession) || '—'}</p>
                         <p className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide">Última</p>
                     </div>
-                    <div className={`rounded-xl p-2.5 text-center ${patient.insuranceRemaining !== null && patient.insuranceRemaining <= 3 ? 'bg-amber-50 dark:bg-amber-900/20' : 'bg-gray-50 dark:bg-gray-700/50'}`}>
-                        <p className={`text-sm font-bold ${patient.insuranceRemaining !== null && patient.insuranceRemaining <= 3 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-800 dark:text-gray-200'}`}>
-                            {patient.insuranceRemaining ?? '∞'}
-                        </p>
-                        <p className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide">Seguro</p>
+                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-2.5 text-center">
+                        <p className="text-sm font-bold text-gray-800 dark:text-gray-200">{nextSessionLabel(patient.nextSession)}</p>
+                        <p className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide">Próxima</p>
                     </div>
                 </div>
 
-                {/* Homework + next */}
-                <div className="flex items-center justify-between pt-1 border-t border-gray-100 dark:border-gray-700">
-                    {patient.homeworkCompleted === true  && <span className="flex items-center gap-1 text-[10px] font-medium text-emerald-600"><CheckCircle2 className="w-3 h-3" /> Tarea entregada</span>}
-                    {patient.homeworkCompleted === false && <span className="flex items-center gap-1 text-[10px] font-medium text-rose-500"><XCircle className="w-3 h-3" /> Tarea pendiente</span>}
-                    {patient.homeworkCompleted === null  && <span className="text-[10px] text-gray-300 dark:text-gray-600">Sin tarea</span>}
-                    {patient.nextSession && (
-                        <span className="flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-500">
-                            <Clock className="w-3 h-3" />
-                            {new Date(patient.nextSession).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
-                        </span>
-                    )}
-                </div>
+                {/* Session trend */}
+                {(() => {
+                    const trend = getSessionTrend(patient)
+                    return (
+                        <div className={`flex items-center gap-1.5 pt-1 border-t border-gray-100 dark:border-gray-700 ${trend.cls}`}>
+                            {trend.up === true  && <TrendingUp className="w-3 h-3" />}
+                            {trend.up === false && <TrendingDown className="w-3 h-3" />}
+                            <span className="text-[10px] font-medium">{trend.label}</span>
+                        </div>
+                    )
+                })()}
             </div>
 
             {/* Footer CTA */}
@@ -246,9 +287,10 @@ const PatientRow = ({ patient, onOpenDiary, onDelete }) => {
                 <p className="text-[10px] text-gray-400 dark:text-gray-500">{daysSince(patient.lastSession) || 'Sin sesiones'}</p>
             </td>
             <td className="px-5 py-3.5">
-                {patient.homeworkCompleted === true  && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
-                {patient.homeworkCompleted === false && <XCircle className="w-4 h-4 text-rose-400" />}
-                {patient.homeworkCompleted === null  && <Minus className="w-4 h-4 text-gray-300" />}
+                {patient.treatmentGoal
+                    ? <span className={`inline-flex text-[10px] font-medium px-2 py-0.5 rounded-full ${getMotivoCls(patient.treatmentGoal)}`}>{patient.treatmentGoal}</span>
+                    : <span className="text-xs text-gray-300 dark:text-gray-500">—</span>
+                }
             </td>
             <td className="px-5 py-3.5 text-xs text-gray-500 dark:text-gray-400">
                 {patient.nextSession
@@ -274,6 +316,7 @@ const ModernPatientsList = () => {
     const [search, setSearch]             = useState('')
     const [filterStatus, setFilterStatus] = useState('all')
     const [filterRisk, setFilterRisk]     = useState('all')
+    const [filterMotivo, setFilterMotivo] = useState('all')
     const [sortBy, setSortBy]             = useState('name')
     const [viewMode, setViewMode]         = useState('grid')
     const [showAddPatient, setShowAddPatient] = useState(false)
@@ -359,6 +402,95 @@ const ModernPatientsList = () => {
             console.warn('[PatientsList] /invitations error (non-fatal):', err)
         }
 
+        // ── /appointments — compute real session stats per patient ──────────
+        try {
+            const apptRes = await appointmentsService.getAll()
+            const apptEnv = apptRes.data?.data?.data ?? apptRes.data?.data ?? apptRes.data ?? []
+            // Handle both array and { appointments: [] } / { data: [] } envelopes
+            const appointments = Array.isArray(apptEnv)
+                ? apptEnv
+                : (Array.isArray(apptEnv?.appointments) ? apptEnv.appointments
+                    : Array.isArray(apptEnv?.data) ? apptEnv.data : [])
+            console.log('[PatientsList] appointments for session stats:', appointments.length, 'sample patientId:', appointments[0]?.patientId)
+
+            const parseApptDate = (d) => {
+                if (!d) return null
+                if (typeof d === 'string') return new Date(d)
+                if (d.$date) return new Date(d.$date)
+                return new Date(d)
+            }
+
+            const sessionStats = {}       // keyed by any patient id string
+            const statsByEmail = {}       // keyed by lowercase email (fallback)
+            const now = Date.now()
+
+            for (const appt of appointments) {
+                // patientId may be: a string, { $oid }, or a populated object { _id, email, ... }
+                const rawPid = appt.patientId
+                const pid = typeof rawPid === 'string'
+                    ? rawPid
+                    : (rawPid?._id ?? rawPid?.$oid ?? null)
+                const apptEmail = (
+                    typeof rawPid === 'object' && rawPid !== null ? rawPid.email : null
+                ) ?? appt.patientEmail ?? null
+
+                if (!pid && !apptEmail) continue
+
+                const key = pid ?? `email:${apptEmail?.toLowerCase()}`
+                if (!sessionStats[key]) sessionStats[key] = { total: 0, lastDate: null, nextDate: null }
+                const s = sessionStats[key]
+
+                // Also index by email for the fallback lookup
+                if (apptEmail) {
+                    const ekey = apptEmail.toLowerCase()
+                    statsByEmail[ekey] = s   // same reference — both keys point to same stats object
+                }
+
+                const d = parseApptDate(appt.date)
+
+                if (appt.status === 'completed') {
+                    s.total++
+                    if (d && (!s.lastDate || d.getTime() > new Date(s.lastDate).getTime())) {
+                        s.lastDate = d.toISOString()
+                    }
+                } else if (['reserved', 'confirmed', 'accepted'].includes(appt.status)) {
+                    if (d && d.getTime() >= now) {
+                        if (!s.nextDate || d.getTime() < new Date(s.nextDate).getTime()) {
+                            s.nextDate = d.toISOString()
+                        }
+                    }
+                }
+            }
+
+            console.log('[PatientsList] session stats by patientId:', sessionStats, 'by email:', statsByEmail)
+
+            // Build userId → profileId reverse index so appointments stored
+            // with the user account ID resolve to the right patient profile.
+            const userIdToProfileId = {}
+            for (const p of realPatients) {
+                if (p.userId) userIdToProfileId[String(p.userId)] = String(p.id)
+            }
+
+            realPatients = realPatients.map(p => {
+                const pid = String(p.id)
+                const uid = p.userId ? String(p.userId) : null
+                const email = p.email?.toLowerCase() ?? null
+                // Try: profile id → user id → email fallback
+                const s = sessionStats[pid]
+                    ?? (uid ? sessionStats[uid] : undefined)
+                    ?? (email ? statsByEmail[email] : undefined)
+                if (!s) return p
+                return {
+                    ...p,
+                    totalSessions: s.total > 0 ? s.total : p.totalSessions,
+                    lastSession:   s.lastDate ?? p.lastSession,
+                    nextSession:   s.nextDate ?? p.nextSession,
+                }
+            })
+        } catch (err) {
+            console.warn('[PatientsList] /appointments stats error (non-fatal):', err)
+        }
+
         console.log('[PatientsList] final list to render:', realPatients)
         setPatients(realPatients)
         setLoading(false)
@@ -379,10 +511,17 @@ const ModernPatientsList = () => {
         let list = [...patients]
         if (search) {
             const q = search.toLowerCase()
-            list = list.filter(p => `${p.nombre} ${p.apellido}`.toLowerCase().includes(q) || p.email?.toLowerCase().includes(q) || p.diagnosis?.toLowerCase().includes(q))
+            list = list.filter(p => `${p.nombre} ${p.apellido}`.toLowerCase().includes(q) || p.email?.toLowerCase().includes(q) || p.diagnosis?.toLowerCase().includes(q) || p.treatmentGoal?.toLowerCase().includes(q))
         }
         if (filterStatus !== 'all') list = list.filter(p => p.status === filterStatus)
         if (filterRisk !== 'all')   list = list.filter(p => p.riskLevel === filterRisk)
+        if (filterMotivo !== 'all') {
+            if (filterMotivo === 'other') {
+                list = list.filter(p => p.treatmentGoal && !THERAPY_REASONS.includes(p.treatmentGoal))
+            } else {
+                list = list.filter(p => p.treatmentGoal === filterMotivo)
+            }
+        }
         list.sort((a, b) => {
             if (sortBy === 'name')        return `${a.nombre} ${a.apellido}`.localeCompare(`${b.nombre} ${b.apellido}`)
             if (sortBy === 'risk')        { const o = { high: 0, medium: 1, low: 2 }; return (o[a.riskLevel] ?? 3) - (o[b.riskLevel] ?? 3) }
@@ -391,12 +530,16 @@ const ModernPatientsList = () => {
         })
         console.log('[PatientsList] filtered list:', list.length, 'filterStatus:', filterStatus, 'filterRisk:', filterRisk, 'patients in state:', patients.length)
         return list
-    }, [patients, search, filterStatus, filterRisk, sortBy])
+    }, [patients, search, filterStatus, filterRisk, filterMotivo, sortBy])
 
     const total    = patients.length
     const active   = patients.filter(p => p.status === 'active').length
     const highRisk = patients.filter(p => p.riskLevel === 'high').length
-    const pendingHW = patients.filter(p => p.homeworkCompleted === false).length
+    const needsFollowUp = patients.filter(p => {
+        if (!p.totalSessions) return false
+        if (!p.lastSession) return true
+        return Math.floor((Date.now() - new Date(p.lastSession).getTime()) / 86400000) > 14
+    }).length
 
     return (
         <>
@@ -414,7 +557,7 @@ const ModernPatientsList = () => {
                             { label: 'Pacientes', value: total,     icon: Users,       iconColor: 'text-blue-400'    },
                             { label: 'Activos',   value: active,    icon: Users,       iconColor: 'text-sky-400'     },
                             { label: 'Alto riesgo', value: highRisk, icon: ShieldAlert, iconColor: 'text-rose-400'   },
-                            { label: 'Tarea pend.', value: pendingHW, icon: BookOpen,  iconColor: 'text-amber-400'   },
+                            { label: 'Seguimiento', value: needsFollowUp, icon: Clock,  iconColor: 'text-amber-400'  },
                         ].map(({ label, value, icon: Icon, iconColor }) => (
                             <div key={label} className="bg-gray-50 dark:bg-gray-700/50 rounded-2xl px-3 pt-2.5 pb-3 w-full flex flex-col gap-1.5">
                                 <div className="flex items-center gap-1.5">
@@ -460,6 +603,7 @@ const ModernPatientsList = () => {
                     {[
                         { value: filterStatus, setter: setFilterStatus, options: [['all','Todos los estados'],['active','Activos'],['pending','Pendientes'],['inactive','Inactivos'],['invited','Invitados']] },
                         { value: filterRisk,   setter: setFilterRisk,   options: [['all','Todos los riesgos'],['high','Alto riesgo'],['medium','Riesgo medio'],['low','Bajo riesgo']] },
+                        { value: filterMotivo, setter: setFilterMotivo, options: [['all','Todos los motivos'], ...THERAPY_REASONS.map(r => [r, r]), ['other','Otro motivo']] },
                         { value: sortBy,       setter: setSortBy,       options: [['name','Orden: Nombre'],['risk','Orden: Riesgo'],['lastSession','Orden: Última sesión']] },
                     ].map(({ value, setter, options }, i) => (
                         <select key={i} value={value} onChange={e => setter(e.target.value)}
@@ -480,8 +624,8 @@ const ModernPatientsList = () => {
                 {/* Results count */}
                 <p className="text-xs text-gray-400 dark:text-gray-500 mb-3 px-1">
                     {filtered.length} paciente{filtered.length !== 1 ? 's' : ''}
-                    {(filterStatus !== 'all' || filterRisk !== 'all' || search) && (
-                        <button onClick={() => { setSearch(''); setFilterStatus('all'); setFilterRisk('all') }}
+                    {(filterStatus !== 'all' || filterRisk !== 'all' || filterMotivo !== 'all' || search) && (
+                        <button onClick={() => { setSearch(''); setFilterStatus('all'); setFilterRisk('all'); setFilterMotivo('all') }}
                             className="ml-2 text-[#0075C9] hover:text-[#005fa0] font-medium">
                             Limpiar filtros
                         </button>
@@ -497,8 +641,8 @@ const ModernPatientsList = () => {
                         <Users className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
                         <p className="font-semibold text-gray-700 dark:text-gray-300">Sin resultados</p>
                         <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{search ? 'Prueba con otro término.' : 'No hay pacientes con estos filtros.'}</p>
-                        {patients.length > 0 && (filterStatus !== 'all' || filterRisk !== 'all') && (
-                            <button onClick={() => { setSearch(''); setFilterStatus('all'); setFilterRisk('all') }}
+                        {patients.length > 0 && (filterStatus !== 'all' || filterRisk !== 'all' || filterMotivo !== 'all') && (
+                            <button onClick={() => { setSearch(''); setFilterStatus('all'); setFilterRisk('all'); setFilterMotivo('all') }}
                                 className="mt-3 text-sm text-blue-700 hover:underline">
                                 Limpiar filtros ({patients.length} paciente{patients.length !== 1 ? 's' : ''} en total)
                             </button>
@@ -527,7 +671,7 @@ const ModernPatientsList = () => {
                         <table className="w-full min-w-195 text-left">
                             <thead>
                                 <tr className="border-b border-gray-100 dark:border-gray-700">
-                                    {['Paciente','Estado','Sesiones','Tarea','Próxima',''].map(h => (
+                                    {['Paciente','Estado','Sesiones','Motivo','Próxima',''].map(h => (
                                         <th key={h} className="px-5 py-3 text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{h}</th>
                                     ))}
                                 </tr>
