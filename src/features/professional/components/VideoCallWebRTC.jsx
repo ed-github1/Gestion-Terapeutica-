@@ -163,36 +163,48 @@ const ProfessionalVideoCallWebRTC = () => {
   }, [isInRoom]);
 
   // Start MediaRecorder — called directly on consent accept OR when server sends recording-authorized
-  const startMediaRecorder = useCallback(() => {
+  const startMediaRecorder = useCallback(async () => {
     if (mediaRecorderRef.current) return; // already recording
 
     // Use AudioContext to properly mix local + remote audio into a single stream
     try {
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      // Chrome suspends AudioContext until a user gesture — resume it now
+      if (audioCtx.state === 'suspended') {
+        await audioCtx.resume();
+      }
+      console.log('[Recording] AudioContext state:', audioCtx.state, 'sampleRate:', audioCtx.sampleRate);
+
       const destination = audioCtx.createMediaStreamDestination();
       let trackCount = 0;
 
       if (localStream) {
         localStream.getAudioTracks().forEach(track => {
-          const source = audioCtx.createMediaStreamSource(new MediaStream([track]));
-          source.connect(destination);
-          trackCount++;
+          console.log('[Recording] Adding local track:', track.label, 'enabled:', track.enabled, 'readyState:', track.readyState);
+          if (track.readyState === 'live') {
+            const source = audioCtx.createMediaStreamSource(new MediaStream([track]));
+            source.connect(destination);
+            trackCount++;
+          }
         });
       }
 
       if (manager) {
         const remoteStreamMap = manager.remoteStreams || new Map();
-        remoteStreamMap.forEach((stream) => {
+        remoteStreamMap.forEach((stream, userId) => {
           stream.getAudioTracks().forEach(track => {
-            const source = audioCtx.createMediaStreamSource(new MediaStream([track]));
-            source.connect(destination);
-            trackCount++;
+            console.log('[Recording] Adding remote track from', userId, ':', track.label, 'enabled:', track.enabled, 'readyState:', track.readyState);
+            if (track.readyState === 'live') {
+              const source = audioCtx.createMediaStreamSource(new MediaStream([track]));
+              source.connect(destination);
+              trackCount++;
+            }
           });
         });
       }
 
       if (trackCount === 0) {
-        console.warn('[Recording] No audio tracks available to record');
+        console.warn('[Recording] No live audio tracks available to record');
         audioCtx.close();
         return false;
       }
@@ -213,10 +225,13 @@ const ProfessionalVideoCallWebRTC = () => {
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) recordingChunksRef.current.push(e.data);
       };
+      mediaRecorder.onerror = (e) => {
+        console.error('[Recording] MediaRecorder error:', e.error);
+      };
       mediaRecorder.start(1000); // collect data every 1s
       mediaRecorderRef.current = mediaRecorder;
       setLocalRecording(true);
-      console.log(`[Recording] MediaRecorder started — mimeType: ${chosenMime || 'default'}, tracks: ${trackCount}`);
+      console.log(`[Recording] MediaRecorder started — mimeType: ${chosenMime || 'default'}, tracks: ${trackCount}, state: ${mediaRecorder.state}`);
       return true;
     } catch (err) {
       console.error('[Recording] Failed to start MediaRecorder:', err);
@@ -279,9 +294,10 @@ const ProfessionalVideoCallWebRTC = () => {
       }
 
       const doUpload = (blob) => {
+        console.log('[Recording] Blob created — size:', blob.size, 'bytes, type:', blob.type, 'chunks:', recordingChunksRef.current.length);
         if (blob.size < 1000) {
           console.warn('[Recording] Recording too small, skipping upload:', blob.size, 'bytes');
-          setUploadError('La grabación fue demasiado corta para procesar.');
+          setUploadError('La grabación fue demasiado corta para procesar. Verifica que el micrófono esté activo.');
           resolve();
           return;
         }

@@ -107,57 +107,65 @@ const PatientVideoCallWebRTC = () => {
     if (!recordingAuthorized || mediaRecorderRef.current) return;
 
     // Use AudioContext to properly mix local + remote audio
-    try {
-      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const destination = audioCtx.createMediaStreamDestination();
-      let trackCount = 0;
+    const startPatientRecorder = async () => {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') await audioCtx.resume();
 
-      if (localStream) {
-        localStream.getAudioTracks().forEach(track => {
-          const source = audioCtx.createMediaStreamSource(new MediaStream([track]));
-          source.connect(destination);
-          trackCount++;
-        });
-      }
+        const destination = audioCtx.createMediaStreamDestination();
+        let trackCount = 0;
 
-      if (manager) {
-        const remoteStreamMap = manager.remoteStreams || new Map();
-        remoteStreamMap.forEach((stream) => {
-          stream.getAudioTracks().forEach(track => {
-            const source = audioCtx.createMediaStreamSource(new MediaStream([track]));
-            source.connect(destination);
-            trackCount++;
+        if (localStream) {
+          localStream.getAudioTracks().forEach(track => {
+            if (track.readyState === 'live') {
+              const source = audioCtx.createMediaStreamSource(new MediaStream([track]));
+              source.connect(destination);
+              trackCount++;
+            }
           });
-        });
-      }
+        }
 
-      if (trackCount === 0) {
-        console.warn('[Recording] No audio tracks available to record');
-        audioCtx.close();
-        return;
-      }
+        if (manager) {
+          const remoteStreamMap = manager.remoteStreams || new Map();
+          remoteStreamMap.forEach((stream) => {
+            stream.getAudioTracks().forEach(track => {
+              if (track.readyState === 'live') {
+                const source = audioCtx.createMediaStreamSource(new MediaStream([track]));
+                source.connect(destination);
+                trackCount++;
+              }
+            });
+          });
+        }
 
-      const mixedStream = destination.stream;
-      const mimeTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
-      let chosenMime = '';
-      for (const mime of mimeTypes) {
-        if (MediaRecorder.isTypeSupported(mime)) { chosenMime = mime; break; }
-      }
+        if (trackCount === 0) {
+          console.warn('[Recording] No live audio tracks available to record');
+          audioCtx.close();
+          return;
+        }
 
-      const recorderOptions = chosenMime ? { mimeType: chosenMime } : undefined;
-      const mediaRecorder = new MediaRecorder(mixedStream, recorderOptions);
-      recordingChunksRef.current = [];
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) recordingChunksRef.current.push(e.data);
-      };
-      mediaRecorder.start(1000);
-      mediaRecorderRef.current = mediaRecorder;
-      // Store audioCtx ref for cleanup
-      mediaRecorderRef.current._audioCtx = audioCtx;
-      console.log(`[Recording] Patient MediaRecorder started — mimeType: ${chosenMime || 'default'}, tracks: ${trackCount}`);
-    } catch (err) {
-      console.error('[Recording] Failed to start MediaRecorder:', err);
-    }
+        const mixedStream = destination.stream;
+        const mimeTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
+        let chosenMime = '';
+        for (const mime of mimeTypes) {
+          if (MediaRecorder.isTypeSupported(mime)) { chosenMime = mime; break; }
+        }
+
+        const recorderOptions = chosenMime ? { mimeType: chosenMime } : undefined;
+        const mediaRecorder = new MediaRecorder(mixedStream, recorderOptions);
+        recordingChunksRef.current = [];
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) recordingChunksRef.current.push(e.data);
+        };
+        mediaRecorder.start(1000);
+        mediaRecorderRef.current = mediaRecorder;
+        mediaRecorderRef.current._audioCtx = audioCtx;
+        console.log(`[Recording] Patient MediaRecorder started — mimeType: ${chosenMime || 'default'}, tracks: ${trackCount}`);
+      } catch (err) {
+        console.error('[Recording] Failed to start MediaRecorder:', err);
+      }
+    };
+    startPatientRecorder();
   }, [recordingAuthorized, localStream, manager]);
 
   // When the professional ends the room, stop recording and navigate back after 3 seconds
