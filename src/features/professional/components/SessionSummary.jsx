@@ -65,21 +65,66 @@ const TranscriptIdle = () => (
   </div>
 )
 
-const TranscriptProcessing = () => (
-  <div className="flex flex-col items-center gap-2.5 py-6">
-    <div className="flex items-end gap-0.5 h-5">
-      {[0, 1, 2, 3, 4].map((i) => (
+const TranscriptProcessing = () => {
+  const [progress, setProgress] = useState(0)
+
+  useEffect(() => {
+    // Simulate progress: fast at first, slows down, caps at 92% until ready
+    const TOTAL_MS = 150_000 // ~2.5 min estimate
+    const TICK_MS  = 400
+    const startedAt = Date.now()
+
+    const timer = setInterval(() => {
+      const elapsed = Date.now() - startedAt
+      // Ease-out curve: fast start, slow finish, never reaches 100%
+      const raw = 1 - Math.exp(-3.5 * (elapsed / TOTAL_MS))
+      setProgress(Math.min(raw * 100, 92))
+    }, TICK_MS)
+
+    return () => clearInterval(timer)
+  }, [])
+
+  const stages = [
+    { at: 0,  label: 'Subiendo audio…' },
+    { at: 15, label: 'Analizando audio…' },
+    { at: 35, label: 'Transcribiendo…' },
+    { at: 65, label: 'Identificando hablantes…' },
+    { at: 82, label: 'Finalizando…' },
+  ]
+  const currentStage = [...stages].reverse().find(s => progress >= s.at) || stages[0]
+
+  return (
+    <div className="py-5 space-y-4">
+      {/* label + percentage */}
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-gray-400 dark:text-gray-500">{currentStage.label}</p>
+        <span className="text-[10px] font-semibold tabular-nums text-sky-500 dark:text-sky-400">
+          {Math.round(progress)}%
+        </span>
+      </div>
+
+      {/* progress track */}
+      <div className="relative h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+        {/* animated fill */}
         <motion.div
-          key={i}
-          className="w-0.5 rounded-full bg-sky-400 dark:bg-sky-500"
-          animate={{ height: ['6px', '20px', '6px'] }}
-          transition={{ repeat: Infinity, duration: 0.9, delay: i * 0.12, ease: 'easeInOut' }}
+          className="absolute inset-y-0 left-0 bg-linear-to-r from-sky-400 to-teal-400 rounded-full"
+          style={{ width: `${progress}%` }}
+          transition={{ duration: 0.4, ease: 'easeOut' }}
         />
-      ))}
+        {/* shimmer overlay */}
+        <motion.div
+          className="absolute inset-y-0 w-16 bg-linear-to-r from-transparent via-white/30 to-transparent"
+          animate={{ left: ['-4rem', '100%'] }}
+          transition={{ repeat: Infinity, duration: 1.6, ease: 'linear', repeatDelay: 0.4 }}
+        />
+      </div>
+
+      <p className="text-[10px] text-gray-300 dark:text-gray-600 text-center">
+        La transcripción puede tardar 1–3 minutos
+      </p>
     </div>
-    <p className="text-xs text-gray-400 dark:text-gray-500">Procesando transcripción…</p>
-  </div>
-)
+  )
+}
 
 const TranscriptReady = ({ text, onChange, edited }) => {
   const [copied, setCopied] = useState(false)
@@ -139,7 +184,8 @@ const SessionSummary = () => {
   const [transcript, setTranscript]               = useState('')
   const [transcriptEdited, setTranscriptEdited]   = useState(false)
   const [originalTranscript, setOriginalTranscript] = useState('')
-  const pollRef = useRef(null)
+  const pollRef    = useRef(null)
+  const idlePollRef = useRef(null)
 
   /* ── transcript loader ── */
   const applyTranscriptFromData = (data) => {
@@ -172,6 +218,7 @@ const SessionSummary = () => {
     })()
   }, [appointmentId])
 
+  // Poll while processing
   useEffect(() => {
     if (transcriptState !== 'processing') { clearInterval(pollRef.current); return }
     pollRef.current = setInterval(async () => {
@@ -179,8 +226,25 @@ const SessionSummary = () => {
         const res = await appointmentsService.getById(appointmentId)
         applyTranscriptFromData(res.data?.data ?? res.data ?? res)
       } catch { /* keep polling */ }
-    }, 8000)
+    }, 6000)
     return () => clearInterval(pollRef.current)
+  }, [transcriptState, appointmentId])
+
+  // Grace-period poll when idle — handles race where we arrive before backend
+  // sets transcriptStatus to 'processing'. Poll for up to 90s after page load.
+  useEffect(() => {
+    if (transcriptState !== 'idle') { clearInterval(idlePollRef.current); return }
+    let attempts = 0
+    const MAX_ATTEMPTS = 15 // 15 × 6s = 90 seconds
+    idlePollRef.current = setInterval(async () => {
+      attempts++
+      try {
+        const res = await appointmentsService.getById(appointmentId)
+        applyTranscriptFromData(res.data?.data ?? res.data ?? res)
+      } catch { /* ignore */ }
+      if (attempts >= MAX_ATTEMPTS) clearInterval(idlePollRef.current)
+    }, 6000)
+    return () => clearInterval(idlePollRef.current)
   }, [transcriptState, appointmentId])
 
   const handleSaveNotes = async () => {
