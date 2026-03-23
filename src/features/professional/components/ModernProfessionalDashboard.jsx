@@ -74,6 +74,16 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
 
         // 2. Notify patient (REST + socket for instant delivery)
         const targetUserId = appointment.patientUserId || appointment.patientId
+        console.log('[sendVideoInvitation] values being sent:', {
+            appointmentId: appointment.id,
+            'appointment._id': appointment._id,
+            targetUserId,
+            'appointment.patientUserId': appointment.patientUserId,
+            'appointment.patientId': appointment.patientId,
+            patientName,
+            professionalName,
+            fullAppointment: appointment,
+        })
         try {
             await videoCallService.sendVideoInvitation(
                 appointment.id, targetUserId, patientName, professionalName,

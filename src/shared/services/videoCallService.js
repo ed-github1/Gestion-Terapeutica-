@@ -8,8 +8,8 @@ export const videoCallService = {
   getIceServers: () =>
     apiClient.get('/rtc/ice-servers'),
 
-  joinRoom: (appointmentId) =>
-    apiClient.post('/rtc/rooms/join', { appointmentId }),
+  joinRoom: (appointmentId, { recordingConsent = false } = {}) =>
+    apiClient.post('/rtc/rooms/join', { appointmentId, recordingConsent }),
 
   getRoomStatus: (appointmentId) =>
     apiClient.get(`/rtc/rooms/${appointmentId}`),
@@ -46,4 +46,13 @@ export const videoCallService = {
   // End video call and track duration
   endCall: (appointmentId, duration) =>
     apiClient.post('/video/end', { appointmentId, duration }),
+
+  // Upload a client-side audio recording blob
+  uploadRecording: (appointmentId, blob) => {
+    const formData = new FormData()
+    formData.append('recording', blob, 'recording.webm')
+    return apiClient.post(`/rtc/rooms/${appointmentId}/recording`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
 }

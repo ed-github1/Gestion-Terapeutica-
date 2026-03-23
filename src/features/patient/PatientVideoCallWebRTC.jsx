@@ -31,6 +31,8 @@ const PatientVideoCallWebRTC = () => {
     isVideoEnabled,
     isRecording,
     userLeft,
+    recordingAuthorized,
+    manager,
     joinRoom,
     leaveRoom,
     toggleAudio,
@@ -43,6 +45,8 @@ const PatientVideoCallWebRTC = () => {
   const [countdown, setCountdown] = useState(null);
   const [showRecordingDisclaimer, setShowRecordingDisclaimer] = useState(false);
   const recordingAcknowledgedRef = useRef(false);
+  const mediaRecorderRef = useRef(null);
+  const recordingChunksRef = useRef([]);
   
   const localVideoRef = useRef(null);
   const remoteVideoRefs = useRef(new Map());
@@ -98,12 +102,55 @@ const PatientVideoCallWebRTC = () => {
     }
   }, [isRecording]);
 
-  // When the professional ends the room, navigate back after 3 seconds
+  // Start MediaRecorder when recording-authorized is received
+  useEffect(() => {
+    if (!recordingAuthorized || mediaRecorderRef.current) return;
+
+    // Combine local + remote audio tracks into a single stream
+    const combinedStream = new MediaStream();
+
+    if (localStream) {
+      localStream.getAudioTracks().forEach(track => combinedStream.addTrack(track));
+    }
+
+    if (manager) {
+      const remoteStreamMap = manager.remoteStreams || new Map();
+      remoteStreamMap.forEach((stream) => {
+        stream.getAudioTracks().forEach(track => combinedStream.addTrack(track));
+      });
+    }
+
+    if (combinedStream.getAudioTracks().length === 0) {
+      console.warn('No audio tracks available to record');
+      return;
+    }
+
+    try {
+      const mediaRecorder = new MediaRecorder(combinedStream, { mimeType: 'audio/webm' });
+      recordingChunksRef.current = [];
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) recordingChunksRef.current.push(e.data);
+      };
+      mediaRecorder.start();
+      mediaRecorderRef.current = mediaRecorder;
+      console.log('MediaRecorder started (recording-authorized)');
+    } catch (err) {
+      console.error('Failed to start MediaRecorder:', err);
+    }
+  }, [recordingAuthorized, localStream, manager]);
+
+  // When the professional ends the room, stop recording and navigate back after 3 seconds
   useEffect(() => {
     if (!roomEnded) return;
+    // Stop MediaRecorder if active (patient does not upload — only professional uploads)
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current = null;
+      recordingChunksRef.current = [];
+    }
     const timer = setTimeout(() => navigate('/dashboard/patient'), 3000);
     return () => clearTimeout(timer);
-  }, [roomEnded, navigate]);
+  }, [roomEnded, navigate, appointmentId]);
 
   // Stable ref callback for local video — sets srcObject once
   const setLocalVideoRef = useCallback((el) => {
@@ -158,13 +205,20 @@ const PatientVideoCallWebRTC = () => {
       // Ensure invitation is accepted before joining (handles race conditions
       // and direct navigation to the video call URL)
       try { await videoCallService.acceptInvitation(appointmentId); } catch { /* may already be accepted */ }
-      await joinRoom(appointmentId);
+      await joinRoom(appointmentId, { recordingConsent: true });
     } catch (err) {
       console.error('Failed to join room:', err);
     }
   };
 
   const handleLeaveRoom = () => {
+    // Stop MediaRecorder if active (patient does not upload — only professional uploads)
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current = null;
+      recordingChunksRef.current = [];
+    }
+
     leaveRoom();
     navigate('/dashboard/patient');
   };

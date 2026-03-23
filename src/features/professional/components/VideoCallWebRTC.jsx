@@ -8,6 +8,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Mic, MicOff, Video as VideoIcon, VideoOff, MessageSquare, PhoneOff, StopCircle, LogOut, Circle, ShieldCheck } from 'lucide-react';
 import { useWebRTC } from '@shared/hooks/useWebRTC';
+import { videoCallService } from '@shared/services/videoCallService';
+import { appointmentsService } from '@shared/services/appointmentsService';
 import { useAuth } from '../../auth/AuthContext';
 
 const ProfessionalVideoCallWebRTC = () => {
@@ -30,6 +32,8 @@ const ProfessionalVideoCallWebRTC = () => {
     reconnectFailed,
     isRecording,
     userLeft,
+    recordingAuthorized,
+    manager,
     joinRoom,
     leaveRoom,
     endRoom,
@@ -46,6 +50,9 @@ const ProfessionalVideoCallWebRTC = () => {
   const [showRecordingConsent, setShowRecordingConsent] = useState(false);
   const [sessionNotes, setSessionNotes] = useState('');
   const [countdown, setCountdown] = useState(null);
+  const [transcriptStatus, setTranscriptStatus] = useState(null);
+  const [transcript, setTranscript] = useState('');
+  const [transcriptError, setTranscriptError] = useState(null);
 
   // Navigate away when reconnection fails
   useEffect(() => {
@@ -61,6 +68,9 @@ const ProfessionalVideoCallWebRTC = () => {
   const durationDisplayRef = useRef(null);
   const callDurationRef = useRef(0);
   const countdownRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const recordingChunksRef = useRef([]);
+  const pollTimerRef = useRef(null);
 
   // When a remote user leaves and no one is left, start 30s countdown
   useEffect(() => {
@@ -148,6 +158,74 @@ const ProfessionalVideoCallWebRTC = () => {
     };
   }, [isInRoom]);
 
+  // Start MediaRecorder when recording-authorized is received
+  useEffect(() => {
+    if (!recordingAuthorized || mediaRecorderRef.current) return;
+
+    // Combine local + remote audio tracks into a single stream
+    const combinedStream = new MediaStream();
+
+    if (localStream) {
+      localStream.getAudioTracks().forEach(track => combinedStream.addTrack(track));
+    }
+
+    if (manager) {
+      const remoteStreamMap = manager.remoteStreams || new Map();
+      remoteStreamMap.forEach((stream) => {
+        stream.getAudioTracks().forEach(track => combinedStream.addTrack(track));
+      });
+    }
+
+    if (combinedStream.getAudioTracks().length === 0) {
+      console.warn('No audio tracks available to record');
+      return;
+    }
+
+    try {
+      const mediaRecorder = new MediaRecorder(combinedStream, { mimeType: 'audio/webm' });
+      recordingChunksRef.current = [];
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) recordingChunksRef.current.push(e.data);
+      };
+      mediaRecorder.start();
+      mediaRecorderRef.current = mediaRecorder;
+      console.log('MediaRecorder started (recording-authorized)');
+    } catch (err) {
+      console.error('Failed to start MediaRecorder:', err);
+    }
+  }, [recordingAuthorized, localStream, manager]);
+
+  // Cleanup polling timer on unmount
+  useEffect(() => {
+    return () => {
+      if (pollTimerRef.current) {
+        clearTimeout(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  const pollTranscript = useCallback(async () => {
+    try {
+      const { data } = await appointmentsService.getById(appointmentId);
+      const appointment = data.appointment || data;
+      if (appointment.transcriptStatus === 'ready') {
+        setTranscript(appointment.transcript);
+        setTranscriptStatus('ready');
+      } else if (appointment.transcriptStatus === 'failed') {
+        setTranscriptStatus('failed');
+        setTranscriptError('La transcripción no pudo completarse.');
+      } else if (appointment.transcriptStatus === 'processing') {
+        setTranscriptStatus('processing');
+        pollTimerRef.current = setTimeout(pollTranscript, 5000);
+      }
+    } catch (err) {
+      console.error('Error polling transcript status:', err);
+      setTranscriptStatus('failed');
+      setTranscriptError('Error al consultar el estado de la transcripción.');
+    }
+  }, [appointmentId]);
+
   const handleJoinRoom = async () => {
     try {
       await joinRoom(appointmentId);
@@ -156,13 +234,38 @@ const ProfessionalVideoCallWebRTC = () => {
     }
   };
 
+  const stopAndUploadRecording = () => {
+    return new Promise((resolve) => {
+      if (!mediaRecorderRef.current || mediaRecorderRef.current.state === 'inactive') {
+        resolve();
+        return;
+      }
+      const recorder = mediaRecorderRef.current;
+      recorder.onstop = () => {
+        const blob = new Blob(recordingChunksRef.current, { type: 'audio/webm' });
+        recordingChunksRef.current = [];
+        mediaRecorderRef.current = null;
+        videoCallService.uploadRecording(appointmentId, blob)
+          .then(() => {
+            setTranscriptStatus('processing');
+            pollTranscript();
+          })
+          .catch((err) => console.error('Failed to upload recording:', err))
+          .finally(resolve);
+      };
+      recorder.stop();
+    });
+  };
+
   const handleLeaveRoom = () => {
+    stopAndUploadRecording();
     leaveRoom();
     navigate('/dashboard/professional');
   };
 
   const handleEndSession = async () => {
     try {
+      await stopAndUploadRecording();
       await endRoom(appointmentId, { sessionNotes: sessionNotes.trim() });
       navigate(`/professional/session-summary/${appointmentId}`);
     } catch (err) {
@@ -580,6 +683,47 @@ const ProfessionalVideoCallWebRTC = () => {
                   </button>
                 </div>
               </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Transcript Status Panel */}
+        <AnimatePresence>
+          {transcriptStatus && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="absolute bottom-20 left-1/2 -translate-x-1/2 w-[90%] max-w-lg bg-gray-800 border border-gray-700 rounded-xl shadow-2xl p-4 z-20"
+            >
+              {transcriptStatus === 'processing' && (
+                <div className="flex items-center gap-3">
+                  <div className="w-5 h-5 border-2 border-sky-400 border-t-transparent rounded-full animate-spin shrink-0" />
+                  <div>
+                    <p className="text-white text-sm font-medium">Generando transcripción…</p>
+                    <p className="text-gray-400 text-xs mt-0.5">Esto puede tardar unos minutos</p>
+                  </div>
+                </div>
+              )}
+              {transcriptStatus === 'ready' && (
+                <div>
+                  <p className="text-white text-sm font-medium mb-2">Transcripción lista</p>
+                  <textarea
+                    value={transcript}
+                    readOnly
+                    rows={5}
+                    className="w-full bg-gray-900 text-gray-200 text-sm border border-gray-600 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  />
+                </div>
+              )}
+              {transcriptStatus === 'failed' && (
+                <div className="flex items-center gap-3">
+                  <div className="w-5 h-5 rounded-full bg-red-500/20 flex items-center justify-center shrink-0">
+                    <span className="text-red-400 text-xs font-bold">!</span>
+                  </div>
+                  <p className="text-red-300 text-sm">{transcriptError}</p>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

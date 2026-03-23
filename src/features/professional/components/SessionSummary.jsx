@@ -143,14 +143,19 @@ const SessionSummary = () => {
 
   /* ── transcript loader ── */
   const applyTranscriptFromData = (data) => {
-    // TODO: remove mock — use data.transcript / data.transcriptStatus
-    const MOCK_TRANSCRIPT = `Profesional: Buenos días, ¿cómo te has sentido esta semana?\n\nPaciente: Ha sido una semana difícil. Tuve varios episodios de ansiedad, sobre todo los lunes por la mañana antes del trabajo.\n\nProfesional: ¿Pudiste aplicar las técnicas de respiración que practicamos la sesión anterior?\n\nPaciente: Sí, un par de veces. La verdad es que ayudaron bastante, aunque al principio cuesta recordar hacerlo en el momento.\n\nProfesional: Es muy normal. Con la práctica se vuelve más automático. ¿Hay algún desencadenante específico que hayas identificado?\n\nPaciente: Creo que tiene que ver con las reuniones de equipo. Me genera mucha presión sentir que me van a evaluar.`
     const status = data?.transcriptStatus
-    const text   = data?.transcript ?? MOCK_TRANSCRIPT
-    if (text) { setTranscript(text); setOriginalTranscript(text); setTranscriptState('ready') }
-    else if (status === 'processing') setTranscriptState('processing')
-    else if (status === 'failed') setTranscriptState('error')
-    else setTranscriptState('idle')
+    const text   = data?.transcript
+    if (status === 'ready' && text) {
+      setTranscript(text)
+      setOriginalTranscript(text)
+      setTranscriptState('ready')
+    } else if (status === 'processing') {
+      setTranscriptState('processing')
+    } else if (status === 'failed') {
+      setTranscriptState('error')
+    } else {
+      setTranscriptState('idle')
+    }
   }
 
   useEffect(() => {

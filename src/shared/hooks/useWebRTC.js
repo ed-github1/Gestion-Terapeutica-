@@ -26,6 +26,7 @@ export const useWebRTC = () => {
   const [roomEnded, setRoomEnded] = useState(false)
   const [userLeft, setUserLeft] = useState(null)
   const [isRecording, setIsRecording] = useState(false)
+  const [recordingAuthorized, setRecordingAuthorized] = useState(false)
 
   const managerRef = useRef(null)
   const currentRoomIdRef = useRef(null)
@@ -143,6 +144,10 @@ export const useWebRTC = () => {
         setIsRecording(recording)
       }
 
+      manager.onRecordingAuthorized = () => {
+        setRecordingAuthorized(true)
+      }
+
       await manager.initialize()
       managerRef.current = manager
       setIsInitialized(true)
@@ -183,6 +188,7 @@ export const useWebRTC = () => {
     setRemoteStreamsVersion(0)
     setParticipants([])
     setChatMessages([])
+    setRecordingAuthorized(false)
     currentRoomIdRef.current = null
   }, [])
 
@@ -299,6 +305,7 @@ export const useWebRTC = () => {
     isReconnecting,
     reconnectFailed,
     isRecording,
+    recordingAuthorized,
     initialize,
     joinRoom,
     leaveRoom,

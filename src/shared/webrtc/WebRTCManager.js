@@ -35,6 +35,7 @@ class WebRTCManager {
     this.onReconnecting = null;
     this.onReconnectFailed = null;
     this.onRecordingStateChanged = null;
+    this.onRecordingAuthorized = null;
     
     // Track state
     this.isAudioEnabled = true;
@@ -246,6 +247,13 @@ class WebRTCManager {
       }
     });
 
+    this.socket.on('recording-authorized', ({ roomId }) => {
+      console.log('Recording authorized for room:', roomId);
+      if (this.onRecordingAuthorized) {
+        this.onRecordingAuthorized({ roomId });
+      }
+    });
+
     // Room ended
     this.socket.on('room-ended', ({ roomId, message }) => {
       console.log('Room ended:', message);
@@ -351,7 +359,8 @@ class WebRTCManager {
           roomId: this.currentRoomId,
           userId: this.userId,
           userName: this.userName,
-          role: this.userRole
+          role: this.userRole,
+          recordingConsent,
         });
       }
 
