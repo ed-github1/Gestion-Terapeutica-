@@ -106,36 +106,57 @@ const PatientVideoCallWebRTC = () => {
   useEffect(() => {
     if (!recordingAuthorized || mediaRecorderRef.current) return;
 
-    // Combine local + remote audio tracks into a single stream
-    const combinedStream = new MediaStream();
-
-    if (localStream) {
-      localStream.getAudioTracks().forEach(track => combinedStream.addTrack(track));
-    }
-
-    if (manager) {
-      const remoteStreamMap = manager.remoteStreams || new Map();
-      remoteStreamMap.forEach((stream) => {
-        stream.getAudioTracks().forEach(track => combinedStream.addTrack(track));
-      });
-    }
-
-    if (combinedStream.getAudioTracks().length === 0) {
-      console.warn('No audio tracks available to record');
-      return;
-    }
-
+    // Use AudioContext to properly mix local + remote audio
     try {
-      const mediaRecorder = new MediaRecorder(combinedStream, { mimeType: 'audio/webm' });
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const destination = audioCtx.createMediaStreamDestination();
+      let trackCount = 0;
+
+      if (localStream) {
+        localStream.getAudioTracks().forEach(track => {
+          const source = audioCtx.createMediaStreamSource(new MediaStream([track]));
+          source.connect(destination);
+          trackCount++;
+        });
+      }
+
+      if (manager) {
+        const remoteStreamMap = manager.remoteStreams || new Map();
+        remoteStreamMap.forEach((stream) => {
+          stream.getAudioTracks().forEach(track => {
+            const source = audioCtx.createMediaStreamSource(new MediaStream([track]));
+            source.connect(destination);
+            trackCount++;
+          });
+        });
+      }
+
+      if (trackCount === 0) {
+        console.warn('[Recording] No audio tracks available to record');
+        audioCtx.close();
+        return;
+      }
+
+      const mixedStream = destination.stream;
+      const mimeTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
+      let chosenMime = '';
+      for (const mime of mimeTypes) {
+        if (MediaRecorder.isTypeSupported(mime)) { chosenMime = mime; break; }
+      }
+
+      const recorderOptions = chosenMime ? { mimeType: chosenMime } : undefined;
+      const mediaRecorder = new MediaRecorder(mixedStream, recorderOptions);
       recordingChunksRef.current = [];
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) recordingChunksRef.current.push(e.data);
       };
-      mediaRecorder.start(1000); // collect data every 1s so chunks are available on stop
+      mediaRecorder.start(1000);
       mediaRecorderRef.current = mediaRecorder;
-      console.log('MediaRecorder started (recording-authorized)');
+      // Store audioCtx ref for cleanup
+      mediaRecorderRef.current._audioCtx = audioCtx;
+      console.log(`[Recording] Patient MediaRecorder started — mimeType: ${chosenMime || 'default'}, tracks: ${trackCount}`);
     } catch (err) {
-      console.error('Failed to start MediaRecorder:', err);
+      console.error('[Recording] Failed to start MediaRecorder:', err);
     }
   }, [recordingAuthorized, localStream, manager]);
 
@@ -144,6 +165,7 @@ const PatientVideoCallWebRTC = () => {
     if (!roomEnded) return;
     // Stop MediaRecorder if active (patient does not upload — only professional uploads)
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      if (mediaRecorderRef.current._audioCtx) mediaRecorderRef.current._audioCtx.close().catch(() => {});
       mediaRecorderRef.current.stop();
       mediaRecorderRef.current = null;
       recordingChunksRef.current = [];
@@ -214,6 +236,7 @@ const PatientVideoCallWebRTC = () => {
   const handleLeaveRoom = () => {
     // Stop MediaRecorder if active (patient does not upload — only professional uploads)
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      if (mediaRecorderRef.current._audioCtx) mediaRecorderRef.current._audioCtx.close().catch(() => {});
       mediaRecorderRef.current.stop();
       mediaRecorderRef.current = null;
       recordingChunksRef.current = [];
