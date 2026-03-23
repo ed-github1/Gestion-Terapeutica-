@@ -68,9 +68,19 @@ export const useDashboardSessions = ({
                 const d = new Date(apt.fechaHora || apt.date)
                 return !isNaN(d) && d >= now
             })
-            .map(apt => ({
+            .map(apt => {
+                const rawPid = apt.patientId || apt.patient
+                const patientDocId = (typeof rawPid === 'object' && rawPid !== null)
+                    ? (rawPid._id || rawPid.id || null)
+                    : (rawPid || null)
+                const patientUserId = apt.patientUserId
+                    || (typeof rawPid === 'object' && rawPid !== null ? (rawPid.userId || rawPid.user) : null)
+                    || null
+                return {
                 id: apt._id || apt.id,
-                patientId: apt.patientId?._id || apt.patientId || null,                patientUserId: apt.patientUserId || apt.patientId?.userId || apt.patientId?.user || null,                nombrePaciente: resolvePatientName(apt),
+                patientId: patientDocId,
+                patientUserId,
+                nombrePaciente: resolvePatientName(apt),
                 fechaHora: apt.fechaHora || apt.date,
                 estado: apt.estado || apt.status,
                 riskLevel: apt.riskLevel || 'low',
@@ -80,7 +90,7 @@ export const useDashboardSessions = ({
                 duration: apt.duration,
                 isVideoCall: apt.isVideoCall || apt.mode === 'videollamada' || false,
                 mode: apt.mode ?? (apt.isVideoCall ? 'videollamada' : 'consultorio'),
-            }))
+            }})
             .sort((a, b) => new Date(a.fechaHora) - new Date(b.fechaHora))
             .slice(0, 10)
     }, [appointments])
@@ -110,10 +120,18 @@ export const useDashboardSessions = ({
                     const [yr, mo, dy] = dateOnly.split('-').map(Number)
                     return yr === selYear && mo === selMonth + 1 && dy === selDay
                 })
-                .map(apt => ({
+                .map(apt => {
+                    const rawPid = apt.patientId || apt.patient
+                    const patientDocId = (typeof rawPid === 'object' && rawPid !== null)
+                        ? (rawPid._id || rawPid.id || null)
+                        : (rawPid || null)
+                    const patientUserId = apt.patientUserId
+                        || (typeof rawPid === 'object' && rawPid !== null ? (rawPid.userId || rawPid.user) : null)
+                        || null
+                    return {
                     id: apt._id || apt.id,
-                    patientId: apt.patientId?._id || apt.patientId || null,
-                    patientUserId: apt.patientUserId || apt.patientId?.userId || apt.patientId?.user || null,
+                    patientId: patientDocId,
+                    patientUserId,
                     nombrePaciente: resolvePatientName(apt),
                     fechaHora: apt.fechaHora || apt.date,
                     estado: apt.estado || apt.status,
@@ -124,7 +142,7 @@ export const useDashboardSessions = ({
                     duration: apt.duration,
                     isVideoCall: apt.isVideoCall || apt.mode === 'videollamada' || false,
                     mode: apt.mode ?? (apt.isVideoCall ? 'videollamada' : 'consultorio'),
-                }))
+                }})
                 .sort((a, b) => new Date(a.fechaHora) - new Date(b.fechaHora))
         }
 

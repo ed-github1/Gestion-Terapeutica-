@@ -22,6 +22,8 @@ export const appointmentsService = {
       notes: data.notes,
       duration: data.duration,
       professionalId: data.professionalId,
+      ...(data.patientId ? { patientId: data.patientId } : {}),
+      ...(data.patientName ? { patientName: data.patientName } : {}),
       status: 'reserved',
       paymentStatus: 'pending',
       createdBy: 'patient',

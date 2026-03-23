@@ -103,10 +103,19 @@ export const getTodayAppointments = (appointments) => {
                 fechaHora = new Date(yr, mo - 1, dy, hours, minutes, 0, 0).toISOString()
             }
             
+            // Resolve patientId: could be a populated object, a string ID, or nested under `patient`
+            const rawPid = apt.patientId || apt.patient
+            const patientDocId = (typeof rawPid === 'object' && rawPid !== null)
+                ? (rawPid._id || rawPid.id || null)
+                : (rawPid || null)
+            const patientUserId = apt.patientUserId
+                || (typeof rawPid === 'object' && rawPid !== null ? (rawPid.userId || rawPid.user) : null)
+                || null
+
             return {
                 id: apt._id || apt.id,
-                patientId: apt.patientId?._id || apt.patientId,
-                patientUserId: apt.patientUserId || apt.patientId?.userId || apt.patientId?.user || null,
+                patientId: patientDocId,
+                patientUserId,
                 nombrePaciente: resolvePatientName(apt),
                 fechaHora: fechaHora,
                 estado: apt.estado || apt.status,

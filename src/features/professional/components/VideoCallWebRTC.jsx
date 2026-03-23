@@ -53,6 +53,7 @@ const ProfessionalVideoCallWebRTC = () => {
   const [transcriptStatus, setTranscriptStatus] = useState(null);
   const [transcript, setTranscript] = useState('');
   const [transcriptError, setTranscriptError] = useState(null);
+  const [localRecording, setLocalRecording] = useState(false);
 
   // Navigate away when reconnection fails
   useEffect(() => {
@@ -158,11 +159,10 @@ const ProfessionalVideoCallWebRTC = () => {
     };
   }, [isInRoom]);
 
-  // Start MediaRecorder when recording-authorized is received
-  useEffect(() => {
-    if (!recordingAuthorized || mediaRecorderRef.current) return;
+  // Start MediaRecorder — called directly on consent accept OR when server sends recording-authorized
+  const startMediaRecorder = useCallback(() => {
+    if (mediaRecorderRef.current) return; // already recording
 
-    // Combine local + remote audio tracks into a single stream
     const combinedStream = new MediaStream();
 
     if (localStream) {
@@ -178,7 +178,7 @@ const ProfessionalVideoCallWebRTC = () => {
 
     if (combinedStream.getAudioTracks().length === 0) {
       console.warn('No audio tracks available to record');
-      return;
+      return false;
     }
 
     try {
@@ -187,13 +187,23 @@ const ProfessionalVideoCallWebRTC = () => {
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) recordingChunksRef.current.push(e.data);
       };
-      mediaRecorder.start();
+      mediaRecorder.start(1000); // collect data every 1s
       mediaRecorderRef.current = mediaRecorder;
-      console.log('MediaRecorder started (recording-authorized)');
+      setLocalRecording(true);
+      console.log('MediaRecorder started — recording audio');
+      return true;
     } catch (err) {
       console.error('Failed to start MediaRecorder:', err);
+      return false;
     }
-  }, [recordingAuthorized, localStream, manager]);
+  }, [localStream, manager]);
+
+  // Also start MediaRecorder if server sends recording-authorized (server-side recording support)
+  useEffect(() => {
+    if (recordingAuthorized && !mediaRecorderRef.current) {
+      startMediaRecorder();
+    }
+  }, [recordingAuthorized, startMediaRecorder]);
 
   // Cleanup polling timer on unmount
   useEffect(() => {
@@ -235,8 +245,23 @@ const ProfessionalVideoCallWebRTC = () => {
   };
 
   const stopAndUploadRecording = () => {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       if (!mediaRecorderRef.current || mediaRecorderRef.current.state === 'inactive') {
+        // Still try to upload any chunks already collected
+        if (recordingChunksRef.current.length > 0) {
+          const blob = new Blob(recordingChunksRef.current, { type: 'audio/webm' });
+          recordingChunksRef.current = [];
+          mediaRecorderRef.current = null;
+          setLocalRecording(false);
+          videoCallService.uploadRecording(appointmentId, blob)
+            .then(() => {
+              setTranscriptStatus('processing');
+              pollTranscript();
+            })
+            .catch((err) => console.error('Failed to upload recording:', err))
+            .finally(resolve);
+          return;
+        }
         resolve();
         return;
       }
@@ -245,12 +270,21 @@ const ProfessionalVideoCallWebRTC = () => {
         const blob = new Blob(recordingChunksRef.current, { type: 'audio/webm' });
         recordingChunksRef.current = [];
         mediaRecorderRef.current = null;
+        setLocalRecording(false);
+        if (blob.size < 1000) {
+          console.warn('Recording too small, skipping upload:', blob.size, 'bytes');
+          resolve();
+          return;
+        }
         videoCallService.uploadRecording(appointmentId, blob)
           .then(() => {
+            console.log('Recording uploaded successfully, size:', blob.size);
             setTranscriptStatus('processing');
             pollTranscript();
           })
-          .catch((err) => console.error('Failed to upload recording:', err))
+          .catch((err) => {
+            console.error('Failed to upload recording:', err);
+          })
           .finally(resolve);
       };
       recorder.stop();
@@ -265,12 +299,17 @@ const ProfessionalVideoCallWebRTC = () => {
 
   const handleEndSession = async () => {
     try {
+      // Upload recording FIRST, before ending the room / destroying streams
       await stopAndUploadRecording();
-      await endRoom(appointmentId, { sessionNotes: sessionNotes.trim() });
-      navigate(`/professional/session-summary/${appointmentId}`);
     } catch (err) {
-      // Failed to end session
+      console.error('Recording upload error (continuing):', err);
     }
+    try {
+      await endRoom(appointmentId, { sessionNotes: sessionNotes.trim() });
+    } catch (err) {
+      console.error('End room error:', err);
+    }
+    navigate(`/professional/session-summary/${appointmentId}`);
   };
 
   const handleToggleAudio = () => {
@@ -282,15 +321,30 @@ const ProfessionalVideoCallWebRTC = () => {
   };
 
   const handleRecordClick = () => {
-    if (isRecording) {
+    if (isRecording || localRecording) {
+      // Stop local MediaRecorder
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+        mediaRecorderRef.current = null;
+        setLocalRecording(false);
+      }
       stopRecording(appointmentId);
     } else {
       setShowRecordingConsent(true);
     }
   };
 
-  const handleAcceptRecordingConsent = () => {
+  const handleAcceptRecordingConsent = async () => {
     setShowRecordingConsent(false);
+    // Tell the backend that recording consent was given
+    try {
+      await videoCallService.grantRecordingConsent(appointmentId);
+    } catch (err) {
+      console.error('Failed to set recording consent on backend:', err);
+    }
+    // Start local MediaRecorder immediately (don't wait for server)
+    startMediaRecorder();
+    // Also notify server (for server-side recording if supported)
     startRecording(appointmentId);
   };
 
@@ -384,12 +438,12 @@ const ProfessionalVideoCallWebRTC = () => {
         </div>
       )}
       {/* Recording indicator banner */}
-      {isRecording && (
+      {(isRecording || localRecording) && (
         <div className="bg-red-600/90 text-white text-xs sm:text-sm px-4 py-1.5 flex items-center justify-center gap-2 shrink-0 z-30">
           <Circle className="w-3 h-3 fill-white animate-pulse" />
           <span className="font-medium">Grabando sesión</span>
           <button
-            onClick={() => stopRecording(appointmentId)}
+            onClick={handleRecordClick}
             className="ml-3 underline font-medium text-xs"
           >
             Detener
@@ -778,13 +832,13 @@ const ProfessionalVideoCallWebRTC = () => {
           <button
             onClick={handleRecordClick}
             className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center transition-colors ${
-              isRecording
+              (isRecording || localRecording)
                 ? 'bg-red-500 text-white'
                 : 'bg-white/10 text-white'
             }`}
-            title={isRecording ? 'Detener grabación' : 'Grabar sesión'}
+            title={(isRecording || localRecording) ? 'Detener grabación' : 'Grabar sesión'}
           >
-            <Circle className={`w-4 h-4 sm:w-5 sm:h-5 ${isRecording ? 'fill-white' : ''}`} />
+            <Circle className={`w-4 h-4 sm:w-5 sm:h-5 ${(isRecording || localRecording) ? 'fill-white' : ''}`} />
           </button>
 
           {/* Chat */}

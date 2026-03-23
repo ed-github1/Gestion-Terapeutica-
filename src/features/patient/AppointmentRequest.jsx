@@ -164,6 +164,8 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
           notes: formData.notes,
           duration: selectedType?.duration || 60,
           professionalId,
+          patientId: user?._id || user?.id,
+          patientName: user?.name || user?.nombre || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || undefined,
         })
         const apptData = response.data?.data || response.data
         setAppointmentData(apptData)

@@ -67,43 +67,52 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
         const professionalName = user?.name || user?.nombre || 'Professional'
         const patientName = appointment.nombrePaciente || appointment.patientName || appointment.patient?.name || 'Paciente'
 
+        // Resolve patientId — if missing from the normalized appointment, fetch it from the backend
+        let targetUserId = appointment.patientUserId || appointment.patientId
+        if (!targetUserId) {
+            try {
+                const res = await appointmentsService.getById(appointment.id)
+                const fullApt = res.data?.data ?? res.data?.appointment ?? res.data ?? res
+                const rawPid = fullApt.patientId || fullApt.patient || fullApt.userId || fullApt.user || fullApt.paciente
+                if (typeof rawPid === 'object' && rawPid !== null) {
+                    targetUserId = rawPid.userId || rawPid.user || rawPid._id || rawPid.id || null
+                } else {
+                    targetUserId = rawPid || null
+                }
+            } catch (err) {
+                console.warn('[handleJoinVideo] Could not fetch appointment details:', err.message)
+            }
+        }
+
         // 1. Try to start the call (creates room on backend)
         try {
             await videoCallService.startCall(appointment.id)
         } catch { /* Room may already exist */ }
 
-        // 2. Notify patient (REST + socket for instant delivery)
-        const targetUserId = appointment.patientUserId || appointment.patientId
-        console.log('[sendVideoInvitation] values being sent:', {
-            appointmentId: appointment.id,
-            'appointment._id': appointment._id,
-            targetUserId,
-            'appointment.patientUserId': appointment.patientUserId,
-            'appointment.patientId': appointment.patientId,
-            patientName,
-            professionalName,
-            fullAppointment: appointment,
-        })
-        try {
-            await videoCallService.sendVideoInvitation(
-                appointment.id, targetUserId, patientName, professionalName,
-            )
-        } catch (err) {
-            console.warn('Could not notify patient via REST:', err.message)
-        }
+        // 2. Notify patient (REST + socket) — only if we have a target user ID
+        if (targetUserId) {
+            try {
+                await videoCallService.sendVideoInvitation(
+                    appointment.id, targetUserId, patientName, professionalName,
+                )
+            } catch (err) {
+                console.warn('Could not notify patient via REST:', err.message)
+            }
 
-        // 3. Also send via socket for real-time delivery
-        const proUserId = user?._id || user?.id
-        const proToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || ''
-        console.log('[handleJoinVideo] sending call-invitation to targetUserId:', targetUserId, '| patientUserId:', appointment.patientUserId, '| patientId:', appointment.patientId)
-        socketNotificationService.connect(proUserId, proToken)
-        socketNotificationService.sendCallInvitation(targetUserId, {
-            appointmentId: appointment.id,
-            professionalName,
-            patientName,
-            appointmentType: appointment.type || appointment.appointmentType || 'consultation',
-            appointmentTime: appointment.start ? new Date(appointment.start).toLocaleString('es-ES') : '',
-        })
+            // Also send via socket for real-time delivery
+            const proUserId = user?._id || user?.id
+            const proToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || ''
+            socketNotificationService.connect(proUserId, proToken)
+            socketNotificationService.sendCallInvitation(targetUserId, {
+                appointmentId: appointment.id,
+                professionalName,
+                patientName,
+                appointmentType: appointment.type || appointment.appointmentType || 'consultation',
+                appointmentTime: appointment.start ? new Date(appointment.start).toLocaleString('es-ES') : '',
+            })
+        } else {
+            console.warn('[handleJoinVideo] No patientId available — skipping notification. Patient must join via link.')
+        }
 
         navigate(`/professional/video/${appointment.id}`)
     }, [navigate, user])

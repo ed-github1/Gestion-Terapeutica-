@@ -131,7 +131,7 @@ const PatientVideoCallWebRTC = () => {
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) recordingChunksRef.current.push(e.data);
       };
-      mediaRecorder.start();
+      mediaRecorder.start(1000); // collect data every 1s so chunks are available on stop
       mediaRecorderRef.current = mediaRecorder;
       console.log('MediaRecorder started (recording-authorized)');
     } catch (err) {
