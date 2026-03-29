@@ -474,7 +474,14 @@ const CalendarCardHeader = ({
                 >
                     {profile.initials}
                 </button>
-                <p className="text-[13px] font-bold text-gray-900 dark:text-gray-100 leading-none">{profile.name}</p>
+                <div className="flex items-center gap-1.5">
+                    <p className="text-[13px] font-bold text-gray-900 dark:text-gray-100 leading-none">{profile.name}</p>
+                    {profile.isPro && (
+                        <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-[#0075C9] text-white uppercase tracking-wide leading-none">
+                            Pro
+                        </span>
+                    )}
+                </div>
             </div>
             <MonthNav calendarData={calendarData} setCalendarMonth={setCalendarMonth} inlineMode onToday={onToday} />
         </div>
@@ -504,7 +511,14 @@ const CalendarCardHeader = ({
                 </button>
                 <div>
                     <p className="text-[10px] text-gray-400 leading-none">{profile.greeting}</p>
-                    <p className="text-[13px] font-bold text-gray-900 dark:text-gray-100 leading-tight mt-0.5 whitespace-nowrap">{profile.name}</p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                        <p className="text-[13px] font-bold text-gray-900 dark:text-gray-100 leading-tight whitespace-nowrap">{profile.name}</p>
+                        {profile.isPro && (
+                            <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-[#0075C9] text-white uppercase tracking-wide leading-none">
+                                Pro
+                            </span>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -543,7 +557,14 @@ const CalendarCardHeader = ({
                 </button>
                 <div>
                     <p className="text-[10px] text-gray-400 leading-none">{profile.greeting}</p>
-                    <p className="text-[14px] font-bold text-gray-900 dark:text-gray-100 leading-tight mt-0.5">{profile.name}</p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                        <p className="text-[14px] font-bold text-gray-900 dark:text-gray-100 leading-tight">{profile.name}</p>
+                        {profile.isPro && (
+                            <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-[#0075C9] text-white uppercase tracking-wide leading-none">
+                                Pro
+                            </span>
+                        )}
+                    </div>
                 </div>
             </div>
             <MonthNav calendarData={calendarData} setCalendarMonth={setCalendarMonth} inlineMode onToday={onToday} />

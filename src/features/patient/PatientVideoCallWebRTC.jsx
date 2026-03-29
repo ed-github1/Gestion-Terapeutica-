@@ -30,6 +30,8 @@ const PatientVideoCallWebRTC = () => {
     isAudioEnabled,
     isVideoEnabled,
     isRecording,
+    isReconnecting,
+    reconnectFailed,
     userLeft,
     recordingAuthorized,
     manager,
@@ -84,6 +86,13 @@ const PatientVideoCallWebRTC = () => {
       }
     };
   }, [userLeft, remoteStreams.length, isInRoom]);
+
+  // Auto-navigate away when reconnection permanently fails
+  useEffect(() => {
+    if (reconnectFailed) {
+      navigate('/dashboard/patient');
+    }
+  }, [reconnectFailed, navigate]);
 
   // Auto-leave when countdown reaches 0
   useEffect(() => {
@@ -438,6 +447,21 @@ const PatientVideoCallWebRTC = () => {
               <p className="text-gray-500 text-xs mt-1">La videollamada comenzará pronto</p>
             </div>
           </div>
+        )}
+
+        {/* Reconnecting overlay */}
+        {isReconnecting && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="absolute inset-0 bg-black/80 flex items-center justify-center z-30"
+          >
+            <div className="text-center">
+              <div className="w-12 h-12 border-2 border-sky-400 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+              <p className="text-white text-lg font-semibold">Reconectando...</p>
+              <p className="text-gray-400 text-sm mt-1">Se perdió la conexión. Intentando restablecer...</p>
+            </div>
+          </motion.div>
         )}
 
         {/* Local Video (PIP) - bottom-right, above controls */}

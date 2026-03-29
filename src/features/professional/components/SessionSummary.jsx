@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import {
-  CheckCircle2, Clock, ArrowLeft,
-  Edit3, Mic, Copy, AlertCircle,
+  CheckCircle2, Clock, ArrowLeft, Calendar,
+  Edit3, Mic, Copy, AlertCircle, MessageSquare,
   Video, MapPin, Save, Check,
 } from 'lucide-react'
 import { appointmentsService } from '@shared/services/appointmentsService'
@@ -31,12 +31,17 @@ const fmtDuration = (mins) => {
    2. SMALL SHARED COMPONENTS
 ═══════════════════════════════════════════════════════════════ */
 
-/** Inline metadata pill rendered inside the hero banner */
-const MetaPill = ({ icon: Icon, label, iconColor = 'text-white/60' }) => (
-  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/10 text-white/70 text-[10px] font-medium border border-white/10">
-    <Icon className={`w-3 h-3 shrink-0 ${iconColor}`} />
-    {label}
-  </span>
+/** Sidebar metadata row with icon, label, and value */
+const MetaRow = ({ icon: Icon, label, value }) => (
+  <div className="flex items-start gap-3 py-3">
+    <div className="w-8 h-8 rounded-lg bg-gray-700/50 dark:bg-gray-700/80 flex items-center justify-center shrink-0">
+      <Icon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+    </div>
+    <div className="min-w-0">
+      <p className="text-[11px] text-gray-500 dark:text-gray-500 leading-tight">{label}</p>
+      <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 leading-snug">{value}</p>
+    </div>
+  </div>
 )
 
 /** Underline-style tab button */
@@ -59,9 +64,16 @@ const TabBtn = ({ active, onClick, icon: Icon, label }) => (
    3. TRANSCRIPT SUB-STATES
 ═══════════════════════════════════════════════════════════════ */
 const TranscriptIdle = () => (
-  <div className="flex flex-col items-center gap-2 py-6 text-center">
-    <Mic className="w-5 h-5 text-gray-300 dark:text-gray-600" />
-    <p className="text-xs text-gray-400 dark:text-gray-500">No hay transcripción disponible</p>
+  <div className="flex flex-col items-center gap-3 py-16 text-center">
+    <div className="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-700/60 flex items-center justify-center">
+      <Mic className="w-6 h-6 text-gray-300 dark:text-gray-500" />
+    </div>
+    <div>
+      <p className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-1">Sin transcripción</p>
+      <p className="text-xs text-gray-400 dark:text-gray-500 max-w-xs mx-auto leading-relaxed">
+        Esta sesión no tiene audio grabado. Activa la grabación automática para futuras consultas.
+      </p>
+    </div>
   </div>
 )
 
@@ -281,7 +293,6 @@ const SessionSummary = () => {
   /* ── Derived data ── */
   const isCompleted = appointment?.status === 'completed'
   const isVideoCall = appointment?.isVideoCall || appointment?.mode === 'videollamada'
-  const sessionType = appointment?.type ?? 'Consulta'
   const startDate   = fmtDate(appointment?.callStartedAt ?? appointment?.fechaHora)
   const startTime   = fmtTime(appointment?.callStartedAt ?? appointment?.fechaHora)
   const endTime     = fmtTime(appointment?.callEndedAt)
@@ -289,86 +300,64 @@ const SessionSummary = () => {
   const duration    = fmtDuration(appointment?.callDuration)
   const patientName = appointment?.nombrePaciente ?? appointment?.patient?.name ?? 'Paciente'
   const avatar      = patientName.charAt(0).toUpperCase()
+  const timeRange   = hasEndTime ? `${startTime} – ${endTime}` : startTime
 
   /* ═══════════════════════════════════════════════════════════
      RENDER
   ═══════════════════════════════════════════════════════════ */
   return (
-    <div className="bg-transparent dark:bg-gray-900/50 min-h-full">
-      <div className="p-2 md:p-3 lg:p-4 max-w-3xl mx-auto">
+    <div className="min-h-full">
+      <div className="flex flex-col md:flex-row min-h-[calc(100vh-4rem)]">
 
-        {/* ── HERO HEADER ── */}
-        <motion.div
-          initial={{ opacity: 0, y: -6 }}
-          animate={{ opacity: 1, y: 0 }}
+        {/* ── LEFT SIDEBAR ── */}
+        <motion.aside
+          initial={{ opacity: 0, x: -12 }}
+          animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.28 }}
-          className="relative rounded-2xl overflow-hidden mb-4"
+          className="w-full md:w-72 lg:w-80 shrink-0 bg-white dark:bg-gray-800/60 border-b md:border-b-0 md:border-r border-gray-200 dark:border-gray-700/60 p-5 md:p-6"
         >
-          {/* gradient background */}
-          <div className="absolute inset-0 bg-linear-to-br from-gray-900 via-gray-800 to-gray-900" />
-          {/* subtle dot texture */}
-          <div
-            className="absolute inset-0 opacity-[0.035]"
-            style={{ backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)', backgroundSize: '18px 18px' }}
-          />
-          {/* ambient glow */}
-          <div className="absolute -top-10 -left-6 w-40 h-40 rounded-full bg-sky-500/20 blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-10 right-0 w-32 h-32 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none" />
+          {/* Back link */}
+          <button
+            onClick={() => navigate(ROUTES.PROFESSIONAL_DASHBOARD)}
+            className="inline-flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors mb-6"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            Sesiones
+          </button>
 
-          <div className="relative px-5 py-5">
-            <div className="flex items-start gap-3">
-              {/* back button */}
-              <button
-                onClick={() => navigate(ROUTES.PROFESSIONAL_DASHBOARD)}
-                className="w-8 h-8 rounded-xl flex items-center justify-center text-white/40 hover:text-white/90 hover:bg-white/10 transition-colors shrink-0 mt-0.5"
-              >
-                <ArrowLeft className="w-4 h-4" />
-              </button>
-
-              {/* avatar */}
-              <div className="w-10 h-10 rounded-xl bg-sky-500/20 border border-sky-400/30 flex items-center justify-center shrink-0">
-                <span className="text-sm font-bold text-sky-300">{avatar}</span>
-              </div>
-
-              {/* text */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <h1 className="text-[15px] font-bold text-white leading-tight truncate">{patientName}</h1>
-                  <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 border ${
-                    isCompleted
-                      ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                      : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
-                  }`}>
-                    <CheckCircle2 className="w-2.5 h-2.5" />
-                    {isCompleted ? 'Completada' : (appointment?.status ?? '—')}
-                  </span>
-                </div>
-                <p className="text-[11px] text-white/45 mb-3">
-                  Resumen de sesión · {startDate}{hasEndTime && ` · ${startTime} – ${endTime}`}
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  <MetaPill icon={Clock} label={duration} />
-                  <MetaPill
-                    icon={isVideoCall ? Video : MapPin}
-                    label={isVideoCall ? 'Videollamada' : 'Presencial'}
-                    iconColor={isVideoCall ? 'text-sky-400' : 'text-amber-400'}
-                  />
-                  <MetaPill icon={Edit3} label={sessionType} iconColor="text-emerald-400" />
-                </div>
-              </div>
+          {/* Avatar + name + status */}
+          <div className="flex flex-col items-start mb-6">
+            <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center mb-3">
+              <span className="text-lg font-bold text-white">{avatar}</span>
             </div>
+            <h1 className="text-lg font-bold text-gray-900 dark:text-white leading-tight mb-1.5">{patientName}</h1>
+            <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full ${
+              isCompleted
+                ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
+                : 'bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${isCompleted ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+              {isCompleted ? 'Completada' : (appointment?.status ?? '—')}
+            </span>
           </div>
-        </motion.div>
 
-        {/* ── NOTES & TRANSCRIPTION CARD ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
+          {/* Metadata */}
+          <div className="space-y-1 border-t border-gray-100 dark:border-gray-700/50 pt-4">
+            <MetaRow icon={Clock} label="Duración" value={duration} />
+            <MetaRow icon={Calendar} label="Fecha" value={startDate} />
+            <MetaRow icon={MessageSquare} label="Horario" value={timeRange} />
+          </div>
+        </motion.aside>
+
+        {/* ── RIGHT CONTENT ── */}
+        <motion.main
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden"
+          transition={{ delay: 0.08, duration: 0.28 }}
+          className="flex-1 min-w-0 bg-gray-50 dark:bg-gray-900/50"
         >
-          {/* underline tab bar */}
-          <div className="px-4 flex items-center gap-5 border-b border-gray-100 dark:border-gray-700">
+          {/* Tab bar */}
+          <div className="px-6 flex items-center gap-6 border-b border-gray-200 dark:border-gray-700">
             <TabBtn active={activeTab === 'manual'} onClick={() => setActiveTab('manual')} icon={Edit3} label="Notas" />
             <TabBtn active={activeTab === 'transcript'} onClick={() => setActiveTab('transcript')} icon={Mic} label="Transcripción" />
             {activeTab === 'manual' && (
@@ -394,8 +383,8 @@ const SessionSummary = () => {
             )}
           </div>
 
-          {/* body */}
-          <div className="px-4 pt-4 pb-5">
+          {/* Content body */}
+          <div className="px-6 pt-5 pb-6">
             <AnimatePresence mode="wait">
               {activeTab === 'manual' ? (
                 <motion.div key="manual" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }}>
@@ -404,17 +393,17 @@ const SessionSummary = () => {
                     value={manualNotes}
                     onChange={(e) => { setManualNotes(e.target.value); setNotesSaved(false) }}
                     placeholder="Escribe tus notas de la sesión…"
-                    className="w-full bg-transparent border-0 outline-none text-sm text-gray-700 dark:text-gray-300 placeholder-gray-300 dark:placeholder-gray-600 resize-none leading-relaxed focus:outline-none"
+                    className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 outline-none text-sm text-gray-700 dark:text-gray-300 placeholder-gray-300 dark:placeholder-gray-600 resize-none leading-relaxed focus:border-sky-400 dark:focus:border-sky-500 transition-colors"
                   />
                   {/* progress bar */}
-                  <div className="mt-4 flex items-center gap-2">
-                    <div className="flex-1 h-px bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                  <div className="mt-3 flex items-center gap-2">
+                    <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-sky-400 dark:bg-sky-500 rounded-full transition-all duration-300"
                         style={{ width: `${Math.min((manualNotes.length / 2000) * 100, 100)}%` }}
                       />
                     </div>
-                    <span className="text-[9px] text-gray-300 dark:text-gray-600 tabular-nums shrink-0">{manualNotes.length}</span>
+                    <span className="text-[9px] text-gray-400 dark:text-gray-600 tabular-nums shrink-0">{manualNotes.length}</span>
                   </div>
                 </motion.div>
               ) : (
@@ -427,7 +416,7 @@ const SessionSummary = () => {
               )}
             </AnimatePresence>
           </div>
-        </motion.div>
+        </motion.main>
 
       </div>
     </div>

@@ -162,6 +162,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                         name: userName,
                                         greeting,
                                         onNavigate: () => navigate(ROUTES.PROFESSIONAL_PROFILE),
+                                        isPro: ['PRO', 'EMPRESA'].includes(user?.subscriptionPlan || user?.plan || user?.planType),
                                     }}
                                     kpis={kpis}
                                     quickActionsSlot={

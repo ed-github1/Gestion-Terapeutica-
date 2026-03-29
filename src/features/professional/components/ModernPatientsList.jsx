@@ -12,11 +12,10 @@ import PatientInvitation from './PatientInvitation'
 import PatientClinicalFile from './PatientClinicalFile'
 import {
     Users, UserPlus, Search, RefreshCw,
-    LayoutGrid, List, ShieldAlert,
-    BookOpen, MessageSquare, CalendarPlus, Calendar,
-    ChevronRight, TrendingUp, TrendingDown,
-    Clock, MoreHorizontal,
-    XCircle, TimerOff
+    ShieldAlert, X,
+    BookOpen,
+    Clock,
+    TimerOff
 } from 'lucide-react'
 
 // ─── Normalize backend patient → UI shape ────────────────────────────────────
@@ -141,171 +140,163 @@ const AlertBanner = ({ patients }) => {
     )
 }
 
-// ─── Patient Card ─────────────────────────────────────────────────────────────
-const PatientCard = ({ patient, onOpenDiary, onDelete, index }) => {
-    const [menuOpen, setMenuOpen] = useState(false)
+// ─── Patient Row ─────────────────────────────────────────────────────────────
+const PatientRow = ({ patient, onSelect, isSelected, index }) => {
     const status = statusConfig[patient.status] || statusConfig.inactive
+    const lastLabel = daysSince(patient.lastSession)
 
     return (
         <motion.div
             layout
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96 }}
-            transition={{ delay: index * 0.04, duration: 0.25 }}
-            className={`bg-white dark:bg-gray-800 rounded-2xl border shadow-sm flex flex-col overflow-hidden hover:shadow-md transition-shadow ${
-                patient.riskLevel === 'high' ? 'border-rose-200 dark:border-rose-800' : 'border-gray-200 dark:border-gray-700'
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ delay: index * 0.03, duration: 0.22 }}
+            onClick={() => onSelect(patient)}
+            className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl cursor-pointer transition-all ${
+                isSelected
+                    ? 'bg-sky-50 dark:bg-sky-900/20 border border-sky-200/80 dark:border-sky-800/50'
+                    : 'hover:bg-gray-50/80 dark:hover:bg-gray-700/30 border border-transparent'
             }`}
         >
-            {/* Risk accent line */}
-            <div className={`h-0.5 w-full ${patient.riskLevel === 'high' ? 'bg-rose-500' : patient.riskLevel === 'medium' ? 'bg-amber-400' : 'bg-transparent'}`} />
-
-            <div className="p-5 flex-1 flex flex-col gap-3.5">
-                {/* Header */}
-                <div className="flex items-start gap-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${getAvatarColor(patient.id)}`}>
-                        {getInitials(patient.nombre, patient.apellido)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 mb-0.5">
-                            <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm truncate">{patient.nombre} {patient.apellido}</p>
-                            {patient.riskLevel === 'high' && <ShieldAlert className="w-3.5 h-3.5 text-rose-500 shrink-0" />}
-                        </div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                            <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${status.cls}`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
-                                {status.label}
-                            </span>
-                            {patient.diagnosis && patient.diagnosis !== 'Pendiente' && (
-                                <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">{patient.diagnosis}{patient.age ? ` · ${patient.age}a` : ''}</span>
-                            )}
-                        </div>
-                        {patient.treatmentGoal && (
-                            <span className={`inline-flex text-[10px] font-medium px-2 py-0.5 rounded-full mt-1 ${getMotivoCls(patient.treatmentGoal)}`}>
-                                {patient.treatmentGoal}
-                            </span>
-                        )}
-                    </div>
-                    <div className="relative shrink-0">
-                        <button onClick={() => setMenuOpen(o => !o)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
-                            <MoreHorizontal className="w-4 h-4 text-gray-400" />
-                        </button>
-                        <AnimatePresence>
-                            {menuOpen && (
-                                <motion.div
-                                    initial={{ opacity: 0, scale: 0.95, y: -4 }}
-                                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                                    exit={{ opacity: 0, scale: 0.95 }}
-                                    className="absolute right-0 top-7 z-20 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-lg rounded-xl py-1 w-44"
-                                >
-                                    {[
-                                        { icon: BookOpen,     label: 'Ver expediente', action: () => { onOpenDiary(patient); setMenuOpen(false) } },
-                                        { icon: CalendarPlus, label: 'Agendar sesión',  action: () => setMenuOpen(false) },
-                                        { icon: MessageSquare, label: 'Mensaje',        action: () => setMenuOpen(false) },
-                                    ].map(({ icon: Icon, label, action }) => (
-                                        <button key={label} onClick={action} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
-                                            <Icon className="w-3.5 h-3.5" /> {label}
-                                        </button>
-                                    ))}
-                                    <div className="border-t border-gray-100 dark:border-gray-700 my-1" />
-                                    <button onClick={() => { onDelete(patient.id); setMenuOpen(false) }} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20">
-                                        <XCircle className="w-3.5 h-3.5" /> Eliminar
-                                    </button>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </div>
-                </div>
-
-                {/* Stats */}
-                <div className="grid grid-cols-3 gap-2">
-                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-2.5 text-center">
-                        <p className="text-sm font-bold text-gray-800 dark:text-gray-200">{patient.totalSessions}</p>
-                        <p className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide">Sesiones</p>
-                    </div>
-                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-2.5 text-center">
-                        <p className="text-sm font-bold text-gray-800 dark:text-gray-200">{daysSince(patient.lastSession) || '—'}</p>
-                        <p className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide">Última</p>
-                    </div>
-                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-2.5 text-center">
-                        <p className="text-sm font-bold text-gray-800 dark:text-gray-200">{nextSessionLabel(patient.nextSession)}</p>
-                        <p className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide">Próxima</p>
-                    </div>
-                </div>
-
-                {/* Session trend */}
-                {(() => {
-                    const trend = getSessionTrend(patient)
-                    return (
-                        <div className={`flex items-center gap-1.5 pt-1 border-t border-gray-100 dark:border-gray-700 ${trend.cls}`}>
-                            {trend.up === true  && <TrendingUp className="w-3 h-3" />}
-                            {trend.up === false && <TrendingDown className="w-3 h-3" />}
-                            <span className="text-[10px] font-medium">{trend.label}</span>
-                        </div>
-                    )
-                })()}
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${getAvatarColor(patient.id)}`}>
+                {getInitials(patient.nombre, patient.apellido)}
             </div>
-
-            {/* Footer CTA */}
-            <button
-                onClick={() => onOpenDiary(patient)}
-                className="flex items-center justify-center gap-1.5 py-3 border-t border-gray-100 dark:border-gray-700 text-xs font-semibold text-[#0075C9] dark:text-sky-400 hover:bg-[#0075C9]/5 dark:hover:bg-sky-400/10 hover:text-[#005fa0] dark:hover:text-sky-300 transition-colors"
-            >
-                <BookOpen className="w-3.5 h-3.5" /> Ver expediente <ChevronRight className="w-3 h-3 ml-0.5" />
-            </button>
+            <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">{patient.nombre} {patient.apellido}</p>
+                <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5 truncate">
+                    {patient.age ? `${patient.age} años` : ''}
+                    {patient.age && lastLabel ? ' · ' : ''}
+                    {lastLabel ? `última sesión ${lastLabel.toLowerCase()}` : (patient.totalSessions === 0 ? 'sin sesiones' : '')}
+                </p>
+            </div>
+            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${status.cls}`}>
+                {status.label}
+            </span>
         </motion.div>
     )
 }
 
-// ─── Patient Row (table) ──────────────────────────────────────────────────────
-const PatientRow = ({ patient, onOpenDiary, onDelete }) => {
+// ─── InlinePatientPanel ───────────────────────────────────────────────────────
+// Compact patient detail shown on the right side of the split layout
+const InlinePatientPanel = ({ patient, onClose, onOpenFull }) => {
+    const [tab, setTab] = useState('caratula')
+    const avatarColor = getAvatarColor(patient.id)
+    const initials = getInitials(patient.nombre, patient.apellido)
     const status = statusConfig[patient.status] || statusConfig.inactive
+    const pAge = patient.age
+
+    const INLINE_TABS = [
+        { key: 'caratula', label: 'Carátula' },
+        { key: 'evolucion', label: 'Evolución' },
+        { key: 'notas', label: 'Notas' },
+        { key: 'tareas', label: 'Tareas' },
+    ]
 
     return (
-        <tr className="group hover:bg-gray-50/60 dark:hover:bg-gray-700/30 transition-colors">
-            <td className="px-5 py-3.5">
-                <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${getAvatarColor(patient.id)}`}>
-                        {getInitials(patient.nombre, patient.apellido)}
-                    </div>
-                    <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                            <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm truncate">{patient.nombre} {patient.apellido}</p>
-                            {patient.riskLevel === 'high' && <ShieldAlert className="w-3.5 h-3.5 text-rose-500 shrink-0" />}
+        <div className="flex flex-col h-full border-l border-gray-200 dark:border-gray-700/60">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-200 dark:border-gray-700/60">
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">Detalle del paciente</p>
+                <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 transition-colors">
+                    <X className="w-3.5 h-3.5" />
+                </button>
+            </div>
+
+            {/* Identity */}
+            <div className="flex items-center gap-3.5 px-5 py-4 border-b border-gray-100 dark:border-gray-700/50">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-sm shrink-0 ${avatarColor}`}>
+                    {initials}
+                </div>
+                <div className="flex-1 min-w-0">
+                    <p className="font-bold text-gray-900 dark:text-white text-sm leading-tight">{patient.nombre} {patient.apellido}</p>
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
+                        {pAge ? `${pAge} años` : ''}
+                        {pAge ? ' · ' : ''}
+                        <span className={`font-semibold ${status.cls.replace(/bg-\S+ /, '').replace(/dark:bg-\S+ /, '')}`}>{status.label}</span>
+                    </p>
+                </div>
+            </div>
+
+            {/* Stats row */}
+            <div className="grid grid-cols-2 border-b border-gray-100 dark:border-gray-700/50 divide-x divide-gray-100 dark:divide-gray-700/50">
+                <div className="px-5 py-3.5">
+                    <p className="text-2xl font-black text-gray-900 dark:text-white leading-none">{patient.totalSessions}</p>
+                    <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">Sesiones</p>
+                </div>
+                <div className="px-5 py-3.5">
+                    <p className="text-sm font-bold text-gray-900 dark:text-white leading-snug mt-1">
+                        {patient.nextSession
+                            ? new Date(patient.nextSession).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+                            : '—'}
+                    </p>
+                    <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">Próxima</p>
+                </div>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex items-center border-b border-gray-200 dark:border-gray-700/60 px-5">
+                {INLINE_TABS.map(({ key, label }) => (
+                    <button
+                        key={key}
+                        onClick={() => setTab(key)}
+                        className={`py-2.5 mr-4 text-xs font-semibold transition-all border-b-2 ${
+                            tab === key
+                                ? 'text-sky-600 dark:text-sky-400 border-sky-500'
+                                : 'text-gray-400 dark:text-gray-500 border-transparent hover:text-gray-600 dark:hover:text-gray-300'
+                        }`}
+                    >
+                        {label}
+                    </button>
+                ))}
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar px-5 py-4 space-y-4">
+                {tab === 'caratula' && (
+                    <>
+                        {patient.email && (
+                            <div>
+                                <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-0.5">Email</p>
+                                <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 break-all">{patient.email}</p>
+                            </div>
+                        )}
+                        {patient.telefono && (
+                            <div>
+                                <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-0.5">Teléfono</p>
+                                <p className="text-sm font-semibold text-gray-900 dark:text-white">{patient.telefono}</p>
+                            </div>
+                        )}
+                        <div>
+                            <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-0.5">Género</p>
+                            <p className="text-xs text-gray-300 dark:text-gray-600">+ Agregar</p>
                         </div>
-                        <p className="text-[10px] text-gray-400 dark:text-gray-500">{patient.diagnosis} · {patient.age}a</p>
+                        {patient.treatmentGoal && (
+                            <div>
+                                <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-0.5">Motivo de consulta</p>
+                                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{patient.treatmentGoal}</p>
+                            </div>
+                        )}
+                    </>
+                )}
+                {tab !== 'caratula' && (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                        <Users className="w-8 h-8 text-gray-200 dark:text-gray-600 mx-auto mb-2" />
+                        <p className="text-sm text-gray-400 dark:text-gray-500">Abre el expediente completo</p>
                     </div>
-                </div>
-            </td>
-            <td className="px-5 py-3.5">
-                <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-1 rounded-full ${status.cls}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} /> {status.label}
-                </span>
-            </td>
-            <td className="px-5 py-3.5">
-                <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{patient.totalSessions}</p>
-                <p className="text-[10px] text-gray-400 dark:text-gray-500">{daysSince(patient.lastSession) || 'Sin sesiones'}</p>
-            </td>
-            <td className="px-5 py-3.5">
-                {patient.treatmentGoal
-                    ? <span className={`inline-flex text-[10px] font-medium px-2 py-0.5 rounded-full ${getMotivoCls(patient.treatmentGoal)}`}>{patient.treatmentGoal}</span>
-                    : <span className="text-xs text-gray-300 dark:text-gray-500">—</span>
-                }
-            </td>
-            <td className="px-5 py-3.5 text-xs text-gray-500 dark:text-gray-400">
-                {patient.nextSession
-                    ? new Date(patient.nextSession).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
-                    : <span className="text-gray-300 dark:text-gray-600">—</span>}
-            </td>
-            <td className="px-5 py-3.5">
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => onOpenDiary(patient)} title="Ver expediente" className="p-1.5 hover:bg-sky-50 rounded-lg transition-colors text-gray-400 hover:text-[#0075C9]"><BookOpen className="w-4 h-4" /></button>
-                    <button title="Agendar" className="p-1.5 hover:bg-emerald-50 rounded-lg transition-colors text-gray-400 hover:text-emerald-600"><CalendarPlus className="w-4 h-4" /></button>
-                    <button title="Mensaje" className="p-1.5 hover:bg-blue-50 rounded-lg transition-colors text-gray-400 hover:text-blue-600"><MessageSquare className="w-4 h-4" /></button>
-                    <button onClick={() => onDelete(patient.id)} title="Eliminar" className="p-1.5 hover:bg-rose-50 rounded-lg transition-colors text-gray-400 hover:text-rose-600"><XCircle className="w-4 h-4" /></button>
-                </div>
-            </td>
-        </tr>
+                )}
+            </div>
+
+            {/* Footer: open full record */}
+            <div className="px-5 py-3 border-t border-gray-100 dark:border-gray-700/50">
+                <button
+                    onClick={onOpenFull}
+                    className="w-full py-2 text-xs font-semibold text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 transition-colors"
+                >
+                    Ver expediente completo →
+                </button>
+            </div>
+        </div>
     )
 }
 
@@ -316,12 +307,11 @@ const ModernPatientsList = () => {
     const [search, setSearch]             = useState('')
     const [filterStatus, setFilterStatus] = useState('all')
     const [filterRisk, setFilterRisk]     = useState('all')
-    const [filterMotivo, setFilterMotivo] = useState('all')
     const [sortBy, setSortBy]             = useState('name')
-    const [viewMode, setViewMode]         = useState('grid')
     const [showAddPatient, setShowAddPatient] = useState(false)
     const [selectedPatient, setSelectedPatient] = useState(null)
     const [showDiary, setShowDiary]       = useState(false)
+    const [panelPatient, setPanelPatient]  = useState(null)
 
     const loadPatients = useCallback(async () => {
         setLoading(true)
@@ -506,6 +496,7 @@ const ModernPatientsList = () => {
     }
 
     const openDiary = (patient) => { setSelectedPatient(patient); setShowDiary(true) }
+    const selectPatient = (patient) => { setPanelPatient(prev => prev?.id === patient.id ? null : patient) }
 
     const filtered = useMemo(() => {
         let list = [...patients]
@@ -515,13 +506,6 @@ const ModernPatientsList = () => {
         }
         if (filterStatus !== 'all') list = list.filter(p => p.status === filterStatus)
         if (filterRisk !== 'all')   list = list.filter(p => p.riskLevel === filterRisk)
-        if (filterMotivo !== 'all') {
-            if (filterMotivo === 'other') {
-                list = list.filter(p => p.treatmentGoal && !THERAPY_REASONS.includes(p.treatmentGoal))
-            } else {
-                list = list.filter(p => p.treatmentGoal === filterMotivo)
-            }
-        }
         list.sort((a, b) => {
             if (sortBy === 'name')        return `${a.nombre} ${a.apellido}`.localeCompare(`${b.nombre} ${b.apellido}`)
             if (sortBy === 'risk')        { const o = { high: 0, medium: 1, low: 2 }; return (o[a.riskLevel] ?? 3) - (o[b.riskLevel] ?? 3) }
@@ -530,7 +514,7 @@ const ModernPatientsList = () => {
         })
         console.log('[PatientsList] filtered list:', list.length, 'filterStatus:', filterStatus, 'filterRisk:', filterRisk, 'patients in state:', patients.length)
         return list
-    }, [patients, search, filterStatus, filterRisk, filterMotivo, sortBy])
+    }, [patients, search, filterStatus, filterRisk, sortBy])
 
     const total    = patients.length
     const active   = patients.filter(p => p.status === 'active').length
@@ -543,169 +527,192 @@ const ModernPatientsList = () => {
 
     return (
         <>
-        <div className="bg-transparent">
-            <div className="p-3 md:p-6 lg:p-8 max-w-screen-2xl mx-auto">
+        <div className="flex h-full min-h-screen">
 
-                {/* KPI chips */}
-                <motion.div
-                    initial={{ opacity: 0, y: -6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mb-4"
-                >
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
-                        {[
-                            { label: 'Pacientes', value: total,     icon: Users,       iconColor: 'text-blue-400'    },
-                            { label: 'Activos',   value: active,    icon: Users,       iconColor: 'text-sky-400'     },
-                            { label: 'Alto riesgo', value: highRisk, icon: ShieldAlert, iconColor: 'text-rose-400'   },
-                            { label: 'Seguimiento', value: needsFollowUp, icon: Clock,  iconColor: 'text-amber-400'  },
-                        ].map(({ label, value, icon: Icon, iconColor }) => (
-                            <div key={label} className="bg-gray-50 dark:bg-gray-700/50 rounded-2xl px-3 pt-2.5 pb-3 w-full flex flex-col gap-1.5">
-                                <div className="flex items-center gap-1.5">
-                                    <Icon size={12} className={iconColor} strokeWidth={2.5} />
-                                    <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 tracking-wide uppercase">{label}</span>
-                                </div>
-                                <p className="text-[22px] font-black text-gray-900 dark:text-white leading-none tabular-nums tracking-tight">{value}</p>
-                            </div>
-                        ))}
+            {/* ── LEFT: Patient list panel ── */}
+            <div className="flex flex-col w-full max-w-95 min-w-70 shrink-0 bg-white dark:bg-gray-800/60 border-r border-gray-200 dark:border-gray-700/60">
+
+                {/* List header */}
+                <div className="px-4 pt-5 pb-3 border-b border-gray-100 dark:border-gray-700/50">
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                            <h1 className="text-base font-bold text-gray-900 dark:text-white">Pacientes</h1>
+                            {active > 0 && (
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">
+                                    {active} activos
+                                </span>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                            <button onClick={loadPatients} title="Actualizar" className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 transition-colors">
+                                <RefreshCw className="w-3.5 h-3.5" />
+                            </button>
+                            <button onClick={() => setShowAddPatient(true)} className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#0075C9] text-white rounded-xl text-xs font-semibold hover:bg-[#005fa0] transition-colors">
+                                <UserPlus className="w-3.5 h-3.5" />
+                                <span className="hidden sm:inline">Nuevo</span>
+                            </button>
+                        </div>
                     </div>
-                    <div className="flex justify-end items-center gap-2">
-                        <button
-                            onClick={loadPatients}
-                            title="Actualizar"
-                            className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-                        >
-                            <RefreshCw className="w-4 h-4" />
-                        </button>
-                        <button
-                            onClick={() => setShowAddPatient(true)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0075C9] text-white rounded-xl text-xs font-semibold hover:bg-[#005fa0] transition-colors"
-                        >
-                            <UserPlus className="w-3.5 h-3.5" />
-                            <span className="hidden sm:inline">Nuevo paciente</span>
-                        </button>
-                    </div>
-                </motion.div>
 
-                {/* Alert banner */}
-                <AlertBanner patients={patients} />
-
-                {/* Search + filters */}
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
-                    className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-2xl p-3 mb-4 flex flex-wrap items-center gap-2">
-                    <div className="relative flex-1 min-w-48">
-                        <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    {/* Search */}
+                    <div className="relative">
+                        <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                         <input
-                            type="text" placeholder="Buscar por nombre, diagnóstico..." value={search}
+                            type="text"
+                            placeholder="Buscar paciente…"
+                            value={search}
                             onChange={e => setSearch(e.target.value)}
-                            className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#0075C9]/20 focus:border-[#0075C9] dark:focus:border-sky-500"
+                            className="w-full pl-8 pr-3 py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600/50 rounded-xl text-xs text-gray-900 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-400/30"
                         />
                     </div>
-                    {[
-                        { value: filterStatus, setter: setFilterStatus, options: [['all','Todos los estados'],['active','Activos'],['pending','Pendientes'],['inactive','Inactivos'],['invited','Invitados']] },
-                        { value: filterRisk,   setter: setFilterRisk,   options: [['all','Todos los riesgos'],['high','Alto riesgo'],['medium','Riesgo medio'],['low','Bajo riesgo']] },
-                        { value: filterMotivo, setter: setFilterMotivo, options: [['all','Todos los motivos'], ...THERAPY_REASONS.map(r => [r, r]), ['other','Otro motivo']] },
-                        { value: sortBy,       setter: setSortBy,       options: [['name','Orden: Nombre'],['risk','Orden: Riesgo'],['lastSession','Orden: Última sesión']] },
-                    ].map(({ value, setter, options }, i) => (
-                        <select key={i} value={value} onChange={e => setter(e.target.value)}
-                            className="text-xs font-medium border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#0075C9]/20">
-                            {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                        </select>
-                    ))}
-                    <div className="flex bg-gray-100 dark:bg-gray-700 rounded-xl p-0.5 ml-auto">
-                        {[['grid', LayoutGrid], ['list', List]].map(([m, Icon]) => (
-                            <button key={m} onClick={() => setViewMode(m)}
-                                className={`p-2 rounded-lg transition-colors ${viewMode === m ? 'bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'}`}>
-                                <Icon className="w-4 h-4" />
-                            </button>
-                        ))}
-                    </div>
-                </motion.div>
+                </div>
 
-                {/* Results count */}
-                <p className="text-xs text-gray-400 dark:text-gray-500 mb-3 px-1">
-                    {filtered.length} paciente{filtered.length !== 1 ? 's' : ''}
-                    {(filterStatus !== 'all' || filterRisk !== 'all' || filterMotivo !== 'all' || search) && (
-                        <button onClick={() => { setSearch(''); setFilterStatus('all'); setFilterRisk('all'); setFilterMotivo('all') }}
-                            className="ml-2 text-[#0075C9] hover:text-[#005fa0] font-medium">
-                            Limpiar filtros
-                        </button>
+                {/* List body */}
+                <div className="flex-1 overflow-y-auto custom-scrollbar px-2 py-2">
+
+                    <AlertBanner patients={patients} />
+
+                    {loading && (
+                        <div className="flex justify-center py-16">
+                            <div className="w-6 h-6 border-2 border-[#0075C9] border-t-transparent rounded-full animate-spin" />
+                        </div>
                     )}
-                </p>
 
-                {/* Loading */}
-                {loading && <div className="flex justify-center py-20"><div className="w-8 h-8 border-2 border-[#0075C9] border-t-transparent rounded-full animate-spin" /></div>}
+                    {!loading && filtered.length === 0 && (
+                        <div className="text-center py-12">
+                            <Users className="w-8 h-8 text-gray-200 dark:text-gray-600 mx-auto mb-2" />
+                            <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Sin resultados</p>
+                            {(filterStatus !== 'all' || search) && (
+                                <button onClick={() => { setSearch(''); setFilterStatus('all'); setFilterRisk('all') }} className="mt-2 text-xs text-sky-600 hover:underline">
+                                    Limpiar filtros
+                                </button>
+                            )}
+                        </div>
+                    )}
 
-                {/* Empty */}
-                {!loading && filtered.length === 0 && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-12 text-center">
-                        <Users className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-                        <p className="font-semibold text-gray-700 dark:text-gray-300">Sin resultados</p>
-                        <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{search ? 'Prueba con otro término.' : 'No hay pacientes con estos filtros.'}</p>
-                        {patients.length > 0 && (filterStatus !== 'all' || filterRisk !== 'all' || filterMotivo !== 'all') && (
-                            <button onClick={() => { setSearch(''); setFilterStatus('all'); setFilterRisk('all'); setFilterMotivo('all') }}
-                                className="mt-3 text-sm text-blue-700 hover:underline">
-                                Limpiar filtros ({patients.length} paciente{patients.length !== 1 ? 's' : ''} en total)
-                            </button>
-                        )}
-                        {patients.length === 0 && !search && (
-                            <p className="text-xs text-gray-300 mt-3">Revisa la consola del navegador (F12) para ver la respuesta de la API</p>
-                        )}
-                    </motion.div>
-                )}
-
-                {/* Grid */}
-                {!loading && viewMode === 'grid' && filtered.length > 0 && (
-                    <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">  
+                    {!loading && filtered.length > 0 && (
                         <AnimatePresence>
-                            {filtered.map((p, i) => {
-                                console.log('[PatientsList] rendering card for:', p.nombre, p.apellido, 'id:', p.id, 'status:', p.status)
-                                return <PatientCard key={p.id ?? i} patient={p} index={i} onOpenDiary={openDiary} onDelete={handleDelete} />
-                            })}
+                            {filtered.map((p, i) => (
+                                <PatientRow
+                                    key={p.id ?? i}
+                                    patient={p}
+                                    index={i}
+                                    isSelected={panelPatient?.id === p.id}
+                                    onSelect={selectPatient}
+                                />
+                            ))}
                         </AnimatePresence>
-                    </motion.div>
-                )}
-
-                {/* Table */}
-                {!loading && viewMode === 'list' && filtered.length > 0 && (
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-x-auto">
-                        <table className="w-full min-w-195 text-left">
-                            <thead>
-                                <tr className="border-b border-gray-100 dark:border-gray-700">
-                                    {['Paciente','Estado','Sesiones','Motivo','Próxima',''].map(h => (
-                                        <th key={h} className="px-5 py-3 text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{h}</th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
-                                <AnimatePresence>
-                                    {filtered.map(p => <PatientRow key={p.id} patient={p} onOpenDiary={openDiary} onDelete={handleDelete} />)}
-                                </AnimatePresence>
-                            </tbody>
-                        </table>
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
 
-            {/* Add patient modal */}
-            <AnimatePresence>
-                {showAddPatient && (
-                    <PatientInvitation 
-                        onClose={() => { setShowAddPatient(false); loadPatients() }} 
-                        onSuccess={() => { setShowAddPatient(false); loadPatients() }}
-                    />
-                )}
-            </AnimatePresence>
+            {/* ── RIGHT: Detail panel or suggestions ── */}
+            <div className="flex-1 min-w-0 overflow-y-auto custom-scrollbar">
+                <AnimatePresence mode="wait">
+                    {panelPatient ? (
+                        <motion.div
+                            key={panelPatient.id ?? panelPatient._id ?? 'panel'}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.18 }}
+                            className="h-full"
+                        >
+                            <PatientClinicalFile
+                                patient={panelPatient}
+                                onClose={() => setPanelPatient(null)}
+                                inline
+                            />
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            key="suggestions"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.18 }}
+                            className="h-full flex flex-col items-center justify-center px-10 py-16 text-center gap-6"
+                        >
+                            {/* Icon */}
+                            <div className="w-16 h-16 rounded-2xl bg-sky-50 dark:bg-sky-900/20 flex items-center justify-center">
+                                <Users className="w-7 h-7 text-sky-400 dark:text-sky-500" />
+                            </div>
+
+                            <div>
+                                <h3 className="text-base font-bold text-gray-800 dark:text-gray-200 mb-1">
+                                    Selecciona un paciente
+                                </h3>
+                                <p className="text-xs text-gray-400 dark:text-gray-500 max-w-xs leading-relaxed">
+                                    Haz clic en cualquier paciente de la lista para ver su información rápida aquí.
+                                </p>
+                            </div>
+
+                            {/* Quick stats */}
+                            {!loading && patients.length > 0 && (
+                                <div className="grid grid-cols-2 gap-3 w-full max-w-xs">
+                                    {[
+                                        { label: 'Total', value: patients.length, color: 'text-gray-900 dark:text-white' },
+                                        { label: 'Activos', value: active, color: 'text-emerald-600 dark:text-emerald-400' },
+                                        { label: 'Alto riesgo', value: highRisk, color: 'text-rose-500 dark:text-rose-400' },
+                                        { label: 'Seguimiento', value: needsFollowUp, color: 'text-amber-600 dark:text-amber-400' },
+                                    ].map(({ label, value, color }) => (
+                                        <div key={label} className="bg-white dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/60 rounded-xl px-4 py-3 text-left">
+                                            <p className={`text-xl font-black leading-none ${color}`}>{value}</p>
+                                            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 uppercase tracking-wide font-semibold">{label}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Suggestions list */}
+                            {!loading && filtered.length > 0 && (
+                                <div className="w-full max-w-xs space-y-2">
+                                    <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider text-left">Sugeridos</p>
+                                    {filtered.slice(0, 3).map((p) => {
+                                        const sc = statusConfig[p.status] || statusConfig.inactive
+                                        return (
+                                            <button
+                                                key={p.id}
+                                                onClick={() => selectPatient(p)}
+                                                className="w-full flex items-center gap-3 px-3 py-2.5 bg-white dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/60 rounded-xl hover:border-sky-300 dark:hover:border-sky-700 hover:bg-sky-50/50 dark:hover:bg-sky-900/10 transition-all text-left"
+                                            >
+                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${getAvatarColor(p.id)}`}>
+                                                    {getInitials(p.nombre, p.apellido)}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 truncate">{p.nombre} {p.apellido}</p>
+                                                    <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate">{sc.label}{p.age ? ` · ${p.age}a` : ''}</p>
+                                                </div>
+                                            </button>
+                                        )
+                                    })}
+                                </div>
+                            )}
+
+                            <button
+                                onClick={() => setShowAddPatient(true)}
+                                className="flex items-center gap-2 px-4 py-2 border border-dashed border-gray-300 dark:border-gray-600 rounded-xl text-xs font-semibold text-gray-400 dark:text-gray-500 hover:border-sky-400 hover:text-sky-500 dark:hover:border-sky-600 dark:hover:text-sky-400 transition-colors"
+                            >
+                                <UserPlus className="w-3.5 h-3.5" />
+                                Añadir nuevo paciente
+                            </button>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+
         </div>
 
-        {/* Clinical file drawer */}
+        {/* Add patient modal */}
         <AnimatePresence>
-            {showDiary && selectedPatient && (
-                <PatientClinicalFile
-                    patient={selectedPatient}
-                    onClose={() => { setShowDiary(false); setSelectedPatient(null) }}
+            {showAddPatient && (
+                <PatientInvitation
+                    onClose={() => { setShowAddPatient(false); loadPatients() }}
+                    onSuccess={() => { setShowAddPatient(false); loadPatients() }}
                 />
             )}
         </AnimatePresence>
+
         </>
     )
 }

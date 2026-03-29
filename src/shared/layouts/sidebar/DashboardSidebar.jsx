@@ -34,18 +34,18 @@ const DashboardSidebar = ({ userRole = 'professional', onClose }) => {
 
     const { prefersReducedMotion, isActive } = useSidebar()
 
-    // Never show banner if user is already on a paid plan
+    // Never show banner for patients or for users already on a paid plan
     const userPlan = user?.plan || user?.subscriptionPlan || user?.planType
     const [showProBanner, setShowProBanner] = useState(
-        () => !isPaidPlan(userPlan) && !isBannerSnoozed()
+        () => userRole !== 'patient' && !isPaidPlan(userPlan) && !isBannerSnoozed()
     )
 
     // Hide immediately if user upgrades mid-session
     useEffect(() => {
-        if (isPaidPlan(user?.plan || user?.subscriptionPlan || user?.planType)) {
+        if (userRole === 'patient' || isPaidPlan(user?.plan || user?.subscriptionPlan || user?.planType)) {
             setShowProBanner(false)
         }
-    }, [user?.plan, user?.subscriptionPlan, user?.planType])
+    }, [userRole, user?.plan, user?.subscriptionPlan, user?.planType])
 
     const handleCloseBanner = () => {
         setShowProBanner(false)

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { motion } from 'motion/react'
 import { useAuth } from '@features/auth'
 import { useNavigate } from 'react-router-dom'
-import { User, Mail, Phone, MapPin, Briefcase, Save, ArrowLeft, Hash, LogOut, Shield } from 'lucide-react'
+import { User, Mail, Phone, MapPin, Briefcase, Save, ArrowLeft, Hash, LogOut, Shield, Crown, Zap } from 'lucide-react'
 import { KpiChip, KpiChipSkeleton } from './dashboard'
 import { buildKpis } from '../hooks'
 import { useDashboardData } from '../hooks/useDashboard'
@@ -36,6 +36,8 @@ const ProfessionalProfile = () => {
 
     const fullName = user?.name || user?.nombre || 'Professional'
     const initials = fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+    const planRaw = user?.subscriptionPlan || user?.plan || user?.planType || 'GRATUITO'
+    const isPro   = planRaw === 'PRO' || planRaw === 'EMPRESA'
     const joinDate  = user?.joinDate || user?.fechaRegistro
         ? new Date(user.joinDate || user.fechaRegistro).toLocaleDateString('es-ES', { month: 'short', year: 'numeric' })
         : new Date().toLocaleDateString('es-ES', { month: 'short', year: 'numeric' })
@@ -108,9 +110,16 @@ const ProfessionalProfile = () => {
                         </div>
 
                         <h2 className="text-sm font-bold text-white leading-tight">{fullName}</h2>
-                        <p className="text-[11px] text-gray-500 mt-0.5 mb-5">
-                            {profileData.specialty || 'Profesional de Salud'}
-                        </p>
+                        <div className="flex items-center justify-center gap-1.5 mt-0.5 mb-5">
+                            <p className="text-[11px] text-gray-500">
+                                {profileData.specialty || 'Profesional de Salud'}
+                            </p>
+                            {isPro && (
+                                <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-[#0075C9] text-white uppercase tracking-wide leading-none">
+                                    {planRaw === 'EMPRESA' ? 'Empresa' : 'Pro'}
+                                </span>
+                            )}
+                        </div>
 
                         {/* Role badge */}
                         <div className="flex items-center gap-1.5 bg-sky-950 border border-sky-800 rounded-lg px-3 py-1.5 mb-5 w-full justify-center">
@@ -131,10 +140,35 @@ const ProfessionalProfile = () => {
                         </div>
 
                         {/* License quick-view */}
-                        <div className="w-full p-3 bg-gray-800 border border-gray-700/50 rounded-xl text-left mb-5">
+                        <div className="w-full p-3 bg-gray-800 border border-gray-700/50 rounded-xl text-left mb-3">
                             <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-500 mb-0.5">Licencia</p>
                             <p className="text-xs font-medium text-gray-300">{profileData.licenseNumber || '—'}</p>
                         </div>
+
+                        {/* Subscription plan */}
+                        {isPro ? (
+                            <div className="w-full p-3 rounded-xl text-left mb-5 border border-[#0075C9]/40 bg-[#0075C9]/10 relative overflow-hidden">
+                                <div className="absolute inset-0 bg-linear-to-br from-[#0075C9]/10 to-transparent pointer-events-none" />
+                                <div className="flex items-center gap-1.5 mb-0.5">
+                                    <Crown className="w-3 h-3 text-[#54C0E8]" strokeWidth={2} />
+                                    <p className="text-[10px] font-semibold uppercase tracking-widest text-[#54C0E8]">Plan activo</p>
+                                </div>
+                                <p className="text-xs font-bold text-white">{planRaw === 'EMPRESA' ? 'Empresa' : 'Pro'}</p>
+                                <p className="text-[10px] text-[#54C0E8]/70 mt-0.5">Todas las funciones desbloqueadas</p>
+                            </div>
+                        ) : (
+                            <button
+                                onClick={() => navigate('/pricing')}
+                                className="w-full p-3 rounded-xl text-left mb-5 border border-gray-700 bg-gray-800 hover:border-sky-700 hover:bg-sky-950/40 transition-colors group select-none"
+                            >
+                                <div className="flex items-center gap-1.5 mb-0.5">
+                                    <Zap className="w-3 h-3 text-gray-600 group-hover:text-sky-400 transition-colors" strokeWidth={2} />
+                                    <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-500 group-hover:text-sky-400 transition-colors">Plan actual</p>
+                                </div>
+                                <p className="text-xs font-bold text-gray-300">Gratuito</p>
+                                <p className="text-[10px] text-sky-500 mt-0.5">Actualizar a Pro →</p>
+                            </button>
+                        )}
 
                         {/* Logout */}
                         <button

@@ -43,6 +43,9 @@ class WebRTCManager {
     this.isRecording = false;
     this._reconnectAttempts = 0;
     this._maxReconnectAttempts = 3;
+    this._disconnectTimers = new Map(); // userId -> timeout for grace period
+    this._peerReconnectAttempts = new Map(); // userId -> count
+    this._maxPeerReconnectAttempts = 3;
   }
 
   /**
@@ -411,6 +414,25 @@ class WebRTCManager {
       
       console.log('Received remote track from:', targetUserId);
       this.remoteStreams.set(targetUserId, remoteStream);
+
+      // Monitor each remote track for ended/mute events
+      remoteStream.getTracks().forEach(track => {
+        track.onended = () => {
+          console.warn(`Remote ${track.kind} track ended from ${targetUserId}`);
+          // If all tracks in the stream are ended, trigger reconnection
+          const allEnded = remoteStream.getTracks().every(t => t.readyState === 'ended');
+          if (allEnded) {
+            console.warn(`All remote tracks ended for ${targetUserId}, attempting reconnection`);
+            this._attemptPeerReconnect(targetUserId);
+          }
+        };
+        track.onmute = () => {
+          console.log(`Remote ${track.kind} track muted from ${targetUserId}`);
+        };
+        track.onunmute = () => {
+          console.log(`Remote ${track.kind} track unmuted from ${targetUserId}`);
+        };
+      });
       
       if (this.onRemoteStreamAdded) {
         this.onRemoteStreamAdded({ userId: targetUserId, stream: remoteStream });
@@ -427,15 +449,31 @@ class WebRTCManager {
           state: pc.connectionState 
         });
       }
-      
-      if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
-        this.cleanupPeerConnection(targetUserId);
+
+      if (pc.connectionState === 'connected') {
+        // Clear any pending disconnect timer — connection recovered
+        this._clearDisconnectTimer(targetUserId);
+        this._peerReconnectAttempts.delete(targetUserId);
+      } else if (pc.connectionState === 'disconnected') {
+        // Grace period: WebRTC often self-recovers from 'disconnected'
+        this._startDisconnectTimer(targetUserId, 8000);
+      } else if (pc.connectionState === 'failed') {
+        // Failed is terminal — attempt reconnection immediately
+        this._clearDisconnectTimer(targetUserId);
+        this._attemptPeerReconnect(targetUserId);
       }
     };
 
     // Handle ICE connection state
     pc.oniceconnectionstatechange = () => {
       console.log(`ICE connection state with ${targetUserId}:`, pc.iceConnectionState);
+      if (pc.iceConnectionState === 'failed') {
+        // ICE failed — try ICE restart before full reconnection
+        console.warn(`ICE failed for ${targetUserId}, attempting ICE restart`);
+        pc.restartIce();
+        // Re-create offer with iceRestart flag
+        this._sendIceRestartOffer(targetUserId, pc);
+      }
     };
 
     this.peerConnections.set(targetUserId, pc);
@@ -684,6 +722,90 @@ class WebRTCManager {
   }
 
   /**
+   * Start a grace-period timer before cleaning up a disconnected peer.
+   */
+  _startDisconnectTimer(userId, delayMs) {
+    // Don't stack timers
+    this._clearDisconnectTimer(userId);
+    const timer = setTimeout(() => {
+      const pc = this.peerConnections.get(userId);
+      // If still disconnected after the grace period, attempt reconnection
+      if (pc && (pc.connectionState === 'disconnected' || pc.connectionState === 'failed')) {
+        console.warn(`Peer ${userId} still disconnected after ${delayMs}ms grace period — reconnecting`);
+        this._attemptPeerReconnect(userId);
+      }
+      this._disconnectTimers.delete(userId);
+    }, delayMs);
+    this._disconnectTimers.set(userId, timer);
+  }
+
+  /**
+   * Clear a pending disconnect grace timer.
+   */
+  _clearDisconnectTimer(userId) {
+    const timer = this._disconnectTimers.get(userId);
+    if (timer) {
+      clearTimeout(timer);
+      this._disconnectTimers.delete(userId);
+    }
+  }
+
+  /**
+   * Attempt to reconnect a specific peer connection.
+   */
+  _attemptPeerReconnect(userId) {
+    const attempts = (this._peerReconnectAttempts.get(userId) || 0) + 1;
+    this._peerReconnectAttempts.set(userId, attempts);
+
+    if (attempts > this._maxPeerReconnectAttempts) {
+      console.error(`Max reconnect attempts (${this._maxPeerReconnectAttempts}) reached for peer ${userId}`);
+      this.cleanupPeerConnection(userId);
+      return;
+    }
+
+    console.log(`Reconnecting to peer ${userId} (attempt ${attempts}/${this._maxPeerReconnectAttempts})`);
+
+    // Tear down old connection
+    const oldPc = this.peerConnections.get(userId);
+    if (oldPc) {
+      oldPc.onconnectionstatechange = null;
+      oldPc.oniceconnectionstatechange = null;
+      oldPc.ontrack = null;
+      oldPc.onicecandidate = null;
+      oldPc.close();
+      this.peerConnections.delete(userId);
+    }
+
+    // Notify UI that we're reconnecting
+    if (this.onConnectionStateChange) {
+      this.onConnectionStateChange({ userId, state: 'reconnecting' });
+    }
+
+    // Create a fresh offer to the peer
+    this.createOffer(userId);
+  }
+
+  /**
+   * Send a new offer with ICE restart flag after ICE failure.
+   */
+  async _sendIceRestartOffer(targetUserId, pc) {
+    try {
+      const offer = await pc.createOffer({ iceRestart: true });
+      await pc.setLocalDescription(offer);
+      this.socket.emit('offer', {
+        roomId: this.currentRoomId,
+        offer,
+        targetUserId,
+      });
+      console.log('Sent ICE restart offer to:', targetUserId);
+    } catch (err) {
+      console.error('ICE restart offer failed:', err);
+      // Fall back to full reconnection
+      this._attemptPeerReconnect(targetUserId);
+    }
+  }
+
+  /**
    * Clean up specific peer connection
    */
   cleanupPeerConnection(userId) {
@@ -708,6 +830,11 @@ class WebRTCManager {
    * Clean up all resources
    */
   cleanup() {
+    // Clear all disconnect grace timers
+    this._disconnectTimers.forEach(timer => clearTimeout(timer));
+    this._disconnectTimers.clear();
+    this._peerReconnectAttempts.clear();
+
     // Close all peer connections
     this.peerConnections.forEach(pc => pc.close());
     this.peerConnections.clear();

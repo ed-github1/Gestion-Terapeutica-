@@ -279,6 +279,23 @@ export const AuthProvider = ({ children }) => {
   const getToken = () =>
     localStorage.getItem('authToken') || sessionStorage.getItem('authToken')
 
+  /** Re-fetches the user from GET /auth/me and syncs AuthContext state. */
+  const refreshUser = useCallback(async () => {
+    try {
+      const res = await authService.getMe()
+      let userData = res.data?.data?.user || res.data?.data || res.data?.user || res.data
+      if (userData) {
+        userData.role =
+          userData.role || userData.rol || userData.userRole ||
+          userData.user_role || userData.tipo || userData.type || undefined
+      }
+      setUser(userData)
+      return userData
+    } catch {
+      // silently ignore — session remains as-is
+    }
+  }, [])
+
   const value = {
     user,
     loading,
@@ -288,6 +305,7 @@ export const AuthProvider = ({ children }) => {
     login,
     completeLogin,
     logout,
+    refreshUser,
     isAuthenticated: !!user,
     isHealthProfessional,
     isPatient,
