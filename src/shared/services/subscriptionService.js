@@ -16,8 +16,19 @@ export const subscriptionService = {
     apiClient.post('/subscriptions/payment-intent', { planId, billingCycle, email }),
 
   /** Legacy: returns { checkoutUrl } for Stripe Hosted Checkout redirect */
-  createCheckoutSession: (planId, billingCycle) =>
-    apiClient.post('/subscriptions/checkout', { planId, billingCycle }),
+  createCheckoutSession: (planId, billingCycle) => {
+    const origin = window.location.origin
+    return apiClient.post('/subscriptions/checkout', {
+      planId,
+      billingCycle,
+      successUrl: `${origin}/dashboard/professional?subscription=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancelUrl: `${origin}/pricing`,
+    })
+  },
+
+  /** Verify a Stripe Checkout Session and activate the plan if paid */
+  verifyCheckoutSession: (sessionId) =>
+    apiClient.post('/subscriptions/verify-session', { sessionId }),
 
   cancelSubscription: () =>
     apiClient.post('/subscriptions/cancel'),

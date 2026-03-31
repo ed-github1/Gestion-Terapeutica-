@@ -1,15 +1,16 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
-import { X, CheckCircle2, Sparkles, Loader2 } from 'lucide-react'
+import { X, CheckCircle2, Sparkles, Loader2, RefreshCw } from 'lucide-react'
 import { useAuth } from '@features/auth'
+import { subscriptionService } from '@shared/services/subscriptionService'
 import ModernProfessionalDashboard from './components/ModernProfessionalDashboard'
 import AppointmentsCalendar from './components/AppointmentsCalendar'
 import PatientClinicalFile from './components/PatientClinicalFile'
 
-// Max time to poll for plan activation (15 seconds), interval every 2s
-const POLL_INTERVAL_MS = 2000
-const POLL_TIMEOUT_MS  = 15000
+// Max time to poll for plan activation (45 seconds), interval every 3s
+const POLL_INTERVAL_MS = 3000
+const POLL_TIMEOUT_MS  = 45000
 
 /**
  * Wrapper component to switch between dashboard, calendar, and diary views
@@ -27,32 +28,65 @@ const ProfessionalDashboardWrapper = () => {
     const [planStatus, setPlanStatus] = useState('activating')
     const pollRef    = useRef(null)
     const timeoutRef = useRef(null)
+    const sessionIdRef = useRef(searchParams.get('session_id'))
 
-    const isPro = (u) => ['PRO', 'EMPRESA'].includes(u?.subscriptionPlan || u?.plan || u?.planType)
+    const isPro = (u) => ['PRO', 'EMPRESA'].includes((u?.subscriptionPlan || u?.plan || u?.planType || '').toUpperCase())
+
+    /** Try to verify the Stripe session + refresh user, return true if plan is now Pro */
+    const tryActivate = useCallback(async () => {
+        // 1. If we have a Stripe session ID, ask the backend to verify & activate
+        if (sessionIdRef.current) {
+            try { await subscriptionService.verifyCheckoutSession(sessionIdRef.current) } catch { /* ignore */ }
+        }
+        // 2. Refresh user profile to get updated plan
+        const updated = await refreshUser?.()
+        return isPro(updated)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [refreshUser])
+
+    /** Manual retry (shown after timeout) */
+    const handleRetryActivation = useCallback(async () => {
+        setPlanStatus('activating')
+        const activated = await tryActivate()
+        setPlanStatus(activated ? 'active' : 'timeout')
+    }, [tryActivate])
 
     useEffect(() => {
         if (searchParams.get('subscription') !== 'success') return
 
-        // Clean query param immediately
-        setSearchParams((prev) => { prev.delete('subscription'); return prev }, { replace: true })
+        // Capture session_id before cleaning params
+        sessionIdRef.current = searchParams.get('session_id')
+
+        // Clean query params immediately
+        setSearchParams((prev) => {
+            prev.delete('subscription')
+            prev.delete('session_id')
+            return prev
+        }, { replace: true })
 
         // If user is already marked as Pro (e.g. webhook was instant), skip polling
         if (isPro(user)) { setPlanStatus('active'); return }
 
-        // Poll until plan is confirmed or we time out
-        pollRef.current = setInterval(async () => {
-            const updated = await refreshUser?.()
-            if (isPro(updated)) {
-                clearInterval(pollRef.current)
-                clearTimeout(timeoutRef.current)
-                setPlanStatus('active')
-            }
-        }, POLL_INTERVAL_MS)
+        // First attempt: verify session immediately
+        ;(async () => {
+            const activated = await tryActivate()
+            if (activated) { setPlanStatus('active'); return }
 
-        timeoutRef.current = setTimeout(() => {
-            clearInterval(pollRef.current)
-            setPlanStatus('timeout')
-        }, POLL_TIMEOUT_MS)
+            // Poll until plan is confirmed or we time out
+            pollRef.current = setInterval(async () => {
+                const updated = await refreshUser?.()
+                if (isPro(updated)) {
+                    clearInterval(pollRef.current)
+                    clearTimeout(timeoutRef.current)
+                    setPlanStatus('active')
+                }
+            }, POLL_INTERVAL_MS)
+
+            timeoutRef.current = setTimeout(() => {
+                clearInterval(pollRef.current)
+                setPlanStatus('timeout')
+            }, POLL_TIMEOUT_MS)
+        })()
 
         return () => {
             clearInterval(pollRef.current)
@@ -200,9 +234,16 @@ const ProfessionalDashboardWrapper = () => {
                                             <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
                                                 Tu pago fue procesado. La activación puede tardar unos minutos.
                                             </p>
-                                            <p className="text-xs text-gray-400 dark:text-gray-500 mb-7">
-                                                Recarga la página si tu plan no aparece actualizado.
+                                            <p className="text-xs text-gray-400 dark:text-gray-500 mb-5">
+                                                Pulsa reintentar o recarga la página si tu plan no aparece actualizado.
                                             </p>
+                                            <button
+                                                onClick={handleRetryActivation}
+                                                className="w-full py-2.5 rounded-xl font-semibold text-sm mb-3 flex items-center justify-center gap-2 transition-all active:scale-[0.98] bg-sky-500 hover:bg-sky-600 text-white"
+                                            >
+                                                <RefreshCw className="w-4 h-4" />
+                                                Reintentar activación
+                                            </button>
                                         </>
                                     )}
 

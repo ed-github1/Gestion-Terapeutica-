@@ -352,8 +352,8 @@ const ProfessionalVideoCallWebRTC = () => {
     });
   };
 
-  const handleLeaveRoom = () => {
-    stopAndUploadRecording();
+  const handleLeaveRoom = async () => {
+    await stopAndUploadRecording();
     leaveRoom();
     navigate('/dashboard/professional');
   };

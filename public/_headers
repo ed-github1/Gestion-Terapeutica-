@@ -1,9 +1,10 @@
 /*
-  X-Frame-Options: DENY
+  X-Frame-Options: SAMEORIGIN
   X-Content-Type-Options: nosniff
   X-XSS-Protection: 1; mode=block
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(self), microphone=(self), geolocation=()
+  Content-Security-Policy: frame-src 'self' https://checkout.stripe.com https://js.stripe.com https://hooks.stripe.com; frame-ancestors 'none'
 
 /api/*
   Access-Control-Allow-Origin: *

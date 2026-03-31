@@ -36,7 +36,7 @@ const ProfessionalProfile = () => {
 
     const fullName = user?.name || user?.nombre || 'Professional'
     const initials = fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-    const planRaw = user?.subscriptionPlan || user?.plan || user?.planType || 'GRATUITO'
+    const planRaw = (user?.subscriptionPlan || user?.plan || user?.planType || 'GRATUITO').toUpperCase()
     const isPro   = planRaw === 'PRO' || planRaw === 'EMPRESA'
     const joinDate  = user?.joinDate || user?.fechaRegistro
         ? new Date(user.joinDate || user.fechaRegistro).toLocaleDateString('es-ES', { month: 'short', year: 'numeric' })

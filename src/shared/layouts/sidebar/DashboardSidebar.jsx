@@ -20,7 +20,7 @@ import SidebarProBanner from './SidebarProBanner'
 const SNOOZE_DAYS = 7
 const STORAGE_KEY = 'sidebar_pro_banner_snoozed_at'
 
-const isPaidPlan = (plan) => plan === 'PRO' || plan === 'EMPRESA'
+const isPaidPlan = (plan) => { const p = (plan || '').toUpperCase(); return p === 'PRO' || p === 'EMPRESA' }
 
 const isBannerSnoozed = () => {
     const snoozedAt = localStorage.getItem(STORAGE_KEY)
