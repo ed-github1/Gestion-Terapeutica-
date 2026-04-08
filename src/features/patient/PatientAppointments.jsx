@@ -1,45 +1,17 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { motion, AnimatePresence } from 'motion/react'
 import { showToast } from '@shared/ui/Toast'
 import { appointmentsService } from '@shared/services/appointmentsService'
-import {
-  normalizeAppointmentsResponse,
-  toLocalDateObj,
-  isToday,
-} from '@shared/utils/appointments'
+import { toLocalDateObj, isToday } from '@shared/utils/appointments'
+import { useAppointments } from './AppointmentsContext'
 
 const PatientAppointments = ({ onClose }) => {
   // Always call hooks at the top level, in a consistent order
   const { user } = useAuth()
+  const { appointments, loading, error, updateOne } = useAppointments()
 
-  const [appointments, setAppointments] = useState([])
-  const [loading,      setLoading]      = useState(true)
-  const [error,        setError]        = useState(null)
-  const [filter,       setFilter]       = useState('all') // all | upcoming | past | today
-
-  /* ── Data loading ──────────────────────────────────────────────────────── */
-
-  const loadAppointments = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const response = await appointmentsService.getPatientAppointments()
-      const normalized = normalizeAppointmentsResponse(response)
-      console.log('✅ Patient appointments loaded:', normalized.length)
-      setAppointments(normalized)
-    } catch (err) {
-      console.error('⚠️ Failed to load appointments:', err.message)
-      setError('No se pudieron cargar tus citas. Verifica tu conexión e intenta de nuevo.')
-      setAppointments([])
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    loadAppointments()
-  }, [loadAppointments])
+  const [filter, setFilter] = useState('all') // all | upcoming | past | today
 
   /* ── Filtering ──────────────────────────────────────────────────────────── */
 
@@ -70,20 +42,15 @@ const PatientAppointments = ({ onClose }) => {
   const cancelAppointment = async (appointmentId) => {
     if (!confirm('¿Estás seguro de que deseas cancelar esta cita?')) return
 
-    // Optimistic update
-    const rollback = [...appointments]
-    setAppointments((prev) =>
-      prev.map((apt) =>
-        apt.id === appointmentId ? { ...apt, status: 'cancelled' } : apt
-      )
-    )
+    const original = appointments.find(a => a.id === appointmentId || a._id === appointmentId)
+    updateOne(appointmentId, { status: 'cancelled' })
 
     try {
       await appointmentsService.cancel(appointmentId, 'Cancelado por el paciente')
       showToast('Cita cancelada exitosamente', 'success')
     } catch (err) {
       // Revert optimistic update on failure
-      setAppointments(rollback)
+      if (original) updateOne(appointmentId, { status: original.status })
       console.error('Cancel failed:', err.message)
       showToast('No se pudo cancelar la cita. Intenta de nuevo.', 'error')
     }

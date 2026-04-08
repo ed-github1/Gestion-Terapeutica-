@@ -8,6 +8,7 @@ import ProfessionalVideoCallWebRTC from '@features/professional/components/Video
 import SessionSummary from '@features/professional/components/SessionSummary'
 import ProfessionalSettings from '@features/professional/components/ProfessionalSettings'
 import { PatientDashboard, PatientPersonalDiary } from '@features/patient'
+import { AppointmentsProvider } from '@features/patient/AppointmentsContext'
 import PatientSessionsPage from '@features/patient/PatientSessionsPage'
 import PatientVideoCallWebRTC from '@features/patient/PatientVideoCallWebRTC'
 import PatientRegisterPage from '@features/patient/PatientRegisterPage'
@@ -161,9 +162,11 @@ function App() {
             path={ROUTES.PATIENT_DASHBOARD}
             element={
               <ProtectedRoute allowedRoles={[ROLES.PATIENT, ROLES.PACIENT]}>
-                <DashboardLayout userRole="patient">
-                  <PatientDashboard />
-                </DashboardLayout>
+                <AppointmentsProvider>
+                  <DashboardLayout userRole="patient">
+                    <PatientDashboard />
+                  </DashboardLayout>
+                </AppointmentsProvider>
               </ProtectedRoute>
             }
           />
@@ -171,9 +174,11 @@ function App() {
             path="/dashboard/patient/appointments"
             element={
               <ProtectedRoute allowedRoles={[ROLES.PATIENT, ROLES.PACIENT]}>
-                <DashboardLayout userRole="patient">
-                  <PatientSessionsPage />
-                </DashboardLayout>
+                <AppointmentsProvider>
+                  <DashboardLayout userRole="patient">
+                    <PatientSessionsPage />
+                  </DashboardLayout>
+                </AppointmentsProvider>
               </ProtectedRoute>
             }
           />

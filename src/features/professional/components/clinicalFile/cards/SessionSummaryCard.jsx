@@ -29,7 +29,7 @@ const SessionSummaryCard = ({ appointment, index, onOpen }) => {
       onClick={onOpen}
     >
       {/* Header */}
-      <div className="px-5 pt-4 pb-3 flex items-start gap-3">
+      <div className="px-3 sm:px-5 pt-3 sm:pt-4 pb-2 sm:pb-3 flex items-start gap-2.5 sm:gap-3">
         <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
           isVideoCall ? 'bg-sky-50 dark:bg-sky-900/20' : 'bg-amber-50 dark:bg-amber-900/20'
         }`}>
@@ -67,13 +67,13 @@ const SessionSummaryCard = ({ appointment, index, onOpen }) => {
 
       {/* Note preview */}
       {notePreview && (
-        <div className="px-5 pb-3">
+        <div className="px-3 sm:px-5 pb-2 sm:pb-3">
           <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed line-clamp-2">{notePreview}{notePreview.length >= 120 ? '…' : ''}</p>
         </div>
       )}
 
       {/* Footer badges */}
-      <div className="px-5 pb-4 flex flex-wrap items-center gap-2">
+      <div className="px-3 sm:px-5 pb-3 sm:pb-4 flex flex-wrap items-center gap-1.5 sm:gap-2">
         {hasNotes && (
           <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400">
             <FileText className="w-2.5 h-2.5" /> Notas

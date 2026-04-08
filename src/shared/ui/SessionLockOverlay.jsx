@@ -19,7 +19,9 @@
  */
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Lock, Eye, EyeOff, AlertCircle, LogOut } from 'lucide-react'
+import { motion, AnimatePresence } from 'motion/react'
 import logoSymbol from '@/assets/SIMBOLO_LOGO_TOTALMENTE.png'
+import { useDarkModeContext } from '@shared/DarkModeContext'
 
 const MAX_ATTEMPTS  = 5     // after this → full logout
 const BASE_DELAY_MS = 2_000 // base back-off per attempt
@@ -29,6 +31,7 @@ const SessionLockOverlay = ({
   onUnlock,      // async (password) => void — throws on wrong password
   onFullLogout,  // () => void — signs out completely
 }) => {
+  const { dark } = useDarkModeContext()
   const [password,   setPassword]   = useState('')
   const [showPw,     setShowPw]     = useState(false)
   const [loading,    setLoading]    = useState(false)
@@ -135,60 +138,93 @@ const SessionLockOverlay = ({
       aria-modal="true"
       aria-label="Sesión bloqueada"
       onKeyDown={handleKeyDown}
-      className="fixed inset-0 z-10000 flex items-center justify-center
-                 bg-slate-900/80 backdrop-blur-md"
+      className={`${dark ? 'dark' : ''} fixed inset-0 z-10000 flex items-end sm:items-center justify-center
+                 bg-[#07101F]/75 dark:bg-[#030810]/88 backdrop-blur-lg`}
     >
-      <div className="w-full max-w-sm mx-4 bg-white rounded-2xl shadow-2xl overflow-hidden">
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+        className="relative w-full sm:max-w-xs sm:mx-4
+                   bg-white dark:bg-[#111c2e]
+                   rounded-t-3xl sm:rounded-2xl overflow-hidden
+                   shadow-2xl shadow-black/30 dark:shadow-black/60
+                   border-t border-x sm:border border-gray-100 dark:border-[#1e2d45]"
+      >
+        {/* ── Drag handle — mobile only ─────────────────────────────── */}
+        <div className="flex justify-center pt-3 sm:hidden">
+          <div className="w-9 h-1 rounded-full bg-gray-200 dark:bg-[#1e2d45]" />
+        </div>
 
-        {/* ── Top accent bar ─────────────────────────────────────── */}
-        <div className="h-1 bg-linear-to-r from-blue-700 to-sky-400" />
+        {/* ── Top accent line — desktop only ───────────────────────────── */}
+        <div className="hidden sm:block h-0.5 bg-linear-to-r from-[#0075C9] via-[#54C0E8] to-[#AEE058]" />
 
-        <div className="p-8 space-y-6">
+        <div className="px-6 pt-6 pb-[max(1.75rem,env(safe-area-inset-bottom))] sm:pt-8 sm:pb-7 space-y-5">
 
           {/* ── Header ─────────────────────────────────────────────── */}
-          <div className="text-center space-y-3">
-            {/* Branding mark */}
-            <div className="flex justify-center mb-1">
-              <div className="w-10 h-10 bg-sky-50 rounded-xl flex items-center justify-center">
-                <img src={logoSymbol} alt="Totalmente" className="w-7 h-7 object-contain" />
-              </div>
-            </div>
+          <div className="text-center space-y-4">
 
-            {/* User avatar */}
+            {/* Logo as avatar — clean circle */}
             <div className="relative inline-flex">
-              <div className="w-16 h-16 rounded-full bg-linear-to-br from-blue-500 to-sky-400
-                              flex items-center justify-center text-white text-xl font-bold shadow-lg">
-                {getInitials()}
+              <div
+                className="w-16 h-16 rounded-full
+                            bg-gray-50 dark:bg-[#0d1829]
+                            border border-gray-150 dark:border-[#1e2d45]
+                            flex items-center justify-center
+                            shadow-sm"
+              >
+                <img src={logoSymbol} alt="Totalmente" className="w-10 h-10 object-contain" />
               </div>
               {/* Lock badge */}
-              <span className="absolute -bottom-1 -right-1 w-6 h-6 bg-amber-500 rounded-full
-                               flex items-center justify-center shadow-md">
-                <Lock className="w-3 h-3 text-white" />
+              <span
+                className="absolute -bottom-0.5 -right-0.5 w-5 h-5
+                           bg-[#0075C9] rounded-full
+                           flex items-center justify-center
+                           ring-2 ring-white dark:ring-[#111c2e]"
+              >
+                <Lock className="w-2.5 h-2.5 text-white" />
               </span>
             </div>
 
-            <div>
-              <h2 className="text-lg font-bold text-gray-900">Sesión bloqueada</h2>
-              <p className="text-sm text-gray-500 mt-0.5 truncate max-w-65 mx-auto">
+            <div className="space-y-1">
+              <h2 className="text-base font-semibold tracking-tight
+                             text-gray-900 dark:text-gray-50">
+                Sesión bloqueada
+              </h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400
+                            truncate max-w-55 mx-auto">
                 {getDisplayName()}
               </p>
+              <p className="text-[11px] text-gray-400 dark:text-gray-600 leading-relaxed pt-0.5">
+                Ingresá tu contraseña para continuar.
+              </p>
             </div>
-            <p className="text-xs text-gray-400 leading-snug">
-              Tu sesión fue bloqueada por inactividad.<br />
-              Ingresá tu contraseña para continuar.
-            </p>
           </div>
 
           {/* ── Error banner ────────────────────────────────────────── */}
-          {error && (
-            <div className="flex items-start gap-2.5 p-3 bg-rose-50 rounded-xl border border-rose-200">
-              <AlertCircle className="w-4 h-4 text-rose-500 mt-0.5 shrink-0" />
-              <p className="text-xs text-rose-700 font-medium leading-snug">{error}</p>
-            </div>
-          )}
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                key="error"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.18 }}
+                className="flex items-center gap-2 px-3 py-2
+                           bg-rose-50 dark:bg-rose-950/30
+                           rounded-xl border border-rose-100 dark:border-rose-900/50
+                           overflow-hidden"
+              >
+                <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                <p className="text-[11px] text-rose-600 dark:text-rose-400 leading-snug">
+                  {error}
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* ── Password form ────────────────────────────────────────── */}
-          <form onSubmit={handleSubmit} className="space-y-3" noValidate>
+          <form onSubmit={handleSubmit} className="space-y-2.5" noValidate>
             <div className="relative">
               <input
                 ref={inputRef}
@@ -198,15 +234,21 @@ const SessionLockOverlay = ({
                 placeholder="Tu contraseña"
                 autoComplete="current-password"
                 disabled={loading || cooldown > 0}
-                className="w-full pl-4 pr-10 py-2.5 text-sm border border-gray-200 rounded-lg
-                           focus:ring-2 focus:ring-sky-500 focus:border-transparent
-                           outline-none transition disabled:bg-gray-50 disabled:text-gray-400"
+                className="w-full pl-4 pr-11 py-3 text-base sm:text-sm rounded-xl outline-none transition
+                           bg-gray-50 dark:bg-[#0d1829]
+                           border border-gray-200 dark:border-[#1e2d45]
+                           text-gray-900 dark:text-gray-100
+                           placeholder:text-gray-400 dark:placeholder:text-gray-600
+                           focus:ring-2 focus:ring-[#54C0E8]/60 dark:focus:ring-[#0075C9]/60 focus:border-transparent
+                           disabled:opacity-50 disabled:cursor-not-allowed"
               />
               <button
                 type="button"
                 tabIndex={-1}
                 onClick={() => setShowPw(v => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5
+                           text-gray-300 hover:text-[#0075C9] dark:text-gray-600 dark:hover:text-[#54C0E8]
+                           transition-colors"
                 aria-label={showPw ? 'Ocultar contraseña' : 'Mostrar contraseña'}
               >
                 {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -216,12 +258,13 @@ const SessionLockOverlay = ({
             <button
               type="submit"
               disabled={!password.trim() || loading || cooldown > 0}
-              className="w-full bg-linear-to-r from-blue-700 to-blue-600 text-white
-                         py-2.5 rounded-lg text-sm font-semibold
-                         hover:from-blue-800 hover:to-blue-700
-                         focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2
-                         transition shadow-md hover:shadow-lg
-                         disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full
+                         bg-[#0075C9] active:bg-[#004f8a] hover:bg-[#005fa3]
+                         text-white py-3.5 sm:py-3 rounded-xl text-base sm:text-sm font-medium
+                         focus:outline-none focus:ring-2 focus:ring-[#54C0E8]/60
+                         focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-[#111c2e]
+                         transition
+                         disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -241,29 +284,34 @@ const SessionLockOverlay = ({
           </form>
 
           {/* ── Footer ──────────────────────────────────────────────── */}
-          <div className="pt-2 border-t border-gray-100 text-center">
+          <div className="text-center">
             <button
               type="button"
               onClick={onFullLogout}
-              className="inline-flex items-center gap-1.5 text-xs text-gray-400
-                         hover:text-rose-500 transition font-medium"
+              className="inline-flex items-center gap-1.5 text-[11px]
+                         py-2 px-3 -mx-3
+                         text-gray-400 dark:text-gray-600
+                         hover:text-rose-400 dark:hover:text-rose-500 active:text-rose-500 transition-colors"
             >
-              <LogOut className="w-3.5 h-3.5" />
+              <LogOut className="w-3 h-3" />
               Iniciar sesión con otra cuenta
             </button>
           </div>
 
         </div>
-      </div>
+      </motion.div>
 
-      {/* Attempt progress bar */}
+      {/* ── Attempt dots ───────────────────────────────────────────── */}
       {attempts > 0 && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-1.5">
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-1.5">
           {Array.from({ length: MAX_ATTEMPTS }).map((_, i) => (
-            <span
+            <motion.span
               key={i}
-              className={`w-2 h-2 rounded-full transition-colors ${
-                i < attempts ? 'bg-rose-400' : 'bg-white/30'
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: i * 0.04 }}
+              className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                i < attempts ? 'bg-rose-400' : 'bg-white/20'
               }`}
             />
           ))}

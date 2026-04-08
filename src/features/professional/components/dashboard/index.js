@@ -5,3 +5,4 @@ export { default as SessionsCalendarPanel, MiniCalendarWidget, KpiChip, KpiChipS
 export { default as QuickActions }          from './QuickActions'
 export { default as SidebarWidgets }        from './SidebarWidgets'
 export { default as GeneralNotes }          from './GeneralNotes'
+export { default as MobileProfessionalDashboard } from './MobileProfessionalDashboard'

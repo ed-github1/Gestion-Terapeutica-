@@ -5,9 +5,9 @@ import ClinicalNoteCard from '../cards/ClinicalNoteCard'
 const NotesTab = ({ pFirstName, clinicalNotes, newNote, setNewNote, isSubmitting, handleAddNote, error, setError }) => (
   <div className="space-y-4">
     {/* Add note form */}
-    <form onSubmit={handleAddNote} className="bg-white dark:bg-[#1a2234] rounded-2xl border border-gray-100 dark:border-[#2d3748] p-4">
+    <form onSubmit={handleAddNote} className="bg-white dark:bg-[#1a2234] rounded-2xl border border-gray-100 dark:border-[#2d3748] p-3 sm:p-4">
       <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Nueva nota clínica</p>
-      <div className="flex gap-2 items-end">
+      <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
         <textarea
           value={newNote}
           onChange={e => setNewNote(e.target.value)}
@@ -20,7 +20,7 @@ const NotesTab = ({ pFirstName, clinicalNotes, newNote, setNewNote, isSubmitting
           disabled={isSubmitting || !newNote.trim()}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
-          className="shrink-0 p-2.5 bg-blue-700 text-white rounded-xl hover:bg-blue-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          className="shrink-0 p-2.5 bg-blue-700 text-white rounded-xl hover:bg-blue-800 transition disabled:opacity-50 disabled:cursor-not-allowed self-end"
         >
           {isSubmitting
             ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />

@@ -4,7 +4,6 @@ import { diaryService } from '@shared/services/diaryService'
 import { homeworkService } from '@shared/services/homeworkService'
 import { patientsService } from '@shared/services/patientsService'
 import { appointmentsService } from '@shared/services/appointmentsService'
-import { buildMockData } from './mockData'
 
 export const useClinicalFileData = (patient) => {
   const { user } = useAuth()
@@ -18,7 +17,7 @@ export const useClinicalFileData = (patient) => {
   const [patientProfile, setPatientProfile]     = useState(patient)
 
   const patientId = patient?.id || patient?._id
-  const needsFullProfile = !patient?.email && !patient?.telefono && !patient?.phone
+  const patientUserId = patient?.userId || patient?.user || patientId
 
   const fetchData = useCallback(async () => {
     if (!patientId) { setIsLoading(false); return }
@@ -27,20 +26,27 @@ export const useClinicalFileData = (patient) => {
       const fetches = [
         diaryService.getNotes(patientId),
         homeworkService.getAll(patientId),
-        appointmentsService.getAll({ status: 'completed' }),
-        ...(needsFullProfile ? [patientsService.getAll({ limit: 200 })] : []),
+        appointmentsService.getAllAsProf(),
+        // Always fetch the full profile — the patient prop from the list is always
+        // a thin normalizePatient() object missing dateOfBirth, gender, emergencyContact, userId
+        patientsService.getById(patientId),
       ]
       const results = await Promise.allSettled(fetches)
-      const [notesResult, hwResult, apptResult, listResult] = results
+      const [notesResult, hwResult, apptResult, profileResult] = results
 
-      if (needsFullProfile && listResult?.status === 'fulfilled') {
-        const raw = listResult.value?.data
-        const list = raw?.data?.data ?? raw?.data ?? raw ?? []
-        const arr  = Array.isArray(list) ? list : []
-        const found = arr.find(p =>
-          (p._id || p.id)?.toString() === patientId?.toString()
-        )
-        if (found) {
+      // Resolve full profile FIRST so we have the real userId for appointment filtering
+      let resolvedUserId = patientUserId
+      if (profileResult?.status === 'fulfilled') {
+        const raw = profileResult.value?.data
+        const found = raw?.data ?? raw ?? null
+        console.log('[ClinicalFile] profile found object:', found)
+        if (found && typeof found === 'object' && !Array.isArray(found)) {
+          // Extract the real userId — appointments are indexed by this, not patient._id
+          const rawUserId = found.userId || found.user
+          console.log('[ClinicalFile] found.userId:', found.userId, '| found.user:', found.user, '| resolvedUserId will be:', rawUserId)
+          if (rawUserId) {
+            resolvedUserId = typeof rawUserId === 'object' ? (rawUserId._id || rawUserId.id || rawUserId) : rawUserId
+          }
           setPatientProfile(prev => ({
             ...found,
             id:       found._id || found.id || patientId,
@@ -55,6 +61,9 @@ export const useClinicalFileData = (patient) => {
             treatmentGoal: found.presentingConcern || found.treatmentGoal || prev.treatmentGoal,
           }))
         }
+      } else {
+        // GET /patients/:id not supported — use prop data as-is (normalizePatient now preserves all fields)
+        console.warn('[useClinicalFileData] getById unavailable, using prop data:', profileResult?.reason?.message)
       }
 
       if (notesResult.status === 'fulfilled') {
@@ -82,18 +91,36 @@ export const useClinicalFileData = (patient) => {
 
       if (apptResult?.status === 'fulfilled') {
         const rawAppt = apptResult.value?.data
+        console.log('[ClinicalFile] appointments raw response:', rawAppt)
         const allAppts = Array.isArray(rawAppt) ? rawAppt
           : Array.isArray(rawAppt?.data) ? rawAppt.data
           : Array.isArray(rawAppt?.appointments) ? rawAppt.appointments
           : Array.isArray(rawAppt?.data?.data) ? rawAppt.data?.data
+          : Array.isArray(rawAppt?.data?.appointments) ? rawAppt.data.appointments
           : []
+        console.log('[ClinicalFile] allAppts count:', allAppts.length, '| first patientId sample:', allAppts[0]?.patientId)
+        console.log('[ClinicalFile] filtering with patientId:', patientId, 'OR resolvedUserId:', resolvedUserId, 'OR patientUserId:', patientUserId)
+        const targets = new Set(
+          [patientId, resolvedUserId, patientUserId].filter(Boolean).map(String)
+        )
         const patientAppts = allAppts.filter(apt => {
           if (apt.status !== 'completed') return false
-          const aptPatientId = typeof apt.patientId === 'object'
-            ? (apt.patientId?._id || apt.patientId?.id)
-            : apt.patientId
-          return aptPatientId?.toString() === patientId?.toString()
+          const pid = apt.patientId
+          const candidates = []
+          if (pid != null) {
+            if (typeof pid === 'string') {
+              candidates.push(pid)
+            } else if (typeof pid === 'object') {
+              // populated object — collect every ID-like field
+              if (pid._id)    candidates.push(String(pid._id))
+              if (pid.id)     candidates.push(String(pid.id))
+              if (pid.userId) candidates.push(String(pid.userId))
+              if (pid.user)   candidates.push(String(pid.user))
+            }
+          }
+          return candidates.some(c => targets.has(c))
         })
+        console.log('[ClinicalFile] matched appointments:', patientAppts.length)
         patientAppts.sort((a, b) =>
           new Date(b.callStartedAt || b.fechaHora || b.date) - new Date(a.callStartedAt || a.fechaHora || a.date)
         )
@@ -105,7 +132,7 @@ export const useClinicalFileData = (patient) => {
     } finally {
       setIsLoading(false)
     }
-  }, [patientId, needsFullProfile])
+  }, [patientId, patientUserId])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -149,8 +176,14 @@ export const useClinicalFileData = (patient) => {
   const pLastName  = p.lastName  || p.apellido || p.name?.split(' ').slice(1).join(' ') || ''
   const pPhone     = p.phone     || p.telefono || ''
   const pConcern   = p.presentingConcern || p.treatmentGoal || p.reason || ''
-  const pEmergency = [p.emergencyContactName, p.emergencyContactPhone].filter(Boolean).join(' · ') ||
-                     p.emergencyContact || ''
+  const pEmergency = (() => {
+    const ec = p.emergencyContact
+    if (ec && typeof ec === 'object') {
+      return [ec.name, ec.phone].filter(Boolean).join(' · ')
+    }
+    return [p.emergencyContactName, p.emergencyContactPhone].filter(Boolean).join(' · ') ||
+           (typeof ec === 'string' ? ec : '')
+  })()
   const pAge = (() => {
     if (p.age) return p.age
     if (!p.dateOfBirth) return null
@@ -159,8 +192,25 @@ export const useClinicalFileData = (patient) => {
     return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25))
   })()
 
-  const mock = useMemo(() => buildMockData(p), [p])
-  const { sessionHistory, clinicalNotes: mockClinicalNotes } = mock
+  // Build real session history from completed appointments
+  const sessionHistory = useMemo(() =>
+    sessionSummaries.map((appt, i) => {
+      const dateStr = appt.callStartedAt || appt.fechaHora || appt.date
+      const isVideo = appt.isVideoCall || appt.mode === 'videollamada'
+      const dur = appt.callDuration && appt.callDuration > 0
+        ? Math.round(appt.callDuration)
+        : (appt.duration || 50)
+      return {
+        id: appt._id || appt.id || `s${i}`,
+        number: sessionSummaries.length - i,
+        date: dateStr,
+        duration: dur,
+        type: isVideo ? 'Videollamada' : 'Presencial',
+        mood: appt.moodRating || appt.mood || '—',
+      }
+    }),
+    [sessionSummaries]
+  )
 
   const initials    = (pFirstName?.[0] || '') + (pLastName?.[0] || '')
   const completedHW = hwTasks.filter(t => t.completed).length
@@ -172,7 +222,7 @@ export const useClinicalFileData = (patient) => {
     newNote, setNewNote, isSubmitting,
     sessionSummaries,
     p, pFirstName, pLastName, pPhone, pConcern, pEmergency, pAge,
-    patientId, diaryEntries, clinicalNotes, mockClinicalNotes, hwTasks,
+    patientId, diaryEntries, clinicalNotes, hwTasks,
     sessionHistory, completedHW, totalHW, authorName, initials,
     fetchData, handleAddNote, handleEntryUpdate,
   }

@@ -7,9 +7,9 @@ const ClinicalNoteCard = ({ note, index }) => (
     initial={{ opacity: 0, y: 6 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.15, delay: Math.min(index, 3) * 0.04 }}
-    className="bg-white dark:bg-[#1a2234] rounded-2xl border border-sky-100 dark:border-sky-900/30 p-5"
+    className="bg-white dark:bg-[#1a2234] rounded-2xl border border-sky-100 dark:border-sky-900/30 p-3.5 sm:p-5"
   >
-    <div className="flex items-start justify-between gap-3 mb-3">
+    <div className="flex items-start justify-between gap-2 sm:gap-3 mb-2 sm:mb-3">
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 rounded-xl bg-sky-50 dark:bg-sky-900/20 flex items-center justify-center">
           <FileText className="w-4 h-4 text-sky-500 dark:text-sky-400" />

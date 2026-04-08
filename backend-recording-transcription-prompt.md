@@ -110,8 +110,48 @@ transcript:        { type: String, default: '' },
 transcriptStatus:  { type: String, enum: ['idle', 'processing', 'ready', 'failed'], default: 'idle' },
 transcriptJobId:   { type: String },        // AssemblyAI transcript ID for polling/lookup
 recordingUrl:      { type: String },        // temporary storage path, delete after transcription
-recordingConsent:  { type: Boolean, default: false }
+recordingConsent:  { type: Boolean, default: false },
+
+// ── Session timing fields (REQUIRED) ─────────────────────────────────────────
+callStartedAt:     { type: Date },          // UTC timestamp when both peers connected
+callEndedAt:       { type: Date },          // UTC timestamp when room was ended
+callDuration:      { type: Number },        // actual elapsed minutes (derived: (callEndedAt - callStartedAt) / 60000)
+duration:          { type: Number },        // scheduled duration in minutes (set at booking time, never overwrite with callDuration)
 ```
+
+#### ⚠️ Duration tracking rules
+
+- `duration` = the **booked/scheduled** duration (set when the appointment is created). Never overwrite this.
+- `callDuration` = the **actual measured** duration, calculated server-side when the room ends:
+
+```javascript
+// In POST /rtc/rooms/:appointmentId/end handler:
+const callEndedAt = new Date()
+const callDuration = Math.round((callEndedAt - appointment.callStartedAt) / 60_000)
+
+await Appointment.findByIdAndUpdate(appointmentId, {
+  callEndedAt,
+  callDuration,
+  status: 'completed',
+})
+```
+
+- `callStartedAt` must be set in `POST /rtc/rooms/join` **when the second participant joins** (i.e., when the call actually begins, not when the first peer enters the room):
+
+```javascript
+// In POST /rtc/rooms/join handler:
+const room = await Room.findOne({ appointmentId })
+const participantCount = room.participants.length + 1  // after adding current
+
+if (participantCount === 2 && !appointment.callStartedAt) {
+  await Appointment.findByIdAndUpdate(appointmentId, {
+    callStartedAt: new Date(),
+  })
+}
+```
+
+- Both fields must be returned in `GET /appointments/:id` and in all appointment list endpoints so the frontend can display **actual session times** in the clinical file history.
+- For **in-person sessions** (non-video), `callDuration` will always be null. The frontend falls back to `duration` (scheduled). The backend does not need to do anything special — just ensure `duration` is always saved at booking time and never null/0.
 
 ---
 

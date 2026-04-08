@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { Calendar, Clock, Video, CheckCircle2, Plus } from 'lucide-react'
 import { appointmentsService } from '@shared/services/appointmentsService'
-import { normalizeAppointmentsResponse, toLocalDateObj, isToday } from '@shared/utils/appointments'
+import { toLocalDateObj, isToday, endTimeOf } from '@shared/utils/appointments'
 import { showToast } from '@shared/ui/Toast'
+import { useAppointments } from '../AppointmentsContext'
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Helpers
@@ -12,25 +13,16 @@ import { showToast } from '@shared/ui/Toast'
 const STATUS_CONFIG = {
   confirmed:   { label: 'Confirmada',   bg: 'bg-emerald-50 dark:bg-emerald-900/30',  text: 'text-emerald-700 dark:text-emerald-400', border: 'border-emerald-200 dark:border-emerald-700/50', dot: 'bg-emerald-500'  },
   scheduled:   { label: 'Programada',   bg: 'bg-emerald-50 dark:bg-emerald-900/30',  text: 'text-emerald-700 dark:text-emerald-400', border: 'border-emerald-200 dark:border-emerald-700/50', dot: 'bg-emerald-500'  },
+  pending:     { label: 'Pendiente',    bg: 'bg-amber-50 dark:bg-amber-900/30',       text: 'text-amber-700 dark:text-amber-400',     border: 'border-amber-200 dark:border-amber-700/50',    dot: 'bg-amber-400'    },
   completed:   { label: 'Completada',   bg: 'bg-stone-50 dark:bg-gray-700/50',       text: 'text-stone-500 dark:text-gray-400',     border: 'border-stone-200 dark:border-gray-600',        dot: 'bg-stone-400'    },
   reserved:    { label: 'Reservada',    bg: 'bg-blue-50 dark:bg-blue-900/30',        text: 'text-blue-700 dark:text-blue-400',      border: 'border-blue-200 dark:border-blue-700/50',      dot: 'bg-blue-500'     },
   accepted:    { label: 'Aceptada',     bg: 'bg-emerald-50 dark:bg-emerald-900/30',  text: 'text-emerald-700 dark:text-emerald-400', border: 'border-emerald-200 dark:border-emerald-700/50', dot: 'bg-emerald-500'  },
   cancelled:   { label: 'Cancelada',    bg: 'bg-red-50 dark:bg-red-900/30',          text: 'text-red-600 dark:text-red-400',        border: 'border-red-200 dark:border-red-700/50',        dot: 'bg-red-400'      },
   rescheduled: { label: 'Reprogramada', bg: 'bg-purple-50 dark:bg-purple-900/30',    text: 'text-purple-700 dark:text-purple-400',  border: 'border-purple-200 dark:border-purple-700/50',  dot: 'bg-purple-500'   },
   'no-show':   { label: 'No asistió',   bg: 'bg-orange-50 dark:bg-orange-900/30',    text: 'text-orange-700 dark:text-orange-400',  border: 'border-orange-200 dark:border-orange-700/50',  dot: 'bg-orange-400'   },
+  paid:        { label: 'Pagada',       bg: 'bg-emerald-50 dark:bg-emerald-900/30',  text: 'text-emerald-700 dark:text-emerald-400', border: 'border-emerald-200 dark:border-emerald-700/50', dot: 'bg-emerald-500'  },
 }
 const statusCfg = (s) => STATUS_CONFIG[s] || STATUS_CONFIG.reserved
-
-/**
- * Returns the appointment end time Date.
- * Uses start + duration as a proxy since the backend rarely stores endTime.
- */
-const endTimeOf = (apt) => {
-  const start = toLocalDateObj(apt.date, apt.time)
-  if (isNaN(start)) return new Date(NaN)
-  const duration = apt.duration || 60
-  return new Date(start.getTime() + duration * 60_000)
-}
 
 /**
  * Derive a display-only status for an appointment.
@@ -38,7 +30,7 @@ const endTimeOf = (apt) => {
  * the session end time is already in the past, show it as 'completed' so the
  * UI reflects reality without mutating stored data.
  */
-const ACTIVE_STATUSES = new Set(['scheduled', 'confirmed', 'reserved', 'accepted'])
+const ACTIVE_STATUSES = new Set(['scheduled', 'confirmed', 'reserved', 'accepted', 'pending', 'paid'])
 const derivedStatus = (apt) => {
   if (!ACTIVE_STATUSES.has(apt.status)) return apt.status
   const end = endTimeOf(apt)
@@ -272,48 +264,36 @@ const FILTERS = [
   { key: 'all',      label: 'Todas'     },
 ]
 
-const PatientSessionsList = ({ onRequestNew, refreshTrigger = 0, patientName = '' }) => {
-  const [appointments, setAppointments] = useState([])
-  const [loading, setLoading]           = useState(true)
-  const [filter, setFilter]             = useState('upcoming')
+const PatientSessionsList = ({ onRequestNew, refreshTrigger: _ignored = 0, patientName = '' }) => {
+  const { appointments, loading, updateOne } = useAppointments()
+  const [filter, setFilter]                  = useState('upcoming')
   const scrollRef = useRef(null)
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    try {
-      const res = await appointmentsService.getPatientAppointments()
-      const all = normalizeAppointmentsResponse(res)
-      setAppointments(all)
-    } catch {
-      const stored = JSON.parse(localStorage.getItem('patientAppointments') || '[]')
-      setAppointments(stored)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => { load() }, [load, refreshTrigger])
+  // Start of today in local time — used by the upcoming/past date boundary.
+  const todayStart = (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d })()
 
   /* ── Filtering ── */
   const now = new Date()
+
   const filtered = appointments.filter((apt) => {
-    const end   = endTimeOf(apt)
-    const start = toLocalDateObj(apt.date, apt.time)
+    const start   = toLocalDateObj(apt.date, apt.time)
     const hasDate = !isNaN(start)
 
     switch (filter) {
       case 'upcoming':
-        // Active session whose end time hasn't passed yet
+        // All of today (regardless of time) + future days — excludes only
+        // cancelled and explicitly-completed appointments.  This means a
+        // session that already ended earlier today is still visible here;
+        // patients should not have to hunt for "disappearing" same-day sessions.
         if (!hasDate) return false
-        return end >= now && apt.status !== 'cancelled' && apt.status !== 'completed'
+        return start >= todayStart && apt.status !== 'cancelled' && apt.status !== 'completed'
       case 'today':
         if (!hasDate) return false
         return isToday(apt.date) && apt.status !== 'cancelled'
       case 'past':
-        // Session is finished (end time passed) OR explicitly completed/cancelled,
-        // OR has no date but is marked completed/cancelled
+        // Previous days, OR explicitly completed/cancelled regardless of day.
         if (!hasDate) return apt.status === 'completed' || apt.status === 'cancelled'
-        return end < now || apt.status === 'completed' || apt.status === 'cancelled'
+        return start < todayStart || apt.status === 'completed' || apt.status === 'cancelled'
       default: // 'all'
         return true
     }
@@ -338,13 +318,13 @@ const PatientSessionsList = ({ onRequestNew, refreshTrigger = 0, patientName = '
   /* ── Cancel action ── */
   const handleCancel = async (appointmentId) => {
     if (!confirm('¿Estás seguro de que deseas cancelar esta cita?')) return
-    const rollback = [...appointments]
-    setAppointments(prev => prev.map(a => (a.id || a._id) === appointmentId ? { ...a, status: 'cancelled' } : a))
+    const original = appointments.find(a => (a.id || a._id) === appointmentId)
+    updateOne(appointmentId, { status: 'cancelled' })
     try {
       await appointmentsService.cancel(appointmentId, 'Cancelado por el paciente')
       showToast('Cita cancelada exitosamente', 'success')
     } catch {
-      setAppointments(rollback)
+      if (original) updateOne(appointmentId, { status: original.status })
       showToast('No se pudo cancelar la cita. Intenta de nuevo.', 'error')
     }
   }
@@ -391,15 +371,14 @@ const PatientSessionsList = ({ onRequestNew, refreshTrigger = 0, patientName = '
       {/* Filter tabs */}
       <div className="flex gap-1.5 px-5 py-3 border-b border-stone-50 dark:border-gray-700">
         {FILTERS.map(({ key, label }) => {
-          // Compute count per tab for the badge
+          // Compute count per tab — MUST match the main filter logic exactly.
           const tabCount = appointments.filter(apt => {
-            const end   = endTimeOf(apt)
-            const start = toLocalDateObj(apt.date, apt.time)
+            const start   = toLocalDateObj(apt.date, apt.time)
             const hasDate = !isNaN(start)
             switch (key) {
-              case 'upcoming': return hasDate && end >= now && apt.status !== 'cancelled' && apt.status !== 'completed'
+              case 'upcoming': return hasDate && start >= todayStart && apt.status !== 'cancelled' && apt.status !== 'completed'
               case 'today':    return hasDate && isToday(apt.date) && apt.status !== 'cancelled'
-              case 'past':     return (!hasDate && (apt.status === 'completed' || apt.status === 'cancelled')) || (hasDate && (end < now || apt.status === 'completed' || apt.status === 'cancelled'))
+              case 'past':     return (!hasDate && (apt.status === 'completed' || apt.status === 'cancelled')) || (hasDate && (start < todayStart || apt.status === 'completed' || apt.status === 'cancelled'))
               default:         return true
             }
           }).length
@@ -446,6 +425,14 @@ const PatientSessionsList = ({ onRequestNew, refreshTrigger = 0, patientName = '
             <p className="text-xs text-stone-400 dark:text-gray-500">
               {filter === 'upcoming' ? '¡Solicita una nueva sesión!' : 'Tu historial aparecerá aquí'}
             </p>
+            {(filter === 'upcoming' || filter === 'today') && appointments.length > 0 && (
+              <button
+                onClick={() => setFilter('all')}
+                className="mt-3 text-xs text-sky-500 hover:text-sky-600 dark:text-sky-400 dark:hover:text-sky-300 underline underline-offset-2"
+              >
+                Ver todas las citas →
+              </button>
+            )}
           </div>
         ) : filter === 'past' ? (
           /* ── Past view: grouped by time period ── */

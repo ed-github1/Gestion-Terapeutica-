@@ -23,13 +23,13 @@ const HomeworkCard = ({ task, index }) => {
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.15, delay: Math.min(index, 3) * 0.04 }}
-      className={`bg-white dark:bg-[#1a2234] rounded-2xl border p-4 ${
+      className={`bg-white dark:bg-[#1a2234] rounded-2xl border p-3 sm:p-4 ${
         task.completed ? 'border-emerald-100 dark:border-emerald-900/40 opacity-75' :
         isOverdue      ? 'border-rose-200 dark:border-rose-900/40'                :
                          'border-gray-100 dark:border-[#2d3748]'
       }`}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-2.5 sm:gap-3">
         <div className="mt-0.5 shrink-0">
           {task.completed
             ? <CheckCircle2 className="w-5 h-5 text-emerald-500" />

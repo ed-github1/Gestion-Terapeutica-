@@ -17,16 +17,29 @@
  * Handles shapes:
  *   response.data          → Array
  *   response.data          → { data: Array }
+ *   response.data          → { data: { data: Array } }   (paginated)
  *   response.data          → { appointments: Array }
+ *   response.data          → { sessions: Array }
+ *   response.data          → { items: Array }
+ *   response.data          → { result: Array }
+ *   response.data          → { results: Array }
  *   response.data          → { data: { appointments: Array } }
+ *   response.data          → { data: { sessions: Array } }
  */
 export function unwrapAppointmentsResponse(response) {
   const raw = response?.data ?? response
 
-  if (Array.isArray(raw))                    return raw
-  if (Array.isArray(raw?.data))              return raw.data
-  if (Array.isArray(raw?.appointments))      return raw.appointments
-  if (Array.isArray(raw?.data?.appointments)) return raw.data.appointments
+  if (Array.isArray(raw))                      return raw
+  if (Array.isArray(raw?.data))                return raw.data
+  if (Array.isArray(raw?.data?.data))          return raw.data.data
+  if (Array.isArray(raw?.appointments))        return raw.appointments
+  if (Array.isArray(raw?.sessions))            return raw.sessions
+  if (Array.isArray(raw?.items))               return raw.items
+  if (Array.isArray(raw?.result))              return raw.result
+  if (Array.isArray(raw?.results))             return raw.results
+  if (Array.isArray(raw?.data?.appointments))  return raw.data.appointments
+  if (Array.isArray(raw?.data?.sessions))      return raw.data.sessions
+  if (Array.isArray(raw?.data?.items))         return raw.data.items
 
   return []
 }
@@ -52,20 +65,37 @@ export function normalizeAppointment(apt) {
   // We always store the date as a "YYYY-MM-DD" string so downstream filters
   // can parse it reliably in local time (see toLocalDateObj below).
   const rawDatetime =
-    apt.startTime ?? apt.start ?? apt.scheduledAt ?? apt.appointmentDate ?? apt.date ?? null
+    apt.startTime ?? apt.start ?? apt.scheduledAt ?? apt.scheduled_at ??
+    apt.datetime  ?? apt.dateTime ?? apt.appointmentDatetime ??
+    apt.appointmentDate ?? apt.appointment_date ?? apt.date ?? null
 
   let date = null
   let time = null
 
   if (rawDatetime) {
-    if (/^\d{4}-\d{2}-\d{2}$/.test(rawDatetime)) {
+    const raw = typeof rawDatetime === 'string' ? rawDatetime : String(rawDatetime)
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
       // Already a date-only string — keep as-is
-      date = rawDatetime
+      date = raw
     } else {
-      const dt = new Date(rawDatetime)
-      if (!isNaN(dt)) {
-        date = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
-        time = dt.toTimeString().slice(0, 5)
+      // Try to extract YYYY-MM-DD directly from the ISO string BEFORE parsing.
+      // Backend typically stores midnight-UTC dates like "2026-04-05T00:00:00.000Z".
+      // Using `new Date().getDate()` would shift the day in negative-UTC timezones.
+      const isoMatch = raw.match(/^(\d{4}-\d{2}-\d{2})T/)
+      if (isoMatch) {
+        date = isoMatch[1]
+        // Extract time from the ISO string as a fallback; an explicit `apt.time`
+        // field (handled below) takes priority.
+        const timePart = raw.slice(11, 16) // "HH:MM"
+        if (timePart && timePart !== '00:00') time = timePart
+      } else {
+        // Non-ISO format — fall back to local Date parsing
+        const dt = new Date(raw)
+        if (!isNaN(dt)) {
+          date = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
+          time = dt.toTimeString().slice(0, 5)
+        }
       }
     }
   }
@@ -151,6 +181,18 @@ export function toLocalDateObj(dateStr, timeStr = '00:00') {
   const [year, month, day] = dateStr.split('-').map(Number)
   const [hour = 0, minute = 0] = (timeStr ?? '00:00').split(':').map(Number)
   return new Date(year, month - 1, day, hour, minute)
+}
+
+/**
+ * Returns the local Date object for when an appointment ends.
+ * Uses start + duration as a proxy since backends rarely store endTime.
+ * Exported so PatientDashboard and other consumers can reuse this.
+ */
+export function endTimeOf(apt) {
+  const start = toLocalDateObj(apt.date, apt.time)
+  if (isNaN(start)) return new Date(NaN)
+  const duration = apt.duration || 60
+  return new Date(start.getTime() + duration * 60_000)
 }
 
 /**

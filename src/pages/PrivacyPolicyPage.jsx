@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'motion/react'
-import { ArrowLeft, Shield, FileText, Lock, AlertTriangle, ClipboardList, BarChart2, Users } from 'lucide-react'
+import { ArrowLeft, Download, Shield, FileText, Lock, AlertTriangle, ClipboardList, BarChart2, Users } from 'lucide-react'
 import BrandLogo from '@/shared/ui/BrandLogo'
 
 const Section = ({ id, icon: Icon, title, children }) => (
@@ -50,13 +50,22 @@ const PrivacyPolicyPage = () => {
           <Link to="/">
             <BrandLogo fullLogo size="h-9 w-auto" />
           </Link>
-          <Link
-            to="/"
-            className="flex items-center gap-2 text-sm text-slate-600 hover:text-blue-600 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Volver al inicio
-          </Link>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => window.print()}
+              className="flex items-center gap-2 text-sm text-slate-600 hover:text-blue-600 transition-colors cursor-pointer print:hidden"
+            >
+              <Download className="w-4 h-4" />
+              Descargar PDF
+            </button>
+            <Link
+              to="/"
+              className="flex items-center gap-2 text-sm text-slate-600 hover:text-blue-600 transition-colors print:hidden"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Volver al inicio
+            </Link>
+          </div>
         </div>
       </header>
 

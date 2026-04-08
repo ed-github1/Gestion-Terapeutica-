@@ -58,16 +58,16 @@ const GoalsTracker = () => {
   const pct = goals.length ? Math.round((completed / goals.length) * 100) : 0
 
   return (
-    <div className="bg-white rounded-2xl border border-stone-200 shadow-sm p-4">
+    <div className="bg-white dark:bg-gray-800/70 rounded-2xl border border-stone-200 dark:border-gray-700/60 shadow-sm p-4">
       <div className="flex items-center justify-between mb-3">
-        <p className="text-xs font-semibold text-stone-400 uppercase tracking-wide">
-          Mis objetivos terapéuticos
+        <p className="text-xs font-semibold text-stone-400 dark:text-gray-500 uppercase tracking-wide">
+          Tareas
         </p>
-        <span className="text-xs font-bold text-violet-600">{pct}%</span>
+        <span className="text-xs font-bold text-violet-500 dark:text-violet-400">{completed}/{goals.length} completadas</span>
       </div>
 
       {/* Progress bar */}
-      <div className="w-full h-1.5 bg-stone-100 rounded-full overflow-hidden mb-3">
+      <div className="w-full h-1.5 bg-stone-100 dark:bg-gray-700 rounded-full overflow-hidden mb-3">
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${pct}%` }}
@@ -79,11 +79,11 @@ const GoalsTracker = () => {
       {loading ? (
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-8 bg-stone-100 rounded-xl animate-pulse" />
+            <div key={i} className="h-8 bg-stone-100 dark:bg-gray-700 rounded-xl animate-pulse" />
           ))}
         </div>
       ) : goals.length === 0 ? (
-        <p className="text-xs text-stone-400 text-center py-3">
+        <p className="text-xs text-stone-400 dark:text-gray-500 text-center py-3">
           Tu profesional aún no ha asignado objetivos.
         </p>
       ) : (
@@ -102,7 +102,7 @@ const GoalsTracker = () => {
                   className={`mt-0.5 shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
                     goal.completed
                       ? 'bg-violet-500 border-violet-500'
-                      : 'border-stone-300 hover:border-violet-400'
+                      : 'border-stone-300 dark:border-gray-600 hover:border-violet-400'
                   }`}
                   aria-label={goal.completed ? 'Marcar incompleto' : 'Marcar completado'}
                 >
@@ -112,7 +112,7 @@ const GoalsTracker = () => {
                     </svg>
                   )}
                 </button>
-                <span className={`text-xs leading-snug ${goal.completed ? 'line-through text-stone-400' : 'text-stone-700'}`}>
+                <span className={`text-xs leading-snug ${goal.completed ? 'line-through text-stone-400 dark:text-gray-500' : 'text-stone-700 dark:text-gray-300'}`}>
                   {goal.title}
                 </span>
               </motion.li>
@@ -121,8 +121,8 @@ const GoalsTracker = () => {
         </ul>
       )}
 
-      <p className="text-[11px] text-stone-400 mt-3">
-        {completed} de {goals.length} objetivos completados
+      <p className="text-[11px] text-stone-400 dark:text-gray-500 mt-3">
+        {completed} de {goals.length} completadas
       </p>
     </div>
   )

@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@features/auth/AuthContext'
+import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
-import { RefreshCw, CalendarPlus, Calendar, CalendarCheck, CheckCircle2, Clock, Moon, Sun } from 'lucide-react'
+import { RefreshCw, CalendarPlus, Calendar, CalendarCheck, CheckCircle2, Clock, Moon, Sun, BookOpen, ClipboardList, Bell } from 'lucide-react'
 import { useDarkModeContext } from '@shared/DarkModeContext'
 import AppointmentRequest from './AppointmentRequest'
 import NotificationCenter from './components/NotificationCenter'
 import PatientSessionsList from './components/PatientSessionsList'
 import CrisisButton from './components/CrisisButton'
 import DiaryWidget from './components/DiaryWidget'
+import GoalsTracker from './components/GoalsTracker'
 import AppointmentAcceptanceModal from './components/AppointmentAcceptanceModal'
 import AppointmentPaymentModal from './components/AppointmentPaymentModal'
 import { useAppointmentNotifications } from './hooks/useAppointmentNotifications'
@@ -16,7 +18,8 @@ import { notificationsService } from '@shared/services/notificationsService'
 import { patientsService, resolveLinkedProfessional } from '@shared/services/patientsService'
 import { invitationsService } from '@shared/services/invitationsService'
 import { socketNotificationService } from '@shared/services/socketNotificationService'
-import { normalizeAppointmentsResponse, toLocalDateObj } from '@shared/utils/appointments'
+import { normalizeAppointmentsResponse, toLocalDateObj, endTimeOf } from '@shared/utils/appointments'
+import { useAppointments } from './AppointmentsContext'
 import { VideoCallNotificationManager } from '@shared/ui'
 
 /**
@@ -26,6 +29,7 @@ import { VideoCallNotificationManager } from '@shared/ui'
 const PatientDashboard = () => {
   const { user } = useAuth()
   const { dark, toggleDark } = useDarkModeContext()
+  const navigate = useNavigate()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [showAppointmentRequest, setShowAppointmentRequest] = useState(false)
   const [nextAppointment, setNextAppointment] = useState(null)
@@ -41,7 +45,7 @@ const PatientDashboard = () => {
     clearPendingAppointment,
   } = useAppointmentNotifications()
   const [stats, setStats] = useState({ total: 0, upcoming: 0, completed: 0, pending: 0 })
-  const [loading, setLoading] = useState(true)
+  const { appointments: allAppointments, loading, refresh: refreshAppointments } = useAppointments()
   const [professionalId, setProfessionalId] = useState(null)       // profile ID
   const [professionalUserId, setProfessionalUserId] = useState(     // user account ID (for socket routing)
     () => localStorage.getItem('_linkedProUserId') || null
@@ -68,10 +72,32 @@ const PatientDashboard = () => {
 
   // Reload when pro books/confirms
   useEffect(() => {
-    if (lastBooking > 0) loadDashboardData()
+    if (lastBooking > 0) refreshAppointments()
   }, [lastBooking]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { loadDashboardData() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Derive nextAppointment, stats, and professionalUserId whenever the
+  // shared appointment list updates.  No redundant API call needed.
+  useEffect(() => {
+    const now      = new Date()
+    // Use endTimeOf so an in-progress appointment (started but not finished)
+    // still shows in the "Hoy" card instead of silently disappearing.
+    const upcoming = allAppointments
+      .filter(a => endTimeOf(a) > now && a.status !== 'cancelled')
+      .sort((a, b) => toLocalDateObj(a.date, a.time) - toLocalDateObj(b.date, b.time))
+    setNextAppointment(upcoming[0] || null)
+    setStats({
+      total:     allAppointments.filter(a => a.status !== 'cancelled').length,
+      upcoming:  upcoming.length,
+      completed: allAppointments.filter(a => a.status === 'completed').length,
+      pending:   allAppointments.filter(a => a.status === 'reserved').length,
+    })
+    if (!professionalUserId) {
+      const aptWithPro = allAppointments.find(a => a.professionalUserId)
+      if (aptWithPro?.professionalUserId) _setProUserId(aptWithPro.professionalUserId)
+    }
+  }, [allAppointments]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const appointmentToAcceptRef = useRef(appointmentToAccept)
   useEffect(() => { appointmentToAcceptRef.current = appointmentToAccept }, [appointmentToAccept])
@@ -142,48 +168,16 @@ const PatientDashboard = () => {
     return () => unsubReconnect()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Resolves the linked professional's IDs and triggers a shared appointment
+  // refresh.  Appointment data is derived reactively from the context in the
+  // useEffect above — no direct getPatientAppointments() call needed here.
   const loadDashboardData = async () => {
     try {
       const { professionalId: pid, professionalUserId: puid } = await resolveLinkedProfessional(user)
       if (pid)  setProfessionalId(pid)
       if (puid) _setProUserId(puid)
-
-      const response = await appointmentsService.getPatientAppointments()
-      const all      = normalizeAppointmentsResponse(response)
-
-      // Last-ditch: extract professionalUserId from any appointment that has it
-      if (!puid) {
-        const aptWithPro = all.find(a => a.professionalUserId)
-        if (aptWithPro?.professionalUserId) _setProUserId(aptWithPro.professionalUserId)
-      }
-
-      const now      = new Date()
-
-      const upcoming = all
-        .filter(a => toLocalDateObj(a.date, a.time) > now && a.status !== 'cancelled')
-        .sort((a, b) => toLocalDateObj(a.date, a.time) - toLocalDateObj(b.date, b.time))
-
-      setNextAppointment(upcoming[0] || null)
-      setStats({
-        total:     all.filter(a => a.status !== 'cancelled').length,
-        upcoming:  upcoming.length,
-        completed: all.filter(a => a.status === 'completed').length,
-        pending:   all.filter(a => a.status === 'reserved').length,
-      })
-    } catch {
-      const stored   = JSON.parse(localStorage.getItem('patientAppointments') || '[]')
-      const now      = new Date()
-      const upcoming = stored.filter(a => new Date(a.date) > now && a.status !== 'cancelled')
-      setNextAppointment(upcoming[0] || null)
-      setStats({
-        total:     stored.filter(a => a.status !== 'cancelled').length,
-        upcoming:  upcoming.length,
-        completed: stored.filter(a => a.status === 'completed').length,
-        pending:   stored.filter(a => a.status === 'reserved').length,
-      })
-    } finally {
-      setLoading(false)
-    }
+    } catch {}
+    refreshAppointments()
   }
 
   const greeting = () => {
@@ -208,7 +202,7 @@ const PatientDashboard = () => {
     // in the AppointmentAcceptanceModal (which is for professional-initiated ones).
     _markDismissed(data)
     addPatientAlert('request-pending', data, 'Tu solicitud fue enviada al profesional.')
-    loadDashboardData()
+    refreshAppointments()
   }
 
   // When a pending appointment arrives via socket, show acceptance modal
@@ -234,7 +228,7 @@ const PatientDashboard = () => {
     _markDismissed(apt)
     setAppointmentToAccept(null)
     clearPendingAppointment()
-    loadDashboardData()
+    refreshAppointments()
   }
 
   const handlePaymentSuccess = (apt) => {
@@ -243,202 +237,303 @@ const PatientDashboard = () => {
     setAppointmentToAccept(null)
     clearPendingAppointment()
     addPatientAlert('appointment-paid', apt, 'Pago completado. ¡Tu cita está confirmada!')
-    loadDashboardData()
+    refreshAppointments()
   }
+
+  // Quick-access shortcuts — only links to existing app routes
+  const quickAccessItems = [
+    { label: 'Citas',   Icon: Calendar,      path: '/dashboard/patient/appointments', color: 'bg-sky-500/15 text-sky-400'     },
+    { label: 'Diario',  Icon: BookOpen,       path: '/dashboard/patient/diary',         color: 'bg-emerald-500/15 text-emerald-400' },
+    { label: 'Sesiones',Icon: CalendarCheck,  path: '/dashboard/patient/appointments',  color: 'bg-violet-500/15 text-violet-400'   },
+    { label: 'Tareas',  Icon: ClipboardList,  path: null, scrollTo: 'tareas',           color: 'bg-amber-500/15 text-amber-400' },
+  ]
 
   return (
     <div className="min-h-full bg-transparent">
-      <div className="min-h-full">
 
-        {/* ── Main ── */}
-        <div className="p-2 md:p-3 lg:p-4 flex flex-col gap-3">
+      {/* ── Mobile + md responsive layout ── */}
+      <div className="p-3 md:p-5 lg:p-6 flex flex-col gap-4 md:gap-5 max-w-5xl mx-auto">
 
-          {/* Header — full width */}
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-between gap-3"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-[#0075C9] flex items-center justify-center text-white font-bold text-xs shadow-sm select-none shrink-0">
-                {initials}
-              </div>
-              <div>
-                <p className="text-[10px] text-gray-400 dark:text-gray-500 capitalize leading-none mb-0.5">{fmtDate(currentTime)}</p>
-                <h1 className="text-sm font-bold text-gray-900 dark:text-white leading-tight">
-                  {greeting()}, <span className="text-[#0075C9]">{userName}</span>
-                </h1>
-              </div>
-            </div>
+        {/* ─── Profile Card ─── */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gray-800/60 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl px-4 py-3.5 flex items-center gap-3.5 border border-gray-700/50 shadow-sm"
+        >
+          <div className="w-11 h-11 rounded-xl bg-[#0075C9] flex items-center justify-center text-white font-bold text-sm shadow-md select-none shrink-0">
+            {initials}
+          </div>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-[15px] font-bold text-white leading-tight truncate">{fullName}</h1>
+            <p className="text-[11px] text-gray-400 capitalize leading-none mt-0.5">{fmtDate(currentTime)}</p>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <NotificationCenter
+              notifications={notifications}
+              onDismiss={dismissNotification}
+              onDismissAll={dismissAllNotifications}
+              onAction={(action, data) => {
+                if (action === 'accept') setAppointmentToAccept(data)
+              }}
+            />
+            <button
+              onClick={toggleDark}
+              className="hidden md:flex w-8 h-8 items-center justify-center rounded-lg hover:bg-gray-700/60 transition-colors"
+              aria-label={dark ? 'Activar modo claro' : 'Activar modo oscuro'}
+            >
+              {dark
+                ? <Sun size={15} className="text-gray-300" />
+                : <Moon size={15} className="text-gray-400" />}
+            </button>
+            <button
+              onClick={loadDashboardData}
+              title="Actualizar"
+              className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-700/60 transition-colors text-gray-400"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </motion.div>
 
-            <div className="flex items-center gap-2 ml-auto">
-              <NotificationCenter
-                notifications={notifications}
-                onDismiss={dismissNotification}
-                onDismissAll={dismissAllNotifications}
-                onAction={(action, data) => {
-                  if (action === 'accept') setAppointmentToAccept(data)
-                }}
-              />
-              <button
-                onClick={toggleDark}
-                className="hidden md:flex w-9 h-9 items-center justify-center rounded-xl bg-white dark:bg-gray-800 border border-stone-200 dark:border-gray-700 shadow-sm hover:border-stone-300 dark:hover:border-gray-600 transition-colors"
-                aria-label={dark ? 'Activar modo claro' : 'Activar modo oscuro'}
-              >
-                {dark
-                  ? <Sun size={16} className="text-gray-200" />
-                  : <Moon size={16} className="text-gray-500" />}
-              </button>
-              <button
-                onClick={loadDashboardData}
-                title="Actualizar"
-                className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-              >
-                <RefreshCw className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setShowAppointmentRequest(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0075C9] text-white rounded-xl text-xs font-semibold hover:bg-[#005fa0] transition-colors"
-              >
-                <CalendarPlus className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Nueva cita</span>
-              </button>
-            </div>
-          </motion.div>
+        {/* ─── md+ two-column grid ─── */}
+        <div className="flex flex-col md:grid md:grid-cols-5 gap-4 md:gap-5">
 
-          {/* KPI stats — same card-grid design as professional dashboard */}
-          <motion.div
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.06 }}
-            className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 px-2 py-2 shadow-sm grid grid-cols-4 gap-2 overflow-hidden"
-          >
-            {loading ? (
-              Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="min-w-0 bg-gray-50 dark:bg-gray-700/50 rounded-2xl px-3 pt-2.5 pb-3 animate-pulse flex flex-col gap-1.5">
-                  <div className="h-2.5 w-full max-w-16 bg-gray-200 dark:bg-gray-600 rounded-full" />
-                  <div className="h-6 w-12 bg-gray-200 dark:bg-gray-600 rounded" />
-                </div>
-              ))
-            ) : (
-              [
-                { value: stats.total,     label: 'Total',       Icon: Calendar,      iconColor: 'text-sky-400',     trend: null,    trendPos: false },
-                { value: stats.upcoming,  label: 'Próximas',    Icon: CalendarCheck, iconColor: 'text-[#0075C9]',   trend: null,    trendPos: false },
-                { value: stats.completed, label: 'Completadas', Icon: CheckCircle2,  iconColor: 'text-emerald-400', trend: null,    trendPos: false },
-                { value: stats.pending,   label: 'Pendientes',  Icon: Clock,         iconColor: 'text-amber-400',   trend: null,    trendPos: false },
-              ].map(({ value, label, Icon, iconColor, trend, trendPos }) => (
-                <div key={label} className="min-w-0 bg-gray-50 dark:bg-gray-700/50 rounded-2xl px-3 pt-2.5 pb-3 flex flex-col gap-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors overflow-hidden">
-                  <div className="flex items-center justify-between gap-1 min-w-0">
-                    <div className="flex items-center gap-1 min-w-0 overflow-hidden">
-                      <Icon size={12} className={`shrink-0 ${iconColor}`} strokeWidth={2.5} />
-                      <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 tracking-wide uppercase truncate">{label}</span>
-                    </div>
-                    {trend != null && (
-                      <span className={`shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
-                        trendPos ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'
-                      }`}>
-                        {trendPos ? '↑' : '↓'}{Math.abs(trend)}%
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-[22px] font-black text-gray-900 dark:text-white leading-none tabular-nums tracking-tight truncate">{value}</span>
-                </div>
-              ))
-            )}
-          </motion.div>
+          {/* ─── Left column (md: 3 cols) ─── */}
+          <div className="flex flex-col gap-4 md:col-span-3">
 
-          {/* Next appointment banner — full width, only when present */}
-          <AnimatePresence mode="wait">
-            {nextAppointment && (
-              <motion.div
-                key="next-appt"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ delay: 0.10 }}
-                className="bg-blue-600 text-white rounded-2xl px-5 py-4 flex items-center gap-4 shadow-sm"
-              >
-                <div className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-semibold text-white/60">Próxima sesión · {nextApptLabel()}</p>
-                  <p className="text-sm font-bold text-white truncate mt-0.5">
-                    {nextAppointment.professionalName || 'Profesional'}&nbsp;&mdash;&nbsp;
-                    {nextAppointment.time || new Date(nextAppointment.date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                </div>
-                <span className="shrink-0 text-xs font-medium bg-white/20 px-2.5 py-1 rounded-lg">
-                  {new Date(nextAppointment.date).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' })}
+            {/* ─── Hoy — Today's session ─── */}
+            <motion.section
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.05 }}
+              className="bg-white dark:bg-gray-800/70 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm overflow-hidden"
+            >
+              <div className="px-4 pt-4 pb-2 flex items-center justify-between">
+                <h2 className="text-sm font-bold text-gray-900 dark:text-white">Hoy</h2>
+                <span className="text-[10px] text-gray-400 dark:text-gray-500 capitalize">
+                  {currentTime.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' })}
                 </span>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              </div>
 
-          {/* ── Widgets row: Sesiones + Mi Diario side by side ── */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
+              <div className="px-4 pb-4">
+                <AnimatePresence mode="wait">
+                  {loading ? (
+                    <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="py-8 flex flex-col items-center gap-2">
+                      <div className="w-10 h-10 rounded-full border-2 border-gray-200 dark:border-gray-600 border-t-sky-500 animate-spin" />
+                    </motion.div>
+                  ) : nextAppointment ? (
+                    <motion.div
+                      key="next-appt"
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      className="bg-blue-600 text-white rounded-xl px-4 py-3.5 flex items-center gap-3.5"
+                    >
+                      <div className="w-10 h-10 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
+                        <Calendar className="w-4.5 h-4.5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[10px] font-semibold text-white/60 uppercase tracking-wide">Próxima sesión · {nextApptLabel()}</p>
+                        <p className="text-sm font-bold text-white truncate mt-0.5">
+                          {nextAppointment.professionalName || 'Profesional'}&nbsp;&mdash;&nbsp;
+                          {nextAppointment.time || new Date(nextAppointment.date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-[11px] font-medium bg-white/20 px-2.5 py-1 rounded-lg">
+                        {new Date(nextAppointment.date).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' })}
+                      </span>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="empty"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="py-6 flex flex-col items-center text-center"
+                    >
+                      <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-700/50 flex items-center justify-center mb-3">
+                        <Calendar className="w-7 h-7 text-gray-300 dark:text-gray-500" />
+                      </div>
+                      <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Sin sesiones hoy</p>
+                      <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5 max-w-50">
+                        No tienes citas programadas para hoy
+                      </p>
+                      <button
+                        onClick={() => setShowAppointmentRequest(true)}
+                        className="mt-4 flex items-center gap-2 px-5 py-2.5 bg-gray-900 dark:bg-white/10 text-white rounded-xl text-xs font-bold hover:bg-gray-800 dark:hover:bg-white/15 transition-colors border border-gray-700 dark:border-gray-600"
+                      >
+                        <CalendarPlus className="w-3.5 h-3.5" />
+                        Agendar cita
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </motion.section>
+
+            {/* ─── Acceso rápido ─── */}
+            <motion.section
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.10 }}
+            >
+              <h2 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2.5 px-0.5">
+                Acceso rápido
+              </h2>
+              <div className="grid grid-cols-4 gap-3">
+                {quickAccessItems.map(({ label, Icon, path, scrollTo, color }) => (
+                  <button
+                    key={label}
+                    onClick={() => {
+                      if (path) navigate(path)
+                      else if (scrollTo) document.getElementById(scrollTo)?.scrollIntoView({ behavior: 'smooth' })
+                    }}
+                    className="flex flex-col items-center gap-1.5 group"
+                  >
+                    <div className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl ${color} flex items-center justify-center transition-transform group-active:scale-90`}>
+                      <Icon className="w-5 h-5 md:w-6 md:h-6" strokeWidth={1.8} />
+                    </div>
+                    <span className="text-[10px] md:text-[11px] font-medium text-gray-500 dark:text-gray-400">{label}</span>
+                  </button>
+                ))}
+              </div>
+            </motion.section>
+
+            {/* ─── Tareas (Goals/Homework) ─── */}
+            <motion.section
+              id="tareas"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+            >
+              <GoalsTracker />
+            </motion.section>
+          </div>
+
+          {/* ─── Right column (md: 2 cols) — visible on md+ ─── */}
+          <div className="hidden md:flex flex-col gap-4 md:col-span-2">
+            {/* Sessions list */}
             <PatientSessionsList
               onRequestNew={() => setShowAppointmentRequest(true)}
-              refreshTrigger={lastBooking}
+              patientName={fullName}
+            />
+
+            {/* Diary */}
+            <DiaryWidget />
+
+            {/* Recent activity */}
+            <AnimatePresence>
+              {notifications.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-4 shadow-sm">
+                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-3">
+                      Actividad reciente
+                    </p>
+                    <div className="flex flex-col gap-2">
+                      {notifications.slice(0, 3).map((n) => {
+                        const dotColor = {
+                          blue: 'bg-blue-500', green: 'bg-green-500',
+                          red: 'bg-red-500',   amber: 'bg-amber-500',
+                        }[n.color] || 'bg-blue-500'
+                        const date = n.data?.date
+                          ? new Date(n.data.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+                          : null
+                        return (
+                          <div key={n.id} className="flex items-center gap-3">
+                            <span className={`w-2 h-2 rounded-full shrink-0 ${dotColor}`} />
+                            <span className="text-xs text-gray-700 dark:text-gray-300 font-medium flex-1">
+                              {n.emoji}&nbsp;{n.title}
+                              {date && <span className="text-gray-400 dark:text-gray-500 ml-2">{date}</span>}
+                            </span>
+                            <button
+                              onClick={() => dismissNotification(n.id)}
+                              className="text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-400 transition-colors shrink-0"
+                              aria-label="Descartar"
+                            >
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        )
+                      })}
+                      {notifications.length > 3 && (
+                        <p className="text-[11px] text-gray-400 dark:text-gray-500 pl-5">
+                          +{notifications.length - 3} más en notificaciones
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* ─── Mobile only: Sessions + Diary below tasks ─── */}
+          <div className="flex flex-col gap-4 md:hidden">
+            <PatientSessionsList
+              onRequestNew={() => setShowAppointmentRequest(true)}
               patientName={fullName}
             />
             <DiaryWidget />
-          </div>
 
-          {/* Recent activity — full width, only when there are notifications */}
-          <AnimatePresence>
-            {notifications.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="overflow-hidden"
-              >
-                <div className="bg-white dark:bg-gray-800 border border-stone-100 dark:border-gray-700 rounded-2xl p-4 shadow-sm">
-                  <p className="text-xs font-semibold text-stone-400 dark:text-gray-500 uppercase tracking-wide mb-3">
-                    Actividad reciente
-                  </p>
-                  <div className="flex flex-col gap-2">
-                    {notifications.slice(0, 3).map((n) => {
-                      const dotColor = {
-                        blue: 'bg-blue-500', green: 'bg-green-500',
-                        red: 'bg-red-500',   amber: 'bg-amber-500',
-                      }[n.color] || 'bg-blue-500'
-                      const date = n.data?.date
-                        ? new Date(n.data.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
-                        : null
-                      return (
-                        <div key={n.id} className="flex items-center gap-3">
-                          <span className={`w-2 h-2 rounded-full shrink-0 ${dotColor}`} />
-                          <span className="text-xs text-stone-700 dark:text-gray-300 font-medium flex-1">
-                            {n.emoji}&nbsp;{n.title}
-                            {date && <span className="text-stone-400 dark:text-gray-500 ml-2">{date}</span>}
-                          </span>
-                          <button
-                            onClick={() => dismissNotification(n.id)}
-                            className="text-stone-300 dark:text-gray-600 hover:text-stone-500 dark:hover:text-gray-400 transition-colors shrink-0"
-                            aria-label="Descartar"
-                          >
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
-                        </div>
-                      )
-                    })}
-                    {notifications.length > 3 && (
-                      <p className="text-[11px] text-stone-400 dark:text-gray-500 pl-5">
-                        +{notifications.length - 3} más en notificaciones
-                      </p>
-                    )}
+            {/* Recent activity — mobile */}
+            <AnimatePresence>
+              {notifications.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-4 shadow-sm">
+                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-3">
+                      Actividad reciente
+                    </p>
+                    <div className="flex flex-col gap-2">
+                      {notifications.slice(0, 3).map((n) => {
+                        const dotColor = {
+                          blue: 'bg-blue-500', green: 'bg-green-500',
+                          red: 'bg-red-500',   amber: 'bg-amber-500',
+                        }[n.color] || 'bg-blue-500'
+                        const date = n.data?.date
+                          ? new Date(n.data.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+                          : null
+                        return (
+                          <div key={n.id} className="flex items-center gap-3">
+                            <span className={`w-2 h-2 rounded-full shrink-0 ${dotColor}`} />
+                            <span className="text-xs text-gray-700 dark:text-gray-300 font-medium flex-1">
+                              {n.emoji}&nbsp;{n.title}
+                              {date && <span className="text-gray-400 dark:text-gray-500 ml-2">{date}</span>}
+                            </span>
+                            <button
+                              onClick={() => dismissNotification(n.id)}
+                              className="text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-400 transition-colors shrink-0"
+                              aria-label="Descartar"
+                            >
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        )
+                      })}
+                      {notifications.length > 3 && (
+                        <p className="text-[11px] text-gray-400 dark:text-gray-500 pl-5">
+                          +{notifications.length - 3} más en notificaciones
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
 

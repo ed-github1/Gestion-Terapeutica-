@@ -4,7 +4,7 @@ import { Calendar, Clock, CreditCard, X, CheckCircle2 } from 'lucide-react'
 import { showToast } from '@shared/ui/Toast'
 import { useAuth } from '@features/auth/AuthContext'
 import { appointmentsService } from '@shared/services/appointmentsService'
-import { resolveLinkedProfessional } from '@shared/services/patientsService'
+import { patientsService, resolveLinkedProfessional } from '@shared/services/patientsService'
 import { socketNotificationService } from '@shared/services/socketNotificationService'
 import PaymentForm from './components/PaymentForm'
 
@@ -63,7 +63,7 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
     if (selectedDate) {
       fetchAvailableSlots(selectedDate)
     }
-  }, [selectedDate, professionalId])
+  }, [selectedDate, professionalId, professionalUserId])
 
   /**
    * Derive time-slot objects from a weekly availability map.
@@ -84,49 +84,83 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
   const fetchAvailableSlots = async (date) => {
     setLoading(true)
     try {
-      console.log('[AppointmentRequest] fetching slots — date:', date, '| professionalId:', professionalId)
+      // Build candidate IDs (userId first — that's how backend stores availability)
+      const candidates = [...new Set([professionalUserId, professionalId].filter(Boolean))]
 
-      // ── Strategy 1: dedicated available-slots endpoint ──
-      try {
-        const response = await appointmentsService.getAvailableSlots(date, professionalId)
-        console.log('✅ Slots from API raw:', response.data)
-
-        const slots = Array.isArray(response.data)
-          ? response.data
-          : Array.isArray(response.data?.data)
-            ? response.data.data
-            : []
-
-        const normalisedSlots = slots.map(s => ({
-          ...s,
-          available: s.available !== false,
-        }))
-
-        if (normalisedSlots.length > 0) {
-          console.log('✅ Slots resolved from available-slots endpoint:', normalisedSlots)
-          setAvailableSlots(normalisedSlots)
-          return
-        }
-      } catch (err) {
-        console.warn('⚠️ available-slots endpoint failed:', err.message)
+      // If no IDs are known yet, fetch the linked professional directly
+      if (candidates.length === 0) {
+        try {
+          const res = await patientsService.getMyProfessional()
+          const pro = res.data?.data || res.data
+          const rawUid = pro?.userId || pro?.user?._id || pro?.user?.id || null
+          const uid = rawUid && typeof rawUid === 'object' ? (rawUid._id || rawUid.id) : rawUid
+          const pid = pro?._id || pro?.id || null
+          if (uid) candidates.push(uid)
+          if (pid && pid !== uid) candidates.push(pid)
+        } catch { /* no professional linked */ }
       }
 
-      // ── Strategy 2: fetch the professional's weekly availability map ──
-      try {
-        const res = await appointmentsService.getAvailability(professionalId || null)
-        const raw = res.data?.data || res.data
-        console.log('✅ Professional availability map:', raw)
-        const derived = slotsFromAvailabilityMap(raw, date)
-        if (derived.length > 0) {
-          console.log('✅ Slots derived from availability map:', derived)
-          setAvailableSlots(derived)
-          return
-        }
-      } catch (err) {
-        console.warn('⚠️ getAvailability endpoint failed:', err.message)
+      // ── Strategy A: full weekly availability map ──
+      let allSlots = []
+      let resolvedId = null
+      for (const id of candidates) {
+        try {
+          const res = await appointmentsService.getAvailability(id)
+          const raw = res.data?.data || res.data
+          const derived = slotsFromAvailabilityMap(raw, date)
+          if (derived.length > 0) {
+            allSlots = derived
+            resolvedId = id
+            break
+          }
+        } catch { /* try next */ }
       }
 
-      // Nothing found
+      // ── Strategy B: available-slots endpoint (which slots are still free) ──
+      let openTimes = null // null = unknown (show all as available)
+      const slotQueryId = resolvedId || candidates[0] || null
+      if (slotQueryId) {
+        try {
+          const res = await appointmentsService.getAvailableSlots(date, slotQueryId)
+          const raw = res.data
+          const rawSlots = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : []
+          if (rawSlots.length > 0) {
+            openTimes = new Set(rawSlots.filter(s => s.available !== false).map(s => s.time).filter(Boolean))
+          }
+        } catch { /* ignore — show all as available */ }
+      }
+
+      // Grey out slots that are already in the past (for today)
+      const isToday = date === toLocalDateStr()
+      const nowMins = isToday ? new Date().getHours() * 60 + new Date().getMinutes() : -1
+
+      const markSlots = (slots) => slots.map(slot => {
+        const [h, m] = slot.time.split(':').map(Number)
+        const isPast = isToday && (h * 60 + m) <= nowMins
+        return {
+          ...slot,
+          available: !isPast && (openTimes === null || openTimes.has(slot.time)),
+        }
+      })
+
+      if (allSlots.length > 0) {
+        setAvailableSlots(markSlots(allSlots))
+        return
+      }
+
+      // Fallback: no availability map — use open slots directly
+      if (slotQueryId) {
+        try {
+          const res = await appointmentsService.getAvailableSlots(date, slotQueryId)
+          const raw = res.data
+          const rawSlots = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : []
+          if (rawSlots.length > 0) {
+            setAvailableSlots(markSlots(rawSlots.map(s => ({ ...s, available: s.available !== false }))))
+            return
+          }
+        } catch { /* silent */ }
+      }
+
       setAvailableSlots([])
     } finally {
       setLoading(false)

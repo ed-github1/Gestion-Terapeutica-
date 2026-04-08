@@ -103,15 +103,12 @@ const getNameClass = ({ isCancelled, isCompleted }) => {
     return 'text-gray-900 dark:text-gray-100'
 }
 
-const getTimelineDot = ({ isNext, isCancelled, isCompleted }) => {
-    if (isNext)      return 'w-3 h-3 bg-sky-500 ring-2 ring-sky-300 dark:ring-sky-700'
-    if (isCancelled) return 'w-2 h-2 bg-gray-400/50 dark:bg-gray-600'
-    if (isCompleted) return 'w-2.5 h-2.5 bg-emerald-500 dark:bg-emerald-400'
+const getTimelineDot = ({ isCancelled }) => {
+    if (isCancelled) return 'w-2 h-2 bg-gray-400/30 dark:bg-gray-600/50'
     return 'w-2 h-2 bg-gray-400/60 dark:bg-gray-500/60'
 }
 
-const getSpineColor = (isCompleted) =>
-    isCompleted ? 'border-emerald-400/50 dark:border-emerald-700/60' : 'border-gray-400/70 dark:border-gray-400/40'
+const getSpineColor = () => 'border-gray-400/40 dark:border-gray-500/30'
 
 const CHIP_FADED = 'border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-600'
 
@@ -246,15 +243,14 @@ const SessionCard = ({ appointment, index, isFirst, isNext, isLast, countdown, i
 
     const bgClass    = getCardBg({ ...data, isNext })
     const nameClass  = getNameClass(data)
-    const dotClass   = getTimelineDot({ isNext, ...data })
-    const spineColor = getSpineColor(isCompleted)
+    const dotClass   = getTimelineDot(data)
+    const spineColor = getSpineColor()
 
     return (
         <div className="min-w-0 w-full group">
             {isNext && (
-                <div className="flex items-center gap-1.5 pl-12 mb-1">
-                    <span className={`w-1.5 h-1.5 rounded-full ${isImminent ? 'bg-emerald-500 animate-pulse' : 'bg-sky-500'}`} />
-                    <span className={`text-[9px] font-bold uppercase tracking-widest ${isImminent ? 'text-emerald-600' : 'text-sky-500'}`}>
+                <div className="flex items-center pl-12 mb-1">
+                    <span className={`text-[9px] font-bold uppercase tracking-widest ${isInProgress ? 'text-emerald-400' : 'text-sky-500'}`}>
                         Próxima sesión
                     </span>
                 </div>

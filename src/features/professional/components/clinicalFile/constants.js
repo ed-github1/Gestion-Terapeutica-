@@ -20,9 +20,7 @@ export const rel = (iso) => {
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
 export const TABS = [
   { key: 'caratula',   label: 'Carátula',        icon: User },
-  { key: 'summary',    label: 'Evolución',       icon: BarChart2 },
   { key: 'diary',      label: 'Diario',          icon: BookOpen },
-  { key: 'homework',   label: 'Tareas',          icon: ClipboardList },
   { key: 'notes',      label: 'Notas clínicas',  icon: FileText },
   { key: 'summaries',  label: 'Resúmenes',       icon: Mic },
   { key: 'sessions',   label: 'Historial',       icon: Calendar },

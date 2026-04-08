@@ -1,8 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { CalendarDays, Clock, CheckCircle2, XCircle, Loader2, Plus, ChevronRight } from 'lucide-react'
-import { appointmentsService } from '@shared/services/appointmentsService'
-import { normalizeAppointmentsResponse, toLocalDateObj } from '@shared/utils/appointments'
+import { toLocalDateObj } from '@shared/utils/appointments'
+import { useAppointments } from '../AppointmentsContext'
 
 const STATUS_CONFIG = {
   confirmed:   { label: 'Confirmada',   bg: 'bg-emerald-50 dark:bg-emerald-900/30',  text: 'text-emerald-700 dark:text-emerald-400', border: 'border-emerald-200 dark:border-emerald-700/50', Icon: CheckCircle2 },
@@ -38,38 +37,22 @@ function fmtApptDate(date, time) {
  * Props:
  *  onOpenAll        — open full PatientAppointments modal
  *  onRequestNew     — open AppointmentRequest modal
- *  refreshTrigger   — bump this number to force a reload (e.g. after booking)
+ *  refreshTrigger   — kept for interface compatibility; ignored (context auto-updates)
  */
-const AppointmentsWidget = ({ onOpenAll, onRequestNew, refreshTrigger = 0 }) => {
-  const [appointments, setAppointments] = useState([])
-  const [loading, setLoading]           = useState(true)
+const AppointmentsWidget = ({ onOpenAll, onRequestNew, refreshTrigger: _ignored = 0 }) => {
+  const { appointments: allAppointments, loading } = useAppointments()
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    try {
-      const res = await appointmentsService.getPatientAppointments()
-      const all = normalizeAppointmentsResponse(res)
-      const now = new Date()
+  const now = new Date()
 
-      // Show upcoming first, then recent completed — up to 4 entries
-      const upcoming = all
-        .filter(a => toLocalDateObj(a.date, a.time) >= now && a.status !== 'cancelled')
-        .sort((a, b) => toLocalDateObj(a.date, a.time) - toLocalDateObj(b.date, b.time))
+  const upcoming = allAppointments
+    .filter(a => toLocalDateObj(a.date, a.time) >= now && a.status !== 'cancelled')
+    .sort((a, b) => toLocalDateObj(a.date, a.time) - toLocalDateObj(b.date, b.time))
 
-      const past = all
-        .filter(a => toLocalDateObj(a.date, a.time) < now)
-        .sort((a, b) => toLocalDateObj(b.date, b.time) - toLocalDateObj(a.date, a.time))
+  const past = allAppointments
+    .filter(a => toLocalDateObj(a.date, a.time) < now)
+    .sort((a, b) => toLocalDateObj(b.date, b.time) - toLocalDateObj(a.date, a.time))
 
-      setAppointments([...upcoming, ...past].slice(0, 4))
-    } catch {
-      const stored = JSON.parse(localStorage.getItem('patientAppointments') || '[]')
-      setAppointments(stored.slice(0, 4))
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => { load() }, [load, refreshTrigger])
+  const appointments = [...upcoming, ...past].slice(0, 4)
 
   return (
     <motion.div

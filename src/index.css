@@ -160,3 +160,53 @@ html, body, #root {
 .dark .calendar-scrollbar {
   scrollbar-color: #2d3748 transparent;
 }
+
+/* ─── Print styles ───────────────────────────────────────────────────────── */
+@media print {
+  html, body, #root {
+    height: auto !important;
+    width: 100% !important;
+    overflow: visible !important;
+    max-width: none !important;
+  }
+
+  /* Force ALL elements visible — fixes framer-motion whileInView animations */
+  * {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+    animation: none !important;
+  }
+
+  body {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* Allow natural page breaks */
+  section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Hide sticky header chrome, footer */
+  header {
+    position: static !important;
+    background: white !important;
+    backdrop-filter: none !important;
+  }
+
+  footer {
+    display: none !important;
+  }
+
+  /* Hide sidebar TOC (not needed in print) */
+  aside {
+    display: none !important;
+  }
+
+  /* Reset grid to single column */
+  .lg\:grid {
+    display: block !important;
+  }
+}

@@ -7,7 +7,7 @@ const loadAppointmentsFromSources = async () => {
 
   // Backend
   try {
-    const response = await appointmentsService.getAll({})
+    const response = await appointmentsService.getAllAsProf({})
     if (response.data && response.data.length > 0) {
       const backendAppointments = response.data.map(apt => {
         const [hours, minutes] = apt.time.split(':')

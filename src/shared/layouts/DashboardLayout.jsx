@@ -4,13 +4,14 @@
  */
 import { useState, useEffect } from 'react'
 import {
-  User, Bell, Home, Calendar, MessageCircle,
-  Users, FileText, Settings, X, BookOpen, MoreHorizontal,
+  User, Bell, MessageCircle,
+  FileText, Settings, X, BookOpen,
   Moon, Sun,
 } from 'lucide-react'
 import logoSymbol from '@/assets/SIMBOLO_LOGO_TOTALMENTE.png'
 import { motion, AnimatePresence } from 'motion/react'
 import DashboardSidebar from '@shared/layouts/sidebar/DashboardSidebar'
+import MobileBottomNav from '@shared/layouts/MobileBottomNav'
 import { useAuth } from '@features/auth'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useDarkModeContext } from '@shared/DarkModeContext'
@@ -135,31 +136,7 @@ const DashboardLayout = ({ children, userRole }) => {
       </div>
 
       {/* Bottom Navigation – Mobile Only */}
-      <motion.div
-        initial={{ y: 100 }}
-        animate={{ y: 0 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/80 dark:bg-gray-900/90 backdrop-blur-xl border-t border-gray-200/50 dark:border-gray-700/50 shadow-2xl"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
-      >
-        <div className="flex items-center justify-around px-2 py-2">
-          {userRole === 'professional' ? (
-            <>
-              <NavBtn path={`/dashboard/${userRole}`} exact label="Inicio" Icon={Home} />
-              <NavBtn path={`/dashboard/${userRole}/appointments`} label="Agenda" Icon={Calendar} />
-              <NavBtn path={`/dashboard/${userRole}/patients`} label="Pacientes" Icon={Users} />
-              <MoreBtn badge onClick={() => setShowNotifications(!showNotifications)} />
-            </>
-          ) : (
-            <>
-              <NavBtn path={`/dashboard/${userRole}`} exact label="Inicio" Icon={Home} />
-              <NavBtn path={`/dashboard/${userRole}/appointments`} label="Citas" Icon={Calendar} />
-              <NavBtn path={`/dashboard/${userRole}/diary`} label="Diario" Icon={BookOpen} />
-              <MoreBtn badge onClick={() => setShowNotifications(!showNotifications)} />
-            </>
-          )}
-        </div>
-      </motion.div>
+      <MobileBottomNav userRole={userRole} onMoreClick={() => setShowNotifications(!showNotifications)} />
 
       {/* Slide-up panel (profile + notifications) */}
       <AnimatePresence>
@@ -213,7 +190,7 @@ const DashboardLayout = ({ children, userRole }) => {
                 {userRole === 'professional' ? (
                   <>
                     <MenuOption icon={MessageCircle} label="Mensajes" badge={3} onClick={() => { navigate(`/dashboard/${userRole}/messages`); setShowNotifications(false) }} />
-                    <MenuOption icon={FileText} label="Reportes" onClick={() => { navigate(`/dashboard/${userRole}/reports`); setShowNotifications(false) }} />
+                    <MenuOption icon={FileText} label="Estadísticas" onClick={() => { navigate(`/dashboard/${userRole}/stats`); setShowNotifications(false) }} />
                     <MenuOption icon={User} label="Mi Perfil" onClick={() => { navigate(`/dashboard/${userRole}/profile`); setShowNotifications(false) }} />
                     <MenuOption icon={Settings} label="Configuración" onClick={() => { navigate(`/dashboard/${userRole}/settings`); setShowNotifications(false) }} />
                   </>
@@ -254,32 +231,6 @@ const DashboardLayout = ({ children, userRole }) => {
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
-const NavBtn = ({ path, exact, label, Icon, badge }) => {
-  const location = useLocation()
-  const navigate = useNavigate()
-  const active = exact ? location.pathname === path : location.pathname.includes(path.split('/').pop())
-  return (
-    <motion.button
-      whileTap={{ scale: 0.9 }}
-      onClick={() => navigate(path)}
-      className={`relative flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-2xl transition-all ${active ? 'bg-sky-100 dark:bg-sky-900/40 text-blue-700 dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'}`}
-    >
-      {active && <motion.div layoutId="activeTab" className="absolute -top-1 w-1 h-1 bg-blue-700 rounded-full" />}
-      <Icon className="w-5 h-5" strokeWidth={2.5} />
-      <span className="text-[10px] font-semibold">{label}</span>
-      {badge && <span className="absolute top-0.5 right-2 w-2 h-2 bg-red-500 rounded-full border border-white" />}
-    </motion.button>
-  )
-}
-
-const MoreBtn = ({ badge, onClick }) => (
-  <motion.button whileTap={{ scale: 0.9 }} onClick={onClick} className="relative flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-2xl transition-all text-gray-500 dark:text-gray-400">
-    <MoreHorizontal className="w-5 h-5" strokeWidth={2.5} />
-    <span className="text-[10px] font-semibold">Más</span>
-    {badge && <span className="absolute top-0.5 right-2 w-2 h-2 bg-red-500 rounded-full border border-white animate-pulse" />}
-  </motion.button>
-)
-
 const MenuOption = ({ icon: Icon, label, badge, onClick }) => (
   <motion.button
     whileTap={{ scale: 0.98 }} onClick={onClick}

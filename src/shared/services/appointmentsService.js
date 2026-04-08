@@ -42,6 +42,26 @@ export const appointmentsService = {
     return apiClient.get(`/appointments${qs ? `?${qs}` : ''}`)
   },
 
+  /**
+   * Professional's own appointment list.
+   * Calls /appointments/professional/me (JWT-scoped).
+   * Falls back to /appointments only if the primary endpoint throws (404 / not yet
+   * available), so a single code path works regardless of backend version.
+   * NOTE: do NOT fall back based on response content — an empty array from
+   * /professional/me is a valid "no appointments yet" answer and should not
+   * trigger a fallback to /appointments which is patient-scoped on newer backends.
+   */
+  getAllAsProf: async (filters = {}) => {
+    const params = new URLSearchParams()
+    const allowed = ['status', 'type', 'mode', 'date']
+    allowed.forEach(k => { if (filters[k]) params.append(k, filters[k]) })
+    const qs = params.toString()
+    try {
+      return await apiClient.get(`/appointments/professional/me${qs ? `?${qs}` : ''}`)
+    } catch { /* endpoint not yet supported — fall back */ }
+    return apiClient.get(`/appointments${qs ? `?${qs}` : ''}`)
+  },
+
   // Patient's own appointments — backend filters by the JWT's patient identity.
   // Response shape varies by backend version; use normalizeAppointmentsResponse()
   // from @shared/utils/appointments to unwrap and normalise before use.

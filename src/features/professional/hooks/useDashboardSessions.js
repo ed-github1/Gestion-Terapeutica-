@@ -110,46 +110,49 @@ export const useDashboardSessions = ({
 
         if (isToday && allDaySlots.length > 0) return allDaySlots
 
-        if (!isToday) {
-            const allApts = Array.isArray(appointments) ? appointments : []
-            return allApts
-                .filter(apt => {
-                    const dateField = apt.date || apt.fechaHora
-                    if (!dateField) return false
-                    const dateOnly = String(dateField).slice(0, 10)
-                    const [yr, mo, dy] = dateOnly.split('-').map(Number)
-                    return yr === selYear && mo === selMonth + 1 && dy === selDay
-                })
-                .map(apt => {
-                    const rawPid = apt.patientId || apt.patient
-                    const patientDocId = (typeof rawPid === 'object' && rawPid !== null)
-                        ? (rawPid._id || rawPid.id || null)
-                        : (rawPid || null)
-                    const patientUserId = apt.patientUserId
-                        || (typeof rawPid === 'object' && rawPid !== null ? (rawPid.userId || rawPid.user) : null)
-                        || null
-                    return {
-                    id: apt._id || apt.id,
-                    patientId: patientDocId,
-                    patientUserId,
-                    nombrePaciente: resolvePatientName(apt),
-                    fechaHora: apt.fechaHora || apt.date,
-                    estado: apt.estado || apt.status,
-                    riskLevel: apt.riskLevel || 'low',
-                    treatmentGoal: apt.treatmentGoal || '',
-                    lastSessionNote: apt.lastSessionNote || '',
-                    homeworkCompleted: apt.homeworkCompleted || false,
-                    duration: apt.duration,
-                    isVideoCall: apt.isVideoCall || apt.mode === 'videollamada' || false,
-                    mode: apt.mode ?? (apt.isVideoCall ? 'videollamada' : 'consultorio'),
-                }})
-                .sort((a, b) => new Date(a.fechaHora) - new Date(b.fechaHora))
+        // When viewing today but allDaySlots is empty (e.g. still loading
+        // availability), fall back to todayAppointments so past-time sessions
+        // are not lost. upcomingSessions only contains d >= now.
+        if (isToday) {
+            return todayAppointments.length > 0 ? todayAppointments : upcomingSessions
         }
 
-        return upcomingSessions
-    }, [selectedDate, allDaySlots, appointments, upcomingSessions])
+        const allApts = Array.isArray(appointments) ? appointments : []
+        return allApts
+            .filter(apt => {
+                const dateField = apt.date || apt.fechaHora
+                if (!dateField) return false
+                const dateOnly = String(dateField).slice(0, 10)
+                const [yr, mo, dy] = dateOnly.split('-').map(Number)
+                return yr === selYear && mo === selMonth + 1 && dy === selDay
+            })
+            .map(apt => {
+                const rawPid = apt.patientId || apt.patient
+                const patientDocId = (typeof rawPid === 'object' && rawPid !== null)
+                    ? (rawPid._id || rawPid.id || null)
+                    : (rawPid || null)
+                const patientUserId = apt.patientUserId
+                    || (typeof rawPid === 'object' && rawPid !== null ? (rawPid.userId || rawPid.user) : null)
+                    || null
+                return {
+                id: apt._id || apt.id,
+                patientId: patientDocId,
+                patientUserId,
+                nombrePaciente: resolvePatientName(apt),
+                fechaHora: apt.fechaHora || apt.date,
+                estado: apt.estado || apt.status,
+                riskLevel: apt.riskLevel || 'low',
+                treatmentGoal: apt.treatmentGoal || '',
+                lastSessionNote: apt.lastSessionNote || '',
+                homeworkCompleted: apt.homeworkCompleted || false,
+                duration: apt.duration,
+                isVideoCall: apt.isVideoCall || apt.mode === 'videollamada' || false,
+                mode: apt.mode ?? (apt.isVideoCall ? 'videollamada' : 'consultorio'),
+            }})
+            .sort((a, b) => new Date(a.fechaHora) - new Date(b.fechaHora))
+    }, [selectedDate, allDaySlots, todayAppointments, appointments, upcomingSessions])
 
-    const isShowingUpcoming = isViewingToday && allDaySlots.length === 0 && upcomingSessions.length > 0
+    const isShowingUpcoming = isViewingToday && allDaySlots.length === 0 && todayAppointments.length === 0 && upcomingSessions.length > 0
 
     const selectedDateLabel = isShowingUpcoming
         ? 'Próximas sesiones'

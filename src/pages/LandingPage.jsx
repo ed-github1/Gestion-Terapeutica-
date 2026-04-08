@@ -200,7 +200,7 @@ const LandingPage = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <BrandLogo fullLogo size="h-10 w-auto" />
+              <BrandLogo size="h-10 w-10" />
             </motion.div>
             
             <motion.div 
@@ -811,7 +811,7 @@ const LandingPage = () => {
           <div className="grid md:grid-cols-4 gap-12 mb-12">
             <div>
               <div className="mb-5">
-                <BrandLogo fullLogo size="h-12 w-auto" />
+                <BrandLogo size="h-11 w-11" />
               </div>
               <p className="text-slate-600 mb-4">
                 La plataforma todo-en-uno para profesionales de salud mental.

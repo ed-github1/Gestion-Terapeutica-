@@ -151,7 +151,7 @@ export const useDashboardData = () => {
 
     const fetchAppointments = async () => {
         try {
-            const response = await appointmentsService.getAll({})
+            const response = await appointmentsService.getAllAsProf({})
             const raw = response?.data
 
             // Handle all common backend envelope shapes

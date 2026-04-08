@@ -203,7 +203,7 @@ const SessionSummary = () => {
   const applyTranscriptFromData = (data) => {
     const status = data?.transcriptStatus
     const text   = data?.transcript
-    if (status === 'ready' && text) {
+    if (text) {
       setTranscript(text)
       setOriginalTranscript(text)
       setTranscriptState('ready')

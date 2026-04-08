@@ -1,8 +1,9 @@
-import { useState, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useAuth } from '@features/auth'
 import { useNavigate } from 'react-router-dom'
 import NewPatientLinkModal from './NewPatientLinkModal'
+import TodoModal from './TodoModal'
 import { useDashboardData, useCurrentTime } from '../hooks/useDashboard'
 import { videoCallService } from '@shared/services/videoCallService'
 import { appointmentsService } from '@shared/services/appointmentsService'
@@ -13,6 +14,7 @@ import {
     SessionsCalendarPanel,
     QuickActions,
     MiniCalendarWidget,
+    MobileProfessionalDashboard,
 } from './dashboard'
 import QuickCreateModal from './QuickCreateModal'
 import {
@@ -22,6 +24,22 @@ import {
     useDashboardSessions,
     buildKpis,
 } from '../hooks'
+
+// ── Todo localStorage helpers ─────────────────────────────────────────────────
+const TODO_STORAGE_KEY = 'professional_todos'
+const loadTodos = () => { try { return JSON.parse(localStorage.getItem(TODO_STORAGE_KEY) || '[]') } catch { return [] } }
+const saveTodos = (t) => { try { localStorage.setItem(TODO_STORAGE_KEY, JSON.stringify(t)) } catch {} }
+
+// ── Week strip helper ─────────────────────────────────────────────────────────
+const getWeekDays = (date) => {
+    const monday = new Date(date)
+    monday.setDate(date.getDate() - ((date.getDay() + 6) % 7))
+    return Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(monday)
+        d.setDate(monday.getDate() + i)
+        return d
+    })
+}
 
 const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
     const { user } = useAuth()
@@ -40,6 +58,16 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
     const [quickForm, setQuickForm] = useState({ patientName: '', time: '09:00', duration: '60', mode: 'consultorio' })
     const [selectedDate, setSelectedDate] = useState(() => new Date())
     const [calendarView, setCalendarView] = useState('sessions')
+    const [todoOpen, setTodoOpen] = useState(false)
+    const [todos, setTodos] = useState(loadTodos)
+    const [mobileWeekOffset, setMobileWeekOffset] = useState(0)
+
+    // Keep todos in sync with localStorage
+    useEffect(() => {
+        const sync = () => setTodos(loadTodos())
+        window.addEventListener('storage', sync)
+        return () => window.removeEventListener('storage', sync)
+    }, [])
 
     // Derived session data
     const {
@@ -57,6 +85,48 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
     const fullName = user?.name || user?.nombre || 'Professional'
     const initials = fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
     const greeting = currentTime.getHours() < 12 ? 'Buenos días' : currentTime.getHours() < 18 ? 'Buenas tardes' : 'Buenas noches'
+
+    // Mobile week strip data
+    const mobileWeekAnchor = useMemo(() => {
+        const d = new Date(currentTime)
+        d.setDate(d.getDate() + mobileWeekOffset * 7)
+        return d
+    }, [currentTime, mobileWeekOffset])
+    const weekDays = getWeekDays(mobileWeekAnchor)
+    const todayDate = currentTime.getDate()
+    const todayMonth = currentTime.getMonth()
+    const todayYear = currentTime.getFullYear()
+    const fmtDateHeader = currentTime.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
+
+    // Session presence map for mobile week strip dots (accurate across month boundaries)
+    const weekSessionMap = useMemo(() => {
+        const s = new Set()
+        ;(appointments || []).forEach(apt => {
+            const d = new Date(apt.fechaHora)
+            s.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`)
+        })
+        return s
+    }, [appointments])
+
+    // Upcoming appointments (next 5 sorted by date)
+    const upcomingApts = [...(upcomingSessions || [])].slice(0, 5)
+
+    // Revenue data
+    // const revenueThisMonth = stats?.revenueThisMonth ?? 0
+    const revenueThisMonth = 8456
+    const revenueGoal = 6200 // Can be dynamic from settings
+    const revenuePct = revenueGoal > 0 ? Math.min(Math.round((revenueThisMonth / revenueGoal) * 100), 100) : 0
+    const outstandingAmount = stats?.outstandingAmount ?? 0
+
+    // Pending todo count
+    const pendingTodoCount = todos.filter(t => !t.done).length
+
+    // Toggle todo done
+    const handleTodoToggle = (id) => {
+        const updated = todos.map(t => t.id === id ? { ...t, done: !t.done } : t)
+        setTodos(updated)
+        saveTodos(updated)
+    }
 
     // KPIs (shared between mobile calendar widget and desktop stats bar)
     const kpis = buildKpis(stats, 'Semana')
@@ -137,8 +207,59 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
         <>
             <div className="bg-transparent dark:bg-gray-900/50 xl:h-full xl:flex xl:flex-col">
                 <div className="xl:h-full xl:flex xl:flex-col">
-                    {/* Main Content */}
-                    <div className="p-2 md:p-3 lg:p-4 xl:overflow-hidden xl:flex xl:flex-col xl:flex-1 xl:min-h-0 xl:h-screen">
+
+                    {/* ── MOBILE (< md) ── */}
+                    <MobileProfessionalDashboard
+                        userName={userName}
+                        initials={initials}
+                        fmtDateHeader={fmtDateHeader}
+                        onNavigateProfile={() => navigate(ROUTES.PROFESSIONAL_PROFILE)}
+                        weekDays={weekDays}
+                        todayDate={currentTime.getDate()}
+                        todayMonth={currentTime.getMonth()}
+                        todayYear={currentTime.getFullYear()}
+                        calendarData={calendarData}
+                        weekSessionMap={weekSessionMap}
+                        mobileWeekOffset={mobileWeekOffset}
+                        onPrevWeek={() => setMobileWeekOffset(o => o - 1)}
+                        onNextWeek={() => setMobileWeekOffset(o => o + 1)}
+                        onResetWeek={() => setMobileWeekOffset(0)}
+                        onSelectDate={setSelectedDate}
+                        selectedDate={selectedDate}
+                        selectedDateSessions={selectedDateSessions}
+                        isViewingToday={isViewingToday}
+                        selectedDateLabel={selectedDateLabel}
+                        revenueThisMonth={revenueThisMonth}
+                        revenueGoal={revenueGoal}
+                        revenuePct={revenuePct}
+                        outstandingAmount={outstandingAmount}
+                        stats={stats}
+                        loading={loading}
+                        upcomingApts={upcomingApts}
+                        nextUpcomingSession={nextUpcomingSession}
+                        onJoinVideo={handleJoinVideo}
+                        onViewDiary={(apt) => setDiaryPatient(apt)}
+                        onMarkComplete={handleMarkComplete}
+                        todayAppointments={todayAppointments}
+                        onShowCalendar={() => setShowCalendar(true)}
+                        onNewPatient={() => setShowPatientForm(true)}
+                        onNavigateAgenda={() => navigate('/dashboard/professional/appointments')}
+                        todos={todos}
+                        pendingTodoCount={pendingTodoCount}
+                        onTodoToggle={handleTodoToggle}
+                        onTodoOpen={() => setTodoOpen(true)}
+                    />
+
+
+
+
+
+
+
+                    {/* ═══════════════════════════════════════════════════════════════════
+                        md + DESKTOP — Existing calendar-based layout
+                    ═══════════════════════════════════════════════════════════════════ */}
+                    <div className="hidden md:block p-2 md:p-3 lg:p-4 xl:overflow-hidden xl:flex xl:flex-col xl:flex-1 xl:min-h-0 xl:h-screen">
                         {/* ── Layout: [Calendar card] | [Sessions col] ── */}
                         <div className="flex flex-col md:flex-row gap-2 md:gap-3 xl:flex-1 xl:min-h-0">
 
@@ -287,6 +408,8 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                 )}
             </AnimatePresence>
 
+            <TodoModal open={todoOpen} onClose={() => { setTodoOpen(false); setTodos(loadTodos()) }} />
+
             {/* Quick-create appointment popover */}
             <QuickCreateModal
                 quickCreate={quickCreate}
@@ -296,17 +419,6 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                 onCreated={() => setCalendarMonth(prev => ({ ...prev }))}
             />
 
-            <style>{`
-                @keyframes wave {
-                    0%, 100% { transform: rotate(0deg); }
-                    25% { transform: rotate(20deg); }
-                    75% { transform: rotate(-20deg); }
-                }
-                .animate-wave {
-                    display: inline-block;
-                    animation: wave 2s ease-in-out infinite;
-                }
-            `}</style>
         </>
     )
 }

@@ -21,7 +21,7 @@ const SummaryTab = ({
       </div>
     )}
     {/* Metrics row */}
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-3">
       {[
         {
           label: 'Sesiones totales', value: p.totalSessions ?? sessionHistory.length,
@@ -39,13 +39,13 @@ const SummaryTab = ({
           Icon: BookOpen, bg: 'bg-sky-50', color: 'text-sky-600',
         },
       ].map(({ label, value, sub, Icon, bg, color }) => (
-        <div key={label} className="bg-white dark:bg-[#1a2234] rounded-2xl border border-gray-100 dark:border-[#2d3748] p-4 flex flex-col gap-2">
-          <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${bg}`}>
-            <Icon className={`w-4 h-4 ${color}`} />
+        <div key={label} className="bg-white dark:bg-[#1a2234] rounded-2xl border border-gray-100 dark:border-[#2d3748] p-3 sm:p-4 flex flex-col gap-2">
+          <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center ${bg}`}>
+            <Icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${color}`} />
           </div>
           <div>
-            <p className="text-2xl font-black text-gray-900 dark:text-white leading-none">{value}</p>
-            <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wide font-semibold">{label}</p>
+            <p className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white leading-none">{value}</p>
+            <p className="text-[9px] sm:text-[10px] text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wide font-semibold">{label}</p>
             {sub && <p className={`text-[10px] mt-0.5 font-medium ${color}`}>{sub}</p>}
           </div>
         </div>
@@ -53,9 +53,9 @@ const SummaryTab = ({
     </div>
 
     {/* Treatment goal + contact */}
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <div className="bg-white dark:bg-[#1a2234] rounded-2xl border border-gray-100 dark:border-[#2d3748] p-5">
-        <div className="flex items-center gap-2 mb-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+      <div className="bg-white dark:bg-[#1a2234] rounded-2xl border border-gray-100 dark:border-[#2d3748] p-4 sm:p-5">
+        <div className="flex items-center gap-2 mb-2 sm:mb-3">
           <Target className="w-4 h-4 text-sky-500" />
           <h3 className="font-bold text-gray-900 dark:text-white text-sm">Objetivo terapéutico</h3>
         </div>
@@ -63,7 +63,7 @@ const SummaryTab = ({
           {pConcern || 'No definido aún.'}
         </p>
       </div>
-      <div className="bg-white dark:bg-[#1a2234] rounded-2xl border border-gray-100 dark:border-[#2d3748] p-5">
+      <div className="bg-white dark:bg-[#1a2234] rounded-2xl border border-gray-100 dark:border-[#2d3748] p-4 sm:p-5">
         <div className="flex items-center gap-2 mb-3">
           <User className="w-4 h-4 text-sky-500" />
           <h3 className="font-bold text-gray-900 dark:text-white text-sm">Datos de contacto</h3>
@@ -90,8 +90,8 @@ const SummaryTab = ({
 
     {/* Latest diary highlight */}
     {diaryEntries[0] && (
-      <div className="bg-white dark:bg-[#1a2234] rounded-2xl border border-gray-100 dark:border-[#2d3748] p-5">
-        <div className="flex items-center justify-between mb-3">
+      <div className="bg-white dark:bg-[#1a2234] rounded-2xl border border-gray-100 dark:border-[#2d3748] p-4 sm:p-5">
+        <div className="flex items-center justify-between mb-2 sm:mb-3">
           <div className="flex items-center gap-2">
             <BookOpen className="w-4 h-4 text-sky-500" />
             <h3 className="font-bold text-gray-900 dark:text-white text-sm">Última entrada del diario</h3>

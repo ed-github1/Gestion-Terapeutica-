@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { motion } from 'motion/react'
 import { useAuth } from '@features/auth'
 import { useNavigate } from 'react-router-dom'
-import { User, Mail, Phone, MapPin, Briefcase, Save, ArrowLeft, Hash, LogOut, Shield, Crown, Zap } from 'lucide-react'
+import { User, Mail, Phone, MapPin, Briefcase, Save, ArrowLeft, Hash, LogOut, Shield, Crown, Zap, Settings } from 'lucide-react'
 import { KpiChip, KpiChipSkeleton } from './dashboard'
 import { buildKpis } from '../hooks'
 import { useDashboardData } from '../hooks/useDashboard'
@@ -84,6 +84,13 @@ const ProfessionalProfile = () => {
                         <h1 className="text-base font-bold text-white leading-none">Mi Perfil</h1>
                         <p className="text-[11px] text-gray-500 mt-0.5">Gestiona tu información personal</p>
                     </div>
+                    <button
+                        onClick={() => navigate('/dashboard/professional/settings')}
+                        className="ml-auto w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-800 transition-all text-gray-500 hover:text-gray-200 border border-transparent hover:border-gray-700 shrink-0"
+                        aria-label="Configuración"
+                    >
+                        <Settings className="w-4 h-4" />
+                    </button>
                 </motion.div>
 
                 {/* ── Stats KPIs ── */}

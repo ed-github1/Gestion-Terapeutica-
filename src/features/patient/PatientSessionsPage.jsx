@@ -17,14 +17,18 @@ const PatientSessionsPage = () => {
   const [professionalId, setProfessionalId] = useState(
     user?.professionalId || user?.professional_id || user?.professional?._id || null
   )
+  const [professionalUserId, setProfessionalUserId] = useState(
+    () => localStorage.getItem('_linkedProUserId') || null
+  )
 
   const fullName = user?.name || user?.nombre || 'Paciente'
 
-  // Resolve professionalId lazily when opening the request form
+  // Resolve both IDs lazily when opening the request form
   const openRequest = async () => {
-    if (!professionalId) {
-      const { professionalId: pid } = await resolveLinkedProfessional(user)
-      if (pid) setProfessionalId(pid)
+    if (!professionalId || !professionalUserId) {
+      const { professionalId: pid, professionalUserId: puid } = await resolveLinkedProfessional(user)
+      if (pid)  setProfessionalId(pid)
+      if (puid) setProfessionalUserId(puid)
     }
     setShowRequest(true)
   }
@@ -42,6 +46,7 @@ const PatientSessionsPage = () => {
           <AppointmentRequest
             onClose={() => setShowRequest(false)}
             professionalId={professionalId}
+            professionalUserId={professionalUserId}
             onSuccess={() => {
               setShowRequest(false)
               setRefreshKey(k => k + 1)
