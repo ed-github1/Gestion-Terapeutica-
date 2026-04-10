@@ -393,7 +393,7 @@ class WebRTCManager {
 
     // Handle ICE candidates
     pc.onicecandidate = (event) => {
-      if (event.candidate) {
+      if (event.candidate && this.socket) {
         this.socket.emit('ice-candidate', {
           roomId: this.currentRoomId,
           candidate: event.candidate,
@@ -484,6 +484,7 @@ class WebRTCManager {
    * Create and send offer to target user
    */
   async createOffer(targetUserId) {
+    if (!this.socket) return;
     try {
       const pc = this.createPeerConnection(targetUserId);
 
@@ -511,6 +512,7 @@ class WebRTCManager {
    * Handle incoming offer
    */
   async handleOffer(offer, fromUserId) {
+    if (!this.socket) return;
     try {
       const pc = this.createPeerConnection(fromUserId);
 
@@ -792,6 +794,7 @@ class WebRTCManager {
     try {
       const offer = await pc.createOffer({ iceRestart: true });
       await pc.setLocalDescription(offer);
+      if (!this.socket) return;
       this.socket.emit('offer', {
         roomId: this.currentRoomId,
         offer,

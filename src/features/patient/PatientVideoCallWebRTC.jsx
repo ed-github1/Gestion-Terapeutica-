@@ -106,15 +106,15 @@ const PatientVideoCallWebRTC = () => {
     }
   }, [countdown]);
 
-  // Show recording disclaimer when recording starts
+  // Show recording disclaimer when the professional starts recording (server event)
   useEffect(() => {
-    if (isRecording && !recordingAcknowledgedRef.current) {
+    if (isServerRecording && !recordingAcknowledgedRef.current) {
       setShowRecordingDisclaimer(true);
     }
-    if (!isRecording) {
+    if (!isServerRecording) {
       recordingAcknowledgedRef.current = false;
     }
-  }, [isRecording]);
+  }, [isServerRecording]);
 
   // When the professional ends the room, stop recording and navigate back after 3 seconds
   useEffect(() => {
