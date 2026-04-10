@@ -53,7 +53,7 @@ const PatientVideoCallWebRTC = () => {
     isUploading,
     uploadError,
     stopRecording: stopCallRecording,
-  } = useCallRecording({ localStream, appointmentId, recordingAuthorized });
+  } = useCallRecording({ localStream, appointmentId, enabled: recordingAuthorized });
   
   const localVideoRef = useRef(null);
   const remoteVideoRefs = useRef(new Map());

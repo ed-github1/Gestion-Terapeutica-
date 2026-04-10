@@ -10,7 +10,7 @@ import { videoCallService } from '@shared/services/videoCallService'
 const MAX_UPLOAD_RETRIES = 3
 const SAFETY_TIMEOUT_MS = 10_000
 
-export const useCallRecording = ({ localStream, appointmentId, recordingAuthorized }) => {
+export const useCallRecording = ({ localStream, appointmentId, enabled }) => {
   const [isRecording, setIsRecording] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadError, setUploadError] = useState(null)
@@ -74,9 +74,9 @@ export const useCallRecording = ({ localStream, appointmentId, recordingAuthoriz
     [uploadBlob],
   )
 
-  // Start recording when recording-authorized fires and localStream is available
+  // Start recording when enabled and localStream is available
   useEffect(() => {
-    if (!recordingAuthorized || !localStream || mediaRecorderRef.current) return
+    if (!enabled || !localStream || mediaRecorderRef.current) return
     if (typeof MediaRecorder === 'undefined') {
       console.warn('[Recording] MediaRecorder API not supported — call continues without recording')
       return
@@ -112,7 +112,7 @@ export const useCallRecording = ({ localStream, appointmentId, recordingAuthoriz
     } catch (err) {
       console.error('[Recording] Failed to start MediaRecorder:', err)
     }
-  }, [recordingAuthorized, localStream, handleRecorderStop])
+  }, [enabled, localStream, handleRecorderStop])
 
   // Stop recording — returns a Promise that resolves when the upload finishes (or immediately if not recording)
   const stopRecording = useCallback(() => {
@@ -138,7 +138,7 @@ export const useCallRecording = ({ localStream, appointmentId, recordingAuthoriz
   }, [])
 
   return {
-    isRecordingAuthorized: recordingAuthorized,
+    isRecordingAuthorized: enabled,
     isRecording,
     isUploading,
     uploadError,

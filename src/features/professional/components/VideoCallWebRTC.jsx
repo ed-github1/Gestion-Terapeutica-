@@ -54,6 +54,7 @@ const ProfessionalVideoCallWebRTC = () => {
   const [transcriptStatus, setTranscriptStatus] = useState(null);
   const [transcript, setTranscript] = useState('');
   const [transcriptError, setTranscriptError] = useState(null);
+  const [recordingEnabled, setRecordingEnabled] = useState(false);
 
   // Navigate away when reconnection fails
   useEffect(() => {
@@ -76,7 +77,7 @@ const ProfessionalVideoCallWebRTC = () => {
     isUploading,
     uploadError,
     stopRecording: stopCallRecording,
-  } = useCallRecording({ localStream, appointmentId, recordingAuthorized });
+  } = useCallRecording({ localStream, appointmentId, enabled: recordingEnabled || recordingAuthorized });
 
   // When a remote user leaves and no one is left, start 30s countdown
   useEffect(() => {
@@ -210,7 +211,7 @@ const ProfessionalVideoCallWebRTC = () => {
 
   const handleJoinRoom = async () => {
     try {
-      await joinRoom(appointmentId);
+      await joinRoom(appointmentId, { recordingConsent: true });
     } catch (err) {
       // Failed to join room
     }
@@ -257,6 +258,7 @@ const ProfessionalVideoCallWebRTC = () => {
 
   const handleAcceptRecordingConsent = async () => {
     setShowRecordingConsent(false);
+    setRecordingEnabled(true);
     // Tell the backend that recording consent was given
     try {
       await videoCallService.grantRecordingConsent(appointmentId);
