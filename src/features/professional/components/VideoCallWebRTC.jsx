@@ -8,6 +8,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Mic, MicOff, Video as VideoIcon, VideoOff, MessageSquare, PhoneOff, StopCircle, LogOut, Circle, ShieldCheck } from 'lucide-react';
 import { useWebRTC } from '@shared/hooks/useWebRTC';
+import { useCallRecording } from '@shared/hooks/useCallRecording';
 import { videoCallService } from '@shared/services/videoCallService';
 import { appointmentsService } from '@shared/services/appointmentsService';
 import { useAuth } from '../../auth/AuthContext';
@@ -30,7 +31,7 @@ const ProfessionalVideoCallWebRTC = () => {
     isVideoEnabled,
     isReconnecting,
     reconnectFailed,
-    isRecording,
+    isRecording: isServerRecording,
     userLeft,
     recordingAuthorized,
     manager,
@@ -53,9 +54,6 @@ const ProfessionalVideoCallWebRTC = () => {
   const [transcriptStatus, setTranscriptStatus] = useState(null);
   const [transcript, setTranscript] = useState('');
   const [transcriptError, setTranscriptError] = useState(null);
-  const [localRecording, setLocalRecording] = useState(false);
-  const [uploadError, setUploadError] = useState(null);
-  const [isUploading, setIsUploading] = useState(false);
 
   // Navigate away when reconnection fails
   useEffect(() => {
@@ -71,10 +69,14 @@ const ProfessionalVideoCallWebRTC = () => {
   const durationDisplayRef = useRef(null);
   const callDurationRef = useRef(0);
   const countdownRef = useRef(null);
-  const mediaRecorderRef = useRef(null);
-  const recordingChunksRef = useRef([]);
   const pollTimerRef = useRef(null);
-  const audioContextRef = useRef(null);
+
+  const {
+    isRecording: localRecording,
+    isUploading,
+    uploadError,
+    stopRecording: stopCallRecording,
+  } = useCallRecording({ localStream, appointmentId, recordingAuthorized });
 
   // When a remote user leaves and no one is left, start 30s countdown
   useEffect(() => {
@@ -162,90 +164,6 @@ const ProfessionalVideoCallWebRTC = () => {
     };
   }, [isInRoom]);
 
-  // Start MediaRecorder — called directly on consent accept OR when server sends recording-authorized
-  const startMediaRecorder = useCallback(async () => {
-    if (mediaRecorderRef.current) return; // already recording
-
-    // Use AudioContext to properly mix local + remote audio into a single stream
-    try {
-      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      // Chrome suspends AudioContext until a user gesture — resume it now
-      if (audioCtx.state === 'suspended') {
-        await audioCtx.resume();
-      }
-      console.log('[Recording] AudioContext state:', audioCtx.state, 'sampleRate:', audioCtx.sampleRate);
-
-      const destination = audioCtx.createMediaStreamDestination();
-      let trackCount = 0;
-
-      if (localStream) {
-        localStream.getAudioTracks().forEach(track => {
-          console.log('[Recording] Adding local track:', track.label, 'enabled:', track.enabled, 'readyState:', track.readyState);
-          if (track.readyState === 'live') {
-            const source = audioCtx.createMediaStreamSource(new MediaStream([track]));
-            source.connect(destination);
-            trackCount++;
-          }
-        });
-      }
-
-      if (manager) {
-        const remoteStreamMap = manager.remoteStreams || new Map();
-        remoteStreamMap.forEach((stream, userId) => {
-          stream.getAudioTracks().forEach(track => {
-            console.log('[Recording] Adding remote track from', userId, ':', track.label, 'enabled:', track.enabled, 'readyState:', track.readyState);
-            if (track.readyState === 'live') {
-              const source = audioCtx.createMediaStreamSource(new MediaStream([track]));
-              source.connect(destination);
-              trackCount++;
-            }
-          });
-        });
-      }
-
-      if (trackCount === 0) {
-        console.warn('[Recording] No live audio tracks available to record');
-        audioCtx.close();
-        return false;
-      }
-
-      audioContextRef.current = audioCtx;
-      const mixedStream = destination.stream;
-
-      // Pick a supported mimeType
-      const mimeTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
-      let chosenMime = '';
-      for (const mime of mimeTypes) {
-        if (MediaRecorder.isTypeSupported(mime)) { chosenMime = mime; break; }
-      }
-
-      const recorderOptions = chosenMime ? { mimeType: chosenMime } : undefined;
-      const mediaRecorder = new MediaRecorder(mixedStream, recorderOptions);
-      recordingChunksRef.current = [];
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) recordingChunksRef.current.push(e.data);
-      };
-      mediaRecorder.onerror = (e) => {
-        console.error('[Recording] MediaRecorder error:', e.error);
-      };
-      mediaRecorder.start(1000); // collect data every 1s
-      mediaRecorderRef.current = mediaRecorder;
-      setLocalRecording(true);
-      console.log(`[Recording] MediaRecorder started — mimeType: ${chosenMime || 'default'}, tracks: ${trackCount}, state: ${mediaRecorder.state}`);
-      return true;
-    } catch (err) {
-      console.error('[Recording] Failed to start MediaRecorder:', err);
-      return false;
-    }
-  }, [localStream, manager]);
-
-  // Also start MediaRecorder if server sends recording-authorized (server-side recording support)
-  useEffect(() => {
-    if (recordingAuthorized && !mediaRecorderRef.current) {
-      startMediaRecorder();
-    }
-  }, [recordingAuthorized, startMediaRecorder]);
-
   // Cleanup polling timer on unmount
   useEffect(() => {
     return () => {
@@ -256,24 +174,37 @@ const ProfessionalVideoCallWebRTC = () => {
     };
   }, []);
 
-  const pollTranscript = useCallback(async () => {
+  const pollTranscript = useCallback(async (attemptCount = 0) => {
+    const MAX_ATTEMPTS = 120;           // ~10 minutes at 5 s intervals
+    const BASE_INTERVAL = 5000;
+    const EXTENDED_INTERVAL = 12000;    // slow down after 5 minutes
+
+    if (attemptCount >= MAX_ATTEMPTS) {
+      setTranscriptStatus('failed');
+      setTranscriptError('La transcripción tardó demasiado. Puedes consultarla más tarde en el expediente del paciente.');
+      return;
+    }
+
     try {
       const { data } = await appointmentsService.getById(appointmentId);
       const appointment = data.appointment || data;
       if (appointment.transcriptStatus === 'ready') {
-        setTranscript(appointment.transcript);
+        setTranscript(appointment.transcript || '');
         setTranscriptStatus('ready');
       } else if (appointment.transcriptStatus === 'failed') {
         setTranscriptStatus('failed');
         setTranscriptError('La transcripción no pudo completarse.');
-      } else if (appointment.transcriptStatus === 'processing') {
+      } else {
+        // 'processing' or 'idle' — keep polling
         setTranscriptStatus('processing');
-        pollTimerRef.current = setTimeout(pollTranscript, 5000);
+        const interval = attemptCount >= 60 ? EXTENDED_INTERVAL : BASE_INTERVAL;
+        pollTimerRef.current = setTimeout(() => pollTranscript(attemptCount + 1), interval);
       }
     } catch (err) {
-      console.error('Error polling transcript status:', err);
-      setTranscriptStatus('failed');
-      setTranscriptError('Error al consultar el estado de la transcripción.');
+      console.error('[Transcript] Poll error (attempt', attemptCount, '):', err);
+      // On network/server error: retry silently up to MAX_ATTEMPTS (don't surface as failure)
+      const interval = attemptCount >= 60 ? EXTENDED_INTERVAL : BASE_INTERVAL;
+      pollTimerRef.current = setTimeout(() => pollTranscript(attemptCount + 1), interval);
     }
   }, [appointmentId]);
 
@@ -285,83 +216,17 @@ const ProfessionalVideoCallWebRTC = () => {
     }
   };
 
-  const stopAndUploadRecording = () => {
-    return new Promise((resolve) => {
-      // Close AudioContext used for mixing
-      if (audioContextRef.current) {
-        audioContextRef.current.close().catch(() => {});
-        audioContextRef.current = null;
-      }
-
-      const doUpload = (blob) => {
-        console.log('[Recording] Blob created — size:', blob.size, 'bytes, type:', blob.type, 'chunks:', recordingChunksRef.current.length);
-        if (blob.size < 1000) {
-          console.warn('[Recording] Recording too small, skipping upload:', blob.size, 'bytes');
-          setUploadError('La grabación fue demasiado corta para procesar. Verifica que el micrófono esté activo.');
-          resolve();
-          return;
-        }
-        setIsUploading(true);
-        console.log('[Recording] Uploading recording, size:', blob.size, 'bytes');
-        videoCallService.uploadRecording(appointmentId, blob)
-          .then(() => {
-            console.log('[Recording] Upload successful');
-            setTranscriptStatus('processing');
-            setUploadError(null);
-            pollTranscript();
-          })
-          .catch((err) => {
-            const msg = err?.response?.data?.message || err?.message || 'Error desconocido';
-            const status = err?.response?.status;
-            console.error('[Recording] Upload failed:', status, msg);
-            if (status === 404) {
-              setUploadError('El servidor no soporta grabaciones aún. Contacta al administrador.');
-            } else if (status === 401) {
-              setUploadError('Sesión expirada. Inicia sesión de nuevo antes de grabar.');
-            } else {
-              setUploadError(`Error al subir la grabación: ${msg}`);
-            }
-          })
-          .finally(() => { setIsUploading(false); resolve(); });
-      };
-
-      const recorderMime = mediaRecorderRef.current?.mimeType || 'audio/webm';
-
-      if (!mediaRecorderRef.current || mediaRecorderRef.current.state === 'inactive') {
-        if (recordingChunksRef.current.length > 0) {
-          const blob = new Blob(recordingChunksRef.current, { type: recorderMime });
-          recordingChunksRef.current = [];
-          mediaRecorderRef.current = null;
-          setLocalRecording(false);
-          doUpload(blob);
-          return;
-        }
-        resolve();
-        return;
-      }
-
-      const recorder = mediaRecorderRef.current;
-      recorder.onstop = () => {
-        const blob = new Blob(recordingChunksRef.current, { type: recorderMime });
-        recordingChunksRef.current = [];
-        mediaRecorderRef.current = null;
-        setLocalRecording(false);
-        doUpload(blob);
-      };
-      recorder.stop();
-    });
-  };
-
   const handleLeaveRoom = async () => {
-    await stopAndUploadRecording();
+    await stopCallRecording();
     leaveRoom();
     navigate('/dashboard/professional');
   };
 
   const handleEndSession = async () => {
     try {
-      // Upload recording FIRST, before ending the room / destroying streams
-      await stopAndUploadRecording();
+      await stopCallRecording();
+      setTranscriptStatus('processing');
+      pollTranscript(0);
     } catch (err) {
       console.error('[Recording] Upload error (continuing):', err);
     }
@@ -382,13 +247,8 @@ const ProfessionalVideoCallWebRTC = () => {
   };
 
   const handleRecordClick = () => {
-    if (isRecording || localRecording) {
-      // Stop local MediaRecorder
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-        mediaRecorderRef.current.stop();
-        mediaRecorderRef.current = null;
-        setLocalRecording(false);
-      }
+    if (isServerRecording || localRecording) {
+      stopCallRecording();
       stopRecording(appointmentId);
     } else {
       setShowRecordingConsent(true);
@@ -403,9 +263,7 @@ const ProfessionalVideoCallWebRTC = () => {
     } catch (err) {
       console.error('Failed to set recording consent on backend:', err);
     }
-    // Start local MediaRecorder immediately (don't wait for server)
-    startMediaRecorder();
-    // Also notify server (for server-side recording if supported)
+    // Notify server — recording-authorized will fire when both participants consent
     startRecording(appointmentId);
   };
 
@@ -499,7 +357,7 @@ const ProfessionalVideoCallWebRTC = () => {
         </div>
       )}
       {/* Recording indicator banner */}
-      {(isRecording || localRecording) && (
+      {(isServerRecording || localRecording) && (
         <div className="bg-red-600/90 text-white text-xs sm:text-sm px-4 py-1.5 flex items-center justify-center gap-2 shrink-0 z-30">
           <Circle className="w-3 h-3 fill-white animate-pulse" />
           <span className="font-medium">Grabando sesión</span>
@@ -521,8 +379,7 @@ const ProfessionalVideoCallWebRTC = () => {
       {/* Upload error banner */}
       {uploadError && (
         <div className="bg-amber-600/90 text-white text-xs sm:text-sm px-4 py-2 flex items-center justify-between shrink-0 z-30">
-          <span>{uploadError}</span>
-          <button onClick={() => setUploadError(null)} className="ml-3 font-medium text-xs">✕</button>
+          <span className="mr-2">{uploadError}</span>
         </div>
       )}
       {/* Header - Compact */}
@@ -907,13 +764,13 @@ const ProfessionalVideoCallWebRTC = () => {
           <button
             onClick={handleRecordClick}
             className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center transition-colors ${
-              (isRecording || localRecording)
+              (isServerRecording || localRecording)
                 ? 'bg-red-500 text-white'
                 : 'bg-white/10 text-white'
             }`}
-            title={(isRecording || localRecording) ? 'Detener grabación' : 'Grabar sesión'}
+            title={(isServerRecording || localRecording) ? 'Detener grabación' : 'Grabar sesión'}
           >
-            <Circle className={`w-4 h-4 sm:w-5 sm:h-5 ${(isRecording || localRecording) ? 'fill-white' : ''}`} />
+            <Circle className={`w-4 h-4 sm:w-5 sm:h-5 ${(isServerRecording || localRecording) ? 'fill-white' : ''}`} />
           </button>
 
           {/* Chat */}

@@ -8,6 +8,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Mic, MicOff, Video as VideoIcon, VideoOff, MessageSquare, PhoneOff, LogOut, Circle, ShieldAlert } from 'lucide-react';
 import { useWebRTC } from '@shared/hooks/useWebRTC';
+import { useCallRecording } from '@shared/hooks/useCallRecording';
 import { videoCallService } from '@shared/services/videoCallService';
 import { useAuth } from '../auth/AuthContext';
 
@@ -29,12 +30,11 @@ const PatientVideoCallWebRTC = () => {
     error,
     isAudioEnabled,
     isVideoEnabled,
-    isRecording,
+    isRecording: isServerRecording,
     isReconnecting,
     reconnectFailed,
     userLeft,
     recordingAuthorized,
-    manager,
     joinRoom,
     leaveRoom,
     toggleAudio,
@@ -47,8 +47,13 @@ const PatientVideoCallWebRTC = () => {
   const [countdown, setCountdown] = useState(null);
   const [showRecordingDisclaimer, setShowRecordingDisclaimer] = useState(false);
   const recordingAcknowledgedRef = useRef(false);
-  const mediaRecorderRef = useRef(null);
-  const recordingChunksRef = useRef([]);
+
+  const {
+    isRecording,
+    isUploading,
+    uploadError,
+    stopRecording: stopCallRecording,
+  } = useCallRecording({ localStream, appointmentId, recordingAuthorized });
   
   const localVideoRef = useRef(null);
   const remoteVideoRefs = useRef(new Map());
@@ -111,85 +116,13 @@ const PatientVideoCallWebRTC = () => {
     }
   }, [isRecording]);
 
-  // Start MediaRecorder when recording-authorized is received
-  useEffect(() => {
-    if (!recordingAuthorized || mediaRecorderRef.current) return;
-
-    // Use AudioContext to properly mix local + remote audio
-    const startPatientRecorder = async () => {
-      try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioCtx.state === 'suspended') await audioCtx.resume();
-
-        const destination = audioCtx.createMediaStreamDestination();
-        let trackCount = 0;
-
-        if (localStream) {
-          localStream.getAudioTracks().forEach(track => {
-            if (track.readyState === 'live') {
-              const source = audioCtx.createMediaStreamSource(new MediaStream([track]));
-              source.connect(destination);
-              trackCount++;
-            }
-          });
-        }
-
-        if (manager) {
-          const remoteStreamMap = manager.remoteStreams || new Map();
-          remoteStreamMap.forEach((stream) => {
-            stream.getAudioTracks().forEach(track => {
-              if (track.readyState === 'live') {
-                const source = audioCtx.createMediaStreamSource(new MediaStream([track]));
-                source.connect(destination);
-                trackCount++;
-              }
-            });
-          });
-        }
-
-        if (trackCount === 0) {
-          console.warn('[Recording] No live audio tracks available to record');
-          audioCtx.close();
-          return;
-        }
-
-        const mixedStream = destination.stream;
-        const mimeTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
-        let chosenMime = '';
-        for (const mime of mimeTypes) {
-          if (MediaRecorder.isTypeSupported(mime)) { chosenMime = mime; break; }
-        }
-
-        const recorderOptions = chosenMime ? { mimeType: chosenMime } : undefined;
-        const mediaRecorder = new MediaRecorder(mixedStream, recorderOptions);
-        recordingChunksRef.current = [];
-        mediaRecorder.ondataavailable = (e) => {
-          if (e.data.size > 0) recordingChunksRef.current.push(e.data);
-        };
-        mediaRecorder.start(1000);
-        mediaRecorderRef.current = mediaRecorder;
-        mediaRecorderRef.current._audioCtx = audioCtx;
-        console.log(`[Recording] Patient MediaRecorder started — mimeType: ${chosenMime || 'default'}, tracks: ${trackCount}`);
-      } catch (err) {
-        console.error('[Recording] Failed to start MediaRecorder:', err);
-      }
-    };
-    startPatientRecorder();
-  }, [recordingAuthorized, localStream, manager]);
-
   // When the professional ends the room, stop recording and navigate back after 3 seconds
   useEffect(() => {
     if (!roomEnded) return;
-    // Stop MediaRecorder if active (patient does not upload — only professional uploads)
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      if (mediaRecorderRef.current._audioCtx) mediaRecorderRef.current._audioCtx.close().catch(() => {});
-      mediaRecorderRef.current.stop();
-      mediaRecorderRef.current = null;
-      recordingChunksRef.current = [];
-    }
+    stopCallRecording();
     const timer = setTimeout(() => navigate('/dashboard/patient'), 3000);
     return () => clearTimeout(timer);
-  }, [roomEnded, navigate, appointmentId]);
+  }, [roomEnded, navigate, stopCallRecording]);
 
   // Stable ref callback for local video — sets srcObject once
   const setLocalVideoRef = useCallback((el) => {
@@ -250,15 +183,8 @@ const PatientVideoCallWebRTC = () => {
     }
   };
 
-  const handleLeaveRoom = () => {
-    // Stop MediaRecorder if active (patient does not upload — only professional uploads)
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      if (mediaRecorderRef.current._audioCtx) mediaRecorderRef.current._audioCtx.close().catch(() => {});
-      mediaRecorderRef.current.stop();
-      mediaRecorderRef.current = null;
-      recordingChunksRef.current = [];
-    }
-
+  const handleLeaveRoom = async () => {
+    await stopCallRecording();
     leaveRoom();
     navigate('/dashboard/patient');
   };
