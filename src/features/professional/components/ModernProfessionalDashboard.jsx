@@ -201,7 +201,28 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
         }
     }, [refreshData])
 
-    // Filtered patient search results removed — search bar now lives in layout header
+    // Resolve the full patient record from the already-loaded patients array when
+    // opening a clinical file from a session card. Patients fetched via useDashboardData
+    // carry all profile fields (email, phone, dateOfBirth, etc.). Using that data
+    // avoids depending on the getById endpoint to enrich a skeleton object, so the
+    // expediente shows real data immediately.
+    const handleViewDiaryFromSession = useCallback((apt) => {
+        const rawPid = apt?.patientId
+        const id = (rawPid && typeof rawPid === 'object')
+            ? (rawPid._id || rawPid.id || null)
+            : (rawPid || null)
+        const fullPatient = id
+            ? patients.find(p => String(p._id || p.id) === String(id))
+            : null
+        if (fullPatient) {
+            // Pass the full patient object so the clinical file has all data up-front
+            setDiaryPatient(fullPatient)
+        } else {
+            // No match in local list (e.g. name-only appointment) — fall back to the
+            // appointment object so handleViewDiary can do its name-based lookup
+            setDiaryPatient(apt)
+        }
+    }, [patients, setDiaryPatient])
 
     return (
         <>
@@ -238,7 +259,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                         upcomingApts={upcomingApts}
                         nextUpcomingSession={nextUpcomingSession}
                         onJoinVideo={handleJoinVideo}
-                        onViewDiary={(apt) => setDiaryPatient(apt)}
+                        onViewDiary={handleViewDiaryFromSession}
                         onMarkComplete={handleMarkComplete}
                         todayAppointments={todayAppointments}
                         onShowCalendar={() => setShowCalendar(true)}
@@ -313,7 +334,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                             setCalendarView={setCalendarView}
                                             loading={loading}
                                             handleJoinVideo={handleJoinVideo}
-                                            setDiaryPatient={setDiaryPatient}
+                                            setDiaryPatient={handleViewDiaryFromSession}
                                             setShowCalendar={setShowCalendar}
                                             handleMarkComplete={handleMarkComplete}
                                             totalPatients={stats?.totalPatients}
@@ -383,7 +404,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                         setCalendarView={setCalendarView}
                                         loading={loading}
                                         handleJoinVideo={handleJoinVideo}
-                                        setDiaryPatient={setDiaryPatient}
+                                        setDiaryPatient={handleViewDiaryFromSession}
                                         setShowCalendar={setShowCalendar}
                                         handleMarkComplete={handleMarkComplete}
                                         totalPatients={stats?.totalPatients}

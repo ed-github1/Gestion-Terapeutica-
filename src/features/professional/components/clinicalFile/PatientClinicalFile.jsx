@@ -8,9 +8,7 @@ import CaratulaTab from './tabs/CaratulaTab'
 import SummaryTab from './tabs/SummaryTab'
 import DiaryTab from './tabs/DiaryTab'
 import HomeworkTab from './tabs/HomeworkTab'
-import NotesTab from './tabs/NotesTab'
-import SummariesTab from './tabs/SummariesTab'
-import SessionsTab from './tabs/SessionsTab'
+import HistorialTab from './tabs/HistorialTab'
 
 const PatientClinicalFile = ({ patient, onClose }) => {
   const navigate = useNavigate()
@@ -167,20 +165,11 @@ const PatientClinicalFile = ({ patient, onClose }) => {
 
          
 
-            {tab === 'notes' && !isLoading && (
-              <NotesTab
-                pFirstName={pFirstName} clinicalNotes={clinicalNotes}
-                newNote={newNote} setNewNote={setNewNote} isSubmitting={isSubmitting}
-                handleAddNote={handleAddNote} error={error} setError={setError}
+            {tab === 'historial' && !isLoading && (
+              <HistorialTab
+                clinicalNotes={clinicalNotes}
+                sessionSummaries={sessionSummaries} navigate={navigate}
               />
-            )}
-
-            {tab === 'summaries' && !isLoading && (
-              <SummariesTab sessionSummaries={sessionSummaries} navigate={navigate} />
-            )}
-
-            {tab === 'sessions' && !isLoading && (
-              <SessionsTab sessionHistory={sessionHistory} />
             )}
           </motion.div>
         </AnimatePresence>

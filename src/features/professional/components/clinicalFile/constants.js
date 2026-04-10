@@ -1,5 +1,5 @@
 import {
-  BookOpen, ClipboardList, FileText, Calendar, User, BarChart2, Mic, Dumbbell,
+  BookOpen, ClipboardList, FileText, Calendar, User, BarChart2, Dumbbell,
   Star, Pencil, Wind,
 } from 'lucide-react'
 
@@ -19,11 +19,9 @@ export const rel = (iso) => {
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
 export const TABS = [
-  { key: 'caratula',   label: 'Carátula',        icon: User },
-  { key: 'diary',      label: 'Diario',          icon: BookOpen },
-  { key: 'notes',      label: 'Notas clínicas',  icon: FileText },
-  { key: 'summaries',  label: 'Resúmenes',       icon: Mic },
-  { key: 'sessions',   label: 'Historial',       icon: Calendar },
+  { key: 'caratula',   label: 'Carátula',  icon: User },
+  { key: 'diary',      label: 'Diario',    icon: BookOpen },
+  { key: 'historial',  label: 'Historial', icon: Calendar },
 ]
 
 // ─── Mood metadata ────────────────────────────────────────────────────────────

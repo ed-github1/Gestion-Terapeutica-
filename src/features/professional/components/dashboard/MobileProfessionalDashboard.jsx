@@ -83,13 +83,13 @@ const HeroSessionCard = ({ apt, onJoinVideo, onViewDiary, onMarkComplete }) => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="relative rounded-2xl overflow-hidden"
+            className={`relative rounded-2xl overflow-hidden border ${isInProgress ? 'border-sky-200 dark:border-sky-900/30' : 'border-gray-200 dark:border-gray-800/60'}`}
         >
             {/* Gradient background */}
             <div className={`absolute inset-0 ${
                 isInProgress
-                    ? 'bg-linear-to-br from-sky-900/80 via-sky-900/60 to-gray-900'
-                    : 'bg-linear-to-br from-gray-800 via-gray-800/90 to-gray-900'
+                    ? 'bg-linear-to-br from-sky-50 via-sky-50/60 to-white dark:from-sky-900/80 dark:via-sky-900/60 dark:to-gray-900'
+                    : 'bg-linear-to-br from-gray-50 to-white dark:from-gray-800 dark:via-gray-800/90 dark:to-gray-900'
             }`} />
             {isInProgress && (
                 <div className="absolute inset-0 bg-sky-500/5" />
@@ -104,12 +104,12 @@ const HeroSessionCard = ({ apt, onJoinVideo, onViewDiary, onMarkComplete }) => {
                 {/* Status label */}
                 <div className="flex items-center justify-between mb-3">
                     <span className={`text-[10px] font-bold uppercase tracking-widest ${
-                        isInProgress ? 'text-sky-400' : 'text-gray-500'
+                        isInProgress ? 'text-sky-600 dark:text-sky-400' : 'text-gray-500'
                     }`}>
                         {isInProgress ? '● En curso' : 'Próxima sesión'}
                     </span>
                     <span className={`text-[11px] font-semibold tabular-nums ${
-                        isInProgress ? 'text-sky-300' : 'text-gray-400'
+                        isInProgress ? 'text-sky-600 dark:text-sky-300' : 'text-gray-500 dark:text-gray-400'
                     }`}>{countdown}</span>
                 </div>
 
@@ -119,10 +119,10 @@ const HeroSessionCard = ({ apt, onJoinVideo, onViewDiary, onMarkComplete }) => {
                         {getInitialsFrom(name)}
                     </div>
                     <div className="min-w-0">
-                        <p className="text-[17px] font-bold text-white leading-tight truncate">{name}</p>
+                        <p className="text-[17px] font-bold text-gray-900 dark:text-white leading-tight truncate">{name}</p>
                         <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[12px] text-gray-400 tabular-nums">{fmtRange(apt)}</span>
-                            <span className={`inline-flex items-center gap-1 text-[10px] font-medium text-gray-400`}>
+                            <span className="text-[12px] text-gray-500 dark:text-gray-400 tabular-nums">{fmtRange(apt)}</span>
+                            <span className={`inline-flex items-center gap-1 text-[10px] font-medium text-gray-500 dark:text-gray-400`}>
                                 <span className={`w-1.5 h-1.5 rounded-full ${typeDot}`} />
                                 {sessionType}
                             </span>
@@ -134,7 +134,7 @@ const HeroSessionCard = ({ apt, onJoinVideo, onViewDiary, onMarkComplete }) => {
                 <div className="flex gap-2">
                     <button
                         onClick={() => onViewDiary?.(apt)}
-                        className="flex-1 flex items-center justify-center gap-1.5 h-10 rounded-xl bg-white/10 border border-white/10 text-[12px] font-semibold text-gray-300 active:scale-95 transition-all"
+                        className="flex-1 flex items-center justify-center gap-1.5 h-10 rounded-xl bg-gray-100 dark:bg-white/10 border border-gray-200 dark:border-white/10 text-[12px] font-semibold text-gray-600 dark:text-gray-300 active:scale-95 transition-all"
                     >
                         <FileText className="w-3.5 h-3.5" />
                         Expediente
@@ -145,7 +145,7 @@ const HeroSessionCard = ({ apt, onJoinVideo, onViewDiary, onMarkComplete }) => {
                             className={`flex-2 flex items-center justify-center gap-1.5 h-10 px-5 rounded-xl text-[12px] font-bold active:scale-95 transition-all ${
                                 isInProgress
                                     ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/30'
-                                    : 'bg-sky-500/20 border border-sky-500/40 text-sky-300'
+                                    : 'bg-sky-500/20 border border-sky-500/40 text-sky-500 dark:text-sky-300'
                             }`}
                         >
                             <Video className="w-3.5 h-3.5" />

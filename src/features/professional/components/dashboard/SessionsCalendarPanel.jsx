@@ -611,9 +611,9 @@ const CountdownBadge = ({ countdown, isNow, isImminent }) => {
  *
  * @param {{ label, visibleCount, completedCount, countdownProps, compact? }} props
  */
-const SessionsHeader = ({ label, visibleCount, completedCount, countdownProps, compact = false }) => (
+const SessionsHeader = ({ label, visibleCount, completedCount, countdownProps, compact = false, isViewingToday = false }) => (
     <div className={`flex items-center justify-between ${compact ? 'mb-4' : 'mb-5'} shrink-0`}>
-        <h2 className={`font-bold text-gray-900 dark:text-gray-100 leading-tight ${compact ? 'text-[13px]' : 'text-[15px] font-semibold'}`}>
+        <h2 className={`font-bold leading-tight ${compact ? 'text-[13px]' : 'text-[15px] font-semibold'} ${isViewingToday ? 'text-sky-600 dark:text-sky-400' : 'text-gray-900 dark:text-gray-100'}`}>
             {label}
         </h2>
         <CountdownBadge {...countdownProps} />
@@ -971,6 +971,7 @@ const SessionsCalendarPanel = ({
                 completedCount={calendarData.completedSessions}
                 countdownProps={countdownProps}
                 compact
+                isViewingToday={isViewingToday}
             />
         )
 
@@ -1009,7 +1010,7 @@ const SessionsCalendarPanel = ({
             <div className="hidden xl:grid xl:grid-cols-[1fr_400px] xl:h-full">
                 <div className="p-6 flex flex-col border-r border-gray-200 dark:border-gray-700 xl:overflow-hidden">
                     <div className="flex items-center justify-between mb-5 shrink-0">
-                        <h2 className="text-[15px] font-semibold text-gray-900 dark:text-gray-100">{selectedDateLabel}</h2>
+                        <h2 className={`text-[15px] font-semibold ${isViewingToday ? 'text-sky-600 dark:text-sky-400' : 'text-gray-900 dark:text-gray-100'}`}>{selectedDateLabel}</h2>
                         <CountdownBadge {...countdownProps} />
                     </div>
                     {sessionsContent}
@@ -1048,7 +1049,7 @@ const SessionsCalendarPanel = ({
                         >
                             <div className="flex items-center justify-between mb-5">
                                 <div>
-                                    <h2 className="text-[15px] font-semibold text-gray-900 dark:text-gray-100">{selectedDateLabel}</h2>
+                                    <h2 className={`text-[15px] font-semibold ${isViewingToday ? 'text-sky-600 dark:text-sky-400' : 'text-gray-900 dark:text-gray-100'}`}>{selectedDateLabel}</h2>
                                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{visibleSessions.length} citas</p>
                                 </div>
                                 <div className="flex items-center gap-2">

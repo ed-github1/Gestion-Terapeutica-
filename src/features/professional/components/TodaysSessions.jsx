@@ -83,10 +83,11 @@ const parseAppointment = (appointment) => {
    2. STYLE RESOLVERS — keep all conditional class logic here
    ═══════════════════════════════════════════════════════════════════════════ */
 
-const getCardBg = ({ isCancelled, isCompleted, isNext, riskLevel }) => {
-    if (isCancelled) return 'bg-white dark:bg-gray-800/50 border border-dashed border-gray-300 dark:border-gray-600'
-    if (isCompleted) return 'bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/60'
-    if (isNext)      return 'bg-white dark:bg-gray-800 border border-sky-200 dark:border-sky-700/40 shadow-sm ring-1 ring-inset ring-sky-500/10 dark:ring-sky-500/15'
+const getCardBg = ({ isCancelled, isCompleted, isNext, isInProgress, riskLevel }) => {
+    if (isCancelled)   return 'bg-white dark:bg-gray-800/50 border border-dashed border-gray-300 dark:border-gray-600'
+    if (isCompleted)   return 'bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/60'
+    if (isInProgress)  return 'bg-sky-50/80 dark:bg-sky-950/20 border border-sky-300 dark:border-sky-700/50 shadow-sm ring-1 ring-inset ring-sky-500/20 dark:ring-sky-500/20'
+    if (isNext)        return 'bg-white dark:bg-gray-800 border border-sky-200 dark:border-sky-700/40 shadow-sm ring-1 ring-inset ring-sky-500/10 dark:ring-sky-500/15'
     if (riskLevel === 'high') return 'bg-white dark:bg-gray-800/80 border border-rose-200 dark:border-rose-700/30'
     return 'bg-white dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700/60'
 }
@@ -103,8 +104,9 @@ const getNameClass = ({ isCancelled, isCompleted }) => {
     return 'text-gray-900 dark:text-gray-100'
 }
 
-const getTimelineDot = ({ isCancelled }) => {
-    if (isCancelled) return 'w-2 h-2 bg-gray-400/30 dark:bg-gray-600/50'
+const getTimelineDot = ({ isCancelled, isInProgress }) => {
+    if (isCancelled)  return 'w-2 h-2 bg-gray-400/30 dark:bg-gray-600/50'
+    if (isInProgress) return 'w-2.5 h-2.5 bg-sky-400 dark:bg-sky-500 animate-pulse ring-2 ring-sky-400/30 dark:ring-sky-500/30'
     return 'w-2 h-2 bg-gray-400/60 dark:bg-gray-500/60'
 }
 
@@ -239,7 +241,7 @@ const SessionChips = ({ data }) => {
 
 const SessionCard = ({ appointment, index, isFirst, isNext, isLast, countdown, isImminent, onJoinVideo, onViewDiary, onMessage, onMarkComplete }) => {
     const data = parseAppointment(appointment)
-    const { patientName, startTime, isCancelled, isCompleted, isInProgress, dateLabel, timeRange } = data
+    const { patientName, startTime, endTime, isCancelled, isCompleted, isInProgress, dateLabel, timeRange } = data
 
     const bgClass    = getCardBg({ ...data, isNext })
     const nameClass  = getNameClass(data)
@@ -248,10 +250,10 @@ const SessionCard = ({ appointment, index, isFirst, isNext, isLast, countdown, i
 
     return (
         <div className="min-w-0 w-full group">
-            {isNext && (
+            {(isNext || isInProgress) && (
                 <div className="flex items-center pl-12 mb-1">
-                    <span className={`text-[9px] font-bold uppercase tracking-widest ${isInProgress ? 'text-emerald-400' : 'text-sky-500'}`}>
-                        Próxima sesión
+                    <span className={`text-[9px] font-bold uppercase tracking-widest ${isInProgress ? 'text-sky-500 dark:text-sky-400' : 'text-sky-500'}`}>
+                        {isInProgress ? 'En curso' : 'Próxima sesión'}
                     </span>
                 </div>
             )}
@@ -283,6 +285,14 @@ const SessionCard = ({ appointment, index, isFirst, isNext, isLast, countdown, i
                             <SessionChips data={data} />
                         </div>
                     </div>
+                    {isInProgress && (() => {
+                        const pct = Math.min(100, Math.round((Date.now() - startTime.getTime()) / (endTime.getTime() - startTime.getTime()) * 100))
+                        return (
+                            <div className="mt-3 h-0.5 rounded-full overflow-hidden bg-sky-100 dark:bg-sky-900/30">
+                                <div className="h-full bg-linear-to-r from-sky-400 to-teal-400 rounded-full" style={{ width: `${pct}%` }} />
+                            </div>
+                        )
+                    })()}
                 </div>
             </TimelineRow>
         </div>

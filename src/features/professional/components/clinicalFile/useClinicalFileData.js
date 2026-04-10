@@ -16,11 +16,55 @@ export const useClinicalFileData = (patient) => {
   const [isSubmitting, setIsSubmitting]         = useState(false)
   const [patientProfile, setPatientProfile]     = useState(patient)
 
-  const patientId = patient?.id || patient?._id
+  // rawPatientId may be null for appointments created without linking a patient record
+  // (e.g. through QuickCreateModal which only stores a name). effectivePatientId is
+  // resolved by either the prop directly or via a name-based patient search below.
+  const rawPatientId = patient?.id || patient?._id || null
+  const [effectivePatientId, setEffectivePatientId] = useState(rawPatientId)
+
+  const patientId     = effectivePatientId
   const patientUserId = patient?.userId || patient?.user || patientId
 
+  // When there is no patient ID (name-only appointment), search /patients by full name
+  // to find the linked patient record and resolve the real ID.
+  useEffect(() => {
+    if (rawPatientId || effectivePatientId) return  // already have an ID
+    const firstName  = patient?.firstName || patient?.nombre  || ''
+    const lastName   = patient?.lastName  || patient?.apellido || ''
+    const searchName = `${firstName} ${lastName}`.trim()
+    if (!searchName) return
+
+    let cancelled = false
+    patientsService.getAll({ search: searchName, limit: 10 })
+      .then(res => {
+        if (cancelled) return
+        const raw  = res.data?.data?.data ?? res.data?.data ?? res.data ?? []
+        const list = Array.isArray(raw) ? raw : []
+        const lower = searchName.toLowerCase()
+        const match = list.find(p => {
+          const n = `${p.firstName || p.nombre || ''} ${p.lastName || p.apellido || ''}`.toLowerCase().trim()
+          return n === lower
+        })
+        if (match) {
+          const foundId = match._id || match.id
+          if (foundId) {
+            setEffectivePatientId(foundId)
+            setPatientProfile(prev => ({
+              ...match,
+              id: foundId, _id: foundId,
+              nombre:   match.firstName  || match.nombre  || prev.nombre,
+              apellido: match.lastName   || match.apellido || prev.apellido,
+            }))
+          }
+        }
+      })
+      .catch(err => console.warn('[useClinicalFileData] name-based patient lookup failed:', err?.message))
+    return () => { cancelled = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawPatientId, effectivePatientId])
+
   const fetchData = useCallback(async () => {
-    if (!patientId) { setIsLoading(false); return }
+    if (!effectivePatientId) { setIsLoading(false); return }
     setIsLoading(true); setError(null)
     try {
       const fetches = [
@@ -132,7 +176,7 @@ export const useClinicalFileData = (patient) => {
     } finally {
       setIsLoading(false)
     }
-  }, [patientId, patientUserId])
+  }, [effectivePatientId, patientUserId])
 
   useEffect(() => { fetchData() }, [fetchData])
 

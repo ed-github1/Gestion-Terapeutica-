@@ -104,13 +104,8 @@ const ProfessionalDashboardWrapper = () => {
                 ? patientObj._id || patientObj.id
                 : patientObj) ||
             session?.patient?._id ||
-            session?.patient?.id
-
-        if (!id) {
-            // No patient linked — can't open clinical file
-            console.warn('[handleViewDiary] No patientId found on session:', session)
-            return
-        }
+            session?.patient?.id ||
+            null
 
         // Prefer name from populated patientId object (Patient model uses firstName/lastName)
         const fullName =
@@ -120,16 +115,25 @@ const ProfessionalDashboardWrapper = () => {
             session?.nombrePaciente ||
             session?.patientName ||
             session?.patient?.name ||
-            'Paciente'
+            ''
 
-        const parts    = fullName.trim().split(' ')
-        const firstName = patientObj?.firstName || parts[0] || 'Paciente'
+        if (!id && !fullName) {
+            // No patient info at all — nothing to show
+            console.warn('[handleViewDiary] No patientId or name found on session:', session)
+            return
+        }
+
+        const parts     = fullName.trim().split(' ')
+        const firstName = patientObj?.firstName || parts[0] || fullName || 'Paciente'
         const lastName  = patientObj?.lastName  || parts.slice(1).join(' ') || ''
         setDiaryPatient({
-            id,
+            // id may be null for appointments created without linking a patient record
+            // (e.g. QuickCreateModal). useClinicalFileData handles null patientId gracefully.
+            id:       id || null,
+            _id:      id || null,
             firstName, lastName,
             nombre: firstName, apellido: lastName,
-            name: fullName,
+            name: fullName || `${firstName} ${lastName}`.trim(),
             email:    patientObj?.email    || session?.email    || '',
             phone:    patientObj?.phone    || session?.phone    || '',
             telefono: patientObj?.telefono || session?.telefono || '',
