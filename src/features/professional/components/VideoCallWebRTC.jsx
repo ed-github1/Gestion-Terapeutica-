@@ -10,7 +10,6 @@ import { Mic, MicOff, Video as VideoIcon, VideoOff, MessageSquare, PhoneOff, Sto
 import { useWebRTC } from '@shared/hooks/useWebRTC';
 import { useCallRecording } from '@shared/hooks/useCallRecording';
 import { videoCallService } from '@shared/services/videoCallService';
-import { appointmentsService } from '@shared/services/appointmentsService';
 import { useAuth } from '../../auth/AuthContext';
 
 const ProfessionalVideoCallWebRTC = () => {
@@ -49,12 +48,12 @@ const ProfessionalVideoCallWebRTC = () => {
   const [chatInput, setChatInput] = useState('');
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [showRecordingConsent, setShowRecordingConsent] = useState(false);
+  const [showStopRecordingConfirm, setShowStopRecordingConfirm] = useState(false);
   const [sessionNotes, setSessionNotes] = useState('');
   const [countdown, setCountdown] = useState(null);
-  const [transcriptStatus, setTranscriptStatus] = useState(null);
-  const [transcript, setTranscript] = useState('');
-  const [transcriptError, setTranscriptError] = useState(null);
+  const [isEndingSession, setIsEndingSession] = useState(false);
   const [recordingEnabled, setRecordingEnabled] = useState(false);
+  const [patientDeclinedRecording, setPatientDeclinedRecording] = useState(false);
 
   // Navigate away when reconnection fails
   useEffect(() => {
@@ -70,14 +69,18 @@ const ProfessionalVideoCallWebRTC = () => {
   const durationDisplayRef = useRef(null);
   const callDurationRef = useRef(0);
   const countdownRef = useRef(null);
-  const pollTimerRef = useRef(null);
+
+  const handleRecordingFailed = useCallback((errorMsg) => {
+    console.error('[Recording] Recording failed:', errorMsg);
+  }, []);
 
   const {
     isRecording: localRecording,
     isUploading,
     uploadError,
+    recordingError,
     stopRecording: stopCallRecording,
-  } = useCallRecording({ localStream, appointmentId, enabled: recordingEnabled || recordingAuthorized });
+  } = useCallRecording({ localStream, appointmentId, enabled: recordingEnabled, onRecordingFailed: handleRecordingFailed });
 
   // When a remote user leaves and no one is left, start 30s countdown
   useEffect(() => {
@@ -165,50 +168,6 @@ const ProfessionalVideoCallWebRTC = () => {
     };
   }, [isInRoom]);
 
-  // Cleanup polling timer on unmount
-  useEffect(() => {
-    return () => {
-      if (pollTimerRef.current) {
-        clearTimeout(pollTimerRef.current);
-        pollTimerRef.current = null;
-      }
-    };
-  }, []);
-
-  const pollTranscript = useCallback(async (attemptCount = 0) => {
-    const MAX_ATTEMPTS = 120;           // ~10 minutes at 5 s intervals
-    const BASE_INTERVAL = 5000;
-    const EXTENDED_INTERVAL = 12000;    // slow down after 5 minutes
-
-    if (attemptCount >= MAX_ATTEMPTS) {
-      setTranscriptStatus('failed');
-      setTranscriptError('La transcripción tardó demasiado. Puedes consultarla más tarde en el expediente del paciente.');
-      return;
-    }
-
-    try {
-      const { data } = await appointmentsService.getById(appointmentId);
-      const appointment = data.appointment || data;
-      if (appointment.transcriptStatus === 'ready') {
-        setTranscript(appointment.transcript || '');
-        setTranscriptStatus('ready');
-      } else if (appointment.transcriptStatus === 'failed') {
-        setTranscriptStatus('failed');
-        setTranscriptError('La transcripción no pudo completarse.');
-      } else {
-        // 'processing' or 'idle' — keep polling
-        setTranscriptStatus('processing');
-        const interval = attemptCount >= 60 ? EXTENDED_INTERVAL : BASE_INTERVAL;
-        pollTimerRef.current = setTimeout(() => pollTranscript(attemptCount + 1), interval);
-      }
-    } catch (err) {
-      console.error('[Transcript] Poll error (attempt', attemptCount, '):', err);
-      // On network/server error: retry silently up to MAX_ATTEMPTS (don't surface as failure)
-      const interval = attemptCount >= 60 ? EXTENDED_INTERVAL : BASE_INTERVAL;
-      pollTimerRef.current = setTimeout(() => pollTranscript(attemptCount + 1), interval);
-    }
-  }, [appointmentId]);
-
   const handleJoinRoom = async () => {
     try {
       await joinRoom(appointmentId, { recordingConsent: true });
@@ -224,10 +183,12 @@ const ProfessionalVideoCallWebRTC = () => {
   };
 
   const handleEndSession = async () => {
+    setIsEndingSession(true);
+    setShowEndConfirm(false);
     try {
+      // Wait for the recording upload to fully complete before signalling endRoom.
+      // This ensures the backend has the audio file when it triggers transcription.
       await stopCallRecording();
-      setTranscriptStatus('processing');
-      pollTranscript(0);
     } catch (err) {
       console.error('[Recording] Upload error (continuing):', err);
     }
@@ -248,24 +209,35 @@ const ProfessionalVideoCallWebRTC = () => {
   };
 
   const handleRecordClick = () => {
-    if (isServerRecording || localRecording) {
-      stopCallRecording();
-      stopRecording(appointmentId);
+    if (localRecording) {
+      // Require explicit confirmation — an accidental click could end
+      // the recording and discard the ongoing audio capture.
+      setShowStopRecordingConfirm(true);
     } else {
+      setPatientDeclinedRecording(false);
       setShowRecordingConsent(true);
     }
   };
 
+  const handleConfirmStopRecording = () => {
+    setShowStopRecordingConfirm(false);
+    setRecordingEnabled(false);
+    stopCallRecording();
+    stopRecording(appointmentId);
+  };
+
   const handleAcceptRecordingConsent = async () => {
     setShowRecordingConsent(false);
-    setRecordingEnabled(true);
-    // Tell the backend that recording consent was given
+    // Register consent on the appointment record FIRST — the backend's
+    // start-recording handler queries appointment.recordingConsent from DB.
+    // We MUST await this before emitting the socket event.
     try {
       await videoCallService.grantRecordingConsent(appointmentId);
     } catch (err) {
       console.error('Failed to set recording consent on backend:', err);
+      return; // Abort — backend will reject start-recording without this
     }
-    // Notify server — recording-authorized will fire when both participants consent
+    setRecordingEnabled(true);
     startRecording(appointmentId);
   };
 
@@ -359,7 +331,7 @@ const ProfessionalVideoCallWebRTC = () => {
         </div>
       )}
       {/* Recording indicator banner */}
-      {(isServerRecording || localRecording) && (
+      {localRecording && (
         <div className="bg-red-600/90 text-white text-xs sm:text-sm px-4 py-1.5 flex items-center justify-center gap-2 shrink-0 z-30">
           <Circle className="w-3 h-3 fill-white animate-pulse" />
           <span className="font-medium">Grabando sesión</span>
@@ -376,6 +348,13 @@ const ProfessionalVideoCallWebRTC = () => {
         <div className="bg-sky-600/90 text-white text-xs sm:text-sm px-4 py-1.5 flex items-center justify-center gap-2 shrink-0 z-30">
           <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
           <span className="font-medium">Subiendo grabación…</span>
+        </div>
+      )}
+      {/* Recording error banner */}
+      {recordingError && !localRecording && (
+        <div className="bg-amber-600/90 text-white text-xs sm:text-sm px-4 py-1.5 flex items-center justify-center gap-2 shrink-0 z-30">
+          <span className="font-medium">Error de grabación: {recordingError}</span>
+          <button onClick={handleRecordClick} className="ml-3 underline font-medium text-xs">Reintentar</button>
         </div>
       )}
       {/* Upload error banner */}
@@ -489,44 +468,55 @@ const ProfessionalVideoCallWebRTC = () => {
           )}
         </div>
 
-        {/* Chat Panel */}
+        {/* Chat Panel — full width on mobile, side drawer on desktop */}
         <AnimatePresence>
           {showChat && (
             <motion.div
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 20 }}
-              className="absolute top-0 right-0 w-80 h-full bg-white shadow-2xl flex flex-col z-10"
+              transition={{ type: 'spring', damping: 22, stiffness: 220 }}
+              className="absolute top-0 right-0 w-full sm:w-96 h-full bg-white/95 backdrop-blur-xl shadow-2xl flex flex-col z-20 sm:border-l sm:border-gray-200"
             >
-              <div className="bg-sky-500 text-white px-4 py-3 flex items-center justify-between">
-                <h3 className="font-semibold">Chat de Sesión</h3>
+              <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center">
+                    <MessageSquare className="w-4 h-4 text-sky-600" />
+                  </div>
+                  <h3 className="font-semibold text-gray-900 text-sm">Chat de Sesión</h3>
+                </div>
                 <button
                   onClick={() => setShowChat(false)}
-                  className="hover:bg-sky-600 p-1 rounded"
+                  className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
+                  aria-label="Cerrar chat"
                 >
                   ✕
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+              <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
+                {chatMessages.length === 0 && (
+                  <div className="h-full flex items-center justify-center text-center px-6">
+                    <p className="text-xs text-gray-400">No hay mensajes aún.<br/>Envía el primero para iniciar la conversación.</p>
+                  </div>
+                )}
                 {chatMessages.map((msg, idx) => (
                   <div
                     key={idx}
                     className={`flex ${msg.isOwn ? 'justify-end' : 'justify-start'}`}
                   >
                     <div
-                      className={`max-w-[70%] rounded-lg px-3 py-2 ${
+                      className={`max-w-[78%] rounded-2xl px-3.5 py-2 shadow-sm ${
                         msg.isOwn
-                          ? 'bg-sky-500 text-white'
-                          : 'bg-gray-200 text-gray-800'
+                          ? 'bg-sky-500 text-white rounded-br-md'
+                          : 'bg-gray-100 text-gray-800 rounded-bl-md'
                       }`}
                     >
                       {!msg.isOwn && (
-                        <p className="text-xs font-semibold mb-1">{msg.userName}</p>
+                        <p className="text-[11px] font-semibold mb-0.5 text-sky-700">{msg.userName}</p>
                       )}
-                      <p className="text-sm">{msg.message}</p>
-                      <p className="text-xs opacity-75 mt-1">
+                      <p className="text-sm leading-relaxed wrap-break-word">{msg.message}</p>
+                      <p className={`text-[10px] mt-1 ${msg.isOwn ? 'text-white/70' : 'text-gray-500'}`}>
                         {new Date(msg.timestamp).toLocaleTimeString('es-ES', {
                           hour: '2-digit',
                           minute: '2-digit'
@@ -537,20 +527,22 @@ const ProfessionalVideoCallWebRTC = () => {
                 ))}
               </div>
 
-              <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-200">
-                <div className="flex space-x-2">
+              <form onSubmit={handleSendMessage} className="p-3 border-t border-gray-100 bg-white/80" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+                <div className="flex gap-2 items-center">
                   <input
                     type="text"
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
-                    placeholder="Escribe un mensaje..."
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400"
+                    placeholder="Escribe un mensaje…"
+                    className="flex-1 px-4 py-2.5 bg-gray-100 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition"
                   />
                   <button
                     type="submit"
-                    className="bg-sky-500 text-white px-4 py-2 rounded-lg hover:bg-sky-600 transition-colors"
+                    disabled={!chatInput.trim()}
+                    className="w-10 h-10 shrink-0 bg-sky-500 text-white rounded-full hover:bg-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+                    aria-label="Enviar mensaje"
                   >
-                    Enviar
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4Z"/></svg>
                   </button>
                 </div>
               </form>
@@ -675,43 +667,47 @@ const ProfessionalVideoCallWebRTC = () => {
           )}
         </AnimatePresence>
 
-        {/* Transcript Status Panel */}
+        {/* Stop Recording Confirmation Modal */}
         <AnimatePresence>
-          {transcriptStatus && (
+          {showStopRecordingConfirm && (
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              className="absolute bottom-20 left-1/2 -translate-x-1/2 w-[90%] max-w-lg bg-gray-800 border border-gray-700 rounded-xl shadow-2xl p-4 z-20"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/70 flex items-center justify-center z-30 p-4"
             >
-              {transcriptStatus === 'processing' && (
-                <div className="flex items-center gap-3">
-                  <div className="w-5 h-5 border-2 border-sky-400 border-t-transparent rounded-full animate-spin shrink-0" />
-                  <div>
-                    <p className="text-white text-sm font-medium">Generando transcripción…</p>
-                    <p className="text-gray-400 text-xs mt-0.5">Esto puede tardar unos minutos</p>
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl"
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center shrink-0">
+                    <StopCircle className="w-5 h-5 text-red-500" />
                   </div>
+                  <h3 className="text-base font-semibold text-gray-900">¿Detener la grabación?</h3>
                 </div>
-              )}
-              {transcriptStatus === 'ready' && (
-                <div>
-                  <p className="text-white text-sm font-medium mb-2">Transcripción lista</p>
-                  <textarea
-                    value={transcript}
-                    readOnly
-                    rows={5}
-                    className="w-full bg-gray-900 text-gray-200 text-sm border border-gray-600 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-sky-500"
-                  />
+                <p className="text-sm text-gray-600 mb-5 leading-relaxed">
+                  Se subirá el audio capturado hasta ahora y no podrás reanudar esta grabación.
+                  Si iniciaste la grabación por error, pulsa Detener; en caso contrario, cancela
+                  para continuar grabando.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowStopRecordingConfirm(false)}
+                    className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors text-sm font-medium"
+                  >
+                    Continuar grabando
+                  </button>
+                  <button
+                    onClick={handleConfirmStopRecording}
+                    className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors text-sm font-medium"
+                  >
+                    Detener
+                  </button>
                 </div>
-              )}
-              {transcriptStatus === 'failed' && (
-                <div className="flex items-center gap-3">
-                  <div className="w-5 h-5 rounded-full bg-red-500/20 flex items-center justify-center shrink-0">
-                    <span className="text-red-400 text-xs font-bold">!</span>
-                  </div>
-                  <p className="text-red-300 text-sm">{transcriptError}</p>
-                </div>
-              )}
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -733,77 +729,107 @@ const ProfessionalVideoCallWebRTC = () => {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Ending Session / Uploading Overlay — blocks navigation until complete */}
+        <AnimatePresence>
+          {isEndingSession && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/80 flex items-center justify-center z-40"
+            >
+              <div className="text-center">
+                <div className="w-12 h-12 border-2 border-sky-400 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                <p className="text-white text-base font-semibold mb-1">
+                  {isUploading ? 'Subiendo grabación…' : 'Finalizando sesión…'}
+                </p>
+                <p className="text-gray-400 text-sm">Por favor espera, no cierres esta ventana.</p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* Controls */}
-      <div className="bg-gray-800/95 border-t border-gray-700/50 shrink-0 z-20">
-        <div className="flex items-center justify-center gap-2.5 sm:gap-3 px-3 py-2.5 sm:py-3">
+      {/* Controls — floating pill */}
+      <div className="shrink-0 z-20 px-2 pb-2 sm:pb-4" style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
+        <div className="mx-auto max-w-fit flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 bg-gray-900/80 backdrop-blur-xl border border-white/10 rounded-full shadow-2xl">
           {/* Audio */}
           <button
             onClick={handleToggleAudio}
-            className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center transition-colors ${
+            aria-label={isAudioEnabled ? 'Silenciar micrófono' : 'Activar micrófono'}
+            className={`w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-95 ${
               isAudioEnabled
-                ? 'bg-white/10 text-white'
-                : 'bg-red-500 text-white'
+                ? 'bg-white/10 hover:bg-white/20 text-white'
+                : 'bg-red-500 hover:bg-red-600 text-white'
             }`}
           >
-            {isAudioEnabled ? <Mic className="w-4 h-4 sm:w-5 sm:h-5" /> : <MicOff className="w-4 h-4 sm:w-5 sm:h-5" />}
+            {isAudioEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
           </button>
 
           {/* Video */}
           <button
             onClick={handleToggleVideo}
-            className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center transition-colors ${
+            aria-label={isVideoEnabled ? 'Apagar cámara' : 'Encender cámara'}
+            className={`w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-95 ${
               isVideoEnabled
-                ? 'bg-white/10 text-white'
-                : 'bg-red-500 text-white'
+                ? 'bg-white/10 hover:bg-white/20 text-white'
+                : 'bg-red-500 hover:bg-red-600 text-white'
             }`}
           >
-            {isVideoEnabled ? <VideoIcon className="w-4 h-4 sm:w-5 sm:h-5" /> : <VideoOff className="w-4 h-4 sm:w-5 sm:h-5" />}
+            {isVideoEnabled ? <VideoIcon className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
           </button>
 
           {/* Record */}
           <button
             onClick={handleRecordClick}
-            className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center transition-colors ${
+            aria-label={(isServerRecording || localRecording) ? 'Detener grabación' : 'Grabar sesión'}
+            className={`w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-95 ${
               (isServerRecording || localRecording)
-                ? 'bg-red-500 text-white'
-                : 'bg-white/10 text-white'
+                ? 'bg-red-500 hover:bg-red-600 text-white ring-2 ring-red-400/50 ring-offset-2 ring-offset-gray-900'
+                : 'bg-white/10 hover:bg-white/20 text-white'
             }`}
             title={(isServerRecording || localRecording) ? 'Detener grabación' : 'Grabar sesión'}
           >
-            <Circle className={`w-4 h-4 sm:w-5 sm:h-5 ${(isServerRecording || localRecording) ? 'fill-white' : ''}`} />
+            <Circle className={`w-5 h-5 ${(isServerRecording || localRecording) ? 'fill-white' : ''}`} />
           </button>
 
           {/* Chat */}
           <button
             onClick={() => setShowChat(!showChat)}
-            className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/10 text-white flex items-center justify-center transition-colors"
+            aria-label="Abrir chat"
+            className={`relative w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-95 ${
+              showChat ? 'bg-sky-500 text-white' : 'bg-white/10 hover:bg-white/20 text-white'
+            }`}
           >
-            <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
+            <MessageSquare className="w-5 h-5" />
             {chatMessages.length > 0 && !showChat && (
-              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-sky-400 rounded-full text-[9px] flex items-center justify-center font-bold">
+              <span className="absolute -top-0.5 -right-0.5 min-w-4.5 h-4.5 px-1 bg-sky-400 rounded-full text-[10px] flex items-center justify-center font-bold text-white">
                 {chatMessages.length > 9 ? '9+' : chatMessages.length}
               </span>
             )}
           </button>
 
+          <div className="w-px h-6 bg-white/10 mx-0.5 sm:mx-1" aria-hidden />
+
           {/* Leave */}
           <button
             onClick={handleLeaveRoom}
-            className="h-10 sm:h-11 px-3 sm:px-4 bg-gray-600/80 text-white rounded-full font-medium transition-colors flex items-center gap-1.5 text-xs sm:text-sm"
+            aria-label="Salir de la llamada"
+            className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all active:scale-95"
+            title="Salir"
           >
-            <PhoneOff className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            <span className="hidden sm:inline">Salir</span>
+            <PhoneOff className="w-5 h-5" />
           </button>
 
           {/* End Session */}
           <button
             onClick={() => setShowEndConfirm(true)}
-            className="h-10 sm:h-11 px-4 sm:px-5 bg-red-500 hover:bg-red-600 text-white rounded-full font-medium transition-colors flex items-center gap-1.5 text-xs sm:text-sm"
+            disabled={isEndingSession}
+            className="h-11 px-4 sm:px-5 bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-full font-medium transition-all active:scale-95 flex items-center gap-1.5 text-xs sm:text-sm"
           >
-            <StopCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            <span>Finalizar</span>
+            <StopCircle className="w-4 h-4" />
+            <span className="hidden sm:inline">Finalizar</span>
           </button>
         </div>
       </div>

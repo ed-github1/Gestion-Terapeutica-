@@ -183,6 +183,17 @@ export const useDashboardData = () => {
 
             setAppointments(appointmentsList)
 
+                console.log('📅 All appointments:', appointmentsList.length)
+                console.log('💰 Appointments with payment data:', appointmentsList.map(apt => ({
+                    id: apt.id,
+                    date: apt.date || apt.fechaHora,
+                    paymentStatus: apt.paymentStatus,
+                    status: apt.status,
+                    amount: apt.amount,
+                    price: apt.price,
+                    patient: apt.nombrePaciente
+                })))
+
                 // Compare date-only strings to avoid UTC-vs-local day shift
                 const now = new Date()
                 const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
@@ -210,26 +221,81 @@ export const useDashboardData = () => {
                     apt.status === 'completed' && !apt.sessionNotes && !apt.notes
                 )
 
-                // Revenue: sum price of paid appointments this & last calendar month
+                // Revenue: sum amount of paid appointments this & last calendar month
                 const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
                 const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
                 const lastMonthEnd   = new Date(now.getFullYear(), now.getMonth(), 1)
 
-                const isPaid = apt => apt.paymentStatus === 'paid' || apt.paymentStatus === 'completed'
                 const aptDate = apt => new Date(apt.date || apt.fechaHora)
 
-                const revenueThisMonth = appointmentsList
-                    .filter(apt => isPaid(apt) && aptDate(apt) >= thisMonthStart)
-                    .reduce((sum, apt) => sum + (Number(apt.price) || 0), 0)
-
-                const revenueLastMonth = appointmentsList
-                    .filter(apt => isPaid(apt) && aptDate(apt) >= lastMonthStart && aptDate(apt) < lastMonthEnd)
-                    .reduce((sum, apt) => sum + (Number(apt.price) || 0), 0)
+                // Revenue calculation — fetch from backend API if available, fallback to client-side
+                let revenueThisMonth = 0
+                let revenueLastMonth = 0
+                try {
+                    const revenueRes = await appointmentsService.getRevenue()
+                    const revenueData = revenueRes?.data?.data || revenueRes?.data || {}
+                    
+                    console.log('🔍 Raw API response:', JSON.stringify(revenueData, null, 2))
+                    
+                    // Backend returns: { totalRevenue, monthly: [{ year, month, revenue, count }], ... }
+                    if (revenueData.monthly && Array.isArray(revenueData.monthly)) {
+                        const currentMonth = now.getMonth() + 1 // 1-12
+                        const currentYear = now.getFullYear()
+                        const lastMonth = currentMonth === 1 ? 12 : currentMonth - 1
+                        const lastMonthYear = currentMonth === 1 ? currentYear - 1 : currentYear
+                        
+                        console.log('📆 Looking for:', { currentMonth, currentYear, lastMonth, lastMonthYear })
+                        console.log('📊 Monthly data from API:', revenueData.monthly)
+                        
+                        // Find current month revenue (API returns flat structure with year, month, revenue)
+                        const thisMonthData = revenueData.monthly.find(m => 
+                            m.month === currentMonth && m.year === currentYear
+                        )
+                        revenueThisMonth = thisMonthData?.revenue || thisMonthData?.total || 0
+                        
+                        console.log('✨ Found this month:', thisMonthData, '→ revenue:', revenueThisMonth)
+                        
+                        // Find last month revenue
+                        const lastMonthData = revenueData.monthly.find(m =>
+                            m.month === lastMonth && m.year === lastMonthYear
+                        )
+                        revenueLastMonth = lastMonthData?.revenue || lastMonthData?.total || 0
+                    } else {
+                        // Fallback to direct properties if structure is different
+                        revenueThisMonth = revenueData.thisMonth || 0
+                        revenueLastMonth = revenueData.lastMonth || 0
+                    }
+                    
+                    console.log('✅ Revenue from API:', { revenueThisMonth, revenueLastMonth, raw: revenueData })
+                } catch (err) {
+                    console.log('⚠️ Revenue API failed, using client-side calculation:', err.message)
+                    // Fallback: calculate client-side (backend returns paymentStatus === 'completed')
+                    const isPaid = apt => apt.paymentStatus === 'completed' || apt.paymentStatus === 'paid'
+                    const thisMonthApts = appointmentsList.filter(apt => isPaid(apt) && aptDate(apt) >= thisMonthStart)
+                    revenueThisMonth = thisMonthApts.reduce((sum, apt) => sum + (Number(apt.amount || apt.price) || 0), 0)
+                    revenueLastMonth = appointmentsList
+                        .filter(apt => isPaid(apt) && aptDate(apt) >= lastMonthStart && aptDate(apt) < lastMonthEnd)
+                        .reduce((sum, apt) => sum + (Number(apt.amount || apt.price) || 0), 0)
+                    console.log('📊 Client-side revenue:', { 
+                        revenueThisMonth, 
+                        revenueLastMonth,
+                        thisMonthApts: thisMonthApts.length,
+                        sampleApt: thisMonthApts[0] ? {
+                            id: thisMonthApts[0].id,
+                            paymentStatus: thisMonthApts[0].paymentStatus,
+                            amount: thisMonthApts[0].amount,
+                            price: thisMonthApts[0].price,
+                            date: thisMonthApts[0].date || thisMonthApts[0].fechaHora
+                        } : 'none'
+                    })
+                }
 
                 // Outstanding: pending-payment appointments that are not cancelled
                 const outstandingAmount = appointmentsList
                     .filter(apt => apt.paymentStatus === 'pending' && apt.status !== 'cancelled')
-                    .reduce((sum, apt) => sum + (Number(apt.price) || 0), 0)
+                    .reduce((sum, apt) => sum + (Number(apt.amount || apt.price) || 0), 0)
+
+                console.log('💵 Final revenue stats:', { revenueThisMonth, revenueLastMonth, outstandingAmount })
 
                 setStats(prev => ({
                     ...prev,

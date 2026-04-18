@@ -164,8 +164,7 @@ export const VideoCallNotificationManager = () => {
     if (!userId) return
 
     console.log('[VideoCallNotificationManager] mounted for user:', userId)
-    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || ''
-    socketNotificationService.connect(userId, token)
+    socketNotificationService.connect(userId)
 
     const unsub = socketNotificationService.on('call-invitation', (data) => {
       console.log('[VideoCallNotificationManager] socket call-invitation received:', data)

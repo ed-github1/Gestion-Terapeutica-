@@ -1,12 +1,12 @@
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth, ProtectedRoute, LoginPage, RegisterPage, Verify2FAPage } from '@features/auth'
-import { ProfessionalDashboard, AppointmentsCalendar, ProfessionalStats } from '@features/professional'
+import { ProfessionalDashboard, AppointmentsCalendar } from '@features/professional'
 import PatientsList from '@features/professional/components/ModernPatientsList'
-import ProfessionalProfile from '@features/professional/components/ProfessionalProfile'
+import ProfessionalAccount from '@features/professional/components/ProfessionalAccount'
 import ProfessionalVideoCallWebRTC from '@features/professional/components/VideoCallWebRTC'
 import SessionSummary from '@features/professional/components/SessionSummary'
-import ProfessionalSettings from '@features/professional/components/ProfessionalSettings'
+import ConsentSigner from '@features/professional/components/ConsentSigner'
 import { PatientDashboard, PatientPersonalDiary } from '@features/patient'
 import { AppointmentsProvider } from '@features/patient/AppointmentsContext'
 import PatientSessionsPage from '@features/patient/PatientSessionsPage'
@@ -14,6 +14,7 @@ import PatientVideoCallWebRTC from '@features/patient/PatientVideoCallWebRTC'
 import PatientRegisterPage from '@features/patient/PatientRegisterPage'
 import PatientRegister from '@features/patient/PatientRegister'
 import PatientOnboardingPage from '@features/patient/PatientOnboardingPage'
+import { AdminDashboard, AdminUsers, AdminSubscriptions } from '@features/admin'
 import LandingPage from '@pages/LandingPage'
 import PricingPlans from '@pages/PricingPlans'
 import CheckoutPage from '@pages/CheckoutPage'
@@ -53,6 +54,8 @@ const LoginRoute = () => {
       return <Navigate to={ROUTES.PROFESSIONAL_DASHBOARD} replace />
     } else if (role === 'patient' || role === 'pacient') {
       return <Navigate to={ROUTES.PATIENT_DASHBOARD} replace />
+    } else if (role === 'admin') {
+      return <Navigate to={ROUTES.ADMIN_DASHBOARD} replace />
     }
   }
 
@@ -116,7 +119,7 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={[ROLES.HEALTH_PROFESSIONAL, ROLES.PROFESSIONAL]}>
                 <DashboardLayout userRole="professional">
-                  <ProfessionalStats />
+                  <ProfessionalAccount />
                 </DashboardLayout>
               </ProtectedRoute>
             }
@@ -125,7 +128,9 @@ function App() {
             path={ROUTES.PROFESSIONAL_PROFILE}
             element={
               <ProtectedRoute allowedRoles={[ROLES.HEALTH_PROFESSIONAL, ROLES.PROFESSIONAL]}>
-                <ProfessionalProfile />
+                <DashboardLayout userRole="professional">
+                  <ProfessionalAccount />
+                </DashboardLayout>
               </ProtectedRoute>
             }
           />
@@ -134,7 +139,7 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={[ROLES.HEALTH_PROFESSIONAL, ROLES.PROFESSIONAL]}>
                 <DashboardLayout userRole="professional">
-                  <ProfessionalSettings />
+                  <ProfessionalAccount />
                 </DashboardLayout>
               </ProtectedRoute>
             }
@@ -153,6 +158,16 @@ function App() {
               <ProtectedRoute allowedRoles={[ROLES.HEALTH_PROFESSIONAL, ROLES.PROFESSIONAL]}>
                 <DashboardLayout userRole="professional">
                   <SessionSummary />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/professional/consent"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.HEALTH_PROFESSIONAL, ROLES.PROFESSIONAL]}>
+                <DashboardLayout userRole="professional">
+                  <ConsentSigner />
                 </DashboardLayout>
               </ProtectedRoute>
             }
@@ -208,6 +223,49 @@ function App() {
               </DashboardLayout>
             } 
           />
+
+          {/* Admin Routes */}
+          <Route
+            path={ROUTES.ADMIN_DASHBOARD}
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+                <DashboardLayout userRole="admin">
+                  <AdminDashboard />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={ROUTES.ADMIN_USERS}
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+                <DashboardLayout userRole="admin">
+                  <AdminUsers />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={ROUTES.ADMIN_PROFESSIONALS}
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+                <DashboardLayout userRole="admin">
+                  <AdminUsers initialRoleFilter="health_professional" />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={ROUTES.ADMIN_SUBSCRIPTIONS}
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+                <DashboardLayout userRole="admin">
+                  <AdminSubscriptions />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+
           <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
         </Routes>
       </AuthProvider>

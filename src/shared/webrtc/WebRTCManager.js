@@ -4,12 +4,12 @@
  */
 
 import { io } from 'socket.io-client';
+import { getAuthToken } from '@shared/api/client';
 
 class WebRTCManager {
   constructor(config = {}) {
     this.apiUrl = config.apiUrl || 'http://localhost:3000/api';
     this.socketUrl = config.socketUrl || 'http://localhost:3000';
-    this.userToken = config.userToken || '';
     this.userId = config.userId || '';
     this.userName = config.userName || '';
     this.userRole = config.userRole || '';
@@ -73,8 +73,9 @@ class WebRTCManager {
   async fetchIceServers() {
     try {
       const response = await fetch(`${this.apiUrl}/rtc/ice-servers`, {
+        credentials: 'include',
         headers: {
-          'Authorization': `Bearer ${this.userToken}`
+          'Authorization': `Bearer ${getAuthToken()}`
         }
       });
       const data = await response.json();
@@ -110,9 +111,7 @@ class WebRTCManager {
         reconnectionDelay: 1000,
         reconnectionAttempts: 5,
         withCredentials: true,
-        auth: {
-          token: this.userToken
-        }
+        auth: { token: getAuthToken() },
       });
 
       this.socket.on('connect', () => {
@@ -321,8 +320,9 @@ class WebRTCManager {
     try {
       const response = await fetch(`${this.apiUrl}/rtc/rooms/join`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
-          'Authorization': `Bearer ${this.userToken}`,
+          'Authorization': `Bearer ${getAuthToken()}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ appointmentId, recordingConsent })
@@ -661,8 +661,9 @@ class WebRTCManager {
     try {
       const response = await fetch(`${this.apiUrl}/rtc/rooms/${appointmentId}/end`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
-          'Authorization': `Bearer ${this.userToken}`,
+          'Authorization': `Bearer ${getAuthToken()}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ sessionNotes: sessionNotes || '' })
@@ -683,14 +684,31 @@ class WebRTCManager {
   }
 
   /**
+   * Register recording consent on the room via socket.
+   * Re-emits join-room with recordingConsent:true so the backend updates
+   * the participant's consent flag on the room document.
+   */
+  registerRecordingConsent() {
+    if (!this.currentRoomId || !this.socket?.connected) return;
+    this.socket.emit('recording-consent', {
+      roomId: this.currentRoomId,
+      userId: this.userId,
+      consent: true,
+    });
+  }
+
+  /**
    * Start recording (Professional only).
-   * Emits socket event; backend starts the media server recorder.
+   * Registers consent on the room first, then emits start-recording.
    */
   async startRecording(appointmentId) {
     if (!this.currentRoomId) throw new Error('Not in a room');
+    // Register consent on the room via socket before starting
+    this.registerRecordingConsent();
     this.socket.emit('start-recording', {
       roomId: this.currentRoomId,
       appointmentId,
+      recordingConsent: true,
     });
   }
 
@@ -711,8 +729,9 @@ class WebRTCManager {
   async getRoomStatus(appointmentId) {
     try {
       const response = await fetch(`${this.apiUrl}/rtc/rooms/${appointmentId}`, {
+        credentials: 'include',
         headers: {
-          'Authorization': `Bearer ${this.userToken}`
+          'Authorization': `Bearer ${getAuthToken()}`
         }
       });
 

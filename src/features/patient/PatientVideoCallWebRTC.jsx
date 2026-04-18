@@ -46,14 +46,21 @@ const PatientVideoCallWebRTC = () => {
   const [chatInput, setChatInput] = useState('');
   const [countdown, setCountdown] = useState(null);
   const [showRecordingDisclaimer, setShowRecordingDisclaimer] = useState(false);
+  const [recordingConsented, setRecordingConsented] = useState(false);
+  const [consentLoading, setConsentLoading] = useState(false);
   const recordingAcknowledgedRef = useRef(false);
+
+  const handleRecordingFailed = useCallback((errorMsg) => {
+    console.error('[Recording] Patient recording failed:', errorMsg);
+  }, []);
 
   const {
     isRecording,
     isUploading,
     uploadError,
+    recordingError,
     stopRecording: stopCallRecording,
-  } = useCallRecording({ localStream, appointmentId, enabled: recordingAuthorized });
+  } = useCallRecording({ localStream, appointmentId, enabled: recordingConsented, onRecordingFailed: handleRecordingFailed });
   
   const localVideoRef = useRef(null);
   const remoteVideoRefs = useRef(new Map());
@@ -113,6 +120,7 @@ const PatientVideoCallWebRTC = () => {
     }
     if (!isServerRecording) {
       recordingAcknowledgedRef.current = false;
+      setRecordingConsented(false);
     }
   }, [isServerRecording]);
 
@@ -177,6 +185,9 @@ const PatientVideoCallWebRTC = () => {
       // Ensure invitation is accepted before joining (handles race conditions
       // and direct navigation to the video call URL)
       try { await videoCallService.acceptInvitation(appointmentId); } catch { /* may already be accepted */ }
+      // recordingConsent: true registers willingness on the room record so the backend
+      // can set professionalConsent + patientConsent when both participants are present.
+      // Actual local recording only starts after the patient explicitly accepts the disclaimer.
       await joinRoom(appointmentId, { recordingConsent: true });
     } catch (err) {
       console.error('Failed to join room:', err);
@@ -195,6 +206,31 @@ const PatientVideoCallWebRTC = () => {
 
   const handleToggleVideo = () => {
     toggleVideo();
+  };
+
+  const handleDeclineRecording = async () => {
+    recordingAcknowledgedRef.current = true;
+    setShowRecordingDisclaimer(false);
+    // Notify the backend that the patient declined
+    try {
+      await videoCallService.declineRecordingConsent?.(appointmentId);
+    } catch { /* best-effort */ }
+    handleLeaveRoom();
+  };
+
+  const handleAcceptRecording = async () => {
+    setConsentLoading(true);
+    try {
+      await videoCallService.grantRecordingConsent(appointmentId);
+      recordingAcknowledgedRef.current = true;
+      setRecordingConsented(true);
+      setShowRecordingDisclaimer(false);
+    } catch (err) {
+      console.error('Failed to register recording consent:', err);
+      // Don't enable recording if consent registration failed
+    } finally {
+      setConsentLoading(false);
+    }
   };
 
   const handleSendMessage = (e) => {
@@ -304,10 +340,10 @@ const PatientVideoCallWebRTC = () => {
         </div>
       )}
       {/* Recording indicator banner */}
-      {isRecording && (
+      {(isServerRecording || isRecording) && (
         <div className="bg-red-600/90 text-white text-xs sm:text-sm px-4 py-1.5 flex items-center justify-center gap-2 shrink-0 z-30">
           <Circle className="w-3 h-3 fill-white animate-pulse" />
-          <span className="font-medium">Esta sesión está siendo grabada</span>
+          <span className="font-medium">Grabando sesión</span>
         </div>
       )}
       {/* Header - Compact */}
@@ -423,44 +459,55 @@ const PatientVideoCallWebRTC = () => {
           )}
         </div>
 
-        {/* Chat Panel */}
+        {/* Chat Panel — full width on mobile, side drawer on desktop */}
         <AnimatePresence>
           {showChat && (
             <motion.div
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 20 }}
-              className="absolute top-0 right-0 w-80 h-full bg-white shadow-2xl flex flex-col z-10"
+              transition={{ type: 'spring', damping: 22, stiffness: 220 }}
+              className="absolute top-0 right-0 w-full sm:w-96 h-full bg-white/95 backdrop-blur-xl shadow-2xl flex flex-col z-20 sm:border-l sm:border-gray-200"
             >
-              <div className="bg-blue-700 text-white px-4 py-3 flex items-center justify-between">
-                <h3 className="font-semibold">Chat</h3>
+              <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center">
+                    <MessageSquare className="w-4 h-4 text-sky-600" />
+                  </div>
+                  <h3 className="font-semibold text-gray-900 text-sm">Chat</h3>
+                </div>
                 <button
                   onClick={() => setShowChat(false)}
-                  className="hover:bg-blue-800 p-1 rounded"
+                  className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
+                  aria-label="Cerrar chat"
                 >
                   ✕
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+              <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
+                {chatMessages.length === 0 && (
+                  <div className="h-full flex items-center justify-center text-center px-6">
+                    <p className="text-xs text-gray-400">No hay mensajes aún.<br/>Envía el primero para iniciar la conversación.</p>
+                  </div>
+                )}
                 {chatMessages.map((msg, idx) => (
                   <div
                     key={idx}
                     className={`flex ${msg.isOwn ? 'justify-end' : 'justify-start'}`}
                   >
                     <div
-                      className={`max-w-[70%] rounded-lg px-3 py-2 ${
+                      className={`max-w-[78%] rounded-2xl px-3.5 py-2 shadow-sm ${
                         msg.isOwn
-                          ? 'bg-blue-700 text-white'
-                          : 'bg-gray-200 text-gray-800'
+                          ? 'bg-sky-500 text-white rounded-br-md'
+                          : 'bg-gray-100 text-gray-800 rounded-bl-md'
                       }`}
                     >
                       {!msg.isOwn && (
-                        <p className="text-xs font-semibold mb-1">{msg.userName}</p>
+                        <p className="text-[11px] font-semibold mb-0.5 text-sky-700">{msg.userName}</p>
                       )}
-                      <p className="text-sm">{msg.message}</p>
-                      <p className="text-xs opacity-75 mt-1">
+                      <p className="text-sm leading-relaxed wrap-break-word">{msg.message}</p>
+                      <p className={`text-[10px] mt-1 ${msg.isOwn ? 'text-white/70' : 'text-gray-500'}`}>
                         {new Date(msg.timestamp).toLocaleTimeString('es-ES', {
                           hour: '2-digit',
                           minute: '2-digit'
@@ -471,20 +518,22 @@ const PatientVideoCallWebRTC = () => {
                 ))}
               </div>
 
-              <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-200">
-                <div className="flex space-x-2">
+              <form onSubmit={handleSendMessage} className="p-3 border-t border-gray-100 bg-white/80" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+                <div className="flex gap-2 items-center">
                   <input
                     type="text"
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
-                    placeholder="Escribe un mensaje..."
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    placeholder="Escribe un mensaje…"
+                    className="flex-1 px-4 py-2.5 bg-gray-100 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition"
                   />
                   <button
                     type="submit"
-                    className="bg-blue-700 text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition-colors"
+                    disabled={!chatInput.trim()}
+                    className="w-10 h-10 shrink-0 bg-sky-500 text-white rounded-full hover:bg-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+                    aria-label="Enviar mensaje"
                   >
-                    Enviar
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4Z"/></svg>
                   </button>
                 </div>
               </form>
@@ -493,50 +542,57 @@ const PatientVideoCallWebRTC = () => {
         </AnimatePresence>
       </div>
 
-      {/* Controls */}
-      <div className="bg-gray-800/95 border-t border-gray-700/50 shrink-0 z-20">
-        <div className="flex items-center justify-center gap-3 px-3 py-2.5 sm:py-3">
+      {/* Controls — floating pill */}
+      <div className="shrink-0 z-20 px-2 pb-2 sm:pb-4" style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
+        <div className="mx-auto max-w-fit flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 bg-gray-900/80 backdrop-blur-xl border border-white/10 rounded-full shadow-2xl">
           {/* Audio */}
           <button
             onClick={handleToggleAudio}
-            className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center transition-colors ${
+            aria-label={isAudioEnabled ? 'Silenciar micrófono' : 'Activar micrófono'}
+            className={`w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-95 ${
               isAudioEnabled
-                ? 'bg-white/10 text-white'
-                : 'bg-red-500 text-white'
+                ? 'bg-white/10 hover:bg-white/20 text-white'
+                : 'bg-red-500 hover:bg-red-600 text-white'
             }`}
           >
-            {isAudioEnabled ? <Mic className="w-4 h-4 sm:w-5 sm:h-5" /> : <MicOff className="w-4 h-4 sm:w-5 sm:h-5" />}
+            {isAudioEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
           </button>
 
           {/* Video */}
           <button
             onClick={handleToggleVideo}
-            className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center transition-colors ${
+            aria-label={isVideoEnabled ? 'Apagar cámara' : 'Encender cámara'}
+            className={`w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-95 ${
               isVideoEnabled
-                ? 'bg-white/10 text-white'
-                : 'bg-red-500 text-white'
+                ? 'bg-white/10 hover:bg-white/20 text-white'
+                : 'bg-red-500 hover:bg-red-600 text-white'
             }`}
           >
-            {isVideoEnabled ? <VideoIcon className="w-4 h-4 sm:w-5 sm:h-5" /> : <VideoOff className="w-4 h-4 sm:w-5 sm:h-5" />}
+            {isVideoEnabled ? <VideoIcon className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
           </button>
 
           {/* Chat */}
           <button
             onClick={() => setShowChat(!showChat)}
-            className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/10 text-white flex items-center justify-center transition-colors"
+            aria-label="Abrir chat"
+            className={`relative w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-95 ${
+              showChat ? 'bg-sky-500 text-white' : 'bg-white/10 hover:bg-white/20 text-white'
+            }`}
           >
-            <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
+            <MessageSquare className="w-5 h-5" />
             {chatMessages.length > 0 && !showChat && (
-              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-sky-500 rounded-full text-[9px] flex items-center justify-center font-bold">
+              <span className="absolute -top-0.5 -right-0.5 min-w-4.5 h-4.5 px-1 bg-sky-400 rounded-full text-[10px] flex items-center justify-center font-bold text-white">
                 {chatMessages.length > 9 ? '9+' : chatMessages.length}
               </span>
             )}
           </button>
 
+          <div className="w-px h-6 bg-white/10 mx-0.5 sm:mx-1" aria-hidden />
+
           {/* Leave Call */}
           <button
             onClick={handleLeaveRoom}
-            className="h-10 sm:h-11 px-5 sm:px-6 bg-red-500 hover:bg-red-600 text-white rounded-full font-medium transition-colors flex items-center gap-1.5 text-sm"
+            className="h-11 px-4 sm:px-5 bg-red-500 hover:bg-red-600 text-white rounded-full font-medium transition-all active:scale-95 flex items-center gap-1.5 text-sm"
           >
             <PhoneOff className="w-4 h-4" />
             <span>Salir</span>
@@ -586,16 +642,17 @@ const PatientVideoCallWebRTC = () => {
 
               <div className="flex gap-3">
                 <button
-                  onClick={handleLeaveRoom}
+                  onClick={handleDeclineRecording}
                   className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm font-medium"
                 >
                   Salir de la sesión
                 </button>
                 <button
-                  onClick={() => { recordingAcknowledgedRef.current = true; setShowRecordingDisclaimer(false); }}
-                  className="flex-1 px-4 py-2.5 bg-[#0075C9] text-white rounded-lg hover:bg-[#005fa0] transition-colors text-sm font-medium"
+                  onClick={handleAcceptRecording}
+                  disabled={consentLoading}
+                  className="flex-1 px-4 py-2.5 bg-[#0075C9] text-white rounded-lg hover:bg-[#005fa0] transition-colors text-sm font-medium disabled:opacity-50"
                 >
-                  Entendido, continuar
+                  {consentLoading ? 'Registrando…' : 'Entendido, continuar'}
                 </button>
               </div>
             </motion.div>

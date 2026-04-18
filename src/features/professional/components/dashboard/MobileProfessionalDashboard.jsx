@@ -23,8 +23,8 @@ const TODO_BADGE_COLORS = {
 }
 
 const SESSION_TYPE_DOT = {
-    Consulta: 'bg-sky-400', Seguimiento: 'bg-emerald-400',
-    Evaluación: 'bg-amber-400', Primera: 'bg-cyan-400',
+    'Primera consulta': 'bg-sky-400', Seguimiento: 'bg-emerald-400',
+    Extraordinaria: 'bg-amber-400',
 }
 
 const AVATAR_PALETTES = [
@@ -67,7 +67,7 @@ const HeroSessionCard = ({ apt, onJoinVideo, onViewDiary, onMarkComplete }) => {
     const isVideoCall = apt.isVideoCall || apt.mode === 'videollamada'
     const nowMs       = Date.now()
     const isInProgress = nowMs >= start.getTime() && nowMs < end.getTime()
-    const sessionType = apt.type || apt.appointmentType || 'Consulta'
+    const sessionType = apt.type || apt.appointmentType || 'Primera consulta'
     const typeDot     = SESSION_TYPE_DOT[sessionType] || 'bg-gray-400'
     const [avatarBgCls, avatarTextCls] = avatarBg(name)
 
@@ -174,7 +174,7 @@ const SessionRow = ({ apt, index, onJoinVideo, onViewDiary, onMarkComplete }) =>
     const rawStatus   = apt.estado || apt.status || ''
     const isCompleted = rawStatus === 'completed' || rawStatus === 'completada'
     const isCancelled = rawStatus === 'cancelled' || rawStatus === 'cancelada' || apt.isCancelled === true
-    const sessionType = apt.type || apt.appointmentType || 'Consulta'
+    const sessionType = apt.type || apt.appointmentType || 'Primera consulta'
     const typeDot     = SESSION_TYPE_DOT[sessionType] || 'bg-gray-500'
     const [avatarBgCls, avatarTextCls] = avatarBg(name)
 

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import { showToast } from '@shared/ui/Toast'
+import { setAuthToken } from '@shared/api/client'
 
 const PatientRegister = () => {
   const navigate = useNavigate()
@@ -165,6 +166,16 @@ const PatientRegister = () => {
       return
     }
 
+    if (!formData.emergencyContact || !formData.emergencyContact.trim()) {
+      showToast('El nombre del contacto de emergencia es requerido', 'warning')
+      return
+    }
+
+    if (!formData.emergencyPhone || !formData.emergencyPhone.trim()) {
+      showToast('El teléfono del contacto de emergencia es requerido', 'warning')
+      return
+    }
+
     setLoading(true)
     try {
       // Send all intake fields — backend maps them onto the patient record
@@ -192,13 +203,7 @@ const PatientRegister = () => {
       const data = await response.json()
 
       if (response.ok) {
-        // Store token + user data exactly like the login flow
-        const token = data.token
-        const user  = data.user
-        if (token) {
-          localStorage.setItem('authToken', token)
-          localStorage.setItem('userData', JSON.stringify(user))
-        }
+        if (data.token) setAuthToken(data.token)
         showToast('¡Registro exitoso! Bienvenido.', 'success')
         setTimeout(() => navigate('/dashboard/patient'), 1500)
       } else {
@@ -337,6 +342,35 @@ const PatientRegister = () => {
                 )}
 
                 <div className="space-y-4">
+                  {/* Emergency Contact */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Contacto de Emergencia *
+                    </label>
+                    <input
+                      required
+                      type="text"
+                      value={formData.emergencyContact}
+                      onChange={(e) => setFormData({ ...formData, emergencyContact: e.target.value })}
+                      className="w-full px-4 py-3 border border-blue-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-blue-50/30"
+                      placeholder="Nombre completo"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Teléfono de Emergencia *
+                    </label>
+                    <input
+                      required
+                      type="tel"
+                      value={formData.emergencyPhone}
+                      onChange={(e) => setFormData({ ...formData, emergencyPhone: e.target.value })}
+                      className="w-full px-4 py-3 border border-blue-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-blue-50/30"
+                      placeholder="(555) 123-4567"
+                    />
+                  </div>
+
                   {/* Password */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">

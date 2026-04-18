@@ -33,6 +33,10 @@ const ROUTE_TITLES = {
   '/dashboard/patient/diary': 'Diario Personal',
   '/dashboard/patient/messages': 'Mensajes',
   '/dashboard/patient/settings': 'Configuración',
+  '/dashboard/admin': 'Administración',
+  '/dashboard/admin/users': 'Gestión de Usuarios',
+  '/dashboard/admin/professionals': 'Profesionales',
+  '/dashboard/admin/subscriptions': 'Suscripciones',
 }
 
 const DashboardLayout = ({ children, userRole }) => {
@@ -82,7 +86,7 @@ const DashboardLayout = ({ children, userRole }) => {
               ? <Sun size={18} className="text-gray-200" />
               : <Moon size={18} className="text-gray-500" />}
           </button>
-          {userRole !== 'patient' && (
+          {userRole === 'professional' && (
             <NotificationsPanel
               paidNotifications={paidNotifications}
               setPaidNotifications={setPaidNotifications}
@@ -101,8 +105,8 @@ const DashboardLayout = ({ children, userRole }) => {
         <div className="flex-1 h-full flex flex-col overflow-hidden bg-transparent relative pb-17 md:pb-0">
           {/* Desktop Header Bar */}
           <div className="flex-1 overflow-y-auto overflow-x-hidden touch-pan-y">
-            {/* Desktop Header Bar — hidden for patients (controls are in PatientDashboard header) */}
-            {userRole !== 'patient' && (
+            {/* Desktop Header Bar — professional and admin only */}
+            {(userRole === 'professional' || userRole === 'admin') && (
               <div className="hidden md:flex items-center gap-3 px-4 lg:px-6 py-2.5 bg-transparent border-b border-gray-100/80 dark:border-gray-800/60">
                 {/* Search — only for professional role */}
                 {userRole === 'professional' && (
@@ -111,12 +115,14 @@ const DashboardLayout = ({ children, userRole }) => {
 
                 {/* Push actions to right */}
                 <div className="ml-auto flex items-center gap-1.5">
-                  <NotificationsPanel
-                    paidNotifications={paidNotifications}
-                    setPaidNotifications={setPaidNotifications}
-                    showNotifPanel={showNotifPanel}
-                    setShowNotifPanel={setShowNotifPanel}
-                  />
+                  {userRole === 'professional' && (
+                    <NotificationsPanel
+                      paidNotifications={paidNotifications}
+                      setPaidNotifications={setPaidNotifications}
+                      showNotifPanel={showNotifPanel}
+                      setShowNotifPanel={setShowNotifPanel}
+                    />
+                  )}
                   <button
                     onClick={toggleDark}
                     className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-gray-200/80 dark:hover:bg-gray-600/60 transition-colors"

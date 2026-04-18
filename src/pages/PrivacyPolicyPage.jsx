@@ -143,7 +143,7 @@ const PrivacyPolicyPage = () => {
             <p>Consulte el Aviso de Privacidad Integral para información completa.</p>
           </Section>
 
-          {/* 3 */}
+          {/* 3
           <Section id="consentimiento-sensibles" icon={Lock} title="3. Consentimiento Expreso para el Tratamiento de Datos Personales Sensibles">
             <p>
               <strong>Fundamento Legal:</strong> Artículo 9 de la LFPDPPP y artículos 15, 16 y correlativos de su Reglamento.
@@ -163,120 +163,9 @@ const PrivacyPolicyPage = () => {
               <li>Posibilidad de revocación del consentimiento mediante mecanismo digital accesible.</li>
               <li>Conservación de evidencia del consentimiento durante la vigencia de la relación jurídica y periodo legal aplicable.</li>
             </ol>
-          </Section>
+          </Section> */}
 
-          {/* 4 */}
-          <Section id="brecha-seguridad" icon={AlertTriangle} title="4. Procedimiento ante Brecha de Seguridad de Datos Personales">
-            <p>
-              <strong>Fundamento Legal:</strong> Artículos 19 y 20 de la LFPDPPP; obligación de implementar medidas de
-              seguridad y notificar vulneraciones que afecten significativamente derechos patrimoniales o morales.
-            </p>
 
-            <p className="font-semibold text-slate-800">Fase I – Identificación y Contención Inmediata:</p>
-            <ol className="list-decimal pl-5 space-y-1">
-              <li>Activación del protocolo interno por el Responsable de Seguridad de la Información.</li>
-              <li>Aislamiento del sistema comprometido.</li>
-              <li>Preservación de evidencia técnica.</li>
-            </ol>
-
-            <p className="font-semibold text-slate-800">Fase II – Evaluación del Incidente:</p>
-            <ol className="list-decimal pl-5 space-y-1">
-              <li>Determinación del tipo de datos comprometidos.</li>
-              <li>Evaluación del volumen y alcance de la afectación.</li>
-              <li>Análisis de riesgo para titulares (alto, medio o bajo).</li>
-            </ol>
-
-            <p className="font-semibold text-slate-800">Fase III – Notificación:</p>
-            <ol className="list-decimal pl-5 space-y-1">
-              <li>Notificación a titulares cuando la afectación sea significativa.</li>
-              <li>Comunicación clara indicando naturaleza del incidente, datos comprometidos y medidas adoptadas.</li>
-              <li>Recomendaciones para mitigación de riesgos.</li>
-            </ol>
-
-            <p className="font-semibold text-slate-800">Fase IV – Medidas Correctivas y Preventivas:</p>
-            <ol className="list-decimal pl-5 space-y-1">
-              <li>Corrección de vulnerabilidades.</li>
-              <li>Actualización de controles técnicos.</li>
-              <li>Reentrenamiento del personal si aplica.</li>
-              <li>Registro documentado del incidente para auditoría interna.</li>
-            </ol>
-          </Section>
-
-          {/* 5 */}
-          <Section id="registro-interno" icon={ClipboardList} title="5. Registro Interno de Tratamiento de Datos Personales">
-            <p>
-              <strong>Fundamento Legal:</strong> Principio de Responsabilidad (Accountability) previsto en el artículo 14
-              de la LFPDPPP.
-            </p>
-            <p><strong>Contenido mínimo del Registro:</strong></p>
-            <ol className="list-decimal pl-5 space-y-2">
-              <li>Identificación del Responsable y Encargados.</li>
-              <li>Categorías de datos tratados (identificación, contacto, financieros, sensibles).</li>
-              <li>Finalidades específicas del tratamiento.</li>
-              <li>Transferencias nacionales e internacionales.</li>
-              <li>Plazos de conservación.</li>
-              <li>Descripción de medidas de seguridad implementadas.</li>
-              <li>Base jurídica del tratamiento.</li>
-              <li>Registro de incidentes y evaluaciones periódicas.</li>
-            </ol>
-            <p>
-              El Registro deberá actualizarse cuando exista modificación sustancial en las finalidades, categorías de
-              datos o medidas de seguridad.
-            </p>
-          </Section>
-
-          {/* 6 */}
-          <Section id="matriz-clasificacion" icon={BarChart2} title="6. Matriz de Clasificación y Gestión de Riesgos de Datos Personales">
-            <p><strong>Objetivo:</strong> Clasificar los datos conforme a su nivel de sensibilidad y riesgo asociado.</p>
-
-            <p><strong>Clasificación:</strong></p>
-            <ul className="list-disc pl-5 space-y-1">
-              <li>Nivel Básico – Datos de identificación general.</li>
-              <li>Nivel Medio – Datos financieros y de pago.</li>
-              <li>Nivel Alto – Datos personales sensibles relativos a la salud mental.</li>
-            </ul>
-
-            <p><strong>Medidas Asociadas por Nivel:</strong></p>
-
-            <p className="font-medium text-slate-800">Nivel Básico:</p>
-            <ul className="list-disc pl-5 space-y-1">
-              <li>Control de acceso lógico.</li>
-              <li>Respaldo periódico.</li>
-            </ul>
-
-            <p className="font-medium text-slate-800">Nivel Medio:</p>
-            <ul className="list-disc pl-5 space-y-1">
-              <li>Cifrado en tránsito (SSL/TLS).</li>
-              <li>Restricción por roles.</li>
-              <li>Monitoreo de accesos.</li>
-            </ul>
-
-            <p className="font-medium text-slate-800">Nivel Alto:</p>
-            <ul className="list-disc pl-5 space-y-1">
-              <li>Cifrado en reposo (AES-256 o equivalente).</li>
-              <li>Autenticación multifactor.</li>
-              <li>Registro detallado de auditoría.</li>
-              <li>Evaluación periódica de vulnerabilidades.</li>
-              <li>Control estricto de acceso bajo principio de mínima intervención.</li>
-            </ul>
-
-            <p>
-              La Matriz deberá revisarse al menos una vez al año o cuando se modifique el modelo de negocio o arquitectura
-              tecnológica.
-            </p>
-          </Section>
-
-          {/* 7 */}
-          <Section id="gobernanza" icon={Users} title="7. Gobernanza y Responsabilidad Directiva">
-            <p>
-              La Dirección (Determinar por escrito quién será parte de ésta) reconoce la protección de datos como elemento
-              estratégico del modelo de negocio. Se deberá establecer un Comité Interno de Protección de Datos que
-              sesionará al menos una vez al año para evaluar riesgos, incidentes y cumplimiento.
-            </p>
-            <p>
-              Las decisiones del Comité serán documentadas y archivadas como parte del sistema de cumplimiento.
-            </p>
-          </Section>
 
           {/* Footer note */}
           <div className="border-t border-slate-200 pt-6 mt-4">

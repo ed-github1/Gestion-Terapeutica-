@@ -5,6 +5,7 @@ import { showToast } from '@shared/ui/Toast'
 import { useAuth } from '@features/auth/AuthContext'
 import { appointmentsService } from '@shared/services/appointmentsService'
 import { patientsService, resolveLinkedProfessional } from '@shared/services/patientsService'
+import { professionalsService } from '@shared/services/professionalsService'
 import { socketNotificationService } from '@shared/services/socketNotificationService'
 import PaymentForm from './components/PaymentForm'
 
@@ -32,8 +33,7 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
   useEffect(() => {
     const userId = user?._id || user?.id
     if (!userId) return
-    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken')
-    socketNotificationService.connect(userId, token)
+    socketNotificationService.connect(userId)
   }, [user])
 
   const toLocalDateStr = (d = new Date()) =>
@@ -43,21 +43,89 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
   const [selectedSlot, setSelectedSlot] = useState(null)
   
   const [formData, setFormData] = useState({
-    type: 'consultation',
+    type: 'Primera Sesión',
     mode: 'consultorio',
     reason: '',
     notes: ''
   })
 
-  const [paymentData, setPaymentData] = useState({ amount: 500 })
+  const [paymentData, setPaymentData] = useState({ amount: 0 })
   const [paymentOption, setPaymentOption] = useState('full') // 'full' or 'half'
+  const [currencySymbol, setCurrencySymbol] = useState('$')
+  const [tarifasLoaded, setTarifasLoaded] = useState(false)
 
-  const appointmentTypes = [
-    { value: 'consultation', label: 'Consulta General', price: 500, duration: 60 },
-    { value: 'followup', label: 'Seguimiento', price: 400, duration: 45 },
-    { value: 'therapy', label: 'Sesión de Terapia', price: 600, duration: 90 },
-    { value: 'emergency', label: 'Urgencia', price: 800, duration: 60 }
-  ]
+  // Default fallback — will be replaced once tarifas load
+  const [appointmentTypes, setAppointmentTypes] = useState([
+    { value: 'Primera Sesión',  label: 'Primera Sesión',  price: null, duration: 60, backendKey: 'primeraSesion' },
+    { value: 'Seguimiento',     label: 'Seguimiento',     price: null, duration: 45, backendKey: 'seguimiento' },
+    { value: 'Extraordinaria',  label: 'Extraordinaria',  price: null, duration: 60, backendKey: 'extraordinaria' },
+  ])
+
+  // Fetch the linked professional's tarifas
+  useEffect(() => {
+    let cancelled = false
+    const applyTarifas = (t, cur) => {
+      if (cancelled) return false
+      // Need at least one non-zero tarifa to consider it valid
+      if (!t || (!t.primeraSesion && !t.seguimiento && !t.extraordinaria)) return false
+      setCurrencySymbol(cur === 'MXN' ? '$' : cur === 'EUR' ? '€' : cur.length <= 3 ? '$' : cur)
+      setAppointmentTypes([
+        { value: 'Primera Sesión',  label: 'Primera Sesión',  price: t.primeraSesion ?? null, duration: 60, backendKey: 'primeraSesion' },
+        { value: 'Seguimiento',     label: 'Seguimiento',     price: t.seguimiento ?? null, duration: 45, backendKey: 'seguimiento' },
+        { value: 'Extraordinaria',  label: 'Extraordinaria',  price: t.extraordinaria ?? null, duration: 60, backendKey: 'extraordinaria' },
+      ])
+      setTarifasLoaded(true)
+      return true
+    }
+
+    const fetchTarifas = async () => {
+      // Resolve which professional ID to query
+      const candidates = [...new Set([professionalUserId, professionalId].filter(Boolean))]
+      if (candidates.length === 0) {
+        try {
+          const { professionalId: pid, professionalUserId: puid } = await resolveLinkedProfessional(user)
+          if (puid) candidates.push(puid)
+          if (pid && pid !== puid) candidates.push(pid)
+        } catch { /* no linked pro */ }
+      }
+
+      // Strategy 1: dedicated tarifas endpoint
+      for (const id of candidates) {
+        try {
+          const res = await professionalsService.getTarifas(id)
+          const data = res.data?.data || res.data || {}
+          const t = data.tarifas || data
+          const cur = data.currency || data.currencySymbol || '$'
+          if (applyTarifas(t, cur)) return
+        } catch { /* try next */ }
+      }
+
+      // Strategy 2: full professional profile (tarifas field on the model)
+      for (const id of candidates) {
+        try {
+          const res = await patientsService.getProfessionalInfo(id)
+          const pro = res.data?.data || res.data || {}
+          const t = pro.tarifas
+          const cur = pro.currency || pro.defaultCurrency || '$'
+          if (applyTarifas(t, cur)) return
+        } catch { /* try next */ }
+      }
+
+      // Strategy 3: patient's linked professional endpoint
+      try {
+        const res = await patientsService.getMyProfessional()
+        const pro = res.data?.data || res.data || {}
+        const t = pro.tarifas
+        const cur = pro.currency || pro.defaultCurrency || '$'
+        if (applyTarifas(t, cur)) return
+      } catch { /* ignore */ }
+
+      // All strategies failed
+      if (!cancelled) setTarifasLoaded(true)
+    }
+    fetchTarifas()
+    return () => { cancelled = true }
+  }, [professionalId, professionalUserId, user])
 
   useEffect(() => {
     if (selectedDate) {
@@ -187,12 +255,16 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
       const selectedType = appointmentTypes.find(t => t.value === formData.type)
       
       let appointmentId
+      let apptData
       try {
-        // Reserve with backend
+        // Reserve with backend — sessionType must match the backend enum
+        // (['Primera Sesión', 'Seguimiento', 'Extraordinaria']), which is what
+        // formData.type already holds. backendKey is only used for tarifa lookup.
         const response = await appointmentsService.reserve({
           date: selectedDate,
           time: selectedSlot.time,
           type: formData.type,
+          sessionType: formData.type,
           mode: formData.mode,
           reason: formData.reason,
           notes: formData.notes,
@@ -201,7 +273,7 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
           patientId: user?._id || user?.id,
           patientName: user?.name || user?.nombre || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || undefined,
         })
-        const apptData = response.data?.data || response.data
+        apptData = response.data?.data || response.data
         setAppointmentData(apptData)
         appointmentId = apptData?._id || apptData?.id
       } catch (error) {
@@ -214,7 +286,9 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
       // Notify parent immediately so it can dismiss this ID from polling —
       // prevents the AppointmentAcceptanceModal from opening for patient-created appointments.
       if (appointmentId) onPatientCreated?.(String(appointmentId))
-      setPaymentData(prev => ({ ...prev, amount: selectedType?.price || 500 }))
+      // Use the local apptData (state hasn't updated yet) — prefer backend-resolved amount
+      const resolvedAmount = apptData?.amount || selectedType?.price || 0
+      setPaymentData(prev => ({ ...prev, amount: resolvedAmount }))
       setStep(2) // Move to payment
       showToast('Horario reservado, procede con el pago', 'success')
     } catch (error) {
@@ -339,19 +413,18 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
                   <label className={labelCls}>Tipo de cita</label>
                   <div className="grid grid-cols-2 gap-2">
                     {appointmentTypes.map(type => (
-                      <button
+                      <div
                         key={type.value}
-                        type="button"
                         onClick={() => setFormData(p => ({ ...p, type: type.value }))}
-                        className={`px-3 py-2.5 rounded-xl text-left border transition text-[13px] ${
+                        className={`px-3 py-2.5 rounded-xl text-left border transition text-[13px] cursor-pointer ${
                           formData.type === type.value
                             ? 'border-blue-500 bg-blue-50 text-blue-700'
                             : 'border-gray-200 text-gray-700 hover:border-gray-300 bg-white'
                         }`}
                       >
                         <p className="font-semibold leading-tight">{type.label}</p>
-                        <p className="text-[11px] opacity-60 mt-0.5">${type.price} · {type.duration} min</p>
-                      </button>
+                        <p className="text-[11px] opacity-60 mt-0.5">{type.price != null ? `${currencySymbol}${type.price}` : 'Precio pendiente'} · {type.duration} min</p>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -480,7 +553,7 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
                         </p>
                         <p className="text-[11px] text-gray-500">{selectedType?.label} · {selectedType?.duration} min</p>
                       </div>
-                      <p className="text-[15px] font-bold text-blue-600">${selectedType?.price}</p>
+                      <p className="text-[15px] font-bold text-blue-600">{selectedType?.price != null ? `${currencySymbol}${selectedType.price}` : 'Pendiente'}</p>
                     </div>
                   </motion.div>
                 )}
@@ -528,7 +601,7 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
                 <div className="bg-gray-50 rounded-xl border border-gray-100 divide-y divide-gray-100 overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-2.5">
                     <p className="text-[13px] font-semibold text-gray-800">{selectedType?.label}</p>
-                    <span className="text-[15px] font-bold text-blue-600">${paymentData.amount}</span>
+                    <span className="text-[15px] font-bold text-blue-600">{currencySymbol}{paymentData.amount}</span>
                   </div>
                   <div className="px-4 py-2 text-[11px] text-gray-400">
                     {new Date(`${selectedDate}T00:00:00`).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
@@ -550,7 +623,7 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
                       }`}
                     >
                       <p className="font-semibold leading-tight">Pago completo</p>
-                      <p className="text-[11px] opacity-60 mt-0.5">${paymentData.amount} ahora</p>
+                      <p className="text-[11px] opacity-60 mt-0.5">{currencySymbol}{paymentData.amount} ahora</p>
                     </button>
                     <button
                       type="button"
@@ -562,12 +635,12 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
                       }`}
                     >
                       <p className="font-semibold leading-tight">Mitad ahora</p>
-                      <p className="text-[11px] opacity-60 mt-0.5">${Math.ceil(paymentData.amount / 2)} + ${Math.floor(paymentData.amount / 2)} en sesión</p>
+                      <p className="text-[11px] opacity-60 mt-0.5">{currencySymbol}{Math.ceil(paymentData.amount / 2)} + {currencySymbol}{Math.floor(paymentData.amount / 2)} en sesión</p>
                     </button>
                   </div>
                   {paymentOption === 'half' && (
                     <p className="text-[11px] text-amber-600 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 mt-2">
-                      Pagarás <strong>${Math.ceil(paymentData.amount / 2)}</strong> ahora para reservar. El saldo restante de <strong>${Math.floor(paymentData.amount / 2)}</strong> se abonará al iniciar la sesión.
+                      Pagarás <strong>{currencySymbol}{Math.ceil(paymentData.amount / 2)}</strong> ahora para reservar. El saldo restante de <strong>{currencySymbol}{Math.floor(paymentData.amount / 2)}</strong> se abonará al iniciar la sesión.
                     </p>
                   )}
                 </div>

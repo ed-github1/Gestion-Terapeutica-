@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import Video from 'twilio-video'
 import { motion } from 'motion/react'
 import { useAuth } from '../../auth'
+import { getAuthToken } from '@shared/api/client'
 
 const VideoCallRoom = ({ token, roomName, onLeave }) => {
   const [room, setRoom] = useState(null)
@@ -287,9 +288,10 @@ const VideoCallLauncher = ({ appointmentId, patientName, patientId, onClose }) =
       // Get video token
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/video/token`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken') || sessionStorage.getItem('authToken')}`
+          'Authorization': `Bearer ${getAuthToken()}`
         },
         body: JSON.stringify({
           appointmentId,
@@ -327,9 +329,6 @@ const VideoCallLauncher = ({ appointmentId, patientName, patientId, onClose }) =
         patientId
       })
       
-      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken')
-      console.log('🔑 Using auth token:', !!token)
-      
       const professionalName = user?.name || user?.nombre || 'Professional'
       
       const requestBody = {
@@ -342,9 +341,10 @@ const VideoCallLauncher = ({ appointmentId, patientName, patientId, onClose }) =
       
       const response = await fetch(apiUrl, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${getAuthToken()}`
         },
         body: JSON.stringify(requestBody)
       })

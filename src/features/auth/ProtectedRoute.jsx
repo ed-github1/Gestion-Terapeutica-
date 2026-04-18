@@ -33,6 +33,8 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
       return <Navigate to="/dashboard/professional" replace />
     } else if (userRole === 'patient' || userRole === 'pacient') {
       return <Navigate to="/dashboard/patient" replace />
+    } else if (userRole === 'admin') {
+      return <Navigate to="/dashboard/admin" replace />
     }
     // Default fallback
     return <Navigate to="/login" replace />

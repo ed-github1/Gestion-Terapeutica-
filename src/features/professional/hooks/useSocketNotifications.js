@@ -33,8 +33,7 @@ export const useSocketNotifications = () => {
         if (!isProfessional) return
         if (!user?._id && !user?.id) return
         const userId = user._id || user.id
-        const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken')
-        socketNotificationService.connect(userId, token)
+        socketNotificationService.connect(userId)
     }, [user, isProfessional])
 
     // appointment-paid

@@ -7,7 +7,6 @@ import { motion, AnimatePresence } from 'motion/react'
 import { showToast } from '@shared/ui/Toast'
 import { patientsService } from '@shared/services/patientsService'
 import { invitationsService } from '@shared/services/invitationsService'
-import { appointmentsService } from '@shared/services/appointmentsService'
 import PatientInvitation from './PatientInvitation'
 import PatientClinicalFile from './PatientClinicalFile'
 import { homeworkService } from '@shared/services/homeworkService'
@@ -43,7 +42,7 @@ const normalizePatient = (p) => ({
     status:            p.status     || 'pending',
     lastSession:       p.lastSession || null,
     nextSession:       p.nextSession || null,
-    totalSessions:     p.totalSessions ?? 0,
+    totalSessions:     p.totalSessions ?? p.completedSessions ?? 0,
     riskLevel:         p.riskLevel   || 'low',
     // Keep both aliases so clinical file finds it either way
     presentingConcern: p.presentingConcern || p.treatmentGoal || '',
@@ -93,12 +92,6 @@ const daysSince = (dateStr) => {
     return `Hace ${diff}d`
 }
 
-// ─── Therapy Reasons & Motivo Colors ──────────────────────────────────────────
-const THERAPY_REASONS = [
-    'Ansiedad', 'Depresión', 'Estrés', 'Duelo', 'Autoestima',
-    'Problemas de pareja', 'Problemas familiares', 'Trauma / TEPT',
-    'Adicciones', 'Trastorno alimentario',
-]
 
 const motivoColors = {
     'Ansiedad':             'bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400',
@@ -627,94 +620,8 @@ const ModernPatientsList = () => {
             console.warn('[PatientsList] /invitations error (non-fatal):', err)
         }
 
-        // ── /appointments — compute real session stats per patient ──────────
-        try {
-            const apptRes = await appointmentsService.getAllAsProf()
-            const apptEnv = apptRes.data?.data?.data ?? apptRes.data?.data ?? apptRes.data ?? []
-            // Handle both array and { appointments: [] } / { data: [] } envelopes
-            const appointments = Array.isArray(apptEnv)
-                ? apptEnv
-                : (Array.isArray(apptEnv?.appointments) ? apptEnv.appointments
-                    : Array.isArray(apptEnv?.data) ? apptEnv.data : [])
-            console.log('[PatientsList] appointments for session stats:', appointments.length, 'sample patientId:', appointments[0]?.patientId)
-
-            const parseApptDate = (d) => {
-                if (!d) return null
-                if (typeof d === 'string') return new Date(d)
-                if (d.$date) return new Date(d.$date)
-                return new Date(d)
-            }
-
-            const sessionStats = {}       // keyed by any patient id string
-            const statsByEmail = {}       // keyed by lowercase email (fallback)
-            const now = Date.now()
-
-            for (const appt of appointments) {
-                // patientId may be: a string, { $oid }, or a populated object { _id, email, ... }
-                const rawPid = appt.patientId
-                const pid = typeof rawPid === 'string'
-                    ? rawPid
-                    : (rawPid?._id ?? rawPid?.$oid ?? null)
-                const apptEmail = (
-                    typeof rawPid === 'object' && rawPid !== null ? rawPid.email : null
-                ) ?? appt.patientEmail ?? null
-
-                if (!pid && !apptEmail) continue
-
-                const key = pid ?? `email:${apptEmail?.toLowerCase()}`
-                if (!sessionStats[key]) sessionStats[key] = { total: 0, lastDate: null, nextDate: null }
-                const s = sessionStats[key]
-
-                // Also index by email for the fallback lookup
-                if (apptEmail) {
-                    const ekey = apptEmail.toLowerCase()
-                    statsByEmail[ekey] = s   // same reference — both keys point to same stats object
-                }
-
-                const d = parseApptDate(appt.date)
-
-                if (appt.status === 'completed') {
-                    s.total++
-                    if (d && (!s.lastDate || d.getTime() > new Date(s.lastDate).getTime())) {
-                        s.lastDate = d.toISOString()
-                    }
-                } else if (['reserved', 'confirmed', 'accepted'].includes(appt.status)) {
-                    if (d && d.getTime() >= now) {
-                        if (!s.nextDate || d.getTime() < new Date(s.nextDate).getTime()) {
-                            s.nextDate = d.toISOString()
-                        }
-                    }
-                }
-            }
-
-            console.log('[PatientsList] session stats by patientId:', sessionStats, 'by email:', statsByEmail)
-
-            // Build userId → profileId reverse index so appointments stored
-            // with the user account ID resolve to the right patient profile.
-            const userIdToProfileId = {}
-            for (const p of realPatients) {
-                if (p.userId) userIdToProfileId[String(p.userId)] = String(p.id)
-            }
-
-            realPatients = realPatients.map(p => {
-                const pid = String(p.id)
-                const uid = p.userId ? String(p.userId) : null
-                const email = p.email?.toLowerCase() ?? null
-                // Try: profile id → user id → email fallback
-                const s = sessionStats[pid]
-                    ?? (uid ? sessionStats[uid] : undefined)
-                    ?? (email ? statsByEmail[email] : undefined)
-                if (!s) return p
-                return {
-                    ...p,
-                    totalSessions: s.total > 0 ? s.total : p.totalSessions,
-                    lastSession:   s.lastDate ?? p.lastSession,
-                    nextSession:   s.nextDate ?? p.nextSession,
-                }
-            })
-        } catch (err) {
-            console.warn('[PatientsList] /appointments stats error (non-fatal):', err)
-        }
+        // totalSessions, lastSession, nextSession now come from the backend
+        // on GET /patients — no frontend appointment-loop needed.
 
         console.log('[PatientsList] final list to render:', realPatients)
         setPatients(realPatients)
@@ -900,11 +807,10 @@ const ModernPatientsList = () => {
 
                             {/* Quick stats */}
                             {!loading && patients.length > 0 && (
-                                <div className="grid grid-cols-2 gap-3 w-full max-w-xs">
+                                <div className="grid grid-cols-3 gap-3 w-full max-w-xs">
                                     {[
                                         { label: 'Total', value: patients.length, color: 'text-gray-900 dark:text-white' },
                                         { label: 'Activos', value: active, color: 'text-emerald-600 dark:text-emerald-400' },
-                                        { label: 'Alto riesgo', value: highRisk, color: 'text-rose-500 dark:text-rose-400' },
                                         { label: 'Seguimiento', value: needsFollowUp, color: 'text-amber-600 dark:text-amber-400' },
                                     ].map(({ label, value, color }) => (
                                         <div key={label} className="bg-white dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/60 rounded-xl px-4 py-3 text-left">

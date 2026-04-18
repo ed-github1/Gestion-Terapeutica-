@@ -2,10 +2,11 @@ import {
   LayoutDashboard,
   Calendar,
   Users,
-  MessageSquare,
-  FileText,
   BookOpen,
-  BarChart2
+  BarChart2,
+  ShieldCheck,
+  CreditCard,
+  PenLine,
 } from 'lucide-react'
 
 /**
@@ -35,11 +36,11 @@ export const professionalMenuItems = [
     ariaLabel: 'Citas y sesiones programadas'
   },
   {
-    icon: BarChart2,
-    path: '/dashboard/professional/stats',
-    label: 'Estadísticas',
-    description: 'Estadísticas y métricas',
-    ariaLabel: 'Estadísticas y métricas de actividad'
+    icon: PenLine,
+    path: '/dashboard/professional/consent',
+    label: 'Consentimiento',
+    description: 'Firmar consentimiento',
+    ariaLabel: 'Firmar consentimiento informado'
   }
 ]
 
@@ -75,12 +76,48 @@ export const patientMenuItems = [
 
 /**
  * Get menu items based on user role
- * @param {string} userRole - 'professional' or 'patient'
+ * @param {string} userRole - 'professional', 'patient', or 'admin'
  * @returns {Array} Menu items configuration
  */
 export const getMenuItems = (userRole) => {
-  return userRole === 'professional' ? professionalMenuItems : patientMenuItems
+  if (userRole === 'professional') return professionalMenuItems
+  if (userRole === 'admin') return adminMenuItems
+  return patientMenuItems
 }
+
+/**
+ * Admin menu items configuration
+ */
+export const adminMenuItems = [
+  {
+    icon: LayoutDashboard,
+    path: '/dashboard/admin',
+    label: 'Panel',
+    description: 'Visión general',
+    ariaLabel: 'Panel de administración',
+  },
+  {
+    icon: Users,
+    path: '/dashboard/admin/users',
+    label: 'Usuarios',
+    description: 'Gestionar cuentas',
+    ariaLabel: 'Gestión de usuarios',
+  },
+  {
+    icon: ShieldCheck,
+    path: '/dashboard/admin/professionals',
+    label: 'Profesionales',
+    description: 'Terapeutas y clínicos',
+    ariaLabel: 'Gestión de profesionales',
+  },
+  {
+    icon: CreditCard,
+    path: '/dashboard/admin/subscriptions',
+    label: 'Suscripciones',
+    description: 'Planes y facturación',
+    ariaLabel: 'Gestión de suscripciones',
+  },
+]
 
 /**
  * Animation configuration

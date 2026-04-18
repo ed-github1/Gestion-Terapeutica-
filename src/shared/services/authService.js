@@ -21,6 +21,8 @@ export const authService = {
 
   logout: () =>
     apiClient.post('/auth/logout').finally(() => {
+      // HttpOnly auth cookie is cleared by the backend's Set-Cookie response.
+      // Clean up any legacy storage remnants.
       localStorage.removeItem('authToken')
       sessionStorage.removeItem('authToken')
       localStorage.removeItem('userData')
@@ -32,10 +34,9 @@ export const authService = {
   getMe: () =>
     apiClient.get('/auth/me'),
 
-  validateToken: (token) =>
-    apiClient.get('/auth/validate', {
-      headers: { Authorization: `Bearer ${token}` },
-    }),
+  // Cookie is sent automatically — no need to pass a token.
+  validateToken: () =>
+    apiClient.get('/auth/validate'),
 
   /**
    * Silently refresh the access token using the current JWT.

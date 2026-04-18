@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { authService } from '@shared/services/authService'
 import { auditLog } from '@shared/services/auditService'
 import { useIdleTimeout } from '@shared/hooks/useIdleTimeout'
-import { setAuthToken } from '@shared/api/client'
+import { setAuthToken, getAuthToken } from '@shared/api/client'
 import { revokeTrustToken } from '@shared/utils/deviceTrust'
 import SessionLockOverlay from '@shared/ui/SessionLockOverlay'
 
@@ -35,19 +35,21 @@ export const AuthProvider = ({ children }) => {
   const refreshTimerRef = useRef(null)
 
   // ── Session restore ───────────────────────────────────────────────────────
-  // Only the JWT is persisted — never user/PHI data.
+  // Auth token lives in a SameSite cookie (set via setAuthToken).
   // On mount we call GET /auth/me to re-hydrate the user object from the server.
   useEffect(() => {
     const initAuth = async () => {
       try {
-        const token =
-          localStorage.getItem('authToken') || sessionStorage.getItem('authToken')
-        if (token && token !== 'undefined' && token !== 'null') {
+        // Purge any leftover tokens from the old localStorage flow
+        localStorage.removeItem('authToken')
+        sessionStorage.removeItem('authToken')
+
+        const token = getAuthToken()
+        if (token) {
           try {
             const res = await authService.getMe()
             let userData = res.data?.data?.user || res.data?.data || res.data?.user || res.data
             if (import.meta.env.DEV) console.debug('[initAuth] getMe OK')
-            // Normalise every known role field name to `role`
             if (userData) {
               userData.role =
                 userData.role ||
@@ -59,15 +61,13 @@ export const AuthProvider = ({ children }) => {
                 undefined
             }
             setUser(userData)
-            // Restore the session lock if it was active before the page refresh
             if (sessionStorage.getItem('sessionLocked') === '1') {
               setLocked(true)
             }
+            scheduleTokenRefresh(token)
           } catch (err) {
-            // Token is invalid / expired — purge it
-            console.warn('[initAuth] getMe failed, purging token:', err.status, err.message)
-            localStorage.removeItem('authToken')
-            sessionStorage.removeItem('authToken')
+            console.warn('[initAuth] getMe failed, clearing token cookie:', err.status, err.message)
+            setAuthToken(null)
             sessionStorage.removeItem('sessionLocked')
           }
         }
@@ -77,21 +77,19 @@ export const AuthProvider = ({ children }) => {
       }
     }
     initAuth()
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Proactive token refresh ───────────────────────────────────────────────
-  // Decodes the JWT exp claim (no library needed) and schedules a silent
-  // refresh 5 min before expiry.  If /auth/refresh doesn't exist yet on the
-  // backend the call fails silently — no user disruption.
+  // Decodes the JWT exp claim and schedules a silent refresh 5 min before expiry.
   const scheduleTokenRefresh = useCallback((token) => {
     if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current)
     if (!token) return
     try {
       const payload  = JSON.parse(atob(token.split('.')[1]))
-      const expiresAt = payload.exp * 1_000                   // ms
-      const refreshAt = expiresAt - 5 * 60 * 1_000            // 5 min before expiry
+      const expiresAt = payload.exp * 1_000
+      const refreshAt = expiresAt - 5 * 60 * 1_000
       const delay     = refreshAt - Date.now()
-      if (delay <= 0) return                                   // already expired
+      if (delay <= 0) return
       refreshTimerRef.current = setTimeout(async () => {
         try {
           const res      = await authService.refresh()
@@ -99,7 +97,7 @@ export const AuthProvider = ({ children }) => {
             res.data?.data?.token ?? res.data?.token ?? res.data?.accessToken ?? null
           if (newToken) {
             setAuthToken(newToken)
-            scheduleTokenRefresh(newToken)                     // chain next refresh
+            scheduleTokenRefresh(newToken)
           }
         } catch {
           // Endpoint not yet available or token revoked — silently ignore
@@ -142,15 +140,12 @@ export const AuthProvider = ({ children }) => {
         token = responseData.accessToken || responseData.access_token; userData = responseData
       }
 
-      if (!token) throw new Error('No se recibió token del servidor')
       if (userData && !userData.role && userData.rol) userData.role = userData.rol
 
-      // Store ONLY the JWT — no PHI in localStorage
-      if (rememberMe) {
-        localStorage.setItem('authToken', token)
-      } else {
-        sessionStorage.setItem('authToken', token)
-      }
+      if (!token) throw new Error('No se recibió token del servidor')
+
+      // Store the JWT in a SameSite cookie instead of localStorage (XSS-safer)
+      setAuthToken(token)
 
       setUser(userData)
       scheduleTokenRefresh(token)
@@ -171,8 +166,7 @@ export const AuthProvider = ({ children }) => {
       console.error('[completeLogin] received invalid token:', token)
       throw new Error('Token inválido recibido del servidor. Intentá de nuevo.')
     }
-    if (import.meta.env.DEV) console.debug('[completeLogin] storing token')
-    // Always use localStorage so the session survives a tab refresh
+    if (import.meta.env.DEV) console.debug('[completeLogin] storing token in cookie')
     setAuthToken(token)
     try {
       const res = await authService.getMe()
@@ -201,7 +195,6 @@ export const AuthProvider = ({ children }) => {
       auditLog('LOGIN_2FA', { userId: userData?.id || userData?._id, role: userData?.role })
       return userData
     } catch (err) {
-      // Token might be invalid — purge it
       setAuthToken(null)
       throw err
     }
@@ -276,9 +269,6 @@ export const AuthProvider = ({ children }) => {
   const isPatient = () =>
     user?.role === 'patient' || user?.role === 'pacient'
 
-  const getToken = () =>
-    localStorage.getItem('authToken') || sessionStorage.getItem('authToken')
-
   /** Re-fetches the user from GET /auth/me and syncs AuthContext state. */
   const refreshUser = useCallback(async () => {
     try {
@@ -301,7 +291,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     initializing,
     error,
-    token: getToken(),
+    token: getAuthToken(),
     login,
     completeLogin,
     logout,

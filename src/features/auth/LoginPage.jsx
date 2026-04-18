@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useNavigate, useLocation, Link } from 'react-router-dom'
+import { useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { motion } from 'motion/react'
 import { AlertCircle, Eye, EyeOff, TrendingUp, Calendar, Smile, Brain, ArrowRight } from 'lucide-react'
@@ -40,8 +40,10 @@ const LoginPage = () => {
   const { login } = useAuth()
   const navigate = useNavigate()
   const { state: locationState } = useLocation()
+  const [searchParams] = useSearchParams()
   const idleExpired    = locationState?.reason === 'idle'
   const sessionExpired = locationState?.reason === 'session_expired'
+  const rolMismatch    = searchParams.get('reason') === 'rol'
 
   const onSubmit = async (data) => {
     setLoginError(null)
@@ -109,7 +111,7 @@ const LoginPage = () => {
             </motion.div>
 
             {/* Notices */}
-            {(idleExpired || sessionExpired || loginError) && (
+            {(idleExpired || sessionExpired || rolMismatch || loginError) && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -129,6 +131,14 @@ const LoginPage = () => {
                     <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
                     <p className="text-sm text-amber-700 font-medium leading-snug">
                       Tu sesión expiró. Por favor, iniciá sesión nuevamente.
+                    </p>
+                  </div>
+                )}
+                {rolMismatch && (
+                  <div className="flex items-start gap-2.5 p-3 bg-amber-50 rounded-xl border border-amber-200/70">
+                    <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                    <p className="text-sm text-amber-700 font-medium leading-snug">
+                      Tu sesión fue reiniciada por un problema de permisos. Iniciá sesión nuevamente.
                     </p>
                   </div>
                 )}

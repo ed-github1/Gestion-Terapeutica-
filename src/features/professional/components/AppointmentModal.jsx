@@ -7,6 +7,7 @@ import { appointmentsService } from '@shared/services/appointmentsService'
 import { patientsService } from '@shared/services/patientsService'
 import { socketNotificationService } from '@shared/services/socketNotificationService'
 import { useAuth } from '@features/auth/AuthContext'
+import { professionalsService } from '@shared/services/professionalsService'
 
 const buildPatientName = (pt) => {
   if (!pt) return ''
@@ -21,10 +22,28 @@ const cleanDisplayName = (name) =>
 const getSavedPriceForType = (type) => {
   try {
     const saved = JSON.parse(localStorage.getItem('professionalSettings') || '{}')
+    // Support both new (primeraSesion) and legacy (primera_consulta) keys
     return saved.sessionTypePrices?.[type] ?? null
   } catch {
     return null
   }
+}
+
+// Map display type labels to backend tarifa keys
+const TYPE_TO_TARIFA_KEY = {
+  primera_consulta: 'primeraSesion',
+  primeraSesion: 'primeraSesion',
+  seguimiento: 'seguimiento',
+  extraordinaria: 'extraordinaria',
+}
+
+// Map internal type values to the backend Appointment.sessionType enum
+// (['Primera Sesión', 'Seguimiento', 'Extraordinaria']).
+const TYPE_TO_SESSION_TYPE = {
+  primera_consulta: 'Primera Sesión',
+  primeraSesion: 'Primera Sesión',
+  seguimiento: 'Seguimiento',
+  extraordinaria: 'Extraordinaria',
 }
 
 const AppointmentModal = ({ appointment, onClose, onSave, onDelete }) => {
@@ -40,7 +59,7 @@ const AppointmentModal = ({ appointment, onClose, onSave, onDelete }) => {
     patientName: appointment?.patientName || '',
     patientId: appointment?.patientId || '',
     patientUserId: appointment?.patientUserId || '',
-    type: appointment?.type || 'consultation',
+    type: appointment?.type || 'primera_consulta',
     date: appointment?.start ? format(appointment.start, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
     time: appointment?.start ? format(appointment.start, 'HH:mm') : '09:00',
     duration: appointment?.duration || '60',
@@ -48,6 +67,22 @@ const AppointmentModal = ({ appointment, onClose, onSave, onDelete }) => {
     mode: appointment?.mode ?? (appointment?.isVideoCall ? 'videollamada' : 'consultorio'),
     price: appointment?.price ?? getSavedPriceForType(appointment?.type || 'consultation') ?? 50,
   })
+
+  // Fetch tarifas from backend and update price for selected type
+  useEffect(() => {
+    if (appointment?.id) return // editing existing — keep stored price
+    let cancelled = false
+    professionalsService.getMyTarifas()
+      .then(res => {
+        if (cancelled) return
+        const t = res.data?.data?.tarifas || res.data?.tarifas || res.data?.data || {}
+        const tarifaKey = TYPE_TO_TARIFA_KEY[formData.type] || formData.type
+        const price = t[tarifaKey]
+        if (price != null) setFormData(prev => ({ ...prev, price }))
+      })
+      .catch(() => { /* fallback to localStorage value already set */ })
+    return () => { cancelled = true }
+  }, [])
 
   useEffect(() => {
     const loadPatients = async () => {
@@ -171,6 +206,7 @@ const AppointmentModal = ({ appointment, onClose, onSave, onDelete }) => {
             date: formData.date,
             time: formData.time,
             type: formData.type,
+            sessionType: TYPE_TO_SESSION_TYPE[formData.type] || formData.type,
             duration: parseInt(formData.duration),
             notes: formData.notes,
             mode: formData.mode,
@@ -182,9 +218,8 @@ const AppointmentModal = ({ appointment, onClose, onSave, onDelete }) => {
           const targetUserId = formData.patientUserId ||
             created?.patientUserId || created?.patient?.userId || created?.patient?.user
           if (targetUserId) {
-            const proToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || ''
             const proUserId = user?._id || user?.id
-            socketNotificationService.connect(proUserId, proToken)
+            socketNotificationService.connect(proUserId)
             socketNotificationService.sendAppointmentNotification(targetUserId, {
               appointmentId: created?._id || created?.id,
               professionalUserId: proUserId,
@@ -369,10 +404,9 @@ const AppointmentModal = ({ appointment, onClose, onSave, onDelete }) => {
                       }}
                       className={`${inputCls} pl-9`}
                     >
-                      <option value="consultation">Consulta General</option>
-                      <option value="followup">Seguimiento</option>
-                      <option value="therapy">Terapia</option>
-                      <option value="emergency">Emergencia</option>
+                      <option value="primera_consulta">Primera consulta</option>
+                      <option value="seguimiento">Seguimiento</option>
+                      <option value="extraordinaria">Extraordinaria</option>
                     </select>
                   </div>
                 </div>

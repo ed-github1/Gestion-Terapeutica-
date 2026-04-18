@@ -36,7 +36,7 @@ export const useTodaySessions = (appointments, availability, loading) => {
                         nombrePaciente: resolvePatientName(apt),
                         fechaHora: apt.start || apt.fechaHora,
                         estado: apt.status || 'reserved',
-                        type: apt.type || 'Consulta',
+                        type: apt.type || 'Primera consulta',
                         riskLevel: apt.riskLevel || 'low',
                         lastSessionNote: apt.notes || '',
                         treatmentGoal: '',

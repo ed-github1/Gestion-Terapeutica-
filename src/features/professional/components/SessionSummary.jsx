@@ -4,10 +4,11 @@ import { motion, AnimatePresence } from 'motion/react'
 import {
   CheckCircle2, Clock, ArrowLeft, Calendar,
   Edit3, Mic, Copy, AlertCircle, MessageSquare,
-  Video, MapPin, Save, Check,
+  Video, MapPin, Save, Check, RefreshCw,
 } from 'lucide-react'
 import { appointmentsService } from '@shared/services/appointmentsService'
 import { ROUTES } from '@shared/constants/routes'
+import { resolvePatientName } from '../utils/dashboardUtils'
 
 /* ═══════════════════════════════════════════════════════════════
    1. HELPERS
@@ -45,11 +46,11 @@ const MetaRow = ({ icon: Icon, label, value }) => (
 )
 
 /** Underline-style tab button */
-const TabBtn = ({ active, onClick, icon: Icon, label }) => (
+const TabBtn = ({ active, onClick, icon: Icon, label, indicator }) => (
   <button
     type="button"
     onClick={onClick}
-    className={`inline-flex items-center gap-1.5 px-0.5 pt-3 pb-2.75 text-xs font-semibold border-b-2 transition-all ${
+    className={`relative inline-flex items-center gap-1.5 px-0.5 pt-3 pb-2.75 text-xs font-semibold border-b-2 transition-all ${
       active
         ? 'border-sky-500 text-sky-600 dark:text-sky-400'
         : 'border-transparent text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
@@ -57,6 +58,15 @@ const TabBtn = ({ active, onClick, icon: Icon, label }) => (
   >
     <Icon className="w-3.5 h-3.5" />
     {label}
+    {indicator === 'processing' && (
+      <span className="relative flex w-2 h-2 ml-0.5" aria-label="Procesando">
+        <span className="absolute inset-0 rounded-full bg-sky-400 opacity-75 animate-ping" />
+        <span className="relative w-2 h-2 rounded-full bg-sky-500" />
+      </span>
+    )}
+    {indicator === 'ready' && !active && (
+      <span className="w-2 h-2 rounded-full bg-emerald-500 ml-0.5" aria-label="Lista" />
+    )}
   </button>
 )
 
@@ -169,10 +179,27 @@ const TranscriptReady = ({ text, onChange, edited }) => {
   )
 }
 
-const TranscriptError = () => (
-  <div className="flex flex-col items-center gap-2 py-6 text-center">
-    <AlertCircle className="w-5 h-5 text-rose-300 dark:text-rose-500" />
-    <p className="text-xs text-gray-400 dark:text-gray-500">No se pudo procesar el audio</p>
+const TranscriptError = ({ variant = 'failed' }) => (
+  <div className="flex flex-col items-center gap-2 py-10 text-center max-w-sm mx-auto">
+    <div className="w-12 h-12 rounded-full bg-rose-50 dark:bg-rose-900/20 flex items-center justify-center mb-1">
+      <AlertCircle className="w-5 h-5 text-rose-500 dark:text-rose-400" />
+    </div>
+    {variant === 'empty' ? (
+      <>
+        <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">Transcripción vacía</p>
+        <p className="text-xs text-gray-500 dark:text-gray-500 leading-relaxed">
+          El servicio marcó la transcripción como lista pero no devolvió texto.
+          Es posible que el audio no contenga voz reconocible o que falle el
+          guardado en el servidor. Revisa los logs del backend del trabajo
+          indicado en <code className="px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-[10px]">transcriptJobId</code>.
+        </p>
+      </>
+    ) : (
+      <>
+        <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">No se pudo procesar el audio</p>
+        <p className="text-xs text-gray-500 dark:text-gray-500">Intenta de nuevo desde una próxima sesión grabada.</p>
+      </>
+    )}
   </div>
 )
 
@@ -196,23 +223,70 @@ const SessionSummary = () => {
   const [transcript, setTranscript]               = useState('')
   const [transcriptEdited, setTranscriptEdited]   = useState(false)
   const [originalTranscript, setOriginalTranscript] = useState('')
+  const [errorVariant, setErrorVariant] = useState('failed')
   const pollRef    = useRef(null)
   const idlePollRef = useRef(null)
+  const userPickedTabRef = useRef(false)
+
+  // Auto-focus the Transcripción tab the first time it has content
+  // (processing or ready). Does NOT override a manual tab selection.
+  useEffect(() => {
+    if (userPickedTabRef.current) return
+    if (transcriptState === 'ready' || transcriptState === 'processing') {
+      setActiveTab('transcript')
+    }
+  }, [transcriptState])
+
+  const handleTabChange = (tab) => {
+    userPickedTabRef.current = true
+    setActiveTab(tab)
+  }
 
   /* ── transcript loader ── */
   const applyTranscriptFromData = (data) => {
-    const status = data?.transcriptStatus
-    const text   = data?.transcript
-    if (text) {
+    // Accept several possible field names from different backend versions.
+    const status = data?.transcriptStatus ?? data?.transcription?.status
+    const text =
+      data?.transcript ||
+      data?.transcriptText ||
+      data?.transcription?.text ||
+      data?.transcription ||
+      ''
+    // eslint-disable-next-line no-console
+    console.debug('[SessionSummary] transcript fields', {
+      transcriptStatus: status,
+      hasTranscript: !!text,
+      transcriptLength: typeof text === 'string' ? text.length : null,
+      keys: data ? Object.keys(data) : [],
+    })
+    if (typeof text === 'string' && text.trim()) {
       setTranscript(text)
       setOriginalTranscript(text)
       setTranscriptState('ready')
-    } else if (status === 'processing') {
+    } else if (status === 'processing' || status === 'pending' || status === 'submitted') {
       setTranscriptState('processing')
-    } else if (status === 'failed') {
+    } else if (status === 'failed' || status === 'error') {
+      setErrorVariant('failed')
+      setTranscriptState('error')
+    } else if (status === 'completed' || status === 'done' || status === 'ready') {
+      // Backend finished but the transcript text is missing/empty.
+      // Surface as a distinct error so the user isn't stuck on "processing".
+      console.warn('[SessionSummary] Transcription marked', status, 'but transcript text is empty. Response keys:', data ? Object.keys(data) : [])
+      setErrorVariant('empty')
       setTranscriptState('error')
     } else {
       setTranscriptState('idle')
+    }
+  }
+
+  const reloadAppointment = async () => {
+    try {
+      const res = await appointmentsService.getById(appointmentId)
+      const d = res.data?.data ?? res.data ?? res
+      setAppointment(d)
+      applyTranscriptFromData(d)
+    } catch {
+      /* ignore */
     }
   }
 
@@ -298,7 +372,7 @@ const SessionSummary = () => {
   const endTime     = fmtTime(appointment?.callEndedAt)
   const hasEndTime  = !!appointment?.callEndedAt
   const duration    = fmtDuration(appointment?.callDuration)
-  const patientName = appointment?.nombrePaciente ?? appointment?.patient?.name ?? 'Paciente'
+  const patientName = resolvePatientName(appointment)
   const avatar      = patientName.charAt(0).toUpperCase()
   const timeRange   = hasEndTime ? `${startTime} – ${endTime}` : startTime
 
@@ -358,8 +432,14 @@ const SessionSummary = () => {
         >
           {/* Tab bar */}
           <div className="px-6 flex items-center gap-6 border-b border-gray-200 dark:border-gray-700">
-            <TabBtn active={activeTab === 'manual'} onClick={() => setActiveTab('manual')} icon={Edit3} label="Notas" />
-            <TabBtn active={activeTab === 'transcript'} onClick={() => setActiveTab('transcript')} icon={Mic} label="Transcripción" />
+            <TabBtn active={activeTab === 'manual'} onClick={() => handleTabChange('manual')} icon={Edit3} label="Notas" />
+            <TabBtn
+              active={activeTab === 'transcript'}
+              onClick={() => handleTabChange('transcript')}
+              icon={Mic}
+              label="Transcripción"
+              indicator={transcriptState === 'processing' ? 'processing' : transcriptState === 'ready' ? 'ready' : null}
+            />
             {activeTab === 'manual' && (
               <div className="ml-auto py-2">
                 <button
@@ -378,6 +458,19 @@ const SessionSummary = () => {
                     ? 'Guardando…'
                     : <><Save className="w-3 h-3" /> Guardar</>
                   }
+                </button>
+              </div>
+            )}
+            {activeTab === 'transcript' && transcriptState !== 'ready' && (
+              <div className="ml-auto py-2">
+                <button
+                  type="button"
+                  onClick={reloadAppointment}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  title="Volver a comprobar"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  Actualizar
                 </button>
               </div>
             )}
@@ -411,7 +504,7 @@ const SessionSummary = () => {
                   {transcriptState === 'idle'       && <TranscriptIdle />}
                   {transcriptState === 'processing' && <TranscriptProcessing />}
                   {transcriptState === 'ready'      && <TranscriptReady text={transcript} onChange={handleTranscriptChange} edited={transcriptEdited} />}
-                  {transcriptState === 'error'      && <TranscriptError />}
+                  {transcriptState === 'error'      && <TranscriptError variant={errorVariant} />}
                 </motion.div>
               )}
             </AnimatePresence>

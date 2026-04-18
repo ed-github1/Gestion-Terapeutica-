@@ -39,8 +39,8 @@ const DashboardHeader = ({
             trend: null,
         },
         {
-            label: 'Ingresos',
-            sub: 'este mes',
+            label: 'Ingreso mensual',
+            sub: 'de citas',
             value: `$${(mockRevenue?.thisMonth ?? 0).toLocaleString()}`,
             icon: DollarSign,
             iconCls: 'text-amber-500',

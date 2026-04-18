@@ -49,8 +49,8 @@ const StatsCards = ({ stats, todayAppointments, mockRevenue, monthGrowth, revenu
             delay: 0.2,
         },
         {
-            label: 'Ingresos del mes',
-            labelShort: 'Ingresos',
+            label: 'Ingreso mensual',
+            labelShort: 'Ingreso mensual',
             value: `$${mockRevenue.thisMonth.toLocaleString()}`,
             icon: DollarSign,
             iconColor: 'text-emerald-600',

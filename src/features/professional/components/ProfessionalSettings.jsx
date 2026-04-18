@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'motion/react'
 import { useAuth } from '@features/auth'
 import { useNavigate } from 'react-router-dom'
@@ -6,7 +6,8 @@ import {
     Bell, Shield, Building2, Check, ChevronRight,
     Key, DollarSign, Crown, Sparkles, ArrowUpRight,
 } from 'lucide-react'
-import { PLAN_TYPES, PLAN_LIMITS } from '@shared/constants/subscriptionPlans'
+import { PLAN_TYPES, PLAN_LIMITS, PROFESSIONAL_COUNTRIES, getCurrencyForCountry } from '@shared/constants/subscriptionPlans'
+import { professionalsService } from '@shared/services/professionalsService'
 
 // ─── Toggle switch ─────────────────────────────────────────────────────────────
 const Toggle = ({ checked, onChange, disabled }) => (
@@ -17,7 +18,7 @@ const Toggle = ({ checked, onChange, disabled }) => (
         disabled={disabled}
         onClick={() => onChange(!checked)}
         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 ${
-            checked ? 'bg-blue-600' : 'bg-gray-600'
+            checked ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
         } ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
     >
         <span
@@ -29,31 +30,31 @@ const Toggle = ({ checked, onChange, disabled }) => (
 )
 
 // ─── Section card ──────────────────────────────────────────────────────────────
-const SectionCard = ({ title, subtitle, icon: Icon, iconColor = 'text-blue-400', iconBg = 'bg-blue-900/40', children }) => (
+const SectionCard = ({ title, subtitle, icon: Icon, iconColor = 'text-blue-600 dark:text-blue-400', iconBg = 'bg-blue-50 dark:bg-blue-900/40', children }) => (
     <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-gray-800 rounded-2xl border border-gray-700 shadow-sm overflow-hidden"
+        className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden"
     >
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-700">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-200 dark:border-gray-700">
             <div className={`w-8 h-8 rounded-xl ${iconBg} flex items-center justify-center shrink-0`}>
                 <Icon className={`w-4 h-4 ${iconColor}`} />
             </div>
             <div>
-                <h2 className="text-sm font-bold text-gray-100 leading-none">{title}</h2>
-                {subtitle && <p className="text-[11px] text-gray-400 mt-0.5">{subtitle}</p>}
+                <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100 leading-none">{title}</h2>
+                {subtitle && <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{subtitle}</p>}
             </div>
         </div>
-        <div className="divide-y divide-gray-700/50">{children}</div>
+        <div className="divide-y divide-gray-200 dark:divide-gray-700/50">{children}</div>
     </motion.div>
 )
 
 // ─── Setting row ───────────────────────────────────────────────────────────────
 const SettingRow = ({ label, description, children, danger }) => (
-    <div className={`flex items-center justify-between gap-4 px-5 py-3.5 ${danger ? 'hover:bg-red-900/30' : 'hover:bg-gray-700/40'} transition-colors`}>
+    <div className={`flex items-center justify-between gap-4 px-5 py-3.5 ${danger ? 'hover:bg-red-50 dark:hover:bg-red-900/30' : 'hover:bg-gray-50 dark:hover:bg-gray-700/40'} transition-colors`}>
         <div className="min-w-0">
-            <p className={`text-sm font-medium leading-none ${danger ? 'text-red-400' : 'text-gray-200'}`}>{label}</p>
-            {description && <p className="text-[11px] text-gray-500 mt-1 leading-snug">{description}</p>}
+            <p className={`text-sm font-medium leading-none ${danger ? 'text-red-600 dark:text-red-400' : 'text-gray-800 dark:text-gray-200'}`}>{label}</p>
+            {description && <p className="text-[11px] text-gray-500 dark:text-gray-500 mt-1 leading-snug">{description}</p>}
         </div>
         <div className="shrink-0">{children}</div>
     </div>
@@ -62,10 +63,10 @@ const SettingRow = ({ label, description, children, danger }) => (
 // ─── Badge ─────────────────────────────────────────────────────────────────────
 const Badge = ({ label, color = 'blue' }) => {
     const colors = {
-        blue: 'bg-blue-900/40 text-blue-300 border-blue-800',
-        green: 'bg-emerald-900/40 text-emerald-300 border-emerald-800',
-        amber: 'bg-amber-900/40 text-amber-300 border-amber-800',
-        red: 'bg-red-900/40 text-red-300 border-red-800',
+        blue:  'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-800',
+        green: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-800',
+        amber: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-800',
+        red:   'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/40 dark:text-red-300 dark:border-red-800',
     }
     return (
         <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold border ${colors[color]}`}>
@@ -79,7 +80,7 @@ const Select = ({ value, onChange, options }) => (
     <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="text-sm bg-gray-700 border border-gray-600 rounded-lg px-3 py-1.5 text-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-transparent outline-none transition"
+        className="text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-transparent outline-none transition"
     >
         {options.map(o => (
             <option key={o.value} value={o.value}>{o.label}</option>
@@ -106,13 +107,13 @@ const PlanSection = ({ user, navigate }) => {
             title="Plan y suscripción"
             subtitle="Gestiona tu plan y accede a funciones avanzadas"
             icon={Crown}
-            iconColor="text-blue-400"
-            iconBg="bg-blue-900/40"
+            iconColor="text-blue-600 dark:text-blue-400"
+            iconBg="bg-blue-50 dark:bg-blue-900/40"
         >
             {/* Current plan row */}
             <div className="px-5 py-4 flex items-center justify-between gap-4">
                 <div>
-                    <p className="text-sm font-medium text-gray-200 leading-none">Plan actual</p>
+                    <p className="text-sm font-medium text-gray-800 dark:text-gray-200 leading-none">Plan actual</p>
                     <p className="text-[11px] text-gray-500 mt-1">
                         {isFree
                             ? `Hasta ${limits.maxPatients} pacientes · ${limits.videoCallMinutes} min de videollamada`
@@ -124,20 +125,20 @@ const PlanSection = ({ user, navigate }) => {
 
             {/* Upgrade CTA — only for free plan */}
             {isFree && (
-                <div className="px-5 py-4 border-t border-gray-700/50">
-                    <div className="relative rounded-xl overflow-hidden border border-blue-800/50 bg-blue-950/40 p-4">
+                <div className="px-5 py-4 border-t border-gray-200 dark:border-gray-700/50">
+                    <div className="relative rounded-xl overflow-hidden border border-blue-200 dark:border-blue-800/50 bg-blue-50 dark:bg-blue-950/40 p-4">
                         {/* gradient accent bar */}
                         <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: 'linear-gradient(to right, #0075C9, #54C0E8, #AEE058)' }} />
                         <div className="flex items-start gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-blue-900/60 border border-blue-800/50 flex items-center justify-center shrink-0">
-                                <Crown className="w-4.5 h-4.5 text-blue-300" strokeWidth={2.5} />
+                            <div className="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-900/60 border border-blue-200 dark:border-blue-800/50 flex items-center justify-center shrink-0">
+                                <Crown className="w-4.5 h-4.5 text-blue-600 dark:text-blue-300" strokeWidth={2.5} />
                             </div>
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-1.5 mb-0.5">
-                                    <p className="text-sm font-bold text-blue-100">Actualiza al Plan Pro</p>
-                                    <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+                                    <p className="text-sm font-bold text-blue-900 dark:text-blue-100">Actualiza al Plan Pro</p>
+                                    <Sparkles className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400" />
                                 </div>
-                                <p className="text-[11px] text-blue-300/70 leading-relaxed mb-3">
+                                <p className="text-[11px] text-blue-700/80 dark:text-blue-300/70 leading-relaxed mb-3">
                                     Citas ilimitadas, hasta 50 pacientes, estadísticas avanzadas y soporte prioritario.
                                 </p>
                                 <motion.button
@@ -158,7 +159,7 @@ const PlanSection = ({ user, navigate }) => {
                 <SettingRow label="Gestionar suscripción" description="Facturación, facturas y cancelación">
                     <button
                         onClick={() => navigate('/pricing')}
-                        className="flex items-center gap-1.5 text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors"
+                        className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
                     >
                         Gestionar <ArrowUpRight className="w-3.5 h-3.5" />
                     </button>
@@ -169,10 +170,12 @@ const PlanSection = ({ user, navigate }) => {
 }
 
 // ─── Main component ────────────────────────────────────────────────────────────
-const ProfessionalSettings = () => {
+const ProfessionalSettings = ({ embedded = false }) => {
     const { user } = useAuth()
     const navigate = useNavigate()
     const [saved, setSaved] = useState(false)
+
+    const countryInfo = getCurrencyForCountry(user?.country)
 
     // Notifications
     const [notif, setNotif] = useState({
@@ -199,27 +202,55 @@ const ProfessionalSettings = () => {
                     reminderHours: '24',
                     sessionDuration: '60',
                     currency: 'MXN',
-                    sessionTypePrices: { consultation: 50, followup: 40, therapy: 70, emergency: 90 },
+                    sessionTypePrices: { primeraSesion: 50, seguimiento: 40, extraordinaria: 70 },
                 }, ...parsed }
             }
         } catch { /* ignore */ }
+        const defaultCurrency = getCurrencyForCountry(user?.country).currency
         return {
             videoCallEnabled: true,
             autoConfirm: false,
             reminderHours: '24',
             sessionDuration: '60',
-            currency: 'MXN',
-            sessionTypePrices: { consultation: 50, followup: 40, therapy: 70, emergency: 90 },
+            currency: defaultCurrency,
+            sessionTypePrices: { primeraSesion: 50, seguimiento: 40, extraordinaria: 70 },
         }
     })
+
+    // Load tarifas from backend on mount
+    useEffect(() => {
+        let cancelled = false
+        professionalsService.getMyTarifas()
+            .then(res => {
+                if (cancelled) return
+                const t = res.data?.data?.tarifas || res.data?.tarifas || res.data?.data || {}
+                setPractice(prev => ({
+                    ...prev,
+                    sessionTypePrices: {
+                        primeraSesion:  t.primeraSesion ?? prev.sessionTypePrices?.primeraSesion ?? 50,
+                        seguimiento:    t.seguimiento ?? prev.sessionTypePrices?.seguimiento ?? 40,
+                        extraordinaria: t.extraordinaria ?? prev.sessionTypePrices?.extraordinaria ?? 70,
+                    },
+                }))
+            })
+            .catch(() => { /* keep cached/default values */ })
+        return () => { cancelled = true }
+    }, [])
 
     const setN = (key) => (val) => setNotif(prev => ({ ...prev, [key]: val }))
     const setS = (key) => (val) => setSecurity(prev => ({ ...prev, [key]: val }))
     const setP = (key) => (val) => setPractice(prev => ({ ...prev, [key]: val }))
 
-    const handleSave = () => {
-        // TODO: connect to API
-        try { sessionStorage.setItem('professionalSettings', JSON.stringify(practice)) } catch { /* ignore */ }
+    const handleSave = async () => {
+        // Always cache locally
+        sessionStorage.setItem('professionalSettings', JSON.stringify(practice))
+        localStorage.setItem('professionalSettings', JSON.stringify({
+            currency: practice.currency,
+            sessionTypePrices: practice.sessionTypePrices,
+        }))
+        try {
+            await professionalsService.updateMyTarifas(practice.sessionTypePrices)
+        } catch { /* API not available yet — saved locally */ }
         setSaved(true)
         setTimeout(() => setSaved(false), 2500)
     }
@@ -228,18 +259,19 @@ const ProfessionalSettings = () => {
     const initials = fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 
     return (
-        <div className="min-h-screen bg-gray-900 p-3 md:p-6 lg:p-8">
-            <div className="max-w-full space-y-5">
+        <div className={embedded ? '' : 'min-h-screen bg-gray-50 dark:bg-gray-900 p-3 md:p-6 lg:p-8'}>
+            <div className={embedded ? 'space-y-5' : 'max-w-full space-y-5'}>
 
                 {/* ── Header ── */}
+                {!embedded ? (
                 <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="flex items-center justify-between"
                 >
                     <div>
-                        <h1 className="text-base font-bold text-gray-100 leading-none">Configuración</h1>
-                        <p className="text-[11px] text-gray-400 mt-0.5">Personaliza tu experiencia en TotalMente</p>
+                        <h1 className="text-base font-bold text-gray-900 dark:text-gray-100 leading-none">Configuración</h1>
+                        <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Personaliza tu experiencia en TotalMente</p>
                     </div>
                     <motion.button
                         onClick={handleSave}
@@ -257,36 +289,57 @@ const ProfessionalSettings = () => {
                         )}
                     </motion.button>
                 </motion.div>
+                ) : (
+                <div className="flex items-center justify-end">
+                    <motion.button
+                        onClick={handleSave}
+                        whileTap={{ scale: 0.96 }}
+                        className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition-all duration-200 ${
+                            saved
+                                ? 'bg-emerald-500 text-white'
+                                : 'bg-blue-600 hover:bg-blue-700 text-white'
+                        }`}
+                    >
+                        {saved ? (
+                            <><Check className="w-4 h-4" />Guardado</>
+                        ) : (
+                            'Guardar cambios'
+                        )}
+                    </motion.button>
+                </div>
+                )}
 
                 {/* ── Account chip ── */}
+                {!embedded && (
                 <motion.div
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.04 }}
-                    className="bg-gray-800 rounded-2xl border border-gray-700 shadow-sm flex items-center gap-4 px-5 py-4"
+                    className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm flex items-center gap-4 px-5 py-4"
                 >
                     <div className="w-12 h-12 rounded-full bg-linear-to-br from-blue-700 to-sky-400 flex items-center justify-center text-white text-lg font-bold shadow-md shrink-0">
                         {initials}
                     </div>
                     <div className="min-w-0 flex-1">
-                        <p className="text-sm font-bold text-gray-100 leading-none truncate">{fullName}</p>
-                        <p className="text-[11px] text-gray-400 mt-0.5 truncate">{user?.email || user?.correo || ''}</p>
+                        <p className="text-sm font-bold text-gray-900 dark:text-gray-100 leading-none truncate">{fullName}</p>
+                        <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">{user?.email || user?.correo || ''}</p>
                     </div>
                     <button
                         onClick={() => navigate('/dashboard/professional/profile')}
-                        className="flex items-center gap-1 text-[11px] text-blue-400 font-semibold hover:text-blue-300 shrink-0"
+                        className="flex items-center gap-1 text-[11px] text-blue-600 dark:text-blue-400 font-semibold hover:text-blue-700 dark:hover:text-blue-300 shrink-0"
                     >
                         Editar perfil <ChevronRight className="w-3.5 h-3.5" />
                     </button>
                 </motion.div>
+                )}
 
                 {/* ── Notifications ── */}
                 <SectionCard
                     title="Notificaciones"
                     subtitle="Elige cómo y cuándo recibir alertas"
                     icon={Bell}
-                    iconColor="text-sky-400"
-                    iconBg="bg-sky-900/40"
+                    iconColor="text-sky-600 dark:text-sky-400"
+                    iconBg="bg-sky-50 dark:bg-sky-900/40"
                 >
                     <SettingRow label="Nuevas citas por correo" description="Recibe un correo cuando un paciente agende">
                         <Toggle checked={notif.emailAppointments} onChange={setN('emailAppointments')} />
@@ -307,8 +360,8 @@ const ProfessionalSettings = () => {
                     title="Seguridad"
                     subtitle="Controla el acceso y la privacidad de tu cuenta"
                     icon={Shield}
-                    iconColor="text-violet-400"
-                    iconBg="bg-violet-900/40"
+                    iconColor="text-violet-600 dark:text-violet-400"
+                    iconBg="bg-violet-50 dark:bg-violet-900/40"
                 >
                     <SettingRow
                         label="Verificación en dos pasos (2FA)"
@@ -328,7 +381,7 @@ const ProfessionalSettings = () => {
                     <SettingRow label="Cambiar contraseña" description="Última actualización hace 90 días">
                         <button
                             onClick={() => {/* TODO */}}
-                            className="flex items-center gap-1.5 text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors"
+                            className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
                         >
                             <Key className="w-3.5 h-3.5" /> Actualizar
                         </button>
@@ -340,8 +393,8 @@ const ProfessionalSettings = () => {
                     title="Mi consulta"
                     subtitle="Configura las opciones de tu práctica clínica"
                     icon={Building2}
-                    iconColor="text-emerald-400"
-                    iconBg="bg-emerald-900/40"
+                    iconColor="text-emerald-600 dark:text-emerald-400"
+                    iconBg="bg-emerald-50 dark:bg-emerald-900/40"
                 >
                     <SettingRow label="Videollamadas habilitadas" description="Permitir sesiones de videollamada con pacientes">
                         <Toggle checked={practice.videoCallEnabled} onChange={setP('videoCallEnabled')} />
@@ -374,38 +427,32 @@ const ProfessionalSettings = () => {
                         />
                     </SettingRow>
                     <SettingRow label="Moneda de facturación">
-                        <Select
-                            value={practice.currency}
-                            onChange={setP('currency')}
-                            options={[
-                                { value: 'MXN', label: 'MXN — Peso mexicano' },
-                                { value: 'USD', label: 'USD — Dólar' },
-                                { value: 'EUR', label: 'EUR — Euro' },
-                            ]}
-                        />
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600/60 rounded-xl">
+                            <span className="text-sm font-bold text-gray-800 dark:text-gray-200">{countryInfo.symbol} {countryInfo.currency}</span>
+                            <span className="text-[11px] text-gray-500">— {countryInfo.currencyLabel}</span>
+                        </div>
                     </SettingRow>
 
                     {/* ── Prices per session type ── */}
-                    <div className="px-5 py-4 border-t border-gray-700/50">
+                    <div className="px-5 py-4 border-t border-gray-200 dark:border-gray-700/50">
                         <div className="flex items-center gap-2 mb-3">
-                            <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
-                            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">Precio por tipo de sesión</p>
+                            <DollarSign className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-400">Precio por tipo de sesión</p>
                         </div>
                         <p className="text-[11px] text-gray-500 mb-4">Estos precios se usarán como valor predeterminado al crear una nueva cita.</p>
                         <div className="grid grid-cols-2 gap-3">
                             {[
-                                { key: 'consultation', label: 'Consulta general',  color: 'text-blue-400',   dot: 'bg-blue-400' },
-                                { key: 'followup',     label: 'Seguimiento',        color: 'text-emerald-400', dot: 'bg-emerald-400' },
-                                { key: 'therapy',      label: 'Terapia',            color: 'text-violet-400', dot: 'bg-violet-400' },
-                                { key: 'emergency',    label: 'Emergencia',         color: 'text-red-400',    dot: 'bg-red-400' },
+                                { key: 'primeraSesion',    label: 'Primera consulta', color: 'text-blue-600 dark:text-blue-400',    dot: 'bg-blue-500 dark:bg-blue-400'    },
+                                { key: 'seguimiento',      label: 'Seguimiento',      color: 'text-emerald-600 dark:text-emerald-400', dot: 'bg-emerald-500 dark:bg-emerald-400' },
+                                { key: 'extraordinaria',   label: 'Extraordinaria',   color: 'text-amber-600 dark:text-amber-400',  dot: 'bg-amber-500 dark:bg-amber-400'  },
                             ].map(({ key, label, color, dot }) => (
-                                <div key={key} className="bg-gray-700/50 rounded-xl p-3 border border-gray-600/60">
+                                <div key={key} className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3 border border-gray-200 dark:border-gray-600/60">
                                     <div className="flex items-center gap-1.5 mb-2">
                                         <span className={`w-2 h-2 rounded-full ${dot} shrink-0`} />
                                         <span className={`text-[11px] font-semibold ${color}`}>{label}</span>
                                     </div>
                                     <div className="relative">
-                                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 pointer-events-none">
+                                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-500 dark:text-gray-400 pointer-events-none">
                                             {practice.currency === 'EUR' ? '€' : practice.currency === 'USD' ? '$' : '$'}
                                         </span>
                                         <input
@@ -420,7 +467,7 @@ const ProfessionalSettings = () => {
                                                     [key]: parseFloat(e.target.value) || 0,
                                                 },
                                             }))}
-                                            className="w-full pl-6 pr-2 py-1.5 text-sm bg-gray-800 border border-gray-600 rounded-lg text-gray-100 focus:ring-2 focus:ring-sky-400 focus:border-transparent outline-none transition"
+                                            className="w-full pl-6 pr-2 py-1.5 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-sky-400 focus:border-transparent outline-none transition"
                                             placeholder="0.00"
                                         />
                                     </div>

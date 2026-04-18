@@ -73,12 +73,11 @@ const PatientAppointments = ({ onClose }) => {
 
   const getTypeLabel = (type) => {
     const types = {
-      consultation: { label: 'Consulta General', icon: '🩺' },
-      followup:     { label: 'Seguimiento',       icon: '🔄' },
-      therapy:      { label: 'Terapia',           icon: '💆' },
-      emergency:    { label: 'Urgencia',          icon: '🚨' },
+      primera_consulta: { label: 'Primera consulta', icon: '🩺' },
+      seguimiento:       { label: 'Seguimiento',       icon: '🔄' },
+      extraordinaria:    { label: 'Extraordinaria',    icon: '⚡' },
     }
-    return types[type] ?? types.consultation
+    return types[type] ?? types.primera_consulta
   }
 
   const patientDisplayName = (() => {

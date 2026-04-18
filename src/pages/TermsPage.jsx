@@ -61,49 +61,7 @@ const TermsPage = () => {
           <p className="text-slate-500 text-sm">Plataforma Digital "TotalMente"</p>
         </motion.div>
 
-        {/* Index */}
-        <motion.div
-          className="mb-14 p-6 bg-white rounded-2xl border border-slate-200 shadow-sm"
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.1 }}
-        >
-          <h2 className="text-lg font-bold text-slate-900 mb-4">Índice</h2>
-          <ol className="list-decimal pl-5 space-y-2 text-sm text-slate-700">
-            <li>Aviso de Privacidad Integral</li>
-            <li>Aviso de Privacidad Simplificado</li>
-            <li>Consentimiento Expreso para Datos Sensibles</li>
-            <li>Procedimiento ante Brecha de Seguridad</li>
-            <li>Registro Interno de Tratamiento de Datos</li>
-            <li>Matriz de Clasificación de Datos</li>
-            <li className="font-semibold text-indigo-700">Cláusulas de Firma Electrónica</li>
-          </ol>
-          <p className="mt-4 text-xs text-slate-500">
-            Para los documentos 16 consulte la{' '}
-            <Link to="/privacidad" className="text-blue-600 underline">Política de Privacidad</Link>.
-          </p>
-        </motion.div>
 
-        {/* Section 7 */}
-        <motion.section
-          className="mb-14"
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.4 }}
-        >
-          <h2 className="text-xl font-bold text-slate-900 mb-6">7. Gobernanza y Responsabilidad Directiva</h2>
-          <div className="text-slate-700 leading-relaxed space-y-4 text-sm">
-            <p>
-              La Dirección ( Determinar por escrito quien será parte de ésta) reconoce la protección de datos como
-              elemento estratégico del modelo de negocio. Se deberá establecer un Comité Interno de Protección de Datos
-              que sesionará al menos una vez al año para evaluar riesgos, incidentes y cumplimiento.
-            </p>
-            <p>
-              Las decisiones del Comité serán documentadas y archivadas como parte del sistema de cumplimiento.
-            </p>
-          </div>
-        </motion.section>
 
         {/* Footer note */}
         <div className="border-t border-slate-200 pt-6 mt-4">

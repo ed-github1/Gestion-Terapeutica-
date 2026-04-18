@@ -2,46 +2,59 @@
  * GoalsTracker.jsx
  * Shows therapeutic goals assigned by the professional.
  * Fetches via homeworkService (type==='goal') and lets the patient
- * mark them as completed. Falls back to localStorage demo data.
+ * mark them as completed.
  */
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useAuth } from '@features/auth/AuthContext'
 import { homeworkService } from '@shared/services/homeworkService'
+import { patientsService } from '@shared/services/patientsService'
 
 const GoalsTracker = () => {
   const { user } = useAuth()
+  // Prefer the Patient document ID (matches what professional uses)
+  const [patientId, setPatientId] = useState(
+    user?.patientId || user?.patient_id || null
+  )
   const [goals, setGoals]   = useState([])
   const [loading, setLoading] = useState(true)
 
+  // Resolve the correct Patient document _id on mount
   useEffect(() => {
-    fetchGoals()
+    if (patientId) return // already resolved
+    patientsService.getMyProfile()
+      .then(res => {
+        const p = res?.data?.data || res?.data
+        const id = p?._id || p?.id || user?.id || user?._id
+        if (id) setPatientId(id)
+      })
+      .catch(() => {
+        setPatientId(user?.id || user?._id || null)
+      })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const fetchGoals = async () => {
+  const fetchGoals = useCallback(async () => {
+    if (!patientId) { setLoading(false); return }
     setLoading(true)
     try {
-      const patientId = user?._id || user?.id
-      if (!patientId) return
       const res = await homeworkService.getAll(patientId)
       const all = res.data?.data || res.data || []
       // Accept items of type 'goal' or fall back to showing the first 3 tasks
       const filtered = all.filter((t) => t.type === 'goal')
       setGoals(filtered.length > 0 ? filtered : all.slice(0, 3))
     } catch {
-      // Demo goals while backend isn't returning data
-      setGoals([
-        { _id: 'g1', title: 'Practicar respiración diafragmática (10 min/día)',    completed: false },
-        { _id: 'g2', title: 'Registro de pensamientos automáticos',                 completed: true  },
-        { _id: 'g3', title: 'Salir a caminar al menos 3 veces esta semana',         completed: false },
-      ])
+      // Silent fail - show empty state
+      setGoals([])
     } finally {
       setLoading(false)
     }
-  }
+  }, [patientId])
+
+  useEffect(() => {
+    fetchGoals()
+  }, [fetchGoals]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggle = async (goal) => {
-    const patientId = user?._id || user?.id
     const updated = { ...goal, completed: !goal.completed }
     setGoals((prev) => prev.map((g) => (g._id === goal._id ? updated : g)))
     try {

@@ -7,6 +7,7 @@ import TodoModal from './TodoModal'
 import { useDashboardData, useCurrentTime } from '../hooks/useDashboard'
 import { videoCallService } from '@shared/services/videoCallService'
 import { appointmentsService } from '@shared/services/appointmentsService'
+import { patientsService } from '@shared/services/patientsService'
 import { socketNotificationService } from '@shared/services/socketNotificationService'
 import { showToast } from '@shared/ui/Toast'
 import { ROUTES } from '@shared/constants/routes'
@@ -111,9 +112,8 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
     // Upcoming appointments (next 5 sorted by date)
     const upcomingApts = [...(upcomingSessions || [])].slice(0, 5)
 
-    // Revenue data
-    // const revenueThisMonth = stats?.revenueThisMonth ?? 0
-    const revenueThisMonth = 8456
+    // Revenue data - fetched from appointments with paymentStatus === 'paid'
+    const revenueThisMonth = stats?.revenueThisMonth ?? 0
     const revenueGoal = 6200 // Can be dynamic from settings
     const revenuePct = revenueGoal > 0 ? Math.min(Math.round((revenueThisMonth / revenueGoal) * 100), 100) : 0
     const outstandingAmount = stats?.outstandingAmount ?? 0
@@ -171,8 +171,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
 
             // Also send via socket for real-time delivery
             const proUserId = user?._id || user?.id
-            const proToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || ''
-            socketNotificationService.connect(proUserId, proToken)
+            socketNotificationService.connect(proUserId)
             socketNotificationService.sendCallInvitation(targetUserId, {
                 appointmentId: appointment.id,
                 professionalName,
@@ -201,26 +200,50 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
         }
     }, [refreshData])
 
-    // Resolve the full patient record from the already-loaded patients array when
-    // opening a clinical file from a session card. Patients fetched via useDashboardData
-    // carry all profile fields (email, phone, dateOfBirth, etc.). Using that data
-    // avoids depending on the getById endpoint to enrich a skeleton object, so the
-    // expediente shows real data immediately.
-    const handleViewDiaryFromSession = useCallback((apt) => {
+    // Resolve the full patient record when opening clinical file from a session card.
+    // Steps: ID match → name match → API fetch → minimal fallback from appointment.
+    const handleViewDiaryFromSession = useCallback(async (apt) => {
         const rawPid = apt?.patientId
         const id = (rawPid && typeof rawPid === 'object')
-            ? (rawPid._id || rawPid.id || null)
-            : (rawPid || null)
-        const fullPatient = id
-            ? patients.find(p => String(p._id || p.id) === String(id))
-            : null
-        if (fullPatient) {
-            // Pass the full patient object so the clinical file has all data up-front
-            setDiaryPatient(fullPatient)
+            ? (rawPid._id || rawPid.id)
+            : (rawPid || apt?.patient?._id || apt?.patient?.id || null)
+
+        // 1. ID match in local patients list
+        let match = id ? patients.find(p => String(p._id || p.id) === String(id)) : null
+
+        // 2. Name match fallback
+        if (!match) {
+            const aptName = (apt?.nombrePaciente || apt?.patientName || '').toLowerCase().trim()
+            if (aptName) {
+                match = patients.find(p =>
+                    `${p.firstName || p.nombre || ''} ${p.lastName || p.apellido || ''}`.toLowerCase().trim() === aptName
+                )
+            }
+        }
+
+        // 3. API fetch if still no match
+        if (!match && id) {
+            try {
+                const res = await patientsService.getById(id)
+                const profile = res.data?.data ?? res.data
+                if (profile && typeof profile === 'object' && !Array.isArray(profile)) {
+                    match = profile
+                }
+            } catch { /* endpoint may not be available */ }
+        }
+
+        // 4. Use match or build minimal object from appointment
+        if (match) {
+            setDiaryPatient(match)
         } else {
-            // No match in local list (e.g. name-only appointment) — fall back to the
-            // appointment object so handleViewDiary can do its name-based lookup
-            setDiaryPatient(apt)
+            const name = apt?.nombrePaciente || apt?.patientName || ''
+            const parts = name.trim().split(' ')
+            setDiaryPatient({
+                _id: id, id,
+                firstName: parts[0] || 'Paciente', lastName: parts.slice(1).join(' ') || '',
+                nombre: parts[0] || 'Paciente', apellido: parts.slice(1).join(' ') || '',
+                name, status: 'active',
+            })
         }
     }, [patients, setDiaryPatient])
 

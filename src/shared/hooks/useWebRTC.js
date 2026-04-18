@@ -7,7 +7,7 @@ import WebRTCManager from '@shared/webrtc/WebRTCManager'
 import { useAuth } from '@features/auth'
 
 export const useWebRTC = () => {
-  const { user, token } = useAuth()
+  const { user } = useAuth()
 
   const [isInitialized, setIsInitialized] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
@@ -39,7 +39,7 @@ export const useWebRTC = () => {
       setIsInitialized(true)
       return
     }
-    if (isInitialized || initializingRef.current || !user || !token) return
+    if (isInitialized || initializingRef.current || !user) return
     initializingRef.current = true
     try {
       const isProduction =
@@ -59,7 +59,6 @@ export const useWebRTC = () => {
       const manager = new WebRTCManager({
         apiUrl: API_URL,
         socketUrl: SOCKET_URL,
-        userToken: token,
         userId: user.id || user._id,
         userName: user.name || user.nombre || 'Usuario',
         userRole: user.role || user.rol || 'patient',
@@ -156,7 +155,7 @@ export const useWebRTC = () => {
       initializingRef.current = false
       setError({ type: 'error', message: err.message || 'Error al inicializar videollamada' })
     }
-  }, [user, token, isInitialized])
+  }, [user, isInitialized])
 
   const joinRoom = useCallback(async (appointmentId, { recordingConsent = false } = {}) => {
     if (!managerRef.current) throw new Error('WebRTC Manager not initialized')
@@ -223,14 +222,12 @@ export const useWebRTC = () => {
   const sendMessage = useCallback(
     (message) => {
       if (!managerRef.current) return
+      // Do NOT optimistically push here. The server echoes `chat-message` back
+      // to the sender, which is handled in `manager.onChatMessage` above.
+      // Pushing locally caused the sender to see their own message twice.
       managerRef.current.sendChatMessage(message)
-      const userId = user.id || user._id
-      setChatMessages((prev) => [
-        ...prev,
-        { userId, userName: 'Tú', message, timestamp: new Date().toISOString(), isOwn: true },
-      ])
     },
-    [user],
+    [],
   )
 
   const startRecording = useCallback(async (appointmentId) => {
@@ -279,8 +276,8 @@ export const useWebRTC = () => {
   }, [])
 
   useEffect(() => {
-    if (user && token && !isInitialized) initialize()
-  }, [user, token, isInitialized, initialize])
+    if (user && !isInitialized) initialize()
+  }, [user, isInitialized, initialize])
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const remoteStreamsArray = useMemo(

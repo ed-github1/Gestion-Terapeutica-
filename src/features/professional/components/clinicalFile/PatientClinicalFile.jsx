@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useNavigate } from 'react-router-dom'
-import { ShieldAlert, AlertCircle, ArrowLeft, Circle } from 'lucide-react'
+import { ShieldAlert, AlertCircle, Circle } from 'lucide-react'
 import { useClinicalFileData } from './useClinicalFileData'
-import { BRAND_GRAD, getInitials, TABS } from './constants'
+import { BRAND_GRAD, getInitials, TABS, getAvatarColor } from './constants'
 import CaratulaTab from './tabs/CaratulaTab'
 import SummaryTab from './tabs/SummaryTab'
 import DiaryTab from './tabs/DiaryTab'
@@ -21,8 +21,9 @@ const PatientClinicalFile = ({ patient, onClose }) => {
     sessionSummaries,
     p, pFirstName, pLastName, pPhone, pConcern, pEmergency, pAge,
     patientId, diaryEntries, clinicalNotes, hwTasks,
-    sessionHistory, completedHW, totalHW, authorName, initials,
+    sessionHistory, completedHW, totalHW, totalSessions, authorName, initials,
     fetchData, handleAddNote, handleEntryUpdate,
+    handleAssignHomework, handleToggleHomework, handleDeleteHomework,
   } = data
 
   return (
@@ -31,87 +32,75 @@ const PatientClinicalFile = ({ patient, onClose }) => {
       <div className="shrink-0 bg-white dark:bg-[#1a2234] border-b border-gray-100 dark:border-[#2d3748]">
 
         {/* Identity row */}
-        <div className="flex items-center gap-3 px-4 sm:px-6 py-3.5 sm:py-4">
-          {/* Back — icon-only, no wasted label */}
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-[#0f1623] hover:text-gray-600 dark:hover:text-gray-300 transition shrink-0"
-            aria-label="Volver a pacientes"
-          >
-            <ArrowLeft className="w-4.5 h-4.5" />
-          </button>
-
+        <div className="flex items-center gap-3 px-4 sm:px-6 py-3">
           {/* Avatar */}
-          <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-linear-to-br ${BRAND_GRAD} flex items-center justify-center text-white text-sm sm:text-base font-black shrink-0 ring-2 ring-white/10`}>
-            {getInitials(pFirstName, pLastName)}
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-bold text-sm ${getAvatarColor(patientId || p.id)}`}>
+            {initials || '?'}
           </div>
 
           {/* Name block */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white truncate leading-tight">
-                {pFirstName} {pLastName}
-              </h2>
-              {(() => {
-                const s = (p.status || '').toLowerCase()
-                const isActive = s === 'active' || s === 'activo'
-                const isPending = s === 'pending' || s === 'pendiente'
-                const color = isActive
-                  ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
-                  : isPending
-                  ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
-                const label = isActive ? 'Activo' : isPending ? 'Pendiente' : p.status || 'Inactivo'
-                return (
-                  <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${color}`}>
-                    <Circle className="w-1.5 h-1.5 fill-current" />
-                    {label}
-                  </span>
-                )
-              })()}
-              {p.riskLevel === 'high' && (
-                <span className="hidden sm:flex items-center gap-1 text-[10px] font-semibold bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 px-2 py-0.5 rounded-full shrink-0">
-                  <ShieldAlert className="w-3 h-3" /> Alto riesgo
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white truncate leading-tight">
+              {pFirstName} {pLastName}
+            </h2>
+            {patientId && (
+              <p className="text-[11px] text-gray-400 dark:text-gray-500 leading-none mt-0.5">
+                {`Exp. #${String(patientId).slice(-5).padStart(5, '0')}`}
+              </p>
+            )}
+            {(() => {
+              const s = (p.status || '').toLowerCase()
+              const isActive = s === 'active' || s === 'activo'
+              const isPending = s === 'pending' || s === 'pendiente'
+              const color = isActive
+                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                : isPending
+                  ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                  : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+              const label = isActive ? 'Activo' : isPending ? 'Pendiente' : p.status || 'Inactivo'
+              return (
+                <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1.5 ${color}`}>
+                  <Circle className="w-1.5 h-1.5 fill-current" />
+                  {label}
                 </span>
-              )}
-              {p.riskLevel === 'medium' && (
-                <span className="hidden sm:flex items-center gap-1 text-[10px] font-semibold bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-full shrink-0">
-                  <AlertCircle className="w-3 h-3" /> Riesgo medio
-                </span>
-              )}
-            </div>
-            <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5 leading-none">
-              {pAge ? `${pAge} años` : ''}{pAge && patientId ? ' · ' : ''}{patientId ? `Exp. #${String(patientId).slice(-5).padStart(5, '0')}` : ''}
-            </p>
+              )
+            })()}
           </div>
 
-          {/* Quick stats — right-aligned, tighter */}
-          <div className="flex items-center gap-5 sm:gap-6 shrink-0 pl-2">
+          {/* Quick stats */}
+          <div className="flex items-center gap-5 shrink-0">
             {[
-              { value: p.totalSessions ?? sessionHistory.length, label: 'SESIONES' },
+              { value: totalSessions, label: 'SESIONES' },
               { value: `${completedHW}/${totalHW}`, label: 'TAREAS' },
             ].map(({ value, label }) => (
-              <div key={label} className="text-center min-w-10">
-                <p className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white leading-none">{value}</p>
-                <p className="text-[8px] text-gray-400 dark:text-gray-500 uppercase tracking-widest mt-1 font-semibold">{label}</p>
+              <div key={label} className="text-center">
+                <p className="text-xl font-black text-gray-900 dark:text-white leading-none">{value}</p>
+                <p className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-widest mt-0.5 font-semibold">{label}</p>
               </div>
             ))}
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex overflow-x-auto no-scrollbar pl-4 sm:pl-6 pr-4 -mb-px">
+        <div className="flex overflow-x-auto no-scrollbar pl-4 sm:pl-6 pr-4 pb-2.5 gap-0.5">
           {TABS.map(({ key, label, icon: Icon }) => (
             <button
               key={key}
               onClick={() => setTab(key)}
-              className={`flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-medium whitespace-nowrap transition-colors border-b-2 ${tab === key
-                  ? 'text-[#0075C9] dark:text-sky-400 border-[#0075C9] dark:border-sky-400'
-                  : 'text-gray-400 dark:text-gray-500 border-transparent hover:text-gray-600 dark:hover:text-gray-300'
+              className={`relative flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium whitespace-nowrap transition-colors rounded-lg ${tab === key
+                ? 'text-[#0075C9] dark:text-sky-400'
+                : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
                 }`}
             >
-              <Icon className="w-3.5 h-3.5" />
-              {label}
+              {tab === key && (
+                <motion.div
+                  layoutId="tab-pill"
+                  className="absolute inset-0 bg-[#0075C9]/10 dark:bg-sky-400/10 rounded-lg"
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                />
+              )}
+              <Icon className="w-3.5 h-3.5 relative z-10" />
+              <span className="relative z-10">{label}</span>
             </button>
           ))}
         </div>
@@ -126,7 +115,7 @@ const PatientClinicalFile = ({ patient, onClose }) => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.1 }}
-            className="p-3 sm:p-5 md:p-7"
+            className="p-4 sm:p-5 md:p-6"
           >
             {/* Loading skeleton */}
             {isLoading && (
@@ -158,12 +147,24 @@ const PatientClinicalFile = ({ patient, onClose }) => {
               />
             )}
 
-        
+
             {tab === 'diary' && !isLoading && (
               <DiaryTab diaryEntries={diaryEntries} patientId={patientId} authorName={authorName} handleEntryUpdate={handleEntryUpdate} />
             )}
 
-         
+
+
+            {tab === 'tareas' && !isLoading && (
+              <HomeworkTab
+                hwTasks={hwTasks}
+                completedHW={completedHW}
+                totalHW={totalHW}
+                patientId={patientId}
+                onAssign={handleAssignHomework}
+                onToggle={handleToggleHomework}
+                onDelete={handleDeleteHomework}
+              />
+            )}
 
             {tab === 'historial' && !isLoading && (
               <HistorialTab

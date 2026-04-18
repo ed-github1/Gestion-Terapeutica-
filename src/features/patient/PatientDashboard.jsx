@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@features/auth/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
-import { RefreshCw, CalendarPlus, Calendar, CalendarCheck, CheckCircle2, Clock, Moon, Sun, BookOpen, ClipboardList, Bell } from 'lucide-react'
+import { RefreshCw, CalendarPlus, Calendar, Moon, Sun, Video } from 'lucide-react'
 import { useDarkModeContext } from '@shared/DarkModeContext'
 import AppointmentRequest from './AppointmentRequest'
 import NotificationCenter from './components/NotificationCenter'
@@ -10,6 +10,7 @@ import PatientSessionsList from './components/PatientSessionsList'
 import CrisisButton from './components/CrisisButton'
 import DiaryWidget from './components/DiaryWidget'
 import GoalsTracker from './components/GoalsTracker'
+import HomeworkWidget from './components/HomeworkWidget'
 import AppointmentAcceptanceModal from './components/AppointmentAcceptanceModal'
 import AppointmentPaymentModal from './components/AppointmentPaymentModal'
 import { useAppointmentNotifications } from './hooks/useAppointmentNotifications'
@@ -240,32 +241,41 @@ const PatientDashboard = () => {
     refreshAppointments()
   }
 
-  // Quick-access shortcuts — only links to existing app routes
-  const quickAccessItems = [
-    { label: 'Citas',   Icon: Calendar,      path: '/dashboard/patient/appointments', color: 'bg-sky-500/15 text-sky-400'     },
-    { label: 'Diario',  Icon: BookOpen,       path: '/dashboard/patient/diary',         color: 'bg-emerald-500/15 text-emerald-400' },
-    { label: 'Sesiones',Icon: CalendarCheck,  path: '/dashboard/patient/appointments',  color: 'bg-violet-500/15 text-violet-400'   },
-    { label: 'Tareas',  Icon: ClipboardList,  path: null, scrollTo: 'tareas',           color: 'bg-amber-500/15 text-amber-400' },
-  ]
+  // Minutes until next appointment — powers the auto-Join button
+  const minutesToNext = () => {
+    if (!nextAppointment) return Infinity
+    return Math.floor((toLocalDateObj(nextAppointment.date, nextAppointment.time) - new Date()) / 60_000)
+  }
+  const canJoinNow = () => {
+    const m = minutesToNext()
+    return m <= 15 && m >= -30 // joinable 15m before → 30m after start
+  }
+
+  const handleJoinSession = () => {
+    const id = nextAppointment?._id || nextAppointment?.id
+    if (id) navigate(`/dashboard/patient/video-call/${id}`)
+    else navigate('/dashboard/patient/appointments')
+  }
 
   return (
-    <div className="min-h-full bg-transparent">
+  
+    <div className="min-h-full bg-transparent pb-24 md:pb-6">
 
-      {/* ── Mobile + md responsive layout ── */}
-      <div className="p-3 md:p-5 lg:p-6 flex flex-col gap-4 md:gap-5 max-w-5xl mx-auto">
+      {/* ── Mobile-first layout (single column) → md two columns ── */}
+      <div className="p-3 md:p-5 lg:p-6 flex flex-col gap-4 max-w-5xl mx-auto">
 
-        {/* ─── Profile Card ─── */}
+        {/* ─── Compact header ─── */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gray-800/60 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl px-4 py-3.5 flex items-center gap-3.5 border border-gray-700/50 shadow-sm"
+          className="relative z-10 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl px-4 py-3.5 flex items-center gap-3.5 border border-gray-200/60 dark:border-gray-700/50 shadow-sm"
         >
           <div className="w-11 h-11 rounded-xl bg-[#0075C9] flex items-center justify-center text-white font-bold text-sm shadow-md select-none shrink-0">
             {initials}
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-[15px] font-bold text-white leading-tight truncate">{fullName}</h1>
-            <p className="text-[11px] text-gray-400 capitalize leading-none mt-0.5">{fmtDate(currentTime)}</p>
+            <h1 className="text-[15px] font-bold text-gray-900 dark:text-white leading-tight truncate">{fullName}</h1>
+            <p className="text-[11px] text-gray-500 dark:text-gray-400 capitalize leading-none mt-0.5">{fmtDate(currentTime)}</p>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
             <NotificationCenter
@@ -278,150 +288,110 @@ const PatientDashboard = () => {
             />
             <button
               onClick={toggleDark}
-              className="hidden md:flex w-8 h-8 items-center justify-center rounded-lg hover:bg-gray-700/60 transition-colors"
+              className="hidden md:flex w-8 h-8 items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/60 transition-colors"
               aria-label={dark ? 'Activar modo claro' : 'Activar modo oscuro'}
             >
               {dark
-                ? <Sun size={15} className="text-gray-300" />
-                : <Moon size={15} className="text-gray-400" />}
+                ? <Sun size={15} className="text-gray-500 dark:text-gray-300" />
+                : <Moon size={15} className="text-gray-500 dark:text-gray-400" />}
             </button>
             <button
               onClick={loadDashboardData}
               title="Actualizar"
-              className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-700/60 transition-colors text-gray-400"
+              className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/60 transition-colors text-gray-500 dark:text-gray-400"
             >
               <RefreshCw className="w-3.5 h-3.5" />
             </button>
           </div>
         </motion.div>
 
-        {/* ─── md+ two-column grid ─── */}
-        <div className="flex flex-col md:grid md:grid-cols-5 gap-4 md:gap-5">
-
-          {/* ─── Left column (md: 3 cols) ─── */}
-          <div className="flex flex-col gap-4 md:col-span-3">
-
-            {/* ─── Hoy — Today's session ─── */}
-            <motion.section
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.05 }}
-              className="bg-white dark:bg-gray-800/70 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm overflow-hidden"
-            >
-              <div className="px-4 pt-4 pb-2 flex items-center justify-between">
-                <h2 className="text-sm font-bold text-gray-900 dark:text-white">Hoy</h2>
-                <span className="text-[10px] text-gray-400 dark:text-gray-500 capitalize">
-                  {currentTime.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' })}
-                </span>
+        {/* ─── HERO: Next Session — always above the fold ─── */}
+        <motion.section
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="relative overflow-hidden rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm bg-white dark:bg-gray-800/70"
+        >
+          {loading ? (
+            <div className="py-10 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full border-2 border-gray-200 dark:border-gray-600 border-t-sky-500 animate-spin" />
+            </div>
+          ) : nextAppointment ? (
+            <div className="bg-linear-to-br from-[#0075C9] to-[#54C0E8] text-white p-4 md:p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-white/70">
+                    Próxima sesión · {nextApptLabel()}
+                  </p>
+                  <h2 className="text-lg md:text-xl font-bold truncate mt-1">
+                    {nextAppointment.professionalName || 'Tu profesional'}
+                  </h2>
+                  <p className="text-sm text-white/90 mt-0.5">
+                    {new Date(nextAppointment.date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' })}
+                    &nbsp;·&nbsp;
+                    {nextAppointment.time || new Date(nextAppointment.date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
+                <div className="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+                  <Calendar className="w-6 h-6" />
+                </div>
               </div>
 
-              <div className="px-4 pb-4">
-                <AnimatePresence mode="wait">
-                  {loading ? (
-                    <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="py-8 flex flex-col items-center gap-2">
-                      <div className="w-10 h-10 rounded-full border-2 border-gray-200 dark:border-gray-600 border-t-sky-500 animate-spin" />
-                    </motion.div>
-                  ) : nextAppointment ? (
-                    <motion.div
-                      key="next-appt"
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -4 }}
-                      className="bg-blue-600 text-white rounded-xl px-4 py-3.5 flex items-center gap-3.5"
-                    >
-                      <div className="w-10 h-10 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
-                        <Calendar className="w-4.5 h-4.5" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[10px] font-semibold text-white/60 uppercase tracking-wide">Próxima sesión · {nextApptLabel()}</p>
-                        <p className="text-sm font-bold text-white truncate mt-0.5">
-                          {nextAppointment.professionalName || 'Profesional'}&nbsp;&mdash;&nbsp;
-                          {nextAppointment.time || new Date(nextAppointment.date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
-                        </p>
-                      </div>
-                      <span className="shrink-0 text-[11px] font-medium bg-white/20 px-2.5 py-1 rounded-lg">
-                        {new Date(nextAppointment.date).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' })}
-                      </span>
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="empty"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="py-6 flex flex-col items-center text-center"
-                    >
-                      <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-700/50 flex items-center justify-center mb-3">
-                        <Calendar className="w-7 h-7 text-gray-300 dark:text-gray-500" />
-                      </div>
-                      <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Sin sesiones hoy</p>
-                      <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5 max-w-50">
-                        No tienes citas programadas para hoy
-                      </p>
-                      <button
-                        onClick={() => setShowAppointmentRequest(true)}
-                        className="mt-4 flex items-center gap-2 px-5 py-2.5 bg-gray-900 dark:bg-white/10 text-white rounded-xl text-xs font-bold hover:bg-gray-800 dark:hover:bg-white/15 transition-colors border border-gray-700 dark:border-gray-600"
-                      >
-                        <CalendarPlus className="w-3.5 h-3.5" />
-                        Agendar cita
-                      </button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </motion.section>
-
-            {/* ─── Acceso rápido ─── */}
-            <motion.section
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.10 }}
-            >
-              <h2 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2.5 px-0.5">
-                Acceso rápido
-              </h2>
-              <div className="grid grid-cols-4 gap-3">
-                {quickAccessItems.map(({ label, Icon, path, scrollTo, color }) => (
+              <div className="mt-4 flex flex-col sm:flex-row gap-2">
+                {canJoinNow() ? (
                   <button
-                    key={label}
-                    onClick={() => {
-                      if (path) navigate(path)
-                      else if (scrollTo) document.getElementById(scrollTo)?.scrollIntoView({ behavior: 'smooth' })
-                    }}
-                    className="flex flex-col items-center gap-1.5 group"
+                    onClick={handleJoinSession}
+                    className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-white text-[#0075C9] rounded-xl font-bold text-sm hover:bg-white/90 transition shadow-md"
                   >
-                    <div className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl ${color} flex items-center justify-center transition-transform group-active:scale-90`}>
-                      <Icon className="w-5 h-5 md:w-6 md:h-6" strokeWidth={1.8} />
-                    </div>
-                    <span className="text-[10px] md:text-[11px] font-medium text-gray-500 dark:text-gray-400">{label}</span>
+                    <Video className="w-4 h-4" />
+                    Unirse a la sesión
                   </button>
-                ))}
+                ) : (
+                  <button
+                    onClick={() => navigate('/dashboard/patient/appointments')}
+                    className="flex-1 flex items-center justify-center gap-2 px-5 py-2.5 bg-white/15 hover:bg-white/25 text-white rounded-xl font-semibold text-sm transition"
+                  >
+                    Ver detalles
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowAppointmentRequest(true)}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl font-semibold text-xs transition border border-white/20"
+                >
+                  <CalendarPlus className="w-3.5 h-3.5" />
+                  Nueva cita
+                </button>
               </div>
-            </motion.section>
+            </div>
+          ) : (
+            <div className="p-5 md:p-6 flex flex-col items-center text-center">
+              <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-700/50 flex items-center justify-center mb-3">
+                <Calendar className="w-7 h-7 text-gray-400 dark:text-gray-500" />
+              </div>
+              <h2 className="text-base font-bold text-gray-900 dark:text-white">Sin sesiones programadas</h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-xs">
+                Agenda tu próxima sesión y continúa tu proceso terapéutico.
+              </p>
+              <button
+                onClick={() => setShowAppointmentRequest(true)}
+                className="mt-4 flex items-center gap-2 px-5 py-2.5 bg-linear-to-r from-[#0075C9] to-[#54C0E8] text-white rounded-xl text-sm font-bold hover:opacity-90 transition shadow-md"
+              >
+                <CalendarPlus className="w-4 h-4" />
+                Agendar cita
+              </button>
+            </div>
+          )}
+        </motion.section>
 
-            {/* ─── Tareas (Goals/Homework) ─── */}
-            <motion.section
-              id="tareas"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 }}
-            >
-              <GoalsTracker />
-            </motion.section>
-          </div>
+        {/* ─── Responsive grid: mobile = single stack (priority order) · md+ = 2 columns ─── */}
+        <div className="flex flex-col gap-4 md:grid md:grid-cols-5 md:gap-5 md:items-start">
 
-          {/* ─── Right column (md: 2 cols) — visible on md+ ─── */}
-          <div className="hidden md:flex flex-col gap-4 md:col-span-2">
-            {/* Sessions list */}
-            <PatientSessionsList
-              onRequestNew={() => setShowAppointmentRequest(true)}
-              patientName={fullName}
-            />
-
-            {/* Diary */}
+          {/* Diary — Priority #2 on mobile (mood + journal in one), right column on md+ */}
+          <div className="order-1 md:order-2 md:col-span-2 flex flex-col gap-4">
             <DiaryWidget />
+            <GoalsTracker />
 
-            {/* Recent activity */}
+            {/* Recent activity — secondary, bottom of right column */}
             <AnimatePresence>
               {notifications.length > 0 && (
                 <motion.div
@@ -474,65 +444,13 @@ const PatientDashboard = () => {
             </AnimatePresence>
           </div>
 
-          {/* ─── Mobile only: Sessions + Diary below tasks ─── */}
-          <div className="flex flex-col gap-4 md:hidden">
+          {/* Main column — Homework → Sessions */}
+          <div className="order-2 md:order-1 md:col-span-3 flex flex-col gap-4">
+            <HomeworkWidget />
             <PatientSessionsList
               onRequestNew={() => setShowAppointmentRequest(true)}
               patientName={fullName}
             />
-            <DiaryWidget />
-
-            {/* Recent activity — mobile */}
-            <AnimatePresence>
-              {notifications.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="overflow-hidden"
-                >
-                  <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-4 shadow-sm">
-                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-3">
-                      Actividad reciente
-                    </p>
-                    <div className="flex flex-col gap-2">
-                      {notifications.slice(0, 3).map((n) => {
-                        const dotColor = {
-                          blue: 'bg-blue-500', green: 'bg-green-500',
-                          red: 'bg-red-500',   amber: 'bg-amber-500',
-                        }[n.color] || 'bg-blue-500'
-                        const date = n.data?.date
-                          ? new Date(n.data.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
-                          : null
-                        return (
-                          <div key={n.id} className="flex items-center gap-3">
-                            <span className={`w-2 h-2 rounded-full shrink-0 ${dotColor}`} />
-                            <span className="text-xs text-gray-700 dark:text-gray-300 font-medium flex-1">
-                              {n.emoji}&nbsp;{n.title}
-                              {date && <span className="text-gray-400 dark:text-gray-500 ml-2">{date}</span>}
-                            </span>
-                            <button
-                              onClick={() => dismissNotification(n.id)}
-                              className="text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-400 transition-colors shrink-0"
-                              aria-label="Descartar"
-                            >
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            </button>
-                          </div>
-                        )
-                      })}
-                      {notifications.length > 3 && (
-                        <p className="text-[11px] text-gray-400 dark:text-gray-500 pl-5">
-                          +{notifications.length - 3} más en notificaciones
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
           </div>
         </div>
       </div>

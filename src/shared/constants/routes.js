@@ -20,6 +20,7 @@ export const ROUTES = {
   PROFESSIONAL_PROFILE: '/dashboard/professional/profile',
   PROFESSIONAL_SETTINGS: '/dashboard/professional/settings',
   PROFESSIONAL_VIDEO: '/professional/video/:appointmentId',
+  PROFESSIONAL_CONSENT: '/dashboard/professional/consent',
 
   // Patient
   PATIENT_DASHBOARD: '/dashboard/patient',
@@ -28,6 +29,12 @@ export const ROUTES = {
   PATIENT_REGISTER: '/patient/register',
   PATIENT_INVITE: '/register/:inviteCode',
   PATIENT_ONBOARDING: '/onboarding/:token',
+
+  // Admin
+  ADMIN_DASHBOARD: '/dashboard/admin',
+  ADMIN_USERS: '/dashboard/admin/users',
+  ADMIN_PROFESSIONALS: '/dashboard/admin/professionals',
+  ADMIN_SUBSCRIPTIONS: '/dashboard/admin/subscriptions',
 }
 
 export const ROLES = {
@@ -35,4 +42,5 @@ export const ROLES = {
   PROFESSIONAL: 'professional',
   PATIENT: 'patient',
   PACIENT: 'pacient',
+  ADMIN: 'admin',
 }

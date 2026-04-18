@@ -20,10 +20,9 @@ import { useAuth } from '@features/auth/AuthContext'
 import { socketNotificationService } from '@shared/services/socketNotificationService'
 
 const TYPE_CONFIG = {
-  consultation: { label: 'Consulta General', Icon: Stethoscope, dot: 'bg-blue-500'   },
-  followup:     { label: 'Seguimiento',       Icon: RefreshCw,   dot: 'bg-sky-500'    },
-  therapy:      { label: 'Terapia',           Icon: Heart,       dot: 'bg-rose-500'   },
-  emergency:    { label: 'Urgencia',          Icon: Zap,         dot: 'bg-red-500'    },
+  primera_consulta: { label: 'Primera consulta', Icon: Stethoscope, dot: 'bg-blue-500'  },
+  seguimiento:      { label: 'Seguimiento',       Icon: RefreshCw,   dot: 'bg-sky-500'   },
+  extraordinaria:   { label: 'Extraordinaria',    Icon: Zap,         dot: 'bg-amber-500' },
 }
 
 const AppointmentAcceptanceModal = ({ appointment, onClose, onAccepted, onRejected, professionalUserId: professionalUserIdProp }) => {
@@ -48,7 +47,7 @@ const AppointmentAcceptanceModal = ({ appointment, onClose, onAccepted, onReject
     apt?.data?.id ||
     null
 
-  const type = TYPE_CONFIG[appointment.type] || TYPE_CONFIG.consultation
+  const type = TYPE_CONFIG[appointment.type] || TYPE_CONFIG.primera_consulta
   const TypeIcon = type.Icon
   const aptDate = appointment.date
     ? toLocalDateObj(appointment.date, appointment.time).toLocaleDateString('es-ES', {

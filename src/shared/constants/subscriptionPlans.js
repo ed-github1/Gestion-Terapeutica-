@@ -3,6 +3,38 @@
  * Pricing tiers, feature flags and plan utilities.
  */
 
+/**
+ * Countries available for professional registration.
+ * Each entry maps a country code to its native currency for session billing.
+ */
+export const PROFESSIONAL_COUNTRIES = [
+  { code: 'MX', name: 'México',            currency: 'MXN', symbol: '$',  currencyLabel: 'Peso mexicano'    },
+  { code: 'CO', name: 'Colombia',          currency: 'COP', symbol: '$',  currencyLabel: 'Peso colombiano'  },
+  { code: 'AR', name: 'Argentina',         currency: 'ARS', symbol: '$',  currencyLabel: 'Peso argentino'   },
+  { code: 'CL', name: 'Chile',             currency: 'CLP', symbol: '$',  currencyLabel: 'Peso chileno'     },
+  { code: 'PE', name: 'Perú',              currency: 'PEN', symbol: 'S/', currencyLabel: 'Sol peruano'      },
+  { code: 'BR', name: 'Brasil',            currency: 'BRL', symbol: 'R$', currencyLabel: 'Real brasileño'   },
+  { code: 'UY', name: 'Uruguay',           currency: 'UYU', symbol: '$',  currencyLabel: 'Peso uruguayo'    },
+  { code: 'PY', name: 'Paraguay',          currency: 'PYG', symbol: '₲',  currencyLabel: 'Guaraní'          },
+  { code: 'BO', name: 'Bolivia',           currency: 'BOB', symbol: 'Bs', currencyLabel: 'Boliviano'        },
+  { code: 'VE', name: 'Venezuela',         currency: 'USD', symbol: '$',  currencyLabel: 'Dólar'            },
+  { code: 'EC', name: 'Ecuador',           currency: 'USD', symbol: '$',  currencyLabel: 'Dólar'            },
+  { code: 'PA', name: 'Panamá',            currency: 'USD', symbol: '$',  currencyLabel: 'Dólar'            },
+  { code: 'CR', name: 'Costa Rica',        currency: 'CRC', symbol: '₡',  currencyLabel: 'Colón'            },
+  { code: 'GT', name: 'Guatemala',         currency: 'GTQ', symbol: 'Q',  currencyLabel: 'Quetzal'          },
+  { code: 'HN', name: 'Honduras',          currency: 'HNL', symbol: 'L',  currencyLabel: 'Lempira'          },
+  { code: 'SV', name: 'El Salvador',       currency: 'USD', symbol: '$',  currencyLabel: 'Dólar'            },
+  { code: 'DO', name: 'República Dominicana', currency: 'DOP', symbol: 'RD$', currencyLabel: 'Peso dominicano' },
+  { code: 'ES', name: 'España',            currency: 'EUR', symbol: '€',  currencyLabel: 'Euro'             },
+  { code: 'US', name: 'Estados Unidos',    currency: 'USD', symbol: '$',  currencyLabel: 'Dólar'            },
+  { code: 'OTHER', name: 'Otro',           currency: 'USD', symbol: '$',  currencyLabel: 'Dólar'            },
+]
+
+/** Returns the currency info for a given country code. Defaults to USD. */
+export const getCurrencyForCountry = (countryCode) =>
+  PROFESSIONAL_COUNTRIES.find(c => c.code === countryCode)
+  ?? { currency: 'USD', symbol: '$', currencyLabel: 'Dólar' }
+
 export const PLAN_TYPES = {
   GRATUITO: 'GRATUITO',
   PRO: 'PRO',

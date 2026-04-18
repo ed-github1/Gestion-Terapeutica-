@@ -17,10 +17,16 @@ export const buildKpis = (stats, weekLabel = 'Semana') => {
         ? Math.round(((revenueThisMonth - revenueLastMonth) / revenueLastMonth) * 100)
         : null
 
+    console.log('🎯 buildKpis called with:', { 
+        revenueThisMonth, 
+        revenueLastMonth, 
+        revenueGrowth,
+        statsObject: stats 
+    })
+
     return [
         { value: stats?.totalPatients ?? 0, label: 'Pacientes', trend: monthGrowth, trendPos: (monthGrowth ?? 0) >= 0, Icon: Users, iconColor: 'text-sky-400' },
         { value: stats?.completedThisWeek ?? 0, label: weekLabel, trend: null, trendPos: false, Icon: CalendarCheck, iconColor: 'text-sky-400' },
-        { value: `$${revenueThisMonth.toLocaleString()}`, label: 'Ingresos', trend: revenueGrowth, trendPos: (revenueGrowth ?? 0) >= 0, Icon: CircleDollarSign, iconColor: 'text-sky-400' },
-        { value: `$${outstandingAmount.toLocaleString()}`, label: 'Pendiente', trend: null, trendPos: false, Icon: Clock, iconColor: 'text-sky-400' },
+        { value: `$${revenueThisMonth.toLocaleString()}`, label: 'Ingreso mensual', trend: revenueGrowth, trendPos: (revenueGrowth ?? 0) >= 0, Icon: CircleDollarSign, iconColor: 'text-sky-400' },
     ]
 }

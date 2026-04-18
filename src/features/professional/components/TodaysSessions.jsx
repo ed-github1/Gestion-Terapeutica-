@@ -26,8 +26,8 @@ const fmtTime = (d) => `${pad(d.getHours())}:${pad(d.getMinutes())}`
 const SHORT_MONTHS = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
 
 const SESSION_TYPE_DOT = {
-    Consulta: 'bg-sky-500', Seguimiento: 'bg-emerald-500',
-    Evaluación: 'bg-amber-500', Primera: 'bg-cyan-500', default: 'bg-gray-400',
+    'Primera consulta': 'bg-sky-500', Seguimiento: 'bg-emerald-500',
+    Extraordinaria: 'bg-amber-500', default: 'bg-gray-400',
 }
 
 const AVATAR_PALETTES = [
@@ -58,7 +58,7 @@ const parseAppointment = (appointment) => {
     const startTime   = new Date(appointment.fechaHora)
     const endTime     = new Date(startTime.getTime() + (appointment.duration || 60) * 60 * 1000)
     const riskLevel   = appointment.riskLevel || 'low'
-    const sessionType = appointment.type || 'Consulta'
+    const sessionType = appointment.type || 'Primera consulta'
     const isVideoCall = appointment.isVideoCall || appointment.mode === 'videollamada'
 
     const rawStatus   = appointment.estado || appointment.status || ''

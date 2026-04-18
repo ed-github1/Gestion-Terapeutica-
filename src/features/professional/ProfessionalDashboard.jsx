@@ -95,51 +95,6 @@ const ProfessionalDashboardWrapper = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
-    // Map session/appointment object → patient shape for PatientClinicalFile
-    const handleViewDiary = (session) => {
-        // patientId may be a populated object { _id, nombre, apellido } or a plain string
-        const patientObj = session?.patientId
-        const id =
-            (patientObj && typeof patientObj === 'object'
-                ? patientObj._id || patientObj.id
-                : patientObj) ||
-            session?.patient?._id ||
-            session?.patient?.id ||
-            null
-
-        // Prefer name from populated patientId object (Patient model uses firstName/lastName)
-        const fullName =
-            (patientObj && typeof patientObj === 'object'
-                ? `${patientObj.firstName || patientObj.nombre || ''} ${patientObj.lastName || patientObj.apellido || ''}`.trim()
-                : '') ||
-            session?.nombrePaciente ||
-            session?.patientName ||
-            session?.patient?.name ||
-            ''
-
-        if (!id && !fullName) {
-            // No patient info at all — nothing to show
-            console.warn('[handleViewDiary] No patientId or name found on session:', session)
-            return
-        }
-
-        const parts     = fullName.trim().split(' ')
-        const firstName = patientObj?.firstName || parts[0] || fullName || 'Paciente'
-        const lastName  = patientObj?.lastName  || parts.slice(1).join(' ') || ''
-        setDiaryPatient({
-            // id may be null for appointments created without linking a patient record
-            // (e.g. QuickCreateModal). useClinicalFileData handles null patientId gracefully.
-            id:       id || null,
-            _id:      id || null,
-            firstName, lastName,
-            nombre: firstName, apellido: lastName,
-            name: fullName || `${firstName} ${lastName}`.trim(),
-            email:    patientObj?.email    || session?.email    || '',
-            phone:    patientObj?.phone    || session?.phone    || '',
-            telefono: patientObj?.telefono || session?.telefono || '',
-        })
-    }
-
     // If a patient clinical file is open, render it statically
     if (diaryPatient) {
         return (
@@ -278,7 +233,7 @@ const ProfessionalDashboardWrapper = () => {
             </AnimatePresence>
             <ModernProfessionalDashboard
                 setShowCalendar={setShowCalendar}
-                setDiaryPatient={handleViewDiary}
+                setDiaryPatient={setDiaryPatient}
             />
 
             {/* ── Full-calendar slide-over drawer ── */}

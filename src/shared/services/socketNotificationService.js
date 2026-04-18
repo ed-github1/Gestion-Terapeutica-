@@ -6,6 +6,7 @@
  * Falls back gracefully if the signaling server is unavailable.
  */
 import { io } from 'socket.io-client'
+import { getAuthToken } from '@shared/api/client'
 
 const SOCKET_URL =
   import.meta.env.VITE_SOCKET_URL ||
@@ -22,11 +23,10 @@ class SocketNotificationService {
     this._pendingEmits = []    // queued while connecting
   }
 
-  connect(userId, token) {
+  connect(userId) {
     // If the same user already has a socket (connected or still connecting), reuse it
     if (this.socket && this.userId === userId) return
     this.userId = userId
-    this.token = token
 
     if (this.socket) this.socket.disconnect()
 
@@ -36,7 +36,7 @@ class SocketNotificationService {
       reconnectionDelay: 2000,
       reconnectionAttempts: 5,
       withCredentials: true,
-      auth: { token },
+      auth: { token: getAuthToken() },
     })
 
     this.socket.on('connect', () => {

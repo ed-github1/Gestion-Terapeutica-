@@ -78,8 +78,7 @@ export const useAppointmentNotifications = () => {
     if (!user?._id && !user?.id) return
 
     const userId = user._id || user.id
-    const token  = localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || ''
-    socketNotificationService.connect(userId, token)
+    socketNotificationService.connect(userId)
 
     const unsubs = SOCKET_EVENTS.map((ev) =>
       socketNotificationService.on(ev, (data) => _push(ev, data))

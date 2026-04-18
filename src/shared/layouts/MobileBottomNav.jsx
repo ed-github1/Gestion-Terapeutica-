@@ -1,6 +1,6 @@
 import { motion } from 'motion/react'
 import {
-  Home, Calendar, BookOpen, Plus, MoreHorizontal,
+  Home, Calendar, BookOpen, MoreHorizontal,
   LayoutGrid, Users, UserCircle,
 } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -35,8 +35,6 @@ const MoreBtn = ({ badge, onClick }) => (
 )
 
 const MobileBottomNav = ({ userRole, onMoreClick }) => {
-  const navigate = useNavigate()
-
   return (
     <motion.div
       initial={{ y: 100 }}
@@ -55,20 +53,9 @@ const MobileBottomNav = ({ userRole, onMoreClick }) => {
           </>
         ) : (
           <>
-            <NavBtn path={`/dashboard/${userRole}`} exact label="Inicio" Icon={Home} />
-            <NavBtn path={`/dashboard/${userRole}/appointments`} label="Citas" Icon={Calendar} />
-            {/* Green FAB — center button */}
-            <div className="relative -mt-7">
-              <motion.button
-                whileTap={{ scale: 0.9 }}
-                onClick={() => navigate(`/dashboard/${userRole}/appointments`)}
-                className="w-14 h-14 rounded-full bg-linear-to-br from-[#AEE058] to-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/30 border-4 border-white dark:border-gray-900"
-                aria-label="Nueva cita"
-              >
-                <Plus className="w-6 h-6 text-white" strokeWidth={2.5} />
-              </motion.button>
-            </div>
-            <NavBtn path={`/dashboard/${userRole}/diary`} label="Diario" Icon={BookOpen} />
+            <NavBtn path={`/dashboard/${userRole}`} exact label="INICIO" Icon={Home} />
+            <NavBtn path={`/dashboard/${userRole}/appointments`} label="CITAS" Icon={Calendar} />
+            <NavBtn path={`/dashboard/${userRole}/diary`} label="DIARIO" Icon={BookOpen} />
             <MoreBtn badge onClick={onMoreClick} />
           </>
         )}

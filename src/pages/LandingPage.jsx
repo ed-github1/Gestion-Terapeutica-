@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import BrandLogo from '@/shared/ui/BrandLogo';
+import CookieConsentModal from '@/shared/ui/CookieConsentModal';
 import { 
   Video, 
   Calendar, 
@@ -895,6 +896,9 @@ const LandingPage = () => {
           </div>
         </div>
       </footer>
+
+      {/* Cookie Consent Modal */}
+      <CookieConsentModal />
     </div>
   );
 };

@@ -1,7 +1,7 @@
  /**
  * shared/api/client.js
  * Single Axios instance used across all service modules.
- * Handles auth token injection and global 401 redirect.
+ * Auth token stored in a SameSite cookie instead of localStorage (XSS-safer).
  */
 
  
@@ -19,29 +19,70 @@ const apiClient = axios.create({
   baseURL: BASE_URL,
   headers: { 'Content-Type': 'application/json' },
   timeout: 15_000,
+  withCredentials: true,
 })
+
+// ── Cookie helpers ────────────────────────────────────────────────────────────
+
+/** Read a cookie value by name. */
+export function readCookie(name) {
+  const match = document.cookie.match(new RegExp('(^|;\\s*)' + name + '=([^;]*)'))
+  return match ? decodeURIComponent(match[2]) : null
+}
+
+/** Write the auth token into a SameSite cookie (replaces localStorage). */
+function writeAuthCookie(token) {
+  const secure = location.protocol === 'https:' ? '; Secure' : ''
+  const maxAge = 7 * 24 * 60 * 60 // 7 days
+  document.cookie = `authToken=${encodeURIComponent(token)}; path=/; max-age=${maxAge}; SameSite=Lax${secure}`
+}
+
+/** Remove the auth token cookie. */
+function clearAuthCookie() {
+  document.cookie = 'authToken=; path=/; max-age=0; SameSite=Lax'
+}
+
+/**
+ * Get the current auth token from the cookie.
+ * Exported so other modules (Socket.IO, WebRTC) can read it.
+ */
+export function getAuthToken() {
+  return readCookie('authToken')
+}
+
+/**
+ * Store or clear the auth token.
+ * - Pass a string to write the token cookie.
+ * - Pass null/undefined to clear it.
+ * Also purges any legacy localStorage/sessionStorage tokens.
+ */
+export function setAuthToken(token) {
+  // Always clean up legacy storage
+  localStorage.removeItem('authToken')
+  sessionStorage.removeItem('authToken')
+
+  if (token) {
+    writeAuthCookie(token)
+  } else {
+    clearAuthCookie()
+  }
+}
 
 // ── Request interceptor ───────────────────────────────────────────────────────
 apiClient.interceptors.request.use(
   (config) => {
-    const token =
-      localStorage.getItem('authToken') || sessionStorage.getItem('authToken')
+    // CSRF double-submit (for when backend sets a csrf_token cookie)
+    const csrf = readCookie('csrf_token')
+    if (csrf) config.headers['X-CSRF-Token'] = csrf
+
+    // Read the auth token from the cookie and send as Bearer header
+    const token = getAuthToken()
     if (token) config.headers.Authorization = `Bearer ${token}`
+
     return config
   },
   (error) => Promise.reject(error),
 )
-
-// Expose a setter so AuthContext can update the in-memory token after a silent
-// refresh without needing to re-import apiClient everywhere.
-export function setAuthToken (token) {
-  if (token) {
-    localStorage.setItem('authToken', token)
-  } else {
-    localStorage.removeItem('authToken')
-    sessionStorage.removeItem('authToken')
-  }
-}
 
 // ── Response interceptor ──────────────────────────────────────────────────────
 apiClient.interceptors.response.use(
@@ -49,18 +90,20 @@ apiClient.interceptors.response.use(
   (error) => {
     if (error.response) {
       const { status, data } = error.response
-      // Only auto-redirect on 401 when outside of auth pages.
-      // Skip the redirect for /auth/verify-password — a 401 there means
-      // "wrong password" during a session-lock unlock attempt, NOT an expired
-      // token. The SessionLockOverlay handles retries and max-attempts itself.
       const onAuthPage = ['/login', '/register', '/verify-2fa'].some(p => window.location.pathname.startsWith(p))
       const isVerifyPassword = error.config?.url?.includes('/auth/verify-password')
       if (status === 401 && !onAuthPage && !isVerifyPassword) {
-        localStorage.removeItem('authToken')
-        sessionStorage.removeItem('authToken')
+        clearAuthCookie()
         window.location.href = '/login'
       }
-      // Build error with status preserved so callers can do field-level placement
+      // 403 role mismatch: JWT was likely issued with a different role value.
+      // Clear the stale token and force re-login so a fresh JWT is issued.
+      const message403 = data?.message || data?.error || ''
+      const isRoleMismatch = status === 403 && /rol|role|acceso denegado/i.test(message403)
+      if (isRoleMismatch && !onAuthPage) {
+        clearAuthCookie()
+        window.location.href = '/login?reason=rol'
+      }
       const message = data?.message || data?.error || `Error ${status}`
       const err = new Error(message)
       err.status = status

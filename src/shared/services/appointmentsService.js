@@ -15,7 +15,7 @@ export const appointmentsService = {
     apiClient.post('/appointments/reserve', {
       date: data.date,
       time: data.time,
-      type: data.type,
+      sessionType: data.sessionType || data.type,
       mode: data.mode ?? 'consultorio',
       isVideoCall: data.mode === 'videollamada' || data.isVideoCall || false,
       reason: data.reason,
@@ -117,6 +117,7 @@ export const appointmentsService = {
       date: data.date,
       time: data.time,
       type: data.type,
+      sessionType: data.sessionType || data.type,
       duration: data.duration,
       notes: data.notes,
       mode: data.mode ?? (data.isVideoCall ? 'videollamada' : 'consultorio'),
@@ -138,4 +139,8 @@ export const appointmentsService = {
   /** Save / update the current professional's weekly availability */
   updateAvailability: (availabilityData) =>
     apiClient.put('/availability', availabilityData),
+
+  /** Get revenue report (professionals only) */
+  getRevenue: () =>
+    apiClient.get('/appointments/revenue'),
 }
