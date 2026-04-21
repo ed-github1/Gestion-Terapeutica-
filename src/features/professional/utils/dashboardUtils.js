@@ -25,17 +25,30 @@ export const sanitizeName = (raw) => {
  * @returns {string} Patient display name
  */
 export const resolvePatientName = (apt) => {
-    // 1. Try populated patientId object (Patient or User model)
+    // 1. Populated patientId object (Patient or User model)
     const pid = apt?.patientId
     if (pid && typeof pid === 'object') {
         const first = sanitizeName(pid.firstName || pid.nombre || '')
         const last  = sanitizeName(pid.lastName  || pid.apellido || '')
         const full  = `${first} ${last}`.trim()
         if (full) return full
+        const name = sanitizeName(pid.name || pid.fullName || '')
+        if (name) return name
     }
 
-    // 2. Try denormalized string fields on the appointment itself
-    for (const field of [apt?.patientName, apt?.nombrePaciente, apt?.patient?.name]) {
+    // 2. Populated patient object (calendar API shape)
+    const p = apt?.patient
+    if (p && typeof p === 'object') {
+        const first = sanitizeName(p.firstName || p.nombre || '')
+        const last  = sanitizeName(p.lastName  || p.apellido || '')
+        const full  = `${first} ${last}`.trim()
+        if (full) return full
+        const name = sanitizeName(p.name || p.fullName || '')
+        if (name) return name
+    }
+
+    // 3. Denormalized string fields on the appointment itself
+    for (const field of [apt?.patientName, apt?.nombrePaciente]) {
         const cleaned = sanitizeName(field)
         if (cleaned) return cleaned
     }

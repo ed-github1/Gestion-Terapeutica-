@@ -32,18 +32,18 @@ const getSavedPriceForType = (type) => {
 
 export default function AddEventPanel({ appointment, slotDate, onClose, onSave, onDelete }) {
   const { user } = useAuth()
-  const isEdit = !!appointment?.id
+  const isEdit = !!(appointment?.id || appointment?._id)
   const [saving, setSaving] = useState(false)
   const [patients, setPatients] = useState([])
   const [loadingPatients, setLoadingPatients] = useState(false)
 
   const [formData, setFormData] = useState({
-    patientName: appointment?.patientName || '',
+    patientName: appointment?.patientName || appointment?.nombrePaciente || '',
     patientId:   appointment?.patientId || '',
     patientUserId: appointment?.patientUserId || '',
-    type:     appointment?.type || 'primera_consulta',
-    date:     appointment?.start ? new Date(appointment.start) : (slotDate || new Date()),
-    time:     appointment?.start ? format(new Date(appointment.start), 'HH:mm') : '09:00',
+    type:     appointment?.type || appointment?.appointmentType || 'primera_consulta',
+    date:     appointment?.start ? new Date(appointment.start) : (appointment?.fechaHora ? new Date(appointment.fechaHora) : (slotDate || new Date())),
+    time:     appointment?.start ? format(new Date(appointment.start), 'HH:mm') : (appointment?.fechaHora ? format(new Date(appointment.fechaHora), 'HH:mm') : '09:00'),
     duration: appointment?.duration || '60',
     notes:    appointment?.notes || '',
     mode:     appointment?.mode ?? (appointment?.isVideoCall ? 'videollamada' : 'consultorio'),
@@ -97,7 +97,7 @@ export default function AddEventPanel({ appointment, slotDate, onClose, onSave, 
 
       if (isEdit) {
         onSave({
-          id: appointment.id,
+          id: appointment.id || appointment._id,
           patientName: formData.patientName,
           patientId: formData.patientId || appointment.patientId,
           type: formData.type, start: startDate, end: endDate,

@@ -43,7 +43,7 @@ const TYPE_META = {
   },
 }
 
-/** Format a Date into a short time string like "09:00AM" */
+/** Format a Date into a short time string like "9:00AM" */
 function shortTime(date) {
   if (!date) return ''
   const d = new Date(date)
@@ -52,14 +52,6 @@ function shortTime(date) {
   const suffix = h >= 12 ? 'PM' : 'AM'
   const h12 = h % 12 || 12
   return `${h12}:${m}${suffix}`
-}
-
-/** Get initials from a name string */
-function getInitials(name) {
-  if (!name) return '?'
-  const parts = name.trim().split(/\s+/)
-  if (parts.length === 1) return parts[0].charAt(0).toUpperCase()
-  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase()
 }
 
 export default function CalendarEventCard({ arg }) {
@@ -71,52 +63,72 @@ export default function CalendarEventCard({ arg }) {
   const isPending = !isPaid && (apt.paymentStatus === 'pending' || apt.status === 'reserved' || apt.status === 'accepted')
   const isVideo   = apt.isVideoCall || apt.mode === 'videollamada'
 
+  const patientName = arg.event.title || ''
+  const viewType = arg.view?.type || ''
+  const isMonthView = viewType.startsWith('dayGrid')
+
+  // ── Month view: single-line pill ──────────────────────────────────────────
+  if (isMonthView) {
+    // Show first name only so it fits the narrow pill
+    const displayName = patientName.split(' ')[0] || patientName
+    return (
+      <div className={`
+        relative flex items-center gap-1.5 w-full px-2 py-0.75 rounded-md overflow-hidden
+        ${dark ? meta.darkBg : meta.bg}
+      `}>
+        {apt.hasConflict && (
+          <span className="absolute top-0 right-0" style={{ width:0, height:0, borderStyle:'solid', borderWidth:'0 7px 7px 0', borderColor:'transparent #ef4444 transparent transparent' }} />
+        )}
+        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${meta.dot}`} />
+        <p className={`text-[11px] font-semibold leading-none truncate flex-1 tracking-[-0.01em] ${dark ? meta.darkText : meta.text}`}>
+          {displayName}
+        </p>
+        {isVideo && (
+          <svg className="w-2.5 h-2.5 shrink-0 opacity-70" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"
+            style={{ color: dark ? '#60a5fa' : 'rgba(255,255,255,0.9)' }}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M23 7l-7 5 7 5V7z" />
+            <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+          </svg>
+        )}
+        {isPaid && (
+          <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"
+            className="shrink-0" style={{ color: dark ? '#34d399' : 'rgba(255,255,255,0.85)' }}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        )}
+        {isPending && (
+          <span className="shrink-0 text-[7px] font-black" style={{ color: dark ? '#fbbf24' : 'rgba(255,255,255,0.7)' }}>$</span>
+        )}
+      </div>
+    )
+  }
+
+  // ── Time grid / list view: 2-row compact card ─────────────────────────────
   const timeRange = arg.event.start && arg.event.end
-    ? `${shortTime(arg.event.start)} - ${shortTime(arg.event.end)}`
+    ? `${shortTime(arg.event.start)} – ${shortTime(arg.event.end)}`
     : arg.timeText || ''
 
-  const patientName = arg.event.title || ''
-  const initials    = getInitials(patientName)
-
   return (
-    <div
-      className={`
-        relative h-full w-full rounded-xl px-2.5 py-1.5 overflow-hidden
-        ${dark ? meta.darkBg : meta.bg}
-      `}
-    >
-      {/* Conflict corner triangle */}
+    <div className={`
+      relative h-full w-full rounded-xl px-2.5 py-1.5 overflow-hidden
+      ${dark ? meta.darkBg : meta.bg}
+    `}>
       {apt.hasConflict && (
-        <span
-          title="Conflicto de horario"
-          className="absolute top-0 right-0 z-10"
-          style={{
-            width: 0, height: 0, borderStyle: 'solid',
-            borderWidth: '0 10px 10px 0',
-            borderColor: 'transparent #ef4444 transparent transparent',
-          }}
-        />
+        <span className="absolute top-0 right-0 z-10" style={{ width:0, height:0, borderStyle:'solid', borderWidth:'0 10px 10px 0', borderColor:'transparent #ef4444 transparent transparent' }} />
       )}
 
-      {/* Row 1: Color dot (dark) / emoji (light) + Title + badges */}
+      {/* Row 1: dot + name + badges */}
       <div className="flex items-center gap-1 min-w-0">
-        {dark
-          ? <span className={`w-2 h-2 rounded-full shrink-0 ${meta.dot}`} aria-hidden />
-          : <span className="text-[11px] leading-none shrink-0" aria-hidden>{meta.emoji}</span>
-        }
+        <span className={`w-2 h-2 rounded-full shrink-0 ${meta.dot}`} />
         <p className={`text-[11px] font-bold leading-tight truncate flex-1 ${dark ? meta.darkText : meta.text}`}>
           {patientName}
         </p>
-
-        {/* Video badge */}
         {isVideo && (
           <svg className="w-3 h-3 shrink-0 text-blue-500 dark:text-blue-400" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M23 7l-7 5 7 5V7z" />
             <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
           </svg>
         )}
-
-        {/* Paid check */}
         {isPaid && (
           <span className="shrink-0 flex items-center justify-center w-3.5 h-3.5 rounded-full bg-emerald-500">
             <svg width="8" height="8" fill="none" stroke="white" viewBox="0 0 24 24">
@@ -124,8 +136,6 @@ export default function CalendarEventCard({ arg }) {
             </svg>
           </span>
         )}
-
-        {/* Pending payment */}
         {isPending && (
           <span className="shrink-0 text-[7px] font-bold text-amber-600 dark:text-amber-400 border border-amber-300 dark:border-amber-600 bg-amber-50 dark:bg-amber-900/30 rounded-sm px-1 leading-none py-0.5">
             $?
@@ -133,33 +143,12 @@ export default function CalendarEventCard({ arg }) {
         )}
       </div>
 
-      {/* Row 2: Time range */}
+      {/* Row 2: time range only */}
       {timeRange && (
         <p className={`text-[10px] leading-tight mt-0.5 truncate ${dark ? meta.darkTimeTxt : meta.timeTxt}`}>
           {timeRange}
         </p>
       )}
-
-      {/* Row 3: Patient avatar + type label (visible on taller slots) */}
-      <div className="flex items-center justify-between mt-1 min-w-0">
-        {/* Avatar circle with initials */}
-        <div className="flex items-center -space-x-1">
-          <span
-            className={`
-              w-5 h-5 rounded-full text-[8px] font-bold flex items-center justify-center shrink-0 ring-1 ring-white dark:ring-gray-800
-              ${dark ? meta.darkAvatar : meta.avatar}
-            `}
-          >
-            {initials}
-          </span>
-          {/* "+1" overflow indicator for multi-attendee scenarios */}
-          {apt.hasConflict && (
-            <span className="w-5 h-5 rounded-full bg-gray-200 dark:bg-gray-600 text-[8px] font-bold text-gray-500 dark:text-gray-300 flex items-center justify-center ring-1 ring-white dark:ring-gray-800">
-              +1
-            </span>
-          )}
-        </div>
-      </div>
     </div>
   )
 }

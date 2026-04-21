@@ -8,24 +8,40 @@ const loadAppointmentsFromSources = async () => {
   // Backend
   try {
     const response = await appointmentsService.getAllAsProf({})
-    if (response.data && response.data.length > 0) {
-      const backendAppointments = response.data.map(apt => {
-        const [hours, minutes] = apt.time.split(':')
-        const startDate = new Date(apt.date)
-        startDate.setHours(parseInt(hours), parseInt(minutes), 0)
-        const endDate = new Date(startDate)
-        endDate.setMinutes(endDate.getMinutes() + apt.duration)
+    const raw = response?.data
+    // Unwrap all common envelope shapes (same logic as useDashboard.js)
+    const list =
+      Array.isArray(raw)               ? raw :
+      Array.isArray(raw?.data)         ? raw.data :
+      Array.isArray(raw?.appointments) ? raw.appointments :
+      Array.isArray(raw?.data?.data)   ? raw.data.data :
+      []
+    if (list.length > 0) {
+      const backendAppointments = list.map(apt => {
+        // Build start Date from fechaHora combined field OR separate date+time fields
+        let startDate
+        if (apt.fechaHora) {
+          startDate = new Date(apt.fechaHora)
+        } else if (apt.date && apt.time) {
+          const [yr, mo, dy] = String(apt.date).slice(0, 10).split('-').map(Number)
+          const [hours, minutes] = apt.time.split(':').map(Number)
+          startDate = new Date(yr, mo - 1, dy, hours, minutes, 0)
+        } else {
+          startDate = new Date(apt.date || apt.start)
+        }
+        const endDate = new Date(startDate.getTime() + (Number(apt.duration) || 60) * 60_000)
+        const status = apt.status || apt.estado || ''
         return {
           id: apt._id || apt.id,
-          patientName: apt.patientName,
+          patientName: apt.patientName || apt.nombrePaciente || '',
           patientId: apt.patientId,
           type: apt.type,
           start: startDate,
           end: endDate,
-          duration: String(apt.duration),
+          duration: String(apt.duration || 60),
           isVideoCall: apt.isVideoCall || apt.mode === 'videollamada' || false,
           mode: apt.mode ?? (apt.isVideoCall ? 'videollamada' : 'consultorio'),
-          status: apt.status,
+          status,
           paymentStatus: apt.paymentStatus || apt.payment_status || null,
           notes: apt.notes,
           reason: apt.reason,

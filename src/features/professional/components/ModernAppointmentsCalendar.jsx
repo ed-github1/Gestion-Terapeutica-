@@ -25,24 +25,32 @@ const TYPE_META = {
 }
 
 function normalizeEvent(apt) {
-    const meta = TYPE_META[apt.type] || TYPE_META.default
-    let start = apt.fechaHora || apt.start
-    if (apt.date && apt.time) {
-        const [yr, mo, dy] = String(apt.date).slice(0, 10).split('-').map(Number)
-        const [h, m]       = String(apt.time).split(':').map(Number)
+    // Backend calendar endpoint wraps the real appointment inside appointmentData
+    const data = apt.appointmentData ? apt.appointmentData : apt
+    const meta = TYPE_META[data.type] || TYPE_META.default
+    let start = data.fechaHora || data.start
+    if (data.date && data.time) {
+        const [yr, mo, dy] = String(data.date).slice(0, 10).split('-').map(Number)
+        const [h, m]       = String(data.time).split(':').map(Number)
         start = new Date(yr, mo - 1, dy, h, m, 0)
     }
-    const durationMs = (Number(apt.duration) || 60) * 60_000
-    const end = apt.end || (start ? new Date(new Date(start).getTime() + durationMs) : undefined)
+    const durationMs = (Number(data.duration) || 60) * 60_000
+    const end = data.end || (start ? new Date(new Date(start).getTime() + durationMs) : undefined)
+    const resolvedId = data._id || apt.id || apt._id
     return {
-        id:              String(apt._id || apt.id || Math.random()),
-        title:           resolvePatientName(apt),
+        id:              String(resolvedId || Math.random()),
+        title:           resolvePatientName(data),
         start,
         end,
         backgroundColor: 'transparent',
         borderColor:     'transparent',
         textColor:       meta.text,
-        extendedProps:   { ...apt, _meta: meta },
+        extendedProps:   {
+            ...data,
+            id:          resolvedId,
+            patientName: resolvePatientName(data),
+            _meta:       meta,
+        },
     }
 }
 
@@ -155,7 +163,8 @@ export default function ModernAppointmentsCalendar({ onSelectEvent, onDateClick,
     const calRef = useRef(null)
     const { dark } = useDarkModeContext()
     const [currentDate, setCurrentDate] = useState(new Date())
-    const [activeView, setActiveView] = useState('timeGridWeek')
+    const defaultView = useRef(window.innerWidth < 768 ? 'listWeek' : 'timeGridWeek').current
+    const [activeView, setActiveView] = useState(defaultView)
 
     // Auto-refresh when appointment is paid
     useEffect(() => {
@@ -240,6 +249,17 @@ export default function ModernAppointmentsCalendar({ onSelectEvent, onDateClick,
         })
     }, [onEventDrop])
 
+    // "+N more" clicked — jump to listDay for that date (works great on mobile)
+    const handleMoreLinkClick = useCallback((info) => {
+        calRef.current?.getApi().changeView('listDay', info.date)
+        return 'stop' // prevent default popover
+    }, [])
+
+    // Day-number nav link — same behaviour for consistency
+    const handleNavLinkDayClick = useCallback((date) => {
+        calRef.current?.getApi().changeView('listDay', date)
+    }, [])
+
     return (
         <>
             <style>{FC_STYLES}</style>
@@ -263,7 +283,7 @@ export default function ModernAppointmentsCalendar({ onSelectEvent, onDateClick,
                     ref={calRef}
                     plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
                     locale="es"
-                    initialView="timeGridWeek"
+                    initialView={defaultView}
                     headerToolbar={false}
                     eventBorderColor="transparent"
                     eventBackgroundColor="transparent"
@@ -278,15 +298,17 @@ export default function ModernAppointmentsCalendar({ onSelectEvent, onDateClick,
                     editable
                     selectable
                     selectMirror
-                    dayMaxEvents={4}
+                    dayMaxEvents={3}
                     weekends
                     nowIndicator
                     navLinks
                     events={fetchEvents}
                     datesSet={handleDatesSet}
-                    eventClick={(info)  => onSelectEvent?.(info.event.extendedProps)}
-                    dateClick={(info)   => onDateClick?.(info.date)}
+                    eventClick={(info)       => onSelectEvent?.(info.event.extendedProps)}
+                    dateClick={(info)        => onDateClick?.(info.date)}
                     eventDrop={handleEventDrop}
+                    moreLinkClick={handleMoreLinkClick}
+                    navLinkDayClick={handleNavLinkDayClick}
                     eventContent={(arg) => <CalendarEventCard arg={arg} />}
                 />
             </div>
