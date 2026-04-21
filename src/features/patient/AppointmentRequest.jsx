@@ -104,6 +104,7 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
       for (const id of candidates) {
         try {
           const res = await patientsService.getProfessionalInfo(id)
+          if (res.status !== 200) continue
           const pro = res.data?.data || res.data || {}
           const t = pro.tarifas
           const cur = pro.currency || pro.defaultCurrency || '$'

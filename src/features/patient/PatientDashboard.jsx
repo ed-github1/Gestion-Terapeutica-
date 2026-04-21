@@ -21,7 +21,6 @@ import { invitationsService } from '@shared/services/invitationsService'
 import { socketNotificationService } from '@shared/services/socketNotificationService'
 import { normalizeAppointmentsResponse, toLocalDateObj, endTimeOf } from '@shared/utils/appointments'
 import { useAppointments } from './AppointmentsContext'
-import { VideoCallNotificationManager } from '@shared/ui'
 
 /**
  * PatientDashboard — minimal, clean layout.
@@ -500,7 +499,6 @@ const PatientDashboard = () => {
         )}
       </AnimatePresence>
 
-      <VideoCallNotificationManager />
       <CrisisButton />
     </div>
   )

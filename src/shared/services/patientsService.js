@@ -32,7 +32,7 @@ export const patientsService = {
 
   /** GET /api/professionals/:id — public info about a professional (returns userId for socket routing) */
   getProfessionalInfo: (profileId) =>
-    apiClient.get(`/professionals/${profileId}`),
+    apiClient.get(`/professionals/${profileId}`, { validateStatus: (s) => s < 500 }),
 }
 
 /**
@@ -86,10 +86,12 @@ export async function resolveLinkedProfessional(user = {}) {
   if (pid && !puid) {
     try {
       const res = await patientsService.getProfessionalInfo(pid)
-      const p   = res.data?.data || res.data
-      const raw = p?.userId || p?.user?._id || p?.user?.id || p?.user || null
-      puid = raw && typeof raw === 'object' ? (raw._id || raw.id || null) : raw
-    } catch { /* endpoint may not exist */ }
+      if (res.status === 200) {
+        const p   = res.data?.data || res.data
+        const raw = p?.userId || p?.user?._id || p?.user?.id || p?.user || null
+        puid = raw && typeof raw === 'object' ? (raw._id || raw.id || null) : raw
+      }
+    } catch { /* unexpected network failure */ }
   }
 
   // 5. localStorage cache as last resort

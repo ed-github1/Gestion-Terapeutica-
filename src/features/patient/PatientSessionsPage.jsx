@@ -4,8 +4,6 @@ import AppointmentRequest from './AppointmentRequest'
 import { useAuth } from '@features/auth/AuthContext'
 import { AnimatePresence } from 'motion/react'
 import { resolveLinkedProfessional } from '@shared/services/patientsService'
-import { VideoCallNotificationManager } from '@shared/ui'
-
 /**
  * Full-page wrapper for PatientSessionsList — used as a route target
  * from the sidebar "Mis Sesiones" link.
@@ -55,7 +53,6 @@ const PatientSessionsPage = () => {
         )}
       </AnimatePresence>
 
-      <VideoCallNotificationManager />
     </div>
   )
 }
