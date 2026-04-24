@@ -127,17 +127,19 @@ const PatientVideoCallRoom = ({ token, roomName, patientName, onLeave }) => {
 
   return (
     <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col items-center justify-center p-2 overflow-auto min-h-screen">
-      {/* Header always full width, stacked on mobile */}
-      <div className="bg-gray-800 px-4 py-3 flex flex-col sm:flex-row items-center justify-between w-full max-w-2xl mx-auto rounded-t-2xl md:rounded-2xl">
-        <div className="w-full sm:w-auto text-center sm:text-left mb-2 sm:mb-0">
-          <h2 className="text-xl font-semibold text-white">Videollamada Médica</h2>
-          <p className="text-sm text-gray-400">
-            {participants.length} {participants.length === 1 ? 'participante' : 'participantes'}
-          </p>
+      {/* Glassmorphic Header */}
+      <div
+        className="glassmorphic-header fixed top-0 left-0 w-full z-20 flex items-center justify-between px-4 py-2"
+        style={{backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', background: 'rgba(255,255,255,0.15)', borderBottom: '1px solid rgba(255,255,255,0.18)'}}
+      >
+        <div className="flex flex-col sm:flex-row items-center gap-2">
+          <span className="w-3 h-3 rounded-full bg-green-400 inline-block mr-2"></span>
+          <span className="font-semibold text-white text-base sm:text-lg">Videollamada Médica</span>
+          <span className="text-gray-200 text-xs ml-2">{participants.length} {participants.length === 1 ? 'participante' : 'participantes'}</span>
         </div>
         <button
           onClick={handleLeave}
-          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition w-full sm:w-auto"
+          className="px-4 py-2 bg-red-500/90 hover:bg-red-600/90 text-white rounded-lg transition w-full sm:w-auto shadow-md backdrop-blur-md border border-white/20"
         >
           Salir de la llamada
         </button>
@@ -210,12 +212,13 @@ const PatientVideoCallRoom = ({ token, roomName, patientName, onLeave }) => {
         </div>
       </div>
 
-      {/* Controls always below video, never overlapping, full width on mobile */}
-      <div className="bg-gray-800 px-6 py-4 w-full max-w-2xl mx-auto rounded-b-2xl flex flex-col sm:flex-row items-center justify-center gap-4 mt-2">
+      {/* Glassmorphic Controls */}
+      <div className="glassmorphic-controls px-6 py-4 w-full max-w-2xl mx-auto rounded-b-2xl flex flex-col sm:flex-row items-center justify-center gap-4 mt-2"
+        style={{backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', background: 'rgba(30,30,40,0.35)', border: '1px solid rgba(255,255,255,0.18)'}}>
         <button
           onClick={toggleMute}
           className={`p-4 rounded-full transition ${
-            isMuted ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-700 hover:bg-gray-600'
+            isMuted ? 'bg-red-500/90 hover:bg-red-600/90 text-white' : 'bg-white/30 hover:bg-white/40 text-white/90 backdrop-blur-md border border-white/20 shadow-md'
           } w-full sm:w-auto`}
           title={isMuted ? 'Activar micrófono' : 'Silenciar micrófono'}
         >
@@ -234,7 +237,7 @@ const PatientVideoCallRoom = ({ token, roomName, patientName, onLeave }) => {
         <button
           onClick={toggleVideo}
           className={`p-4 rounded-full transition ${
-            isVideoOff ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-700 hover:bg-gray-600'
+            isVideoOff ? 'bg-red-500/90 hover:bg-red-600/90 text-white' : 'bg-white/30 hover:bg-white/40 text-white/90 backdrop-blur-md border border-white/20 shadow-md'
           } w-full sm:w-auto`}
           title={isVideoOff ? 'Activar cámara' : 'Desactivar cámara'}
         >
@@ -252,7 +255,7 @@ const PatientVideoCallRoom = ({ token, roomName, patientName, onLeave }) => {
 
         <button
           onClick={handleLeave}
-          className="p-4 bg-red-600 rounded-full hover:bg-red-700 transition w-full sm:w-auto"
+          className="p-4 bg-red-500/90 hover:bg-red-600/90 rounded-full text-white transition w-full sm:w-auto shadow-md backdrop-blur-md border border-white/20"
           title="Colgar"
         >
           <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -260,6 +263,16 @@ const PatientVideoCallRoom = ({ token, roomName, patientName, onLeave }) => {
           </svg>
         </button>
       </div>
+
+      {/* Glassmorphic Styles */}
+      <style>{`
+        .glassmorphic-header {
+          box-shadow: 0 4px 32px 0 rgba(31, 38, 135, 0.15);
+        }
+        .glassmorphic-controls {
+          box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.25);
+        }
+      `}</style>
     </div>
   )
 }

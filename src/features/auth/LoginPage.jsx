@@ -41,9 +41,9 @@ const LoginPage = () => {
   const navigate = useNavigate()
   const { state: locationState } = useLocation()
   const [searchParams] = useSearchParams()
-  const idleExpired    = locationState?.reason === 'idle'
+  const idleExpired = locationState?.reason === 'idle'
   const sessionExpired = locationState?.reason === 'session_expired'
-  const rolMismatch    = searchParams.get('reason') === 'rol'
+  const rolMismatch = searchParams.get('reason') === 'rol'
 
   const onSubmit = async (data) => {
     setLoginError(null)
@@ -69,7 +69,7 @@ const LoginPage = () => {
       }
     } catch (err) {
       const message = err?.message || 'Error al iniciar sesión'
-      const status  = err?.status
+      const status = err?.status
       setLoginError(message)
       if (status === 404) {
         setError('email', { type: 'server', message })
@@ -80,23 +80,19 @@ const LoginPage = () => {
   }
 
   return (
-    <div className="min-h-screen flex">
-      {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-         LEFT — Pure white form side
-         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      <div className="w-full lg:w-[48%] xl:w-[45%] bg-white flex flex-col min-h-screen">
-        <div className="flex-1 flex flex-col justify-between px-8 sm:px-12 lg:px-16 xl:px-20 py-10">
+    <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="w-full max-w-lg min-h-screen flex flex-col justify-between px-8 sm:px-12 py-10">
           {/* Logo top-left */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
           >
-            <BrandLogo symbolOnly size="h-10 w-10" />
+            <BrandLogo symbolOnly size="h-16 w-16" />
           </motion.div>
 
-          {/* Form container — vertically centered */}
-          <div className="w-full max-w-sm mx-auto lg:mx-0">
+          {/* Form container */}
+          <div className="w-full">
             {/* Heading */}
             <motion.div
               initial={{ opacity: 0, y: 16 }}
@@ -160,8 +156,8 @@ const LoginPage = () => {
               noValidate
             >
               {/* Email */}
-              <div className="mb-5">
-                <label htmlFor="email" className="block text-[13px] font-semibold text-gray-700 mb-1.5">
+              <div className="mb-6">
+                <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
                   Email<span className="text-rose-400">*</span>
                 </label>
                 <input
@@ -176,11 +172,10 @@ const LoginPage = () => {
                     },
                     onChange: () => { clearErrors('email'); setLoginError(null) },
                   })}
-                  className={`w-full px-4 py-3 text-sm rounded-xl outline-none transition-all duration-200 ${
-                    errors.email
+                  className={`w-full px-4 py-3.5 text-[15px] rounded-xl outline-none transition-all duration-200 placeholder:text-gray-400 ${errors.email
                       ? 'border-2 border-rose-300 bg-rose-50/30 focus:border-rose-400 focus:ring-4 focus:ring-rose-100'
                       : 'border border-gray-300 bg-white hover:border-gray-400 focus:border-[#0075C9] focus:ring-4 focus:ring-sky-50'
-                  }`}
+                    }`}
                   placeholder="correo@ejemplo.com"
                   disabled={isSubmitting}
                 />
@@ -192,8 +187,8 @@ const LoginPage = () => {
               </div>
 
               {/* Password */}
-              <div className="mb-5">
-                <label htmlFor="password" className="block text-[13px] font-semibold text-gray-700 mb-1.5">
+              <div className="mb-6">
+                <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
                   Contraseña<span className="text-rose-400">*</span>
                 </label>
                 <div className="relative">
@@ -205,11 +200,10 @@ const LoginPage = () => {
                       required: 'La contraseña es requerida',
                       onChange: () => { clearErrors('password'); setLoginError(null) },
                     })}
-                    className={`w-full px-4 py-3 pr-11 text-sm rounded-xl outline-none transition-all duration-200 ${
-                      errors.password
+                    className={`w-full px-4 py-3.5 pr-11 text-[15px] rounded-xl outline-none transition-all duration-200 placeholder:text-gray-400 ${errors.password
                         ? 'border-2 border-rose-300 bg-rose-50/30 focus:border-rose-400 focus:ring-4 focus:ring-rose-100'
                         : 'border border-gray-300 bg-white hover:border-gray-400 focus:border-[#0075C9] focus:ring-4 focus:ring-sky-50'
-                    }`}
+                      }`}
                     placeholder="Mín. 8 caracteres"
                     disabled={isSubmitting}
                   />
@@ -249,7 +243,7 @@ const LoginPage = () => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full bg-[#0075C9] text-white py-3.5 rounded-xl text-sm font-semibold hover:bg-[#005faa] active:scale-[0.98] focus:outline-none focus:ring-4 focus:ring-sky-200 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-[#0075C9] text-white py-3.5 rounded-xl text-[15px] font-semibold hover:bg-[#005faa] active:scale-[0.98] focus:outline-none focus:ring-4 focus:ring-sky-200 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? (
                   <span className="flex items-center justify-center gap-2">
@@ -291,167 +285,6 @@ const LoginPage = () => {
             {' · '}
             <Link to="/privacidad" className="hover:text-gray-600 transition-colors">Privacidad</Link>
           </motion.p>
-        </div>
-      </div>
-
-      {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-         RIGHT — Bold branded showcase panel
-         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      <div className="hidden lg:block lg:flex-1 relative overflow-hidden">
-        {/* Base gradient */}
-        <div className="absolute inset-0 bg-linear-to-br from-[#0075C9] via-[#0068b8] to-[#004080]" />
-
-        {/* Hero pattern overlay */}
-        <div
-          className="absolute inset-0 opacity-100"
-          style={{ backgroundImage: topographySvg }}
-        />
-
-        {/* Accent orbs */}
-        <div className="absolute -top-32 -right-32 w-96 h-96 bg-[#54C0E8]/25 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-72 h-72 bg-[#AEE058]/12 rounded-full blur-3xl" />
-        <div className="absolute top-1/3 right-1/3 w-48 h-48 bg-[#54C0E8]/10 rounded-full blur-2xl" />
-
-        {/* ── Floating UI Cards ── */}
-        <div className="relative z-10 w-full h-full p-8">
-          {/* Sesiones card — top center */}
-          <FloatingCard
-            className="top-[10%] left-[8%] w-56 p-4"
-            delay={0.3}
-            rotate={-3}
-          >
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-9 h-9 rounded-xl bg-[#0075C9]/10 flex items-center justify-center">
-                <Calendar className="w-4.5 h-4.5 text-[#0075C9]" />
-              </div>
-              <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">Sesiones</span>
-            </div>
-            <p className="text-2xl font-extrabold text-gray-900">247</p>
-            <div className="flex items-center gap-1.5 mt-1">
-              <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
-              <span className="text-xs font-semibold text-emerald-600">+18% este mes</span>
-            </div>
-          </FloatingCard>
-
-          {/* Mood tracker card — center-right */}
-          <FloatingCard
-            className="top-[13%] right-[6%] w-52 p-5"
-            delay={0.5}
-            rotate={4}
-          >
-            <p className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-3">Estado de ánimo</p>
-            <div className="flex items-end gap-1.5 h-16">
-              {[40, 55, 35, 65, 50, 75, 68].map((h, i) => (
-                <div
-                  key={i}
-                  className="flex-1 rounded-full transition-all"
-                  style={{
-                    height: `${h}%`,
-                    background: i === 5
-                      ? 'linear-gradient(to top, #0075C9, #54C0E8)'
-                      : '#e5e7eb',
-                  }}
-                />
-              ))}
-            </div>
-            <div className="flex justify-between mt-2">
-              <span className="text-[10px] text-gray-400">Lun</span>
-              <span className="text-[10px] text-gray-400">Dom</span>
-            </div>
-          </FloatingCard>
-
-          {/* Bienestar score — mid-left */}
-          <FloatingCard
-            className="top-[48%] left-[12%] w-48 p-4"
-            delay={0.7}
-            rotate={2}
-          >
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-full bg-linear-to-br from-[#AEE058] to-[#8bc34a] flex items-center justify-center shadow-md">
-                <Smile className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Bienestar</p>
-                <p className="text-xl font-extrabold text-gray-900">8.4<span className="text-sm font-normal text-gray-400">/10</span></p>
-              </div>
-            </div>
-            <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-              <div className="h-full w-[84%] bg-linear-to-r from-[#AEE058] to-[#8bc34a] rounded-full" />
-            </div>
-          </FloatingCard>
-
-          {/* Progreso card — bottom-right */}
-          <FloatingCard
-            className="bottom-[22%] right-[10%] w-60 p-5"
-            delay={0.6}
-            rotate={-2}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-[#54C0E8]/10 flex items-center justify-center">
-                  <Brain className="w-4 h-4 text-[#0075C9]" />
-                </div>
-                <span className="text-xs font-bold text-gray-700">Progreso terapéutico</span>
-              </div>
-            </div>
-            <div className="space-y-2.5">
-              {[
-                { label: 'Ansiedad', pct: 72, color: 'from-[#54C0E8] to-[#0075C9]' },
-                { label: 'Objetivos', pct: 85, color: 'from-[#AEE058] to-[#8bc34a]' },
-                { label: 'Hábitos', pct: 60, color: 'from-[#f59e0b] to-[#f97316]' },
-              ].map(({ label, pct, color }) => (
-                <div key={label}>
-                  <div className="flex justify-between text-[11px] mb-1">
-                    <span className="text-gray-600 font-medium">{label}</span>
-                    <span className="text-gray-900 font-bold">{pct}%</span>
-                  </div>
-                  <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full bg-linear-to-r ${color} rounded-full`}
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </FloatingCard>
-
-          {/* Small floating accent — green dot */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.9, type: 'spring', stiffness: 200 }}
-            className="absolute top-[38%] right-[30%] w-12 h-12 rounded-2xl bg-[#AEE058] shadow-xl flex items-center justify-center"
-          >
-            <ArrowRight className="w-5 h-5 text-white" />
-          </motion.div>
-
-          {/* Small floating accent — sky circle */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 1.0, type: 'spring', stiffness: 200 }}
-            className="absolute bottom-[38%] left-[5%] w-10 h-10 rounded-full bg-[#54C0E8] shadow-lg flex items-center justify-center"
-          >
-            <Smile className="w-4.5 h-4.5 text-white" />
-          </motion.div>
-
-          {/* Bottom hero text */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.6 }}
-            className="absolute bottom-10 left-8 right-8"
-          >
-            <h2 className="text-3xl xl:text-4xl font-extrabold text-white leading-tight">
-              Transforma tu práctica<br />
-              <span className="text-[#AEE058]">terapéutica.</span>
-            </h2>
-            <p className="text-white/50 text-sm mt-3 max-w-sm leading-relaxed">
-              Herramientas integrales para profesionales y pacientes en un solo lugar.
-            </p>
-          </motion.div>
-        </div>
       </div>
     </div>
   )

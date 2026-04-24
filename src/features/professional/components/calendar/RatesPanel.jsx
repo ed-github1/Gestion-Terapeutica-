@@ -13,10 +13,10 @@ const SESSION_TYPES = [
     label: 'Primera consulta',
     description: 'Sesión inicial de evaluación',
     dotLight: 'bg-sky-500',
-    dotDark: 'bg-sky-400',
-    accent: 'text-sky-600 dark:text-sky-400',
-    pillBg: 'bg-sky-50 dark:bg-sky-900/25',
-    pillBorder: 'border-sky-100 dark:border-sky-800/40',
+    dotDark: 'bg-gray-600',
+    accent: 'font-black dark:text-white ',
+    pillBg: 'bg-gray-50 dark:bg-transparent',
+    pillBorder: 'border-gray-100 dark:border-gray-700',
     inputFocus: 'focus-within:border-sky-400 dark:focus-within:border-sky-500 focus-within:ring-2 focus-within:ring-sky-400/20',
     symbolBg: 'bg-sky-50 dark:bg-sky-900/30 text-sky-500 dark:text-sky-400',
   },
@@ -26,8 +26,8 @@ const SESSION_TYPES = [
     description: 'Sesión regular de tratamiento',
     dotLight: 'bg-emerald-500',
     dotDark: 'bg-emerald-400',
-    accent: 'text-emerald-600 dark:text-emerald-400',
-    pillBg: 'bg-emerald-50 dark:bg-emerald-900/25',
+    accent: 'font-black dark:text-white',
+    pillBg: 'bg-gray-50 dark:bg-transparent',
     pillBorder: 'border-emerald-100 dark:border-emerald-800/40',
     inputFocus: 'focus-within:border-emerald-400 dark:focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-400/20',
     symbolBg: 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-500 dark:text-emerald-400',
@@ -38,8 +38,8 @@ const SESSION_TYPES = [
     description: 'Sesión adicional o urgente',
     dotLight: 'bg-amber-500',
     dotDark: 'bg-amber-400',
-    accent: 'text-amber-600 dark:text-amber-400',
-    pillBg: 'bg-amber-50 dark:bg-amber-900/25',
+    accent: 'font-black dark:text-white',
+    pillBg: 'bg-gray-50 dark:bg-transparent',
     pillBorder: 'border-amber-100 dark:border-amber-800/40',
     inputFocus: 'focus-within:border-amber-400 dark:focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-400/20',
     symbolBg: 'bg-amber-50 dark:bg-amber-900/30 text-amber-500 dark:text-amber-400',
@@ -64,9 +64,9 @@ export default function RatesPanel({ onClose }) {
   const currencySymbol = countryInfo.symbol
 
   const [prices, setPrices] = useState({
-    primeraSesion:   '50',
-    seguimiento:     '40',
-    extraordinaria:  '70',
+    primeraSesion: '50',
+    seguimiento: '40',
+    extraordinaria: '70',
   })
   const [loadingTarifas, setLoadingTarifas] = useState(true)
 
@@ -78,9 +78,9 @@ export default function RatesPanel({ onClose }) {
         if (cancelled) return
         const t = res.data?.data?.tarifas || res.data?.tarifas || res.data?.data || {}
         setPrices({
-          primeraSesion:   String(t.primeraSesion ?? 50),
-          seguimiento:     String(t.seguimiento ?? 40),
-          extraordinaria:  String(t.extraordinaria ?? 70),
+          primeraSesion: String(t.primeraSesion ?? 50),
+          seguimiento: String(t.seguimiento ?? 40),
+          extraordinaria: String(t.extraordinaria ?? 70),
         })
       })
       .catch(() => {
@@ -88,9 +88,9 @@ export default function RatesPanel({ onClose }) {
         const cached = loadSettings()
         if (cached.sessionTypePrices) {
           setPrices({
-            primeraSesion:   String(cached.sessionTypePrices.primeraSesion ?? cached.sessionTypePrices.primera_consulta ?? 50),
-            seguimiento:     String(cached.sessionTypePrices.seguimiento ?? 40),
-            extraordinaria:  String(cached.sessionTypePrices.extraordinaria ?? 70),
+            primeraSesion: String(cached.sessionTypePrices.primeraSesion ?? cached.sessionTypePrices.primera_consulta ?? 50),
+            seguimiento: String(cached.sessionTypePrices.seguimiento ?? 40),
+            extraordinaria: String(cached.sessionTypePrices.extraordinaria ?? 70),
           })
         }
       })
@@ -130,22 +130,27 @@ export default function RatesPanel({ onClose }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4 z-60"
       onClick={onClose}
     >
       <motion.div
-        initial={{ scale: 0.95, opacity: 0, y: 16 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.95, opacity: 0, y: 16 }}
-        transition={{ type: 'spring', damping: 24, stiffness: 300 }}
-        className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm max-h-[92vh] overflow-hidden flex flex-col border border-gray-100 dark:border-gray-800"
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 24 }}
+        transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
+        className="bg-white dark:bg-gray-900 w-full sm:max-w-sm sm:max-h-[92vh] max-h-[92vh] overflow-hidden flex flex-col sm:rounded-2xl rounded-t-2xl shadow-2xl border border-gray-100 dark:border-gray-800"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Drag handle — mobile only */}
+        <div className="sm:hidden flex justify-center pt-3 pb-1 shrink-0">
+          <div className="w-9 h-1 rounded-full bg-gray-300 dark:bg-gray-700" />
+        </div>
+
         {/* ── Header ── */}
         <div className="flex items-center justify-between px-5 pt-5 pb-4 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-sky-50 dark:bg-sky-900/30 flex items-center justify-center shrink-0">
-              <Wallet className="w-4.5 h-4.5 text-sky-500 dark:text-sky-400" />
+            <div className="w-9 h-9 rounded-xl bg-transparent flex items-center justify-center shrink-0">
+              <Wallet className="w-4.5 h-4.5 text-gray-500 " />
             </div>
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 leading-none">Configuración</p>
@@ -211,11 +216,10 @@ export default function RatesPanel({ onClose }) {
         <div className="shrink-0 px-5 py-4 border-t border-gray-100 dark:border-gray-800">
           <button
             onClick={handleSave}
-            className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 ${
-              saved
-                ? 'bg-emerald-500 text-white shadow-sm'
-                : 'bg-linear-to-r from-sky-500 to-teal-500 hover:from-sky-500 hover:to-teal-600 text-white shadow-sm hover:shadow-md active:scale-[0.98]'
-            }`}
+            className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 ${saved
+              ? 'bg-emerald-500 text-white shadow-sm'
+              : 'bg-linear-to-r from-sky-500 to-teal-500 hover:from-sky-500 hover:to-teal-600 text-white shadow-sm hover:shadow-md active:scale-[0.98]'
+              }`}
           >
             {saved ? (
               <><Check className="w-4 h-4" /> ¡Guardado!</>

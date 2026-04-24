@@ -37,103 +37,98 @@ const VideoCallNotification = ({ invitation, onAccept, onDecline, onClose }) => 
   }[invitation.appointmentType] ?? 'Sesión terapéutica'
 
   const progress = timeLeft / 45
+  const urgent = timeLeft <= 10
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-9999 flex items-center justify-center bg-black/30 backdrop-blur-[2px] p-4"
+      className="fixed inset-0 z-9999 flex items-end sm:items-center justify-center sm:p-4 bg-black/50 backdrop-blur-sm"
     >
       <motion.div
-        initial={{ scale: 0.96, opacity: 0, y: 12 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.96, opacity: 0, y: 12 }}
-        transition={{ type: 'spring', duration: 0.35, bounce: 0.1 }}
-        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-90 overflow-hidden"
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 40 }}
+        transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
+        className="w-full sm:max-w-sm bg-white dark:bg-gray-900 sm:rounded-2xl rounded-t-2xl shadow-2xl overflow-hidden"
       >
-        {/* Compact header */}
-        <div className="px-5 pt-5 pb-0 flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#0075C9]/10 dark:bg-[#0075C9]/20 flex items-center justify-center shrink-0">
-              <Video className="w-5 h-5 text-[#0075C9]" />
-            </div>
-            <div>
-              <h3 className="text-[15px] font-bold text-gray-900 dark:text-white leading-tight">Videollamada entrante</h3>
-              <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">Tu profesional te está llamando</p>
-            </div>
-          </div>
+        {/* Drag handle */}
+        <div className="sm:hidden flex justify-center pt-3 pb-1 shrink-0">
+          <div className="w-9 h-1 rounded-full bg-gray-300 dark:bg-gray-700" />
+        </div>
+
+        {/* Close */}
+        <div className="flex justify-end px-4 pt-3 sm:pt-4">
           <button
             onClick={onClose}
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors -mr-1 -mt-1"
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Body */}
-        <div className="px-5 pt-4 pb-5">
-          {/* Professional info */}
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-11 h-11 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0">
-              <User className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+        {/* Avatar + name — centered */}
+        <div className="flex flex-col items-center px-6 pt-2 pb-6">
+          {/* Pulsing avatar */}
+          <div className="relative mb-4">
+            <span className="absolute inset-0 rounded-full bg-[#0075C9]/20 animate-ping" />
+            <span className="absolute -inset-1.5 rounded-full bg-[#0075C9]/10 animate-pulse" />
+            <div className="relative w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-800 border-4 border-white dark:border-gray-900 shadow-lg flex items-center justify-center">
+              <User className="w-9 h-9 text-gray-400 dark:text-gray-500" />
             </div>
-            <div className="min-w-0">
-              <p className="text-[14px] font-semibold text-gray-900 dark:text-white truncate">
-                {invitation.professionalName || 'Tu profesional'}
-              </p>
-              <p className="text-[12px] text-gray-500 dark:text-gray-400">{appointmentLabel}</p>
+            {/* Video badge */}
+            <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#0075C9] flex items-center justify-center shadow-md border-2 border-white dark:border-gray-900">
+              <Video className="w-3.5 h-3.5 text-white" />
             </div>
           </div>
 
-          {/* Time info row */}
-          {invitation.appointmentTime && (
-            <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl px-3.5 py-2.5 mb-4 flex items-center gap-2">
-              <Clock className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-              <span className="text-[12px] text-gray-600 dark:text-gray-300">
-                Programada: <span className="font-medium">{invitation.appointmentTime}</span>
-              </span>
-            </div>
-          )}
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-1">Videollamada entrante</p>
+          <h3 className="text-[18px] font-bold text-gray-900 dark:text-white leading-tight text-center">
+            {invitation.professionalName || 'Tu profesional'}
+          </h3>
+          <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">{appointmentLabel}</p>
 
-          {/* Countdown with progress ring */}
-          <div className="flex items-center justify-center gap-2 mb-5">
-            <div className="relative w-6 h-6">
-              <svg className="w-6 h-6 -rotate-90" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-100 dark:text-gray-700" />
-                <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2"
-                  className={timeLeft <= 10 ? 'text-red-500' : 'text-[#0075C9]'}
-                  strokeDasharray={`${progress * 62.83} 62.83`}
+          {/* Countdown */}
+          <div className="flex items-center gap-2 mt-4 mb-6">
+            <div className="relative w-7 h-7">
+              <svg className="w-7 h-7 -rotate-90" viewBox="0 0 28 28">
+                <circle cx="14" cy="14" r="11" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-gray-100 dark:text-gray-800" />
+                <circle cx="14" cy="14" r="11" fill="none" stroke="currentColor" strokeWidth="2.5"
+                  className={urgent ? 'text-red-500' : 'text-[#0075C9]'}
+                  strokeDasharray={`${progress * 69.12} 69.12`}
                   strokeLinecap="round"
                   style={{ transition: 'stroke-dasharray 1s linear' }}
                 />
               </svg>
             </div>
-            <span className={`text-[13px] font-semibold tabular-nums ${timeLeft <= 10 ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'}`}>
+            <span className={`text-[14px] font-bold tabular-nums ${urgent ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'}`}>
               {timeLeft}s
             </span>
           </div>
 
-          {/* Action buttons */}
-          <div className="flex gap-2.5">
-            <motion.button
-              whileHover={{ scale: 1.015 }} whileTap={{ scale: 0.985 }}
-              onClick={onDecline}
-              className="flex-1 h-11 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-xl text-[13px] font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors flex items-center justify-center gap-2"
-            >
-              <PhoneOff className="w-4 h-4" />
-              Rechazar
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.015 }} whileTap={{ scale: 0.985 }}
-              onClick={handleAccept}
-              className="flex-2 h-11 bg-[#0075C9] text-white rounded-xl text-[13px] font-semibold hover:bg-[#005fa0] transition-colors shadow-sm flex items-center justify-center gap-2"
-            >
-              <Phone className="w-4 h-4" />
-              Unirse a la sesión
-            </motion.button>
-          </div>
+          {/* Accept */}
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={handleAccept}
+            className="w-full h-13 bg-[#0075C9] hover:bg-[#005fa0] active:bg-[#004d87] text-white rounded-2xl text-[15px] font-bold transition-colors shadow-md flex items-center justify-center gap-2.5 mb-3"
+          >
+            <Phone className="w-5 h-5" />
+            Unirse a la sesión
+          </motion.button>
+
+          {/* Decline */}
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={onDecline}
+            className="w-full h-11 text-gray-500 dark:text-gray-400 rounded-2xl text-[14px] font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
+          >
+            <PhoneOff className="w-4 h-4" />
+            Rechazar
+          </motion.button>
         </div>
+
+        <div className="sm:hidden" style={{ height: 'env(safe-area-inset-bottom, 0px)' }} />
       </motion.div>
     </motion.div>
   )

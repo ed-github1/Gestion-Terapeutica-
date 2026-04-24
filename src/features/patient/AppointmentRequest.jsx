@@ -46,11 +46,9 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
     type: 'Primera Sesión',
     mode: 'consultorio',
     reason: '',
-    notes: ''
   })
 
   const [paymentData, setPaymentData] = useState({ amount: 0 })
-  const [paymentOption, setPaymentOption] = useState('full') // 'full' or 'half'
   const [currencySymbol, setCurrencySymbol] = useState('$')
   const [tarifasLoaded, setTarifasLoaded] = useState(false)
 
@@ -268,7 +266,6 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
           sessionType: formData.type,
           mode: formData.mode,
           reason: formData.reason,
-          notes: formData.notes,
           duration: selectedType?.duration || 60,
           professionalId,
           patientId: user?._id || user?.id,
@@ -312,8 +309,8 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
         currency: 'MXN',
         paymentMethod: 'card',
         cardLast4: (cardFields.cardNumber || paymentData.cardNumber || '').replace(/\s/g, '').slice(-4),
-        splitPayment: paymentOption === 'half',
-        remainingAmount: paymentOption === 'half' ? Math.floor(paymentData.amount / 2) : 0,
+        splitPayment: false,
+        remainingAmount: 0,
       })
 
       setStep(3) // Success
@@ -336,27 +333,30 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
     'block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5'
 
   const selectedType = appointmentTypes.find(t => t.value === formData.type)
-  const chargeAmount = paymentOption === 'half'
-    ? Math.ceil(paymentData.amount / 2)
-    : paymentData.amount
+  const chargeAmount = paymentData.amount
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/30 backdrop-blur-[2px] flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/30 backdrop-blur-[2px] flex items-end sm:items-center justify-center sm:p-4 z-60"
       onClick={onClose}
     >
       <motion.div
-        initial={{ scale: 0.96, opacity: 0, y: 12 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.96, opacity: 0, y: 12 }}
-        transition={{ type: 'spring', duration: 0.35, bounce: 0.1 }}
-        className="bg-white rounded-2xl border border-gray-200 shadow-xl w-full max-w-md flex flex-col overflow-hidden"
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 24 }}
+        transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
+        className="bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl border border-gray-200 shadow-xl flex flex-col overflow-hidden"
         style={{ maxHeight: 'calc(100dvh - 2rem)' }}
         onClick={e => e.stopPropagation()}
       >
+        {/* Drag handle — mobile only */}
+        <div className="sm:hidden flex justify-center pt-3 pb-1 shrink-0">
+          <div className="w-9 h-1 rounded-full bg-gray-300" />
+        </div>
+
         {/* ── Header ── */}
         <div className="px-5 pt-5 pb-4 flex items-start justify-between border-b border-gray-100 shrink-0">
           <div className="flex items-center gap-3">
@@ -396,7 +396,7 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
         </div>
 
         {/* ── Scrollable body ── */}
-        <div className="overflow-y-auto flex-1 custom-scrollbar">
+        <div className="overflow-y-auto flex-1 custom-scrollbar" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
           <AnimatePresence mode="wait">
 
             {/* ─── Step 1: Select slot ─── */}
@@ -534,17 +534,6 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
                         placeholder="Describe brevemente el motivo..."
                       />
                     </div>
-                    <div>
-                      <label className={labelCls}>Notas adicionales <span className="normal-case font-normal">(opcional)</span></label>
-                      <textarea
-                        value={formData.notes}
-                        onChange={e => setFormData(p => ({ ...p, notes: e.target.value }))}
-                        rows={1}
-                        className={`${inputCls} resize-none`}
-                        placeholder="Información adicional..."
-                      />
-                    </div>
-
                     {/* Summary pill */}
                     <div className="flex items-center justify-between bg-blue-50 rounded-xl px-3 py-2.5 border border-blue-100">
                       <div>
@@ -610,41 +599,6 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
                   </div>
                 </div>
 
-                {/* Payment option toggle */}
-                <div>
-                  <p className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">¿Cómo deseas pagar?</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setPaymentOption('full')}
-                      className={`px-3 py-2.5 rounded-xl text-left border transition text-[13px] ${
-                        paymentOption === 'full'
-                          ? 'border-blue-500 bg-blue-50 text-blue-700'
-                          : 'border-gray-200 text-gray-700 hover:border-gray-300 bg-white'
-                      }`}
-                    >
-                      <p className="font-semibold leading-tight">Pago completo</p>
-                      <p className="text-[11px] opacity-60 mt-0.5">{currencySymbol}{paymentData.amount} ahora</p>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPaymentOption('half')}
-                      className={`px-3 py-2.5 rounded-xl text-left border transition text-[13px] ${
-                        paymentOption === 'half'
-                          ? 'border-blue-500 bg-blue-50 text-blue-700'
-                          : 'border-gray-200 text-gray-700 hover:border-gray-300 bg-white'
-                      }`}
-                    >
-                      <p className="font-semibold leading-tight">Mitad ahora</p>
-                      <p className="text-[11px] opacity-60 mt-0.5">{currencySymbol}{Math.ceil(paymentData.amount / 2)} + {currencySymbol}{Math.floor(paymentData.amount / 2)} en sesión</p>
-                    </button>
-                  </div>
-                  {paymentOption === 'half' && (
-                    <p className="text-[11px] text-amber-600 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 mt-2">
-                      Pagarás <strong>{currencySymbol}{Math.ceil(paymentData.amount / 2)}</strong> ahora para reservar. El saldo restante de <strong>{currencySymbol}{Math.floor(paymentData.amount / 2)}</strong> se abonará al iniciar la sesión.
-                    </p>
-                  )}
-                </div>
 
                 <PaymentForm
                   amount={chargeAmount}
@@ -670,21 +624,13 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
                 </div>
                 <h3 className="text-[16px] font-bold text-gray-900 mb-1">¡Reserva confirmada!</h3>
                 <p className="text-[13px] text-gray-500 mb-4 leading-relaxed">
-                  {paymentOption === 'half'
-                    ? `Pago parcial procesado. El saldo restante se abonará al iniciar la sesión.`
-                    : 'Tu pago fue procesado y la cita queda confirmada.'}
+                  Tu pago fue procesado y la cita queda confirmada.
                 </p>
                 <div className="w-full bg-gray-50 rounded-xl border border-gray-100 divide-y divide-gray-100 mb-5 text-left overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-2.5">
                     <p className="text-[13px] font-semibold text-gray-800">{selectedType?.label}</p>
                     <span className="text-[13px] font-bold text-emerald-600">${chargeAmount} pagado</span>
                   </div>
-                  {paymentOption === 'half' && (
-                    <div className="flex items-center justify-between px-4 py-2.5 bg-amber-50">
-                      <p className="text-[12px] text-amber-700 font-medium">Saldo pendiente en sesión</p>
-                      <span className="text-[13px] font-bold text-amber-600">${Math.floor(paymentData.amount / 2)}</span>
-                    </div>
-                  )}
                   <div className="px-4 py-2 text-[11px] text-gray-400">
                     {new Date(`${selectedDate}T00:00:00`).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'long' })}
                     {' · '}{selectedSlot?.time}

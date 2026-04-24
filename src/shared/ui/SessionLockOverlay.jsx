@@ -169,7 +169,7 @@ const SessionLockOverlay = ({
               <div
                 className="w-16 h-16 rounded-full
                             bg-gray-50 dark:bg-[#0d1829]
-                            border border-gray-150 dark:border-[#1e2d45]
+                            border border-gray-100 dark:border-gray-900
                             flex items-center justify-center
                             shadow-sm"
               >

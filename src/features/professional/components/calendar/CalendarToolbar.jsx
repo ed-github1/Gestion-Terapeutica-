@@ -67,7 +67,7 @@ export default function CalendarToolbar({
       <div className="flex items-center gap-1.5 shrink-0">
         <button
           onClick={onToday}
-          className="px-2.5 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          className="hidden sm:block px-2.5 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
         >
           Hoy
         </button>

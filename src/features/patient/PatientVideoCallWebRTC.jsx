@@ -6,7 +6,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Mic, MicOff, Video as VideoIcon, VideoOff, MessageSquare, PhoneOff, LogOut, Circle, ShieldAlert } from 'lucide-react';
+import { Mic, MicOff, Video as VideoIcon, VideoOff, MessageSquare, ChevronLeft, PhoneOff, LogOut, Circle, ShieldAlert } from 'lucide-react';
 import { useWebRTC } from '@shared/hooks/useWebRTC';
 import { useCallRecording } from '@shared/hooks/useCallRecording';
 import { videoCallService } from '@shared/services/videoCallService';
@@ -30,16 +30,15 @@ const PatientVideoCallWebRTC = () => {
     error,
     isAudioEnabled,
     isVideoEnabled,
-    isRecording: isServerRecording,
     isReconnecting,
+    isServerRecording,
     reconnectFailed,
     userLeft,
-    recordingAuthorized,
     joinRoom,
     leaveRoom,
     toggleAudio,
     toggleVideo,
-    sendMessage
+    sendMessage,
   } = useWebRTC();
 
   const [showChat, setShowChat] = useState(false);
@@ -61,7 +60,7 @@ const PatientVideoCallWebRTC = () => {
     recordingError,
     stopRecording: stopCallRecording,
   } = useCallRecording({ localStream, appointmentId, enabled: recordingConsented, onRecordingFailed: handleRecordingFailed });
-  
+
   const localVideoRef = useRef(null);
   const remoteVideoRefs = useRef(new Map());
   const callStartTimeRef = useRef(null);
@@ -84,7 +83,6 @@ const PatientVideoCallWebRTC = () => {
         });
       }, 1000);
     } else {
-      // Someone rejoined or state reset — cancel countdown
       if (countdownRef.current) {
         clearInterval(countdownRef.current);
         countdownRef.current = null;
@@ -160,7 +158,7 @@ const PatientVideoCallWebRTC = () => {
   useEffect(() => {
     if (isInRoom && !callStartTimeRef.current) {
       callStartTimeRef.current = Date.now();
-      
+
       durationIntervalRef.current = setInterval(() => {
         const elapsed = Math.floor((Date.now() - callStartTimeRef.current) / 1000);
         if (durationDisplayRef.current) {
@@ -182,12 +180,7 @@ const PatientVideoCallWebRTC = () => {
 
   const handleJoinRoom = async () => {
     try {
-      // Ensure invitation is accepted before joining (handles race conditions
-      // and direct navigation to the video call URL)
       try { await videoCallService.acceptInvitation(appointmentId); } catch { /* may already be accepted */ }
-      // recordingConsent: true registers willingness on the room record so the backend
-      // can set professionalConsent + patientConsent when both participants are present.
-      // Actual local recording only starts after the patient explicitly accepts the disclaimer.
       await joinRoom(appointmentId, { recordingConsent: true });
     } catch (err) {
       console.error('Failed to join room:', err);
@@ -211,7 +204,6 @@ const PatientVideoCallWebRTC = () => {
   const handleDeclineRecording = async () => {
     recordingAcknowledgedRef.current = true;
     setShowRecordingDisclaimer(false);
-    // Notify the backend that the patient declined
     try {
       await videoCallService.declineRecordingConsent?.(appointmentId);
     } catch { /* best-effort */ }
@@ -227,7 +219,6 @@ const PatientVideoCallWebRTC = () => {
       setShowRecordingDisclaimer(false);
     } catch (err) {
       console.error('Failed to register recording consent:', err);
-      // Don't enable recording if consent registration failed
     } finally {
       setConsentLoading(false);
     }
@@ -315,343 +306,271 @@ const PatientVideoCallWebRTC = () => {
     );
   }
 
+  const btnBase = { width: 54, height: 54, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', transition: 'all 0.2s' };
+  const glassIdle = 'rgba(255,255,255,0.1)';
+  const glassBorder = '1px solid rgba(255,255,255,0.2)';
+  const glassShadow = '0 4px 20px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.12)';
+  const redActive = 'linear-gradient(135deg,#ef4444,#dc2626)';
+  const redBorder = '1px solid rgba(239,68,68,0.5)';
+  const redShadow = '0 4px 20px rgba(239,68,68,0.4),inset 0 1px 0 rgba(255,255,255,0.15)';
+  const skyActive = 'linear-gradient(135deg,#0ea5e9,#0284c7)';
+  const skyBorder = '1px solid rgba(14,165,233,0.5)';
+  const skyShadow = '0 4px 20px rgba(14,165,233,0.4),inset 0 1px 0 rgba(255,255,255,0.15)';
+  const labelStyle = { fontSize: 10, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.02em' };
+
   return (
-    <div className="fixed inset-0 bg-gray-900 flex flex-col">
-      {/* Warning banner (e.g. camera permission denied) */}
-      {error && error.type === 'warning' && (
-        <div className="bg-amber-600/90 text-white text-xs sm:text-sm px-4 py-2 flex items-center justify-between shrink-0 z-30">
-          <span>{error.message}</span>
-          <button onClick={() => window.location.reload()} className="ml-3 underline font-medium whitespace-nowrap">Reintentar</button>
-        </div>
-      )}
-      {/* User-left notice banner */}
-      {countdown !== null && userLeft && (
-        <div className="bg-amber-500/90 text-white text-xs sm:text-sm px-4 py-2 flex items-center justify-between shrink-0 z-30">
-          <span className="flex items-center gap-2">
-            <LogOut className="w-4 h-4" />
-            {userLeft.userName} ha abandonado la llamada — la sesión terminará en {countdown}s
-          </span>
-          <button
-            onClick={handleLeaveRoom}
-            className="ml-3 underline font-medium whitespace-nowrap"
-          >
-            Salir ahora
-          </button>
-        </div>
-      )}
-      {/* Recording indicator banner */}
-      {(isServerRecording || isRecording) && (
-        <div className="bg-red-600/90 text-white text-xs sm:text-sm px-4 py-1.5 flex items-center justify-center gap-2 shrink-0 z-30">
-          <Circle className="w-3 h-3 fill-white animate-pulse" />
-          <span className="font-medium">Grabando sesión</span>
-        </div>
-      )}
-      {/* Header - Compact */}
-      <div className="bg-gray-800/90 border-b border-gray-700/50 px-3 sm:px-6 py-2 flex items-center justify-between shrink-0 z-20">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="text-white min-w-0">
-            <h1 className="text-xs sm:text-sm font-semibold truncate">Sesión de Terapia</h1>
-            <p className="text-[10px] sm:text-xs text-gray-400 truncate">
-              {participants.length > 0 && `Con ${participants[0]?.userName}`}
-            </p>
-          </div>
-          
-          {isInRoom && (
-            <div className="flex items-center gap-1 text-gray-400 shrink-0">
-              <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-              <span ref={durationDisplayRef} className="text-[10px] sm:text-xs font-mono">00:00:00</span>
-            </div>
-          )}
-        </div>
+    <div className="fixed inset-0 bg-black overflow-hidden">
 
-        <span className="text-gray-400 text-[10px] sm:text-xs shrink-0">
-          {participants.length + 1} en la sala
-        </span>
-      </div>
-
-      {/* Video Container - fills remaining space */}
-      <div className="flex-1 relative min-h-0 overflow-hidden">
-        {/* Remote Video (Main) - fills entire area */}
-        {remoteStreams.length > 0 ? (
-          remoteStreams.map(({ userId, stream }) => (
-            <div key={userId} className="absolute inset-0 bg-black">
-              <video
-                ref={el => {
-                  if (el) {
-                    remoteVideoRefs.current.set(userId, el);
-                    if (el.srcObject !== stream) {
-                      el.srcObject = stream;
-                    }
-                  }
-                }}
-                autoPlay
-                playsInline
-                className="w-full h-full object-cover"
-              />
-              
-              {/* Remote user label */}
-              <div className="absolute bottom-3 left-3 bg-black/40 backdrop-blur-md px-2 py-1 rounded-md">
-                <p className="text-white text-xs font-medium">
-                  {participants.find(p => p.userId === userId)?.userName || 'Profesional'}
-                </p>
-              </div>
-            </div>
-          ))
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-sky-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                <svg className="w-8 h-8 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-              </div>
-              <p className="text-white text-sm">Esperando al profesional...</p>
-              <p className="text-gray-500 text-xs mt-1">La videollamada comenzará pronto</p>
-            </div>
-          </div>
-        )}
-
-        {/* Reconnecting overlay */}
-        {isReconnecting && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="absolute inset-0 bg-black/80 flex items-center justify-center z-30"
-          >
-            <div className="text-center">
-              <div className="w-12 h-12 border-2 border-sky-400 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-              <p className="text-white text-lg font-semibold">Reconectando...</p>
-              <p className="text-gray-400 text-sm mt-1">Se perdió la conexión. Intentando restablecer...</p>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Local Video (PIP) - bottom-right, above controls */}
-        <div
-          className="absolute bottom-2 right-2 w-20 h-[60px] sm:w-36 sm:h-[100px] md:w-44 md:h-[124px] bg-gray-800 rounded-lg overflow-hidden shadow-xl border border-white/15 z-10"
-        >
-          {localStream ? (
-            <>
-              <video
-                ref={setLocalVideoRef}
-                autoPlay
-                muted
-                playsInline
-                className="w-full h-full object-cover mirror"
-              />
-              
-              {!isVideoEnabled && (
-                <div className="absolute inset-0 bg-gray-800 flex items-center justify-center">
-                  <VideoOff className="w-4 h-4 text-gray-400" />
-                </div>
-              )}
-              
-              <div className="absolute bottom-0.5 left-1 text-[8px] sm:text-[10px]">
-                <span className="text-white/80 font-medium bg-black/40 px-1 rounded">Tú</span>
-              </div>
-            </>
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gray-800">
-              <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      {/* ── Full-screen remote video ─────────────────────────────────── */}
+      {remoteStreams.length > 0 ? (
+        remoteStreams.map(({ userId, stream }) => (
+          <video key={userId}
+            ref={el => { if (el) { remoteVideoRefs.current.set(userId, el); if (el.srcObject !== stream) el.srcObject = stream; } }}
+            autoPlay playsInline
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        ))
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
+          <div className="text-center">
+            <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4"
+              style={{ background: 'rgba(14,165,233,0.15)', border: '1px solid rgba(14,165,233,0.25)' }}>
+              <svg className="w-10 h-10 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             </div>
-          )}
+            <p className="text-white text-base font-medium">Esperando al profesional...</p>
+            <p className="text-white/30 text-sm mt-1">La sesión comenzará pronto</p>
+          </div>
         </div>
+      )}
 
-        {/* Chat Panel — full width on mobile, side drawer on desktop */}
-        <AnimatePresence>
-          {showChat && (
-            <motion.div
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 22, stiffness: 220 }}
-              className="absolute top-0 right-0 w-full sm:w-96 h-full bg-white/95 backdrop-blur-xl shadow-2xl flex flex-col z-20 sm:border-l sm:border-gray-200"
-            >
-              <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center">
-                    <MessageSquare className="w-4 h-4 text-sky-600" />
-                  </div>
-                  <h3 className="font-semibold text-gray-900 text-sm">Chat</h3>
-                </div>
-                <button
-                  onClick={() => setShowChat(false)}
-                  className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
-                  aria-label="Cerrar chat"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
-                {chatMessages.length === 0 && (
-                  <div className="h-full flex items-center justify-center text-center px-6">
-                    <p className="text-xs text-gray-400">No hay mensajes aún.<br/>Envía el primero para iniciar la conversación.</p>
-                  </div>
-                )}
-                {chatMessages.map((msg, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex ${msg.isOwn ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-[78%] rounded-2xl px-3.5 py-2 shadow-sm ${
-                        msg.isOwn
-                          ? 'bg-sky-500 text-white rounded-br-md'
-                          : 'bg-gray-100 text-gray-800 rounded-bl-md'
-                      }`}
-                    >
-                      {!msg.isOwn && (
-                        <p className="text-[11px] font-semibold mb-0.5 text-sky-700">{msg.userName}</p>
-                      )}
-                      <p className="text-sm leading-relaxed wrap-break-word">{msg.message}</p>
-                      <p className={`text-[10px] mt-1 ${msg.isOwn ? 'text-white/70' : 'text-gray-500'}`}>
-                        {new Date(msg.timestamp).toLocaleTimeString('es-ES', {
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <form onSubmit={handleSendMessage} className="p-3 border-t border-gray-100 bg-white/80" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
-                <div className="flex gap-2 items-center">
-                  <input
-                    type="text"
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    placeholder="Escribe un mensaje…"
-                    className="flex-1 px-4 py-2.5 bg-gray-100 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition"
-                  />
-                  <button
-                    type="submit"
-                    disabled={!chatInput.trim()}
-                    className="w-10 h-10 shrink-0 bg-sky-500 text-white rounded-full hover:bg-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
-                    aria-label="Enviar mensaje"
-                  >
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4Z"/></svg>
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          )}
-        </AnimatePresence>
+      {/* ── Status banners — absolute top ───────────────────────────── */}
+      <div className="absolute top-0 left-0 right-0 z-50 flex flex-col">
+        {error?.type === 'warning' && (
+          <div className="text-white text-xs px-4 py-2 flex items-center justify-between backdrop-blur-sm" style={{ background: 'rgba(217,119,6,0.9)' }}>
+            <span>{error.message}</span>
+            <button onClick={() => window.location.reload()} className="ml-3 underline font-medium">Reintentar</button>
+          </div>
+        )}
+        {countdown !== null && userLeft && (
+          <div className="text-white text-xs px-4 py-2 flex items-center justify-between backdrop-blur-sm" style={{ background: 'rgba(245,158,11,0.9)' }}>
+            <span className="flex items-center gap-2"><LogOut className="w-3.5 h-3.5" />{userLeft.userName} ha abandonado — la sesión termina en {countdown}s</span>
+            <button onClick={handleLeaveRoom} className="ml-3 underline font-medium">Salir ahora</button>
+          </div>
+        )}
+        {(isServerRecording || isRecording) && (
+          <div className="text-white text-xs px-4 py-1.5 flex items-center justify-center gap-2 backdrop-blur-sm" style={{ background: 'rgba(220,38,38,0.9)' }}>
+            <Circle className="w-2.5 h-2.5 fill-white animate-pulse" />
+            <span className="font-medium">Grabando sesión</span>
+          </div>
+        )}
       </div>
 
-      {/* Controls — floating pill */}
-      <div className="shrink-0 z-20 px-2 pb-2 sm:pb-4" style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
-        <div className="mx-auto max-w-fit flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 bg-gray-900/80 backdrop-blur-xl border border-white/10 rounded-full shadow-2xl">
-          {/* Audio */}
-          <button
-            onClick={handleToggleAudio}
-            aria-label={isAudioEnabled ? 'Silenciar micrófono' : 'Activar micrófono'}
-            className={`w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-95 ${
-              isAudioEnabled
-                ? 'bg-white/10 hover:bg-white/20 text-white'
-                : 'bg-red-500 hover:bg-red-600 text-white'
-            }`}
-          >
-            {isAudioEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+      {/* ── Back button — top left ───────────────────────────────────── */}
+      <button onClick={handleLeaveRoom} aria-label="Salir"
+        className="absolute z-30 active:scale-90 transition-transform"
+        style={{ top: 'calc(env(safe-area-inset-top, 0px) + 14px)', left: 14 }}>
+        <div style={{ width: 42, height: 42, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
+          <ChevronLeft className="w-5 h-5 text-white" />
+        </div>
+      </button>
+
+      {/* ── Timer — top center ───────────────────────────────────────── */}
+      {isInRoom && (
+        <div className="absolute z-30 left-1/2 -translate-x-1/2"
+          style={{ top: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}>
+          <div className="flex items-center gap-2 px-4 py-2 rounded-full"
+            style={{ background: 'rgba(0,0,0,0.38)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.13)', boxShadow: '0 2px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.07)' }}>
+            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: '#4ade80', boxShadow: '0 0 8px rgba(74,222,128,0.9)' }} />
+            <span ref={durationDisplayRef} className="text-[13px] font-light text-white/85 tabular-nums" style={{ letterSpacing: '0.12em', fontVariantNumeric: 'tabular-nums' }}>00:00:00</span>
+          </div>
+        </div>
+      )}
+
+      {/* ── PIP local video — top right ──────────────────────────────── */}
+      <div className="absolute z-30 rounded-2xl overflow-hidden"
+        style={{ top: 'calc(env(safe-area-inset-top, 0px) + 14px)', right: 14, width: 88, height: 120, border: '2px solid rgba(255,255,255,0.2)', boxShadow: '0 8px 28px rgba(0,0,0,0.6)' }}>
+        {localStream ? (
+          <>
+            <video ref={setLocalVideoRef} autoPlay muted playsInline className="w-full h-full object-cover mirror" />
+            {!isVideoEnabled && (
+              <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'rgba(10,10,20,0.9)' }}>
+                <VideoOff className="w-5 h-5 text-white/40" />
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="w-full h-full flex items-center justify-center" style={{ background: 'rgba(10,10,20,0.9)' }}>
+            <svg className="w-6 h-6 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          </div>
+        )}
+      </div>
+
+      {/* ── Professional name tag — bottom left, above controls ──────── */}
+      {participants.length > 0 && (
+        <div className="absolute z-30 flex items-center gap-2.5 px-3 py-2 rounded-xl"
+          style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 112px)', left: 16, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.1)' }}>
+          <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0" style={{ background: 'rgba(14,165,233,0.2)', border: '1px solid rgba(14,165,233,0.3)' }}>
+            <span className="text-sky-300 text-xs font-bold">{participants[0]?.userName?.charAt(0)?.toUpperCase() ?? '?'}</span>
+          </div>
+          <div>
+            <p className="text-white text-xs font-semibold leading-tight">{participants[0]?.userName}</p>
+            <p className="text-white/35 text-[10px]">Profesional</p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Reconnecting overlay ─────────────────────────────────────── */}
+      {isReconnecting && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+          className="absolute inset-0 flex items-center justify-center z-40" style={{ background: 'rgba(0,0,0,0.8)' }}>
+          <div className="text-center">
+            <div className="w-12 h-12 border-2 border-sky-400 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-white text-lg font-semibold">Reconectando...</p>
+            <p className="text-white/40 text-sm mt-1">Se perdió la conexión. Intentando restablecer...</p>
+          </div>
+        </motion.div>
+      )}
+
+      {/* ── Chat Panel ───────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {showChat && (
+          <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 22, stiffness: 220 }}
+            className="absolute top-0 right-0 w-full sm:w-96 h-full z-40 flex flex-col"
+            style={{ background: 'rgba(10,10,15,0.88)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', borderLeft: '1px solid rgba(255,255,255,0.08)' }}>
+            <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'rgba(14,165,233,0.15)' }}>
+                  <MessageSquare className="w-4 h-4 text-sky-400" />
+                </div>
+                <h3 className="font-semibold text-white text-sm">Chat</h3>
+              </div>
+              <button onClick={() => setShowChat(false)}
+                className="w-8 h-8 flex items-center justify-center text-white/40 hover:text-white rounded-full transition-colors">✕</button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              {chatMessages.length === 0 && (
+                <div className="h-full flex items-center justify-center text-center px-6">
+                  <p className="text-xs text-white/30">No hay mensajes aún.<br />Envía el primero para iniciar la conversación.</p>
+                </div>
+              )}
+              {chatMessages.map((msg, idx) => (
+                <div key={idx} className={`flex ${msg.isOwn ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[78%] rounded-2xl px-3.5 py-2 ${msg.isOwn ? 'bg-sky-500 text-white rounded-br-md' : 'bg-white/10 text-white rounded-bl-md'}`}>
+                    {!msg.isOwn && <p className="text-[11px] font-semibold mb-0.5 text-sky-400">{msg.userName}</p>}
+                    <p className="text-sm leading-relaxed">{msg.message}</p>
+                    <p className={`text-[10px] mt-1 ${msg.isOwn ? 'text-white/60' : 'text-white/40'}`}>
+                      {new Date(msg.timestamp).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <form onSubmit={handleSendMessage} className="p-3" style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+              <div className="flex gap-2 items-center">
+                <input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)}
+                  placeholder="Escribe un mensaje…"
+                  className="flex-1 px-4 py-2.5 rounded-full text-sm text-white placeholder-white/25 focus:outline-none focus:ring-2 focus:ring-sky-500/40 transition"
+                  style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                <button type="submit" disabled={!chatInput.trim()}
+                  className="w-10 h-10 shrink-0 bg-sky-500 text-white rounded-full hover:bg-sky-600 disabled:opacity-40 transition-colors flex items-center justify-center">
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 2 11 13" /><path d="m22 2-7 20-4-9-9-4Z" />
+                  </svg>
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Controls bar — centered row over gradient fade ───────────── */}
+      <div className="absolute bottom-0 left-0 right-0 z-30" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+        <div className="absolute inset-x-0 bottom-0 h-40 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%)' }} />
+        <div className="relative flex items-end justify-center gap-4 px-4 pb-6 pt-8">
+
+          {/* Mic */}
+          <button onClick={handleToggleAudio} aria-label={isAudioEnabled ? 'Silenciar' : 'Activar micrófono'}
+            className="flex flex-col items-center gap-1.5 group active:scale-90 transition-transform">
+            <div style={{ ...btnBase, background: isAudioEnabled ? glassIdle : redActive, border: isAudioEnabled ? glassBorder : redBorder, boxShadow: isAudioEnabled ? glassShadow : redShadow }}>
+              {isAudioEnabled ? <Mic className="w-5 h-5 text-white" /> : <MicOff className="w-5 h-5 text-white" />}
+            </div>
+            <span style={labelStyle}>{isAudioEnabled ? 'Micrófono' : 'Silenciado'}</span>
           </button>
 
-          {/* Video */}
-          <button
-            onClick={handleToggleVideo}
-            aria-label={isVideoEnabled ? 'Apagar cámara' : 'Encender cámara'}
-            className={`w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-95 ${
-              isVideoEnabled
-                ? 'bg-white/10 hover:bg-white/20 text-white'
-                : 'bg-red-500 hover:bg-red-600 text-white'
-            }`}
-          >
-            {isVideoEnabled ? <VideoIcon className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
+          {/* Leave — center, larger red circle */}
+          <button onClick={handleLeaveRoom}
+            className="flex flex-col items-center gap-1.5 group active:scale-90 transition-transform">
+            <div style={{ width: 62, height: 62, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: redActive, border: redBorder, boxShadow: '0 0 0 6px rgba(239,68,68,0.18),' + redShadow, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', transition: 'all 0.2s' }}>
+              <PhoneOff className="w-6 h-6 text-white" />
+            </div>
+            <span style={labelStyle}>Salir</span>
+          </button>
+
+          {/* Camera */}
+          <button onClick={handleToggleVideo} aria-label={isVideoEnabled ? 'Apagar cámara' : 'Encender cámara'}
+            className="flex flex-col items-center gap-1.5 group active:scale-90 transition-transform">
+            <div style={{ ...btnBase, background: isVideoEnabled ? glassIdle : redActive, border: isVideoEnabled ? glassBorder : redBorder, boxShadow: isVideoEnabled ? glassShadow : redShadow }}>
+              {isVideoEnabled ? <VideoIcon className="w-5 h-5 text-white" /> : <VideoOff className="w-5 h-5 text-white" />}
+            </div>
+            <span style={labelStyle}>{isVideoEnabled ? 'Cámara' : 'Sin cámara'}</span>
           </button>
 
           {/* Chat */}
-          <button
-            onClick={() => setShowChat(!showChat)}
-            aria-label="Abrir chat"
-            className={`relative w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-95 ${
-              showChat ? 'bg-sky-500 text-white' : 'bg-white/10 hover:bg-white/20 text-white'
-            }`}
-          >
-            <MessageSquare className="w-5 h-5" />
+          <button onClick={() => setShowChat(!showChat)} aria-label="Abrir chat"
+            className="flex flex-col items-center gap-1.5 group active:scale-90 transition-transform relative">
+            <div style={{ ...btnBase, background: showChat ? skyActive : glassIdle, border: showChat ? skyBorder : glassBorder, boxShadow: showChat ? skyShadow : glassShadow }}>
+              <MessageSquare className="w-5 h-5 text-white" />
+            </div>
             {chatMessages.length > 0 && !showChat && (
-              <span className="absolute -top-0.5 -right-0.5 min-w-4.5 h-4.5 px-1 bg-sky-400 rounded-full text-[10px] flex items-center justify-center font-bold text-white">
+              <span className="absolute -top-1 right-0.5 min-w-4.5 h-4.5 px-1 rounded-full text-[9px] flex items-center justify-center font-bold text-white"
+                style={{ background: 'linear-gradient(135deg,#0ea5e9,#0284c7)', boxShadow: '0 2px 8px rgba(14,165,233,0.6)' }}>
                 {chatMessages.length > 9 ? '9+' : chatMessages.length}
               </span>
             )}
+            <span style={labelStyle}>Chat</span>
           </button>
 
-          <div className="w-px h-6 bg-white/10 mx-0.5 sm:mx-1" aria-hidden />
-
-          {/* Leave Call */}
-          <button
-            onClick={handleLeaveRoom}
-            className="h-11 px-4 sm:px-5 bg-red-500 hover:bg-red-600 text-white rounded-full font-medium transition-all active:scale-95 flex items-center gap-1.5 text-sm"
-          >
-            <PhoneOff className="w-4 h-4" />
-            <span>Salir</span>
-          </button>
         </div>
       </div>
 
       {/* Recording Disclaimer Modal */}
       <AnimatePresence>
         {showRecordingDisclaimer && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full"
-            >
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="absolute inset-0 flex items-center justify-center z-50 p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="rounded-2xl p-6 max-w-md w-full shadow-2xl"
+              style={{ background: 'rgba(15,15,20,0.95)', backdropFilter: 'blur(24px)', border: '1px solid rgba(255,255,255,0.1)' }}>
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-red-50 dark:bg-red-500/20 flex items-center justify-center shrink-0">
-                  <Circle className="w-5 h-5 text-red-500" />
+                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.25)' }}>
+                  <Circle className="w-5 h-5 text-red-400" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-800 dark:text-white">Aviso de grabación</h3>
+                <h3 className="text-lg font-bold text-white">Aviso de grabación</h3>
               </div>
-
-              <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg p-3 mb-4">
+              <div className="rounded-xl p-3 mb-4" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)' }}>
                 <div className="flex items-start gap-2">
-                  <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                  <div className="text-xs text-amber-800 dark:text-amber-200 leading-relaxed">
+                  <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <div className="text-xs text-amber-200/80 leading-relaxed">
                     <p className="font-semibold mb-1">Protección de datos personales</p>
-                    <p>
-                      Tu profesional ha iniciado la grabación de esta sesión. La grabación se
-                      utilizará exclusivamente con fines terapéuticos y de seguimiento clínico.
-                      El audio será procesado de forma segura y eliminado tras generar la transcripción.
-                    </p>
+                    <p>Tu profesional ha iniciado la grabación de esta sesión. La grabación se utilizará exclusivamente con fines terapéuticos. El audio será procesado de forma segura y eliminado tras generar la transcripción.</p>
                   </div>
                 </div>
               </div>
-
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Si no deseas que la sesión sea grabada, puedes abandonar la videollamada.
-              </p>
-
+              <p className="text-sm text-white/40 mb-4">Si no deseas que la sesión sea grabada, puedes abandonar la videollamada.</p>
               <div className="flex gap-3">
-                <button
-                  onClick={handleDeclineRecording}
-                  className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm font-medium"
-                >
+                <button onClick={handleDeclineRecording}
+                  className="flex-1 px-4 py-2.5 rounded-xl text-white/60 hover:bg-white/5 transition-colors text-sm font-medium"
+                  style={{ border: '1px solid rgba(255,255,255,0.12)' }}>
                   Salir de la sesión
                 </button>
-                <button
-                  onClick={handleAcceptRecording}
-                  disabled={consentLoading}
-                  className="flex-1 px-4 py-2.5 bg-[#0075C9] text-white rounded-lg hover:bg-[#005fa0] transition-colors text-sm font-medium disabled:opacity-50"
-                >
+                <button onClick={handleAcceptRecording} disabled={consentLoading}
+                  className="flex-1 px-4 py-2.5 text-white rounded-xl transition-colors text-sm font-medium disabled:opacity-50"
+                  style={{ background: 'linear-gradient(135deg,#0ea5e9,#0284c7)', border: '1px solid rgba(14,165,233,0.4)' }}>
                   {consentLoading ? 'Registrando…' : 'Entendido, continuar'}
                 </button>
               </div>
@@ -660,7 +579,6 @@ const PatientVideoCallWebRTC = () => {
         )}
       </AnimatePresence>
 
-      {/* Mirror effect for local video */}
       <style>{`
         .mirror {
           transform: scaleX(-1);

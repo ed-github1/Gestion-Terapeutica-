@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import apiClient from '@shared/api/client'
 import { appointmentsService } from '@shared/services/appointmentsService'
+import { socketNotificationService } from '@shared/services/socketNotificationService'
 import { resolvePatientName, sanitizeName } from '../utils/dashboardUtils'
 
 /**
@@ -367,6 +368,22 @@ export const useDashboardData = () => {
 
     useEffect(() => {
         loadDashboardData()
+    }, [])
+
+    // Refresh appointments automatically when any appointment socket event fires
+    useEffect(() => {
+        const APPOINTMENT_EVENTS = [
+            'appointment-booked',
+            'appointment-confirmed',
+            'appointment-cancelled',
+            'appointment-rescheduled',
+            'appointment-paid',
+            'appointment-pending',
+        ]
+        const unsubs = APPOINTMENT_EVENTS.map(ev =>
+            socketNotificationService.on(ev, () => loadDashboardData())
+        )
+        return () => unsubs.forEach(fn => fn())
     }, [])
 
     return {

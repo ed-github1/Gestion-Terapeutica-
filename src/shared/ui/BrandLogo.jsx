@@ -33,7 +33,7 @@ const BrandLogo = ({ symbolOnly = false, fullLogo = false, size = 'h-9 w-9', cla
 
     return (
         <div className={`flex items-center gap-2.5 ${className}`}>
-            <img src={logoSymbol} alt="" className="h-9 w-9 object-contain shrink-0" />
+            <img src={logoSymbol} alt="" className="h-8 w-8 object-contain shrink-0" />
             <div className="flex flex-col leading-tight">
                 <span className="text-[17px] text-[#4A5568] tracking-tight">
                     <span className="font-normal">Total</span><span className="font-bold">Mente</span>

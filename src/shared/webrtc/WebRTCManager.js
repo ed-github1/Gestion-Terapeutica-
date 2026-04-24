@@ -288,11 +288,14 @@ class WebRTCManager {
    * Get local media stream (camera/microphone)
    */
   async getLocalStream(constraints = {
+    // Tuned for LATAM / mobile networks: 480p @ 24fps keeps quality acceptable
+    // for 1:1 therapy while cutting bandwidth ~4x vs 720p. Browser will negotiate
+    // higher if bandwidth allows and simulcast/bitrate cap permits.
     video: {
-      width: { ideal: 1280, max: 1920 },
-      height: { ideal: 720, max: 1080 },
-      aspectRatio: { ideal: 16/9 },
-      frameRate: { ideal: 30, max: 60 },
+      width: { ideal: 640, max: 1280 },
+      height: { ideal: 480, max: 720 },
+      aspectRatio: { ideal: 4/3 },
+      frameRate: { ideal: 24, max: 30 },
       facingMode: 'user'
     },
     audio: {
@@ -377,17 +380,43 @@ class WebRTCManager {
   }
 
   /**
+   * Apply a max bitrate cap to the video sender of a peer connection.
+   * Helps keep the call stable on high-latency / lossy LATAM mobile networks.
+   */
+  async _applyVideoBitrateCap(pc, maxBitrateBps) {
+    const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+    if (!sender) return;
+    const params = sender.getParameters();
+    if (!params.encodings || params.encodings.length === 0) {
+      params.encodings = [{}];
+    }
+    params.encodings.forEach(enc => {
+      enc.maxBitrate = maxBitrateBps;
+    });
+    await sender.setParameters(params);
+  }
+
+  /**
    * Create RTCPeerConnection for a target user
    */
   createPeerConnection(targetUserId) {
     const pc = new RTCPeerConnection({
-      iceServers: this.iceServers
+      iceServers: this.iceServers,
+      // 'all' = prefer direct P2P, fall back to TURN relay when needed.
+      // Switch to 'relay' temporarily to verify TURN works end-to-end.
+      iceTransportPolicy: 'all',
+      bundlePolicy: 'max-bundle'
     });
 
     // Add local stream tracks
     if (this.localStream) {
       this.localStream.getTracks().forEach(track => {
         pc.addTrack(track, this.localStream);
+      });
+      // Cap outbound video bitrate so calls stay stable on shaky LATAM mobile
+      // networks. 500 kbps is plenty for 1:1 therapy at 480p.
+      this._applyVideoBitrateCap(pc, 500_000).catch(err => {
+        console.warn('Could not apply video bitrate cap:', err?.message);
       });
     }
 
@@ -699,12 +728,12 @@ class WebRTCManager {
 
   /**
    * Start recording (Professional only).
-   * Registers consent on the room first, then emits start-recording.
+   * Consent must be registered via registerRecordingConsent() before this is
+   * called. The component does that before the REST round-trip so the server
+   * has ~250 ms to persist the flag before start-recording arrives.
    */
   async startRecording(appointmentId) {
     if (!this.currentRoomId) throw new Error('Not in a room');
-    // Register consent on the room via socket before starting
-    this.registerRecordingConsent();
     this.socket.emit('start-recording', {
       roomId: this.currentRoomId,
       appointmentId,

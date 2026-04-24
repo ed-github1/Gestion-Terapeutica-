@@ -186,7 +186,7 @@ export default function AddEventPanel({ appointment, slotDate, onClose, onSave, 
         onClick={(e) => e.stopPropagation()}
       >
         {/* ── Gradient header ── */}
-        <div className={`bg-linear-to-br ${selectedType.gradient} px-6 pt-5 pb-5 shrink-0`}>
+        <div className={`px-6 pt-5 pb-5 shrink-0`}>
           <div className="flex items-start justify-between">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-white/50 mb-0.5">

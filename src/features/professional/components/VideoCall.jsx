@@ -128,7 +128,7 @@ const VideoCallRoom = ({ token, roomName, onLeave }) => {
   return (
     <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col">
       {/* Header */}
-      <div className="bg-gray-800 px-6 py-4 flex items-center justify-between">
+      <div className="bg-transparent px-6 py-4 flex items-center justify-between">
         <div>
           <h2 className="text-xl font-semibold text-white">Videollamada</h2>
           <p className="text-sm text-gray-400">
@@ -144,7 +144,7 @@ const VideoCallRoom = ({ token, roomName, onLeave }) => {
       </div>
 
       {/* Video Container */}
-      <div className="flex-1 relative bg-black p-4">
+      <div className="flex-1 relative bg-white p-4">
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center">
@@ -203,7 +203,7 @@ const VideoCallRoom = ({ token, roomName, onLeave }) => {
       </div>
 
       {/* Controls */}
-      <div className="bg-gray-800 px-6 py-4">
+      <div className="bg-transparent-800 px-6 py-4">
         <div className="flex items-center justify-center space-x-4">
           <button
             onClick={toggleMute}
