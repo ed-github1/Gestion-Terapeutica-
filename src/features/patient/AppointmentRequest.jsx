@@ -340,7 +340,7 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/30 backdrop-blur-[2px] flex items-end sm:items-center justify-center sm:p-4 z-60"
+      className="fixed inset-0 bg-black/30 backdrop-blur-[2px] flex items-end sm:items-center justify-center pb-14 sm:pb-0 sm:p-4 z-60"
       onClick={onClose}
     >
       <motion.div
@@ -396,7 +396,7 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
         </div>
 
         {/* ── Scrollable body ── */}
-        <div className="overflow-y-auto flex-1 min-h-0 custom-scrollbar" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+        <div className="overflow-y-auto flex-1 min-h-0 custom-scrollbar pb-4" style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 1rem)' }}>
           <AnimatePresence mode="wait">
 
             {/* ─── Step 1: Select slot ─── */}

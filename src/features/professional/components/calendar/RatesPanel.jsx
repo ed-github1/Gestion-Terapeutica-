@@ -130,7 +130,7 @@ export default function RatesPanel({ onClose }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4 z-60"
+      className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center pb-14 sm:pb-0 sm:p-4 z-60"
       onClick={onClose}
     >
       <motion.div
