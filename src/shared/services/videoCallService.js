@@ -47,9 +47,9 @@ export const videoCallService = {
   endCall: (appointmentId, duration) =>
     apiClient.post('/video/end', { appointmentId, duration }),
 
-  // Set recordingConsent on the appointment so the upload is accepted
+  // Set professionalConsent / patientConsent on the appointment (role-based on backend)
   grantRecordingConsent: (appointmentId) =>
-    apiClient.put(`/appointments/${appointmentId}`, { recordingConsent: true }),
+    apiClient.patch(`/rtc/rooms/${appointmentId}/recording-consent`, { consent: true }),
 
   // Upload a client-side audio recording blob
   uploadRecording: (appointmentId, blob) => {

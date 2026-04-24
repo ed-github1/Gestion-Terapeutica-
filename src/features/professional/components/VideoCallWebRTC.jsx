@@ -150,10 +150,7 @@ const ProfessionalVideoCallWebRTC = () => {
     // Only after it succeeds do we emit the socket event and start recording.
     try { await videoCallService.grantRecordingConsent(appointmentId); }
     catch (err) { console.error('Failed to set recording consent on backend:', err); return; }
-    // Emit recording-consent, then wait for the server to finish processing it
-    // (its handler is async / does a DB write) before start-recording arrives.
     manager?.registerRecordingConsent();
-    await new Promise((r) => setTimeout(r, 1000));
     setRecordingEnabled(true);
     startRecording(appointmentId);
   };
