@@ -585,6 +585,12 @@ class WebRTCManager {
       await pc.setRemoteDescription(new RTCSessionDescription(answer));
       console.log('Set remote description for:', fromUserId);
     } catch (error) {
+      // Race: state flipped to stable between the guard above and setRemoteDescription.
+      // This is harmless — the connection is already established.
+      if (pc?.signalingState === 'stable' || /stable|wrong state/i.test(error.message)) {
+        console.log('Ignoring late answer — connection already stable for:', fromUserId);
+        return;
+      }
       console.error('Failed to handle answer:', error);
       this.handleError(error);
     }

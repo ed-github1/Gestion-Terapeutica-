@@ -143,7 +143,11 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
             try {
                 const res = await appointmentsService.getById(appointment.id)
                 const fullApt = res.data?.data ?? res.data?.appointment ?? res.data ?? res
-                const rawPid = fullApt.patientId || fullApt.patient || fullApt.userId || fullApt.user || fullApt.paciente
+                const rawPid =
+                    fullApt.patientUserId || fullApt.patientUser ||
+                    fullApt.patientId     || fullApt.patient     ||
+                    fullApt.userId        || fullApt.user        ||
+                    fullApt.paciente      || fullApt.pacienteId  || null
                 if (typeof rawPid === 'object' && rawPid !== null) {
                     targetUserId = rawPid.userId || rawPid.user || rawPid._id || rawPid.id || null
                 } else {

@@ -121,8 +121,12 @@ export const useWebRTC = () => {
         currentRoomIdRef.current = null
       }
 
-      manager.onError = (err) =>
-        setError({ type: 'error', message: err.message || 'Error en la videollamada' })
+      manager.onError = (err) => {
+        // Recording errors are non-fatal — show a warning banner so the call stays alive.
+        const msg = err.message || ''
+        const isRecordingError = /recording|grabaci/i.test(msg)
+        setError({ type: isRecordingError ? 'warning' : 'error', message: msg || 'Error en la videollamada' })
+      }
 
       manager.onConnectionStateChange = ({ state }) => setConnectionState(state)
 
