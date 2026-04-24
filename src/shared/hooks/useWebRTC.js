@@ -235,7 +235,7 @@ export const useWebRTC = () => {
     try {
       await managerRef.current.startRecording(appointmentId)
     } catch (err) {
-      setError({ type: 'error', message: err.message || 'Error al iniciar grabación' })
+      setError({ type: 'warning', message: err.message || 'Error al iniciar grabación' })
     }
   }, [])
 
@@ -244,7 +244,7 @@ export const useWebRTC = () => {
     try {
       await managerRef.current.stopRecording(appointmentId)
     } catch (err) {
-      setError({ type: 'error', message: err.message || 'Error al detener grabación' })
+      setError({ type: 'warning', message: err.message || 'Error al detener grabación' })
     }
   }, [])
 

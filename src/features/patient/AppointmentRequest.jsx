@@ -396,7 +396,7 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
         </div>
 
         {/* ── Scrollable body ── */}
-        <div className="overflow-y-auto flex-1 custom-scrollbar" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+        <div className="overflow-y-auto flex-1 min-h-0 custom-scrollbar" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
           <AnimatePresence mode="wait">
 
             {/* ─── Step 1: Select slot ─── */}

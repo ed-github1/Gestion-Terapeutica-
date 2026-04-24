@@ -177,7 +177,7 @@ const AvailabilityManager = ({ onClose }) => {
         transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
         onClick={(e) => e.stopPropagation()}
         // ↓ full width bottom sheet on mobile, constrained modal on desktop
-        className={`w-full sm:max-w-2xl sm:max-h-[88vh] max-h-[92vh] overflow-hidden flex flex-col sm:rounded-xl rounded-t-2xl shadow-xl ${dark ? 'bg-gray-900' : 'bg-white'}`}
+        className={`w-full sm:max-w-2xl sm:max-h-[88dvh] max-h-[92dvh] overflow-hidden flex flex-col sm:rounded-xl rounded-t-2xl shadow-xl ${dark ? 'bg-gray-900' : 'bg-white'}`}
       >
         {/* Drag handle — mobile only */}
         <div className="sm:hidden flex justify-center pt-3 pb-1 shrink-0">
@@ -254,7 +254,7 @@ const AvailabilityManager = ({ onClose }) => {
             <div className={`animate-spin rounded-full h-6 w-6 border-2 ${dark ? 'border-gray-700 border-t-gray-300' : 'border-gray-200 border-t-gray-600'}`} />
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto px-3 sm:px-6 py-3 sm:py-5 custom-scrollbar">
+          <div className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-6 py-3 sm:py-5 custom-scrollbar">
             {/* 4 cols on mobile, 8 on desktop */}
             <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5 sm:gap-1">
               {SLOTS.map(time => {

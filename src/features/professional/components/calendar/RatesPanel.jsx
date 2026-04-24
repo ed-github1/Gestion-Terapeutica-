@@ -138,7 +138,7 @@ export default function RatesPanel({ onClose }) {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 24 }}
         transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
-        className="bg-white dark:bg-gray-900 w-full sm:max-w-sm sm:max-h-[92vh] max-h-[92vh] overflow-hidden flex flex-col sm:rounded-2xl rounded-t-2xl shadow-2xl border border-gray-100 dark:border-gray-800"
+        className="bg-white dark:bg-gray-900 w-full sm:max-w-sm sm:max-h-[92dvh] max-h-[92dvh] overflow-hidden flex flex-col sm:rounded-2xl rounded-t-2xl shadow-2xl border border-gray-100 dark:border-gray-800"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Drag handle — mobile only */}
@@ -168,7 +168,7 @@ export default function RatesPanel({ onClose }) {
         <div className="h-px bg-gray-100 dark:bg-gray-800 shrink-0" />
 
         {/* ── Body ── */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5 custom-scrollbar">
+        <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-5 custom-scrollbar">
 
           {/* Currency — read-only, derived from country */}
           <div>
@@ -213,7 +213,7 @@ export default function RatesPanel({ onClose }) {
         </div>
 
         {/* ── Footer ── */}
-        <div className="shrink-0 px-5 py-4 border-t border-gray-100 dark:border-gray-800">
+        <div className="shrink-0 px-5 pt-4 pb-4 border-t border-gray-100 dark:border-gray-800">
           <button
             onClick={handleSave}
             className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 ${saved
@@ -227,6 +227,7 @@ export default function RatesPanel({ onClose }) {
               <><Wallet className="w-4 h-4" /> Guardar tarifas</>
             )}
           </button>
+          <div className="sm:hidden" style={{ height: 'env(safe-area-inset-bottom, 0px)' }} />
         </div>
       </motion.div>
     </motion.div>

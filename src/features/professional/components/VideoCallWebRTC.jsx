@@ -146,9 +146,11 @@ const ProfessionalVideoCallWebRTC = () => {
 
   const handleAcceptRecordingConsent = async () => {
     setShowRecordingConsent(false);
-    // Register consent on the socket BEFORE the REST call so the server has
-    // the full ~250 ms REST round-trip to process it before start-recording fires.
+    // Emit consent via socket first, then wait 500 ms to guarantee the server
+    // processes the recording-consent event before start-recording arrives.
+    // (The REST call alone isn't a reliable delay — it can return in < 100 ms.)
     manager?.registerRecordingConsent();
+    await new Promise((r) => setTimeout(r, 500));
     try { await videoCallService.grantRecordingConsent(appointmentId); }
     catch (err) { console.error('Failed to set recording consent on backend:', err); return; }
     setRecordingEnabled(true);
