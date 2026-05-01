@@ -106,8 +106,16 @@ export const appointmentsService = {
    * Uses POST /appointments (not /reserve which is patient-only).
    * professionalId must be supplied by the caller from the auth context.
    */
-  createForPatient: (data) =>
-    apiClient.post('/appointments', {
+  createForPatient: (data) => {
+    // sessionType uses display names; type has a different backend enum so we omit it
+    // and let the backend derive it from sessionType (same pattern as /appointments/reserve).
+    const SESSION_TYPE_MAP = {
+      primera_consulta: 'Primera Sesión',
+      seguimiento:      'Seguimiento',
+      extraordinaria:   'Extraordinaria',
+    }
+    const sessionType = SESSION_TYPE_MAP[data.type] || data.type
+    return apiClient.post('/appointments', {
       // Backend filters GET /appointments by patientId === user._id (user account),
       // so we must store patientUserId (user account _id) here, not the profile _id.
       patientId: data.patientUserId || data.patientId,
@@ -116,8 +124,7 @@ export const appointmentsService = {
       patientName: data.patientName,
       date: data.date,
       time: data.time,
-      type: data.type,
-      sessionType: data.sessionType || data.type,
+      sessionType,
       duration: data.duration,
       notes: data.notes,
       mode: data.mode ?? (data.isVideoCall ? 'videollamada' : 'consultorio'),
@@ -126,7 +133,8 @@ export const appointmentsService = {
       status: 'reserved',
       paymentStatus: 'pending',
       createdBy: 'professional',
-    }),
+    })
+  },
 
   /** Get a professional's weekly availability (day-of-week → time-slot map) */
   getAvailability: (professionalId = null) => {

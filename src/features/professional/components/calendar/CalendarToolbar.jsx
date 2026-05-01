@@ -65,12 +65,12 @@ export default function CalendarToolbar({
 
       {/* Secondary actions — icon-only on mobile */}
       <div className="flex items-center gap-1.5 shrink-0">
-        <button
+        {/* <button
           onClick={onToday}
           className="hidden sm:block px-2.5 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
         >
           Hoy
-        </button>
+        </button> */}
         <button
           onClick={onToggleAvailability}
           className="w-8 h-8 flex items-center justify-center text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 sm:gap-1.5"
@@ -88,13 +88,13 @@ export default function CalendarToolbar({
           <span className="hidden sm:inline text-xs font-semibold">Tarifas</span>
         </button>
         {/* Nueva Sesión — visible on sm+; on mobile it's the FAB */}
-        <button
+        {/* <button
           onClick={onAddEvent}
           className="hidden sm:flex items-center gap-1.5 px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition-colors shadow-sm"
         >
           <Plus className="w-3.5 h-3.5" />
           Nueva Sesión
-        </button>
+        </button> */}
       </div>
     </div>
   )

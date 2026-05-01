@@ -326,7 +326,7 @@ const AppointmentAcceptanceModal = ({ appointment, onClose, onAccepted, onReject
               ) : (
                 <>
                   <Check className="w-3.5 h-3.5" />
-                  Aceptar y pagar €{price}
+                  Aceptar cita
                 </>
               )}
             </motion.button>

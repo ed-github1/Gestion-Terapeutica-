@@ -283,11 +283,8 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
       // Notify parent immediately so it can dismiss this ID from polling —
       // prevents the AppointmentAcceptanceModal from opening for patient-created appointments.
       if (appointmentId) onPatientCreated?.(String(appointmentId))
-      // Use the local apptData (state hasn't updated yet) — prefer backend-resolved amount
-      const resolvedAmount = apptData?.amount || selectedType?.price || 0
-      setPaymentData(prev => ({ ...prev, amount: resolvedAmount }))
-      setStep(2) // Move to payment
-      showToast('Horario reservado, procede con el pago', 'success')
+      setStep(3) // Jump straight to success — payment disabled until backend mismatch is resolved
+      showToast('Cita reservada exitosamente', 'success')
     } catch (error) {
       console.error('Error reserving slot:', error)
       showToast(`${error.message}`, 'error')

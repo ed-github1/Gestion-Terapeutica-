@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { motion } from 'motion/react'
-import { X, User, Clock, FileText, Video, Building2, Banknote, Info } from 'lucide-react'
+import { X, User, Clock, FileText, Video, Building2 } from 'lucide-react'
 import { showToast } from '@shared/ui/Toast'
 import { appointmentsService } from '@shared/services/appointmentsService'
 import { patientsService } from '@shared/services/patientsService'
-import { professionalsService } from '@shared/services/professionalsService'
 import { socketNotificationService } from '@shared/services/socketNotificationService'
 import { useAuth } from '@features/auth/AuthContext'
 
@@ -36,7 +35,6 @@ export default function AddEventPanel({ appointment, slotDate, onClose, onSave, 
   const [saving, setSaving] = useState(false)
   const [patients, setPatients] = useState([])
   const [loadingPatients, setLoadingPatients] = useState(false)
-  const [tarifas, setTarifas] = useState(null)
 
   const [formData, setFormData] = useState({
     patientName: appointment?.patientName || appointment?.nombrePaciente || '',
@@ -48,7 +46,6 @@ export default function AddEventPanel({ appointment, slotDate, onClose, onSave, 
     duration: appointment?.duration || '60',
     notes:    appointment?.notes || '',
     mode:     appointment?.mode ?? (appointment?.isVideoCall ? 'videollamada' : 'consultorio'),
-    price:    String(appointment?.price ?? getSavedPriceForType(appointment?.type || 'primera_consulta') ?? ''),
   })
 
   useEffect(() => {
@@ -65,23 +62,10 @@ export default function AddEventPanel({ appointment, slotDate, onClose, onSave, 
       }
     }
     loadPatients()
-
-    professionalsService.getMyTarifas()
-      .then(res => setTarifas(res.data?.data || res.data || null))
-      .catch(() => {})
   }, [])
 
   const updateField = (field, value) => {
-    if (field === 'type' && !isEdit) {
-      const savedPrice = getSavedPriceForType(value)
-      setFormData(prev => ({
-        ...prev,
-        type: value,
-        ...(savedPrice !== null ? { price: String(savedPrice) } : {}),
-      }))
-    } else {
-      setFormData(prev => ({ ...prev, [field]: value }))
-    }
+    setFormData(prev => ({ ...prev, [field]: value }))
   }
 
   const handleSubmit = async (e) => {
@@ -98,7 +82,7 @@ export default function AddEventPanel({ appointment, slotDate, onClose, onSave, 
       startDate.setHours(parseInt(hours), parseInt(minutes), 0, 0)
       const endDate = new Date(startDate)
       endDate.setMinutes(endDate.getMinutes() + parseInt(formData.duration))
-      const priceNum = parseFloat(formData.price) || 0
+      const priceNum = getSavedPriceForType(formData.type) ?? 0
 
       if (isEdit) {
         onSave({
@@ -171,7 +155,6 @@ export default function AddEventPanel({ appointment, slotDate, onClose, onSave, 
   }
 
   const selectedType = TYPE_OPTIONS.find(t => t.value === formData.type) || TYPE_OPTIONS[0]
-  const suggestedPrice = tarifas?.[selectedType.tarifaKey] ?? null
 
   const inputCls = 'w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/60 transition'
   const labelCls = 'block text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-1.5'
@@ -321,30 +304,6 @@ export default function AddEventPanel({ appointment, slotDate, onClose, onSave, 
                   </button>
                 ))}
               </div>
-            </div>
-
-            {/* Price */}
-            <div>
-              <label className={labelCls}><Banknote className="w-3 h-3 inline mr-1" />Precio</label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 dark:text-gray-500 font-medium">$</span>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  required
-                  value={formData.price}
-                  onChange={(e) => updateField('price', e.target.value)}
-                  placeholder={suggestedPrice ?? '0'}
-                  className={`${inputCls} pl-7 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
-                />
-              </div>
-              {suggestedPrice !== null && (
-                <p className="mt-1.5 flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
-                  <Info className="w-3 h-3 shrink-0" />
-                  Tarifa configurada para {selectedType.label.toLowerCase()}: <span className="font-semibold text-gray-600 dark:text-gray-300 ml-0.5">${suggestedPrice}</span>
-                </p>
-              )}
             </div>
 
             {/* Notes */}

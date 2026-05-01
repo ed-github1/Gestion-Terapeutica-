@@ -160,8 +160,8 @@ const PatientDashboard = () => {
     _markDismissed(apt)
     setAppointmentToAccept(null)
     clearPendingAppointment()
-    setAppointmentToPay(apt)
-    addPatientAlert('appointment-confirmed', apt, 'Has aceptado la cita. Procede al pago.')
+    addPatientAlert('appointment-confirmed', apt, 'Has aceptado la cita.')
+    refreshAppointments()
   }
 
   const handleAppointmentRejected = (apt) => {
