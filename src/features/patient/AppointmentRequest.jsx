@@ -268,7 +268,6 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
           reason: formData.reason,
           duration: selectedType?.duration || 60,
           professionalId,
-          patientId: user?._id || user?.id,
           patientName: user?.name || user?.nombre || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || undefined,
         })
         apptData = response.data?.data || response.data
@@ -321,7 +320,7 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
       }, 3000)
     } catch (error) {
       console.error('Error processing payment:', error)
-      showToast(`${error.message}`, 'error')
+      showToast('No se pudo procesar el pago. Intenta nuevamente.', 'error')
     } finally {
       setLoading(false)
     }

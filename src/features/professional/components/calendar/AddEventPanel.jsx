@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { motion } from 'motion/react'
-import { X, User, Clock, FileText, Video, Building2, Banknote } from 'lucide-react'
-import MiniCalendar from './MiniCalendar'
+import { X, User, Clock, FileText, Video, Building2, Banknote, Info } from 'lucide-react'
 import { showToast } from '@shared/ui/Toast'
 import { appointmentsService } from '@shared/services/appointmentsService'
 import { patientsService } from '@shared/services/patientsService'
+import { professionalsService } from '@shared/services/professionalsService'
 import { socketNotificationService } from '@shared/services/socketNotificationService'
 import { useAuth } from '@features/auth/AuthContext'
 
@@ -16,9 +16,9 @@ const buildPatientName = (pt) => {
 }
 
 const TYPE_OPTIONS = [
-  { value: 'primera_consulta', label: 'Primera consulta', dot: 'bg-blue-400',    gradient: 'from-blue-600 to-blue-500'      },
-  { value: 'seguimiento',      label: 'Seguimiento',      dot: 'bg-emerald-400', gradient: 'from-emerald-600 to-emerald-500' },
-  { value: 'extraordinaria',   label: 'Extraordinaria',   dot: 'bg-amber-400',   gradient: 'from-amber-500 to-orange-500'   },
+  { value: 'primera_consulta', label: 'Primera consulta', dot: 'bg-blue-400',    gradient: 'from-blue-600 to-blue-500',      tarifaKey: 'primeraSesion'   },
+  { value: 'seguimiento',      label: 'Seguimiento',      dot: 'bg-emerald-400', gradient: 'from-emerald-600 to-emerald-500', tarifaKey: 'seguimiento'     },
+  { value: 'extraordinaria',   label: 'Extraordinaria',   dot: 'bg-amber-400',   gradient: 'from-amber-500 to-orange-500',   tarifaKey: 'extraordinaria'  },
 ]
 
 const getSavedPriceForType = (type) => {
@@ -36,6 +36,7 @@ export default function AddEventPanel({ appointment, slotDate, onClose, onSave, 
   const [saving, setSaving] = useState(false)
   const [patients, setPatients] = useState([])
   const [loadingPatients, setLoadingPatients] = useState(false)
+  const [tarifas, setTarifas] = useState(null)
 
   const [formData, setFormData] = useState({
     patientName: appointment?.patientName || appointment?.nombrePaciente || '',
@@ -47,7 +48,7 @@ export default function AddEventPanel({ appointment, slotDate, onClose, onSave, 
     duration: appointment?.duration || '60',
     notes:    appointment?.notes || '',
     mode:     appointment?.mode ?? (appointment?.isVideoCall ? 'videollamada' : 'consultorio'),
-    price:    String(appointment?.price ?? getSavedPriceForType(appointment?.type || 'primera_consulta') ?? 50),
+    price:    String(appointment?.price ?? getSavedPriceForType(appointment?.type || 'primera_consulta') ?? ''),
   })
 
   useEffect(() => {
@@ -64,6 +65,10 @@ export default function AddEventPanel({ appointment, slotDate, onClose, onSave, 
       }
     }
     loadPatients()
+
+    professionalsService.getMyTarifas()
+      .then(res => setTarifas(res.data?.data || res.data || null))
+      .catch(() => {})
   }, [])
 
   const updateField = (field, value) => {
@@ -166,7 +171,9 @@ export default function AddEventPanel({ appointment, slotDate, onClose, onSave, 
   }
 
   const selectedType = TYPE_OPTIONS.find(t => t.value === formData.type) || TYPE_OPTIONS[0]
-  const inputCls = 'w-full px-3 py-2.5 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/60 transition'
+  const suggestedPrice = tarifas?.[selectedType.tarifaKey] ?? null
+
+  const inputCls = 'w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/60 transition'
   const labelCls = 'block text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-1.5'
 
   return (
@@ -182,17 +189,17 @@ export default function AddEventPanel({ appointment, slotDate, onClose, onSave, 
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.96, opacity: 0, y: 12 }}
         transition={{ type: 'spring', duration: 0.35, bounce: 0.18 }}
-        className="bg-white dark:bg-gray-900 rounded-3xl shadow-[0_32px_64px_-12px_rgba(0,0,0,0.4)] w-full max-w-2xl max-h-[92vh] overflow-hidden flex flex-col border border-gray-100 dark:border-gray-700/60"
+        className="bg-white dark:bg-gray-900 rounded-3xl shadow-[0_32px_64px_-12px_rgba(0,0,0,0.4)] w-full max-w-md max-h-[92vh] overflow-hidden flex flex-col border border-gray-100 dark:border-gray-700/60"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* ── Gradient header ── */}
-        <div className={`px-6 pt-5 pb-5 shrink-0`}>
-          <div className="flex items-start justify-between">
+        {/* Header */}
+        <div className="px-5 pt-5 pb-4 shrink-0">
+          <div className="flex items-start justify-between mb-3">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-white/50 mb-0.5">
-                {isEdit ? 'Editar sesión' : 'Nueva sesión terapéutica'}
+                {isEdit ? 'Editar sesión' : 'Nueva sesión'}
               </p>
-              <h2 className="text-xl font-bold text-white leading-tight">{selectedType.label}</h2>
+              <h2 className="text-lg font-bold text-white leading-tight">{selectedType.label}</h2>
             </div>
             <button
               onClick={onClose}
@@ -203,7 +210,7 @@ export default function AddEventPanel({ appointment, slotDate, onClose, onSave, 
           </div>
 
           {/* Type pills */}
-          <div className="flex gap-2 mt-4 flex-wrap">
+          <div className="flex gap-1.5 flex-wrap">
             {TYPE_OPTIONS.map(({ value, label, dot }) => (
               <button
                 key={value}
@@ -222,140 +229,139 @@ export default function AddEventPanel({ appointment, slotDate, onClose, onSave, 
           </div>
         </div>
 
-        {/* ── Body: two-column layout ── */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col min-h-0">
-          <div className="flex-1 overflow-y-auto custom-scrollbar">
-            <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-gray-100 dark:divide-gray-800">
+        {/* Body */}
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto custom-scrollbar">
+          <div className="px-5 py-4 space-y-4">
 
-              {/* ── Left col ── */}
-              <div className="px-6 py-5 space-y-5">
-
-                {/* Patient */}
-                <div>
-                  <label className={labelCls}><User className="w-3 h-3 inline mr-1" />Paciente</label>
-                  {isEdit ? (
-                    <div className="flex items-center gap-2.5 px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
-                      <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center text-sm font-bold shrink-0">
-                        {formData.patientName.charAt(0).toUpperCase()}
-                      </div>
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-200 truncate">{formData.patientName}</span>
-                    </div>
-                  ) : (
-                    <select
-                      required
-                      value={formData.patientId}
-                      onChange={(e) => {
-                        const p = patients.find(p => (p._id || p.id) === e.target.value)
-                        updateField('patientId', e.target.value)
-                        updateField('patientUserId', p?.userId || p?.user_id || p?.user || '')
-                        updateField('patientName', buildPatientName(p))
-                      }}
-                      className={inputCls}
-                    >
-                      <option value="">{loadingPatients ? 'Cargando…' : 'Seleccionar paciente'}</option>
-                      {patients.map((p) => {
-                        const pid = p._id || p.id
-                        return <option key={pid} value={pid}>{buildPatientName(p)}</option>
-                      })}
-                    </select>
-                  )}
-                </div>
-
-                {/* Modalidad */}
-                <div>
-                  <label className={labelCls}>Modalidad</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { value: 'consultorio',  label: 'Presencial',   Icon: Building2, active: 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400' },
-                      { value: 'videollamada', label: 'Videollamada', Icon: Video,      active: 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400' },
-                    ].map(({ value, label, Icon, active }) => (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => updateField('mode', value)}
-                        className={`flex items-center justify-center gap-2 px-3 py-3 rounded-xl border-2 text-sm font-semibold transition-all ${
-                          formData.mode === value
-                            ? active
-                            : 'border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500 hover:border-gray-300'
-                        }`}
-                      >
-                        <Icon className="w-4 h-4" />
-                        {label}
-                      </button>
-                    ))}
+            {/* Patient */}
+            <div>
+              <label className={labelCls}><User className="w-3 h-3 inline mr-1" />Paciente</label>
+              {isEdit ? (
+                <div className="flex items-center gap-2.5 px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
+                  <div className="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xs font-bold shrink-0">
+                    {formData.patientName.charAt(0).toUpperCase()}
                   </div>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-200 truncate">{formData.patientName}</span>
                 </div>
+              ) : (
+                <select
+                  required
+                  value={formData.patientId}
+                  onChange={(e) => {
+                    const p = patients.find(p => (p._id || p.id) === e.target.value)
+                    updateField('patientId', e.target.value)
+                    updateField('patientUserId', p?.userId || p?.user_id || p?.user || '')
+                    updateField('patientName', buildPatientName(p))
+                  }}
+                  className={inputCls}
+                >
+                  <option value="">{loadingPatients ? 'Cargando…' : 'Seleccionar paciente'}</option>
+                  {patients.map((p) => {
+                    const pid = p._id || p.id
+                    return <option key={pid} value={pid}>{buildPatientName(p)}</option>
+                  })}
+                </select>
+              )}
+            </div>
 
-                {/* Price */}
-                <div>
-                  <label className={labelCls}><Banknote className="w-3 h-3 inline mr-1" />Precio</label>
-                  <div className={`flex items-center rounded-2xl border-2 overflow-hidden transition-all ${
-                    selectedType.value === 'primera_consulta' ? 'border-blue-200 dark:border-blue-800/60 focus-within:border-blue-500'
-                    : selectedType.value === 'seguimiento'    ? 'border-emerald-200 dark:border-emerald-800/60 focus-within:border-emerald-500'
-                    :                                           'border-amber-200 dark:border-amber-800/60 focus-within:border-amber-500'
-                  } bg-white dark:bg-gray-800`}>
-                    <div className={`flex items-center justify-center self-stretch px-4 text-sm font-black border-r-2 ${
-                      selectedType.value === 'primera_consulta' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800/60'
-                      : selectedType.value === 'seguimiento'    ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60'
-                      :                                           'bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800/60'
-                    }`}>$</div>
-                    <input
-                      type="number" min="0" step="0.01" required
-                      value={formData.price}
-                      onChange={(e) => updateField('price', e.target.value)}
-                      className="flex-1 px-4 py-3.5 text-2xl font-bold bg-transparent text-gray-800 dark:text-gray-100 focus:outline-none placeholder:text-gray-300 dark:placeholder:text-gray-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                      placeholder="0"
-                    />
-                  </div>
-                </div>
-
-                {/* Notes */}
-                <div>
-                  <label className={labelCls}><FileText className="w-3 h-3 inline mr-1" />Notas</label>
-                  <textarea
-                    value={formData.notes}
-                    onChange={(e) => updateField('notes', e.target.value)}
-                    rows={4}
-                    className={`${inputCls} resize-none`}
-                    placeholder="Motivo de consulta, indicaciones…"
-                  />
-                </div>
+            {/* Date / Time / Duration */}
+            <div>
+              <label className={labelCls}><Clock className="w-3 h-3 inline mr-1" />Fecha y hora</label>
+              <div className="grid grid-cols-3 gap-2">
+                <input
+                  type="date"
+                  required
+                  value={format(formData.date, 'yyyy-MM-dd')}
+                  onChange={(e) => {
+                    if (e.target.value) updateField('date', new Date(e.target.value + 'T12:00:00'))
+                  }}
+                  className={`${inputCls} col-span-1`}
+                />
+                <input
+                  type="time"
+                  required
+                  value={formData.time}
+                  onChange={(e) => updateField('time', e.target.value)}
+                  className={inputCls}
+                />
+                <select
+                  value={formData.duration}
+                  onChange={(e) => updateField('duration', e.target.value)}
+                  className={inputCls}
+                >
+                  <option value="30">30 min</option>
+                  <option value="45">45 min</option>
+                  <option value="60">1 h</option>
+                  <option value="90">1h 30</option>
+                  <option value="120">2 h</option>
+                </select>
               </div>
+            </div>
 
-              {/* ── Right col ── */}
-              <div className="px-6 py-5 space-y-5">
-
-                {/* Calendar */}
-                <div>
-                  <label className={labelCls}><Clock className="w-3 h-3 inline mr-1" />Fecha</label>
-                  <div className="rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 p-3">
-                    <MiniCalendar selectedDate={formData.date} onSelectDate={(d) => updateField('date', d)} />
-                  </div>
-                </div>
-
-                {/* Time + Duration */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className={labelCls}>Hora</label>
-                    <input type="time" required value={formData.time} onChange={(e) => updateField('time', e.target.value)} className={inputCls} />
-                  </div>
-                  <div>
-                    <label className={labelCls}>Duración</label>
-                    <select value={formData.duration} onChange={(e) => updateField('duration', e.target.value)} className={inputCls}>
-                      <option value="30">30 min</option>
-                      <option value="45">45 min</option>
-                      <option value="60">1 hora</option>
-                      <option value="90">1h 30 min</option>
-                      <option value="120">2 horas</option>
-                    </select>
-                  </div>
-                </div>
+            {/* Modalidad */}
+            <div>
+              <label className={labelCls}>Modalidad</label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { value: 'consultorio',  label: 'Presencial',   Icon: Building2, active: 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400' },
+                  { value: 'videollamada', label: 'Videollamada', Icon: Video,      active: 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400' },
+                ].map(({ value, label, Icon, active }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => updateField('mode', value)}
+                    className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all ${
+                      formData.mode === value
+                        ? active
+                        : 'border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500 hover:border-gray-300'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {label}
+                  </button>
+                ))}
               </div>
+            </div>
+
+            {/* Price */}
+            <div>
+              <label className={labelCls}><Banknote className="w-3 h-3 inline mr-1" />Precio</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 dark:text-gray-500 font-medium">$</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  required
+                  value={formData.price}
+                  onChange={(e) => updateField('price', e.target.value)}
+                  placeholder={suggestedPrice ?? '0'}
+                  className={`${inputCls} pl-7 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+                />
+              </div>
+              {suggestedPrice !== null && (
+                <p className="mt-1.5 flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
+                  <Info className="w-3 h-3 shrink-0" />
+                  Tarifa configurada para {selectedType.label.toLowerCase()}: <span className="font-semibold text-gray-600 dark:text-gray-300 ml-0.5">${suggestedPrice}</span>
+                </p>
+              )}
+            </div>
+
+            {/* Notes */}
+            <div>
+              <label className={labelCls}><FileText className="w-3 h-3 inline mr-1" />Notas</label>
+              <textarea
+                value={formData.notes}
+                onChange={(e) => updateField('notes', e.target.value)}
+                rows={3}
+                className={`${inputCls} resize-none`}
+                placeholder="Motivo de consulta, indicaciones…"
+              />
             </div>
           </div>
 
-          {/* ── Footer ── */}
-          <div className="shrink-0 border-t border-gray-100 dark:border-gray-800 px-6 py-4 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm flex items-center justify-between gap-3">
+          {/* Footer */}
+          <div className="sticky bottom-0 border-t border-gray-100 dark:border-gray-800 px-5 py-3 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm flex items-center justify-between gap-3">
             {isEdit ? (
               <button
                 type="button"
@@ -366,17 +372,17 @@ export default function AddEventPanel({ appointment, slotDate, onClose, onSave, 
               </button>
             ) : <div />}
             <div className="flex items-center gap-2">
-              <button type="button" onClick={onClose} className="px-4 py-2.5 text-sm font-semibold text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition">
+              <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition">
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={saving}
-                className={`px-6 py-2.5 text-sm font-bold text-white rounded-xl transition shadow-sm disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2 bg-linear-to-r ${selectedType.gradient} hover:shadow-md hover:brightness-105`}
+                className={`px-5 py-2 text-sm font-bold text-white rounded-xl transition shadow-sm disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2 bg-linear-to-r ${selectedType.gradient} hover:shadow-md hover:brightness-105`}
               >
                 {saving ? (
                   <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>Guardando…</>
-                ) : isEdit ? 'Actualizar sesión' : 'Crear sesión'}
+                ) : isEdit ? 'Actualizar' : 'Crear sesión'}
               </button>
             </div>
           </div>

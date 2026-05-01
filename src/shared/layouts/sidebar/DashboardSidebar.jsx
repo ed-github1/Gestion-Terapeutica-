@@ -95,7 +95,7 @@ const DashboardSidebar = ({ userRole = 'professional', onClose }) => {
 
             <SidebarFooter
                 prefersReducedMotion={prefersReducedMotion}
-                onSettings={handleSettings}
+                onSettings={userRole !== 'patient' ? handleSettings : null}
                 onLogout={handleLogout}
             />
         </motion.aside>

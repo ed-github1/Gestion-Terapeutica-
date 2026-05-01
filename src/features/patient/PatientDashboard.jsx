@@ -125,11 +125,15 @@ const PatientDashboard = () => {
 
   // Real-time socket: professional initiates an appointment
   useEffect(() => {
-    if (pendingAppointment) {
-      setAppointmentToAccept(pendingAppointment)
-      const uid = pendingAppointment?.professionalUserId || pendingAppointment?.data?.professionalUserId
-      if (uid) _setProUserId(uid)
-    }
+    if (!pendingAppointment) return
+    // Ignore appointments the patient just created themselves
+    if (pendingAppointment.createdBy === 'patient') return
+    const id = pendingAppointment?._id || pendingAppointment?.id ||
+      pendingAppointment?.appointmentId || pendingAppointment?.data?.appointmentId
+    if (id && dismissedAptIds.current.has(String(id))) return
+    setAppointmentToAccept(pendingAppointment)
+    const uid = pendingAppointment?.professionalUserId || pendingAppointment?.data?.professionalUserId
+    if (uid) _setProUserId(uid)
   }, [pendingAppointment]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Data loading ──────────────────────────────────────────────────────────

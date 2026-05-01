@@ -138,15 +138,9 @@ export const useCalendarAppointments = () => {
     setIsModalOpen(true)
   }, [])
 
-  const handleEventDrop = useCallback(async ({ revert, start, end, ...apt }) => {
-    try {
-      const id = apt._id || apt.id
-      await appointmentsService.updateStatus(id, apt.status || 'reserved')
-      showToast('Cita reagendada', 'success')
-    } catch {
-      revert?.()
-      showToast('No se pudo reagendar la cita', 'error')
-    }
+  const handleEventDrop = useCallback(({ revert }) => {
+    revert?.()
+    showToast('Arrastra para reagendar no está disponible aún', 'info')
   }, [])
 
   const handleSaveAppointment = useCallback((appointmentData) => {
