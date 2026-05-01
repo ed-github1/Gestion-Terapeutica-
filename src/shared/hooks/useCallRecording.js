@@ -28,6 +28,7 @@ export const useCallRecording = ({ localStream, appointmentId, enabled, onRecord
   const stopResolveRef = useRef(null)
   const appointmentIdRef = useRef(appointmentId)
   const enabledRef = useRef(enabled)
+  const unmountingRef = useRef(false)
 
   // Keep refs in sync so async callbacks always see latest values
   useEffect(() => { appointmentIdRef.current = appointmentId }, [appointmentId])
@@ -68,14 +69,14 @@ export const useCallRecording = ({ localStream, appointmentId, enabled, onRecord
       mediaRecorderRef.current = null
       setIsRecording(false)
 
-      if (blob.size > 0) {
+      if (blob.size > 0 && !unmountingRef.current) {
         const uploadPromise = uploadBlob(blob)
         if (stopResolveRef.current) {
           uploadPromise.then(stopResolveRef.current, stopResolveRef.current)
           stopResolveRef.current = null
         }
       } else {
-        console.warn('[Recording] Stopped with empty blob — nothing to upload')
+        if (blob.size === 0) console.warn('[Recording] Stopped with empty blob — nothing to upload')
         if (stopResolveRef.current) {
           stopResolveRef.current()
           stopResolveRef.current = null
@@ -181,10 +182,11 @@ export const useCallRecording = ({ localStream, appointmentId, enabled, onRecord
     })
   }, [])
 
-  // Cleanup on unmount: stop recorder and clear chunks
+  // Cleanup on unmount: stop recorder without uploading (discard).
+  // Upload only happens via explicit stopRecording() — e.g. Finalizar Sesión.
   useEffect(() => {
     return () => {
-      chunksRef.current = []
+      unmountingRef.current = true
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
         mediaRecorderRef.current.stop()
       }

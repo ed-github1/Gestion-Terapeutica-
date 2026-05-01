@@ -17,11 +17,11 @@
   --safe-area-inset-right: env(safe-area-inset-right);
 }
 
-/* Smooth dark-mode transition for all elements */
+/* Smooth dark-mode transition — bg and text only, borders are instant to avoid flash */
 *,
 *::before,
 *::after {
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 /* Clean neutral page background */

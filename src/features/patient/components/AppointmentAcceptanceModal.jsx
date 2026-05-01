@@ -7,9 +7,9 @@
  * white card, border border-gray-200 shadow-sm, clean gray typography.
  */
 import { useState } from 'react'
-import { motion, AnimatePresence } from 'motion/react'
+import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'motion/react'
 import {
-  Stethoscope, RefreshCw, Heart, Zap,
+  Stethoscope, RefreshCw, Zap,
   CalendarDays, Clock, Video, Banknote,
   X, Check, FileText, Bell,
 } from 'lucide-react'
@@ -32,6 +32,17 @@ const AppointmentAcceptanceModal = ({ appointment, onClose, onAccepted, onReject
   const [rejectReason, setRejectReason] = useState('')
   const [showRejectForm, setShowRejectForm] = useState(false)
 
+  const y = useMotionValue(0)
+  const opacity = useTransform(y, [0, 250], [1, 0.4])
+
+  function handleDragEnd(_, info) {
+    if (info.offset.y > 120 || info.velocity.y > 400) {
+      animate(y, 600, { duration: 0.2 }).then(onClose)
+    } else {
+      animate(y, 0, { type: 'spring', stiffness: 400, damping: 30 })
+    }
+  }
+
   if (!appointment) return null
 
   // Resolve the appointment ID across all possible payload shapes:
@@ -48,7 +59,6 @@ const AppointmentAcceptanceModal = ({ appointment, onClose, onAccepted, onReject
     null
 
   const type = TYPE_CONFIG[appointment.type] || TYPE_CONFIG.primera_consulta
-  const TypeIcon = type.Icon
   const aptDate = appointment.date
     ? toLocalDateObj(appointment.date, appointment.time).toLocaleDateString('es-ES', {
         weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
@@ -144,9 +154,19 @@ const AppointmentAcceptanceModal = ({ appointment, onClose, onAccepted, onReject
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.96, opacity: 0, y: 12 }}
         transition={{ type: 'spring', duration: 0.35, bounce: 0.1 }}
-        className="bg-white rounded-2xl border border-gray-200 shadow-xl max-w-sm w-full overflow-hidden"
+        drag="y"
+        dragConstraints={{ top: 0 }}
+        dragElastic={{ top: 0.05, bottom: 0.3 }}
+        onDragEnd={handleDragEnd}
+        style={{ y, opacity, touchAction: 'none' }}
+        className="bg-white rounded-2xl border border-gray-200 shadow-xl max-w-sm w-full overflow-hidden cursor-grab active:cursor-grabbing"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Drag handle */}
+        <div className="flex justify-center pt-3 pb-0">
+          <div className="w-10 h-1 rounded-full bg-gray-200" />
+        </div>
+
         {/* ── Header ── */}
         <div className="px-5 pt-5 pb-4 flex items-start justify-between border-b border-gray-100">
           <div className="flex items-center gap-3">

@@ -7,9 +7,11 @@ import ProfessionalAccount from '@features/professional/components/ProfessionalA
 import ProfessionalVideoCallWebRTC from '@features/professional/components/VideoCallWebRTC'
 import SessionSummary from '@features/professional/components/SessionSummary'
 import ConsentSigner from '@features/professional/components/ConsentSigner'
-import { PatientDashboard, PatientPersonalDiary } from '@features/patient'
+import { PatientDashboard } from '@features/patient'
+import PatientPersonalDiary from '@features/patient/PatientPersonalDiary'
 import { AppointmentsProvider } from '@features/patient/AppointmentsContext'
 import PatientSessionsPage from '@features/patient/PatientSessionsPage'
+import PatientProfile from '@features/patient/PatientProfile'
 import PatientVideoCallWebRTC from '@features/patient/PatientVideoCallWebRTC'
 import PatientRegisterPage from '@features/patient/PatientRegisterPage'
 import PatientRegister from '@features/patient/PatientRegister'
@@ -194,6 +196,16 @@ function App() {
                     <PatientSessionsPage />
                   </DashboardLayout>
                 </AppointmentsProvider>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/patient/profile"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.PATIENT, ROLES.PACIENT]}>
+                <DashboardLayout userRole="patient">
+                  <PatientProfile />
+                </DashboardLayout>
               </ProtectedRoute>
             }
           />

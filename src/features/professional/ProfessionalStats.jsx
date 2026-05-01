@@ -321,6 +321,8 @@ const ProfessionalStats = ({ embedded = false }) => {
     const availableYears = Object.keys(MOCK_DATA).map(Number).sort((a, b) => b - a)
     const [year, setYear] = useState(currentYear)
     const [yearOpen, setYearOpen] = useState(false)
+    const [showDemographics, setShowDemographics] = useState(false)
+    const [showAnalysis, setShowAnalysis] = useState(false)
 
     const data = useMemo(() => MOCK_DATA[year] ?? MOCK_DATA[availableYears[0]], [year])
     const prevData = useMemo(() => MOCK_DATA[year - 1], [year])
@@ -492,9 +494,18 @@ const ProfessionalStats = ({ embedded = false }) => {
             </div>
 
             {/* ══════════ RETENTION + DEMOGRAPHICS ══════════ */}
-            <SectionLabel>Pacientes</SectionLabel>
+            <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-300 dark:text-gray-600">Pacientes</p>
+                <button
+                    onClick={() => setShowDemographics(d => !d)}
+                    className="flex items-center gap-1 text-[10px] font-semibold text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 transition-colors"
+                >
+                    {showDemographics ? 'Ocultar demografía' : 'Ver demografía'}
+                    <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${showDemographics ? 'rotate-180' : ''}`} />
+                </button>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {/* Retention donut */}
+                {/* Retention donut — always visible */}
                 <Card className="flex flex-col items-center justify-center">
                     <span className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-4 self-start">Retención</span>
                     <DonutChart active={data.activePatients} total={data.totalPatients} />
@@ -512,51 +523,63 @@ const ProfessionalStats = ({ embedded = false }) => {
                     </div>
                 </Card>
 
-                {/* Gender */}
-                <Card>
-                    <div className="flex items-baseline justify-between mb-4">
-                        <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">Género</span>
-                        <span className="text-[10px] text-gray-400 dark:text-gray-600">{genderTotal} pac.</span>
-                    </div>
-                    <div className="space-y-3">
-                        {genderRows.map((r, i) => (
-                            <HBar
-                                key={r.label}
-                                label={r.label}
-                                count={r.count}
-                                pct={Math.round((r.count / genderTotal) * 100)}
-                                barColor={r.bar}
-                                dot={r.dot}
-                                delay={0.08 + i * 0.06}
-                            />
-                        ))}
-                    </div>
-                </Card>
+                {/* Demographics — collapsible */}
+                {showDemographics && (
+                    <>
+                        <Card>
+                            <div className="flex items-baseline justify-between mb-4">
+                                <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">Género</span>
+                                <span className="text-[10px] text-gray-400 dark:text-gray-600">{genderTotal} pac.</span>
+                            </div>
+                            <div className="space-y-3">
+                                {genderRows.map((r, i) => (
+                                    <HBar
+                                        key={r.label}
+                                        label={r.label}
+                                        count={r.count}
+                                        pct={Math.round((r.count / genderTotal) * 100)}
+                                        barColor={r.bar}
+                                        dot={r.dot}
+                                        delay={0.08 + i * 0.06}
+                                    />
+                                ))}
+                            </div>
+                        </Card>
 
-                {/* Countries */}
-                <Card>
-                    <div className="flex items-baseline justify-between mb-4">
-                        <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">País de origen</span>
-                        <span className="text-[10px] text-gray-400 dark:text-gray-600">{data.totalPatients} pac.</span>
-                    </div>
-                    <div className="space-y-2.5">
-                        {data.countries.map((c, i) => (
-                            <HBar
-                                key={c.name}
-                                label={c.name}
-                                count={c.count}
-                                pct={Math.round((c.count / data.totalPatients) * 100)}
-                                barColor="linear-gradient(to right, #059669, #6ee7b7)"
-                                delay={0.05 + i * 0.04}
-                            />
-                        ))}
-                    </div>
-                </Card>
+                        <Card>
+                            <div className="flex items-baseline justify-between mb-4">
+                                <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">País de origen</span>
+                                <span className="text-[10px] text-gray-400 dark:text-gray-600">{data.totalPatients} pac.</span>
+                            </div>
+                            <div className="space-y-2.5">
+                                {data.countries.map((c, i) => (
+                                    <HBar
+                                        key={c.name}
+                                        label={c.name}
+                                        count={c.count}
+                                        pct={Math.round((c.count / data.totalPatients) * 100)}
+                                        barColor="linear-gradient(to right, #059669, #6ee7b7)"
+                                        delay={0.05 + i * 0.04}
+                                    />
+                                ))}
+                            </div>
+                        </Card>
+                    </>
+                )}
             </div>
 
             {/* ══════════ HEATMAP + REFERRALS + INSIGHTS ══════════ */}
-            <SectionLabel>Análisis</SectionLabel>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-300 dark:text-gray-600">Análisis avanzado</p>
+                <button
+                    onClick={() => setShowAnalysis(a => !a)}
+                    className="flex items-center gap-1 text-[10px] font-semibold text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 transition-colors"
+                >
+                    {showAnalysis ? 'Ocultar análisis' : 'Ver análisis'}
+                    <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${showAnalysis ? 'rotate-180' : ''}`} />
+                </button>
+            </div>
+            {showAnalysis && <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {/* Peak hours heatmap */}
                 <Card>
                     <div className="flex items-center gap-2 mb-4">
@@ -617,7 +640,7 @@ const ProfessionalStats = ({ embedded = false }) => {
                         ))}
                     </div>
                 </Card>
-            </div>
+            </div>}
 
             <p className="text-[9px] text-gray-300 dark:text-gray-700 text-center pb-2">
                 Datos ilustrativos · integración con API próximamente

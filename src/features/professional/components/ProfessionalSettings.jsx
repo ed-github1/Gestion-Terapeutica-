@@ -181,14 +181,7 @@ const ProfessionalSettings = ({ embedded = false }) => {
     const [notif, setNotif] = useState({
         emailAppointments: true,
         emailReminders: true,
-        pushAppointments: true,
-        pushMessages: true,
-    })
-
-    // Security
-    const [security, setSecurity] = useState({
-        twoFactor: user?.twoFactorEnabled || false,
-        sessionLock: true,
+        push: true,
     })
 
     const [practice, setPractice] = useState(() => {
@@ -238,7 +231,6 @@ const ProfessionalSettings = ({ embedded = false }) => {
     }, [])
 
     const setN = (key) => (val) => setNotif(prev => ({ ...prev, [key]: val }))
-    const setS = (key) => (val) => setSecurity(prev => ({ ...prev, [key]: val }))
     const setP = (key) => (val) => setPractice(prev => ({ ...prev, [key]: val }))
 
     const handleSave = async () => {
@@ -347,11 +339,8 @@ const ProfessionalSettings = ({ embedded = false }) => {
                     <SettingRow label="Recordatorios por correo" description="24 h antes de cada sesión programada">
                         <Toggle checked={notif.emailReminders} onChange={setN('emailReminders')} />
                     </SettingRow>
-                    <SettingRow label="Push: citas y sesiones">
-                        <Toggle checked={notif.pushAppointments} onChange={setN('pushAppointments')} />
-                    </SettingRow>
-                    <SettingRow label="Push: mensajes de pacientes">
-                        <Toggle checked={notif.pushMessages} onChange={setN('pushMessages')} />
+                    <SettingRow label="Notificaciones push" description="Citas, sesiones y mensajes de pacientes">
+                        <Toggle checked={notif.push} onChange={setN('push')} />
                     </SettingRow>
                 </SectionCard>
 
@@ -363,22 +352,7 @@ const ProfessionalSettings = ({ embedded = false }) => {
                     iconColor="text-violet-600 dark:text-violet-400"
                     iconBg="bg-violet-50 dark:bg-violet-900/40"
                 >
-                    <SettingRow
-                        label="Verificación en dos pasos (2FA)"
-                        description="Añade una capa extra de seguridad al iniciar sesión"
-                    >
-                        <div className="flex items-center gap-2">
-                            <Badge label={security.twoFactor ? 'Activo' : 'Inactivo'} color={security.twoFactor ? 'green' : 'amber'} />
-                            <Toggle checked={security.twoFactor} onChange={setS('twoFactor')} />
-                        </div>
-                    </SettingRow>
-                    <SettingRow
-                        label="Bloqueo de sesión automático"
-                        description="Bloquea la pantalla tras 15 min de inactividad"
-                    >
-                        <Toggle checked={security.sessionLock} onChange={setS('sessionLock')} />
-                    </SettingRow>
-                    <SettingRow label="Cambiar contraseña" description="Última actualización hace 90 días">
+                    <SettingRow label="Cambiar contraseña" description="Actualiza tu contraseña regularmente">
                         <button
                             onClick={() => {/* TODO */}}
                             className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"

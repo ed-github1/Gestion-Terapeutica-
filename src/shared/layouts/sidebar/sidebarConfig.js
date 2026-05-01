@@ -7,6 +7,7 @@ import {
   ShieldCheck,
   CreditCard,
   PenLine,
+  UserCircle,
 } from 'lucide-react'
 
 /**
@@ -71,7 +72,13 @@ export const patientMenuItems = [
     ariaLabel: 'Mi diario personal privado',
     secure: true
   },
-
+  {
+    icon: UserCircle,
+    path: '/dashboard/patient/profile',
+    label: 'Mi Perfil',
+    description: 'Tu cuenta',
+    ariaLabel: 'Mi perfil y cuenta'
+  },
 ]
 
 /**

@@ -7,6 +7,9 @@ import { subscriptionService } from '@shared/services/subscriptionService'
 import ModernProfessionalDashboard from './components/ModernProfessionalDashboard'
 import AppointmentsCalendar from './components/AppointmentsCalendar'
 import PatientClinicalFile from './components/PatientClinicalFile'
+import { useTopBarSlot } from '@shared/context/TopBarSlotContext'
+import { useSocketNotifications } from './hooks'
+import NotificationsPanel from './components/NotificationsPanel'
 
 // Max time to poll for plan activation (45 seconds), interval every 3s
 const POLL_INTERVAL_MS = 3000
@@ -21,6 +24,25 @@ const ProfessionalDashboardWrapper = () => {
     const [diaryPatient, setDiaryPatient] = useState(null)
     const [searchParams, setSearchParams] = useSearchParams()
     const { refreshUser, user } = useAuth()
+
+    // ── Top bar notification panel ────────────────────────────────────────────
+    const { setSlot } = useTopBarSlot()
+    const { paidNotifications, setPaidNotifications } = useSocketNotifications()
+
+    const setPaidRef = useRef(setPaidNotifications)
+    useEffect(() => { setPaidRef.current = setPaidNotifications })
+
+    useEffect(() => {
+        setSlot(
+            <NotificationsPanel
+                paidNotifications={paidNotifications}
+                setPaidNotifications={(...a) => setPaidRef.current(...a)}
+            />
+        )
+    }, [paidNotifications, setSlot])
+
+    useEffect(() => () => setSlot(null), [])
+    // ─────────────────────────────────────────────────────────────────────────
     const [showPaymentSuccess, setShowPaymentSuccess] = useState(
         () => searchParams.get('subscription') === 'success'
     )

@@ -6,11 +6,13 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Mic, MicOff, Video as VideoIcon, VideoOff, MessageSquare, ChevronLeft, PhoneOff, StopCircle, LogOut, Circle, ShieldCheck } from 'lucide-react';
+import { Mic, MicOff, Video as VideoIcon, VideoOff, MessageSquare, PhoneOff, StopCircle, LogOut, Circle, ShieldCheck, ClipboardList } from 'lucide-react';
 import { useWebRTC } from '@shared/hooks/useWebRTC';
 import { useCallRecording } from '@shared/hooks/useCallRecording';
 import { videoCallService } from '@shared/services/videoCallService';
+import { appointmentsService } from '@shared/services/appointmentsService';
 import { useAuth } from '../../auth/AuthContext';
+import PatientClinicalFile from './clinicalFile/PatientClinicalFile';
 
 const ProfessionalVideoCallWebRTC = () => {
   const { appointmentId } = useParams();
@@ -34,10 +36,39 @@ const ProfessionalVideoCallWebRTC = () => {
   const [isEndingSession, setIsEndingSession] = useState(false);
   const [recordingEnabled, setRecordingEnabled] = useState(false);
   const [patientDeclinedRecording, setPatientDeclinedRecording] = useState(false);
+  const [awaitingPatientConsent, setAwaitingPatientConsent] = useState(false);
+  const [showClinicalFile, setShowClinicalFile] = useState(false);
+  const [clinicalPatient, setClinicalPatient] = useState(null);
 
   useEffect(() => {
     if (reconnectFailed) navigate('/dashboard/professional/appointments');
   }, [reconnectFailed, navigate]);
+
+  // Start server recording once patient has given consent (recording-authorized event)
+  useEffect(() => {
+    if (!recordingAuthorized || !awaitingPatientConsent) return;
+    setAwaitingPatientConsent(false);
+    setRecordingEnabled(true);
+    startRecording(appointmentId);
+  }, [recordingAuthorized, awaitingPatientConsent, startRecording, appointmentId]);
+
+  // Cleanup on unmount when user navigates away without using leave/end buttons.
+  const cleanupRef = useRef(null);
+  useEffect(() => () => {
+    if (isLeavingIntentionallyRef.current) return;
+    const fns = cleanupRef.current;
+    if (!fns) return;
+    if (fns.recordingEnabled) fns.stopRecording(fns.appointmentId);
+    fns.stopCallRecording();
+    fns.leaveRoom();
+  }, []);
+
+  // Warn on browser tab close / refresh
+  useEffect(() => {
+    const handleBeforeUnload = (e) => { if (isInRoom) e.returnValue = ''; };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isInRoom]);
 
   const localVideoRef = useRef(null);
   const remoteVideoRefs = useRef(new Map());
@@ -46,6 +77,9 @@ const ProfessionalVideoCallWebRTC = () => {
   const durationDisplayRef = useRef(null);
   const callDurationRef = useRef(0);
   const countdownRef = useRef(null);
+  const isLeavingIntentionallyRef = useRef(false);
+  const statusBannerRef = useRef(null);
+  const [bannerHeight, setBannerHeight] = useState(0);
 
   const handleRecordingFailed = useCallback((errorMsg) => {
     console.error('[Recording] Recording failed:', errorMsg);
@@ -55,6 +89,11 @@ const ProfessionalVideoCallWebRTC = () => {
     isRecording: localRecording, isUploading, uploadError, recordingError,
     stopRecording: stopCallRecording,
   } = useCallRecording({ localStream, appointmentId, enabled: recordingEnabled, onRecordingFailed: handleRecordingFailed });
+  cleanupRef.current = { stopCallRecording, leaveRoom, recordingEnabled, stopRecording, appointmentId };
+
+  useEffect(() => {
+    if (statusBannerRef.current) setBannerHeight(statusBannerRef.current.offsetHeight);
+  }, [error, countdown, isServerRecording, localRecording, isUploading, recordingError, uploadError, userLeft]);
 
   useEffect(() => {
     if (userLeft && remoteStreams.length === 0 && isInRoom && !showEndConfirm) {
@@ -113,13 +152,15 @@ const ProfessionalVideoCallWebRTC = () => {
     catch (err) { console.error('Failed to join room:', err); }
   };
 
-  const handleLeaveRoom = async () => {
-    await stopCallRecording();
+  const handleLeaveRoom = () => {
+    isLeavingIntentionallyRef.current = true;
+    // Recording is intentionally NOT uploaded on leave — only "Finalizar Sesión" uploads.
     leaveRoom();
     navigate('/dashboard/professional');
   };
 
   const handleEndSession = async () => {
+    isLeavingIntentionallyRef.current = true;
     setIsEndingSession(true);
     setShowEndConfirm(false);
     try { await stopCallRecording(); }
@@ -146,13 +187,47 @@ const ProfessionalVideoCallWebRTC = () => {
 
   const handleAcceptRecordingConsent = async () => {
     setShowRecordingConsent(false);
-    // REST first — this is the authoritative write to the DB.
-    // Only after it succeeds do we emit the socket event and start recording.
-    try { await videoCallService.grantRecordingConsent(appointmentId); }
-    catch (err) { console.error('Failed to set recording consent on backend:', err); return; }
+    // Emit socket consent first — this is what notifies the patient.
+    // The API call is best-effort persistence and must not block the socket flow.
     manager?.registerRecordingConsent();
-    setRecordingEnabled(true);
-    startRecording(appointmentId);
+    setAwaitingPatientConsent(true);
+    try { await videoCallService.grantRecordingConsent(appointmentId); }
+    catch (err) { console.error('Failed to set recording consent on backend:', err); }
+  };
+
+  const handleOpenClinicalFile = async () => {
+    if (showClinicalFile) { setShowClinicalFile(false); return; }
+    setShowChat(false);
+    setShowClinicalFile(true);
+    if (clinicalPatient) return;
+    try {
+      const apptRes = await appointmentsService.getById(appointmentId);
+      const appt = apptRes?.data?.data ?? apptRes?.data ?? apptRes;
+      const raw  = appt?.patientId ?? appt?.patient ?? appt?.paciente;
+
+      // Backend now populates patientId as a Patient document (has _id + userId).
+      if (raw && typeof raw === 'object' && (raw.userId || raw.user)) {
+        setClinicalPatient(raw);
+        return;
+      }
+
+      // Legacy fallback: patientId is still a plain User._id string on old appointments.
+      // Pass name + userId so useClinicalFileData can resolve via its userId scan.
+      const userIdStr = typeof raw === 'string' ? raw : raw?._id ? String(raw._id) : null;
+      const apptName  = appt?.patientName || appt?.nombrePaciente || '';
+      const rawName   = raw && typeof raw === 'object'
+        ? (`${raw.firstName || raw.nombre || ''} ${raw.lastName || raw.apellido || ''}`.trim() || raw.name || '')
+        : '';
+      const parts = (apptName || rawName).split(' ');
+      setClinicalPatient({
+        nombre:   parts[0] || '',
+        apellido: parts.slice(1).join(' '),
+        ...(userIdStr ? { userId: userIdStr } : {}),
+      });
+    } catch (err) {
+      console.error('[handleOpenClinicalFile] failed:', err?.message);
+      setShowClinicalFile(false);
+    }
   };
 
   const handleSendMessage = (e) => {
@@ -203,9 +278,9 @@ const ProfessionalVideoCallWebRTC = () => {
   const glassIdle = 'rgba(255,255,255,0.1)';
   const glassBorder = '1px solid rgba(255,255,255,0.2)';
   const glassShadow = '0 4px 20px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.12)';
-  const redActive = 'linear-gradient(135deg,#ef4444,#dc2626)';
-  const redBorder = '1px solid rgba(239,68,68,0.5)';
-  const redShadow = '0 4px 20px rgba(239,68,68,0.4),inset 0 1px 0 rgba(255,255,255,0.15)';
+  const redActive = 'rgba(200,30,30,0.6)';
+  const redBorder = '1px solid rgba(239,68,68,0.3)';
+  const redShadow = '0 4px 14px rgba(239,68,68,0.15),inset 0 1px 0 rgba(255,255,255,0.08)';
   const skyActive = 'linear-gradient(135deg,#0ea5e9,#0284c7)';
   const skyBorder = '1px solid rgba(14,165,233,0.5)';
   const skyShadow = '0 4px 20px rgba(14,165,233,0.4),inset 0 1px 0 rgba(255,255,255,0.15)';
@@ -224,7 +299,8 @@ const ProfessionalVideoCallWebRTC = () => {
           />
         ))
       ) : (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-900"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 130px)' }}>
           <div className="text-center">
             <div className="w-20 h-20 bg-sky-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-10 h-10 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -238,7 +314,7 @@ const ProfessionalVideoCallWebRTC = () => {
       )}
 
       {/* ── Status banners — absolute top ───────────────────────────── */}
-      <div className="absolute top-0 left-0 right-0 z-50 flex flex-col">
+      <div ref={statusBannerRef} className="absolute top-0 left-0 right-0 z-50 flex flex-col">
         {error?.type === 'warning' && (
           <div className="bg-amber-600/90 text-white text-xs px-4 py-2 flex items-center justify-between backdrop-blur-sm">
             <span>{error.message}</span>
@@ -275,14 +351,6 @@ const ProfessionalVideoCallWebRTC = () => {
         )}
       </div>
 
-      {/* ── Back button — top left ───────────────────────────────────── */}
-      <button onClick={handleLeaveRoom} aria-label="Salir"
-        className="absolute z-30 active:scale-90 transition-transform"
-        style={{ top: 'calc(env(safe-area-inset-top, 0px) + 14px)', left: 14 }}>
-        <div style={{ width: 42, height: 42, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
-          <ChevronLeft className="w-5 h-5 text-white" />
-        </div>
-      </button>
 
       {/* ── Timer — top center ───────────────────────────────────────── */}
       {isInRoom && (
@@ -380,7 +448,7 @@ const ProfessionalVideoCallWebRTC = () => {
           </button>
 
           {/* Chat */}
-          <button onClick={() => setShowChat(!showChat)} aria-label="Abrir chat"
+          <button onClick={() => { setShowClinicalFile(false); setShowChat(!showChat); }} aria-label="Abrir chat"
             className="flex flex-col items-center gap-1.5 group active:scale-90 transition-transform relative">
             <div style={{ ...btnBase, background: showChat ? skyActive : glassIdle, border: showChat ? skyBorder : glassBorder, boxShadow: showChat ? skyShadow : glassShadow }}>
               <MessageSquare className="w-5 h-5 text-white" />
@@ -394,6 +462,15 @@ const ProfessionalVideoCallWebRTC = () => {
             <span style={labelStyle}>Chat</span>
           </button>
 
+          {/* Clinical File */}
+          <button onClick={handleOpenClinicalFile} aria-label="Expediente del paciente"
+            className="flex flex-col items-center gap-1.5 group active:scale-90 transition-transform">
+            <div style={{ ...btnBase, background: showClinicalFile ? skyActive : glassIdle, border: showClinicalFile ? skyBorder : glassBorder, boxShadow: showClinicalFile ? skyShadow : glassShadow }}>
+              <ClipboardList className="w-5 h-5 text-white" />
+            </div>
+            <span style={labelStyle}>Expediente</span>
+          </button>
+
         </div>
       </div>
 
@@ -403,7 +480,7 @@ const ProfessionalVideoCallWebRTC = () => {
           <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 22, stiffness: 220 }}
             className="absolute top-0 right-0 w-full sm:w-96 h-full z-40 flex flex-col"
-            style={{ background: 'rgba(10,10,15,0.88)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', borderLeft: '1px solid rgba(255,255,255,0.08)' }}>
+            style={{ paddingTop: bannerHeight, background: 'rgba(10,10,15,0.88)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', borderLeft: '1px solid rgba(255,255,255,0.08)' }}>
             <div className="px-4 py-3 flex items-center justify-between border-b border-white/8">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-sky-500/20 flex items-center justify-center">
@@ -446,6 +523,27 @@ const ProfessionalVideoCallWebRTC = () => {
                 </button>
               </div>
             </form>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Clinical File Panel ──────────────────────────────────────── */}
+      <AnimatePresence>
+        {showClinicalFile && (
+          <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 22, stiffness: 220 }}
+            className="dark absolute top-0 right-0 w-full sm:w-110 h-full z-40 overflow-hidden"
+            style={{ paddingTop: bannerHeight }}>
+            {clinicalPatient ? (
+              <PatientClinicalFile patient={clinicalPatient} onClose={() => setShowClinicalFile(false)} />
+            ) : (
+              <div className="h-full flex items-center justify-center" style={{ background: '#0f1623' }}>
+                <div className="text-center">
+                  <div className="w-8 h-8 border-2 border-sky-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                  <p className="text-white/40 text-sm">Cargando expediente…</p>
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

@@ -46,6 +46,11 @@ class WebRTCManager {
     this._disconnectTimers = new Map(); // userId -> timeout for grace period
     this._peerReconnectAttempts = new Map(); // userId -> count
     this._maxPeerReconnectAttempts = 3;
+    // ICE candidates that arrive before the peer connection or remote description
+    // is ready get buffered here and flushed once setRemoteDescription completes.
+    // On high-latency cross-country paths this prevents silently dropping relay
+    // (TURN) candidates, which is the primary cause of one-way video.
+    this._iceCandidateBuffer = new Map(); // userId -> RTCIceCandidateInit[]
   }
 
   /**
@@ -124,9 +129,12 @@ class WebRTCManager {
           role: this.userRole
         });
 
-        // If we were in a room, re-join after reconnect
-        if (this._reconnectAttempts > 0 && this.currentRoomId) {
-          console.log(`Reconnected — re-joining room ${this.currentRoomId} (attempt ${this._reconnectAttempts})`);
+        // If we were in a room, re-join after reconnect.
+        // Check currentRoomId only (not _reconnectAttempts) because the disconnect
+        // handler resets _reconnectAttempts to 0 before connect fires, so the
+        // old `> 0` guard prevented onReconnecting(false) from ever being called.
+        if (this.currentRoomId) {
+          console.log(`Reconnected — re-joining room ${this.currentRoomId}`);
           this.socket.emit('join-room', {
             roomId: this.currentRoomId,
             userId: this.userId,
@@ -423,11 +431,14 @@ class WebRTCManager {
     // Handle ICE candidates
     pc.onicecandidate = (event) => {
       if (event.candidate && this.socket) {
+        console.log(`[ICE] Sending to ${targetUserId}: type=${event.candidate.type} proto=${event.candidate.protocol}`);
         this.socket.emit('ice-candidate', {
           roomId: this.currentRoomId,
           candidate: event.candidate,
           targetUserId: targetUserId
         });
+      } else if (!event.candidate) {
+        console.log(`[ICE] Gathering complete for ${targetUserId}`);
       }
     };
 
@@ -483,6 +494,7 @@ class WebRTCManager {
         // Clear any pending disconnect timer — connection recovered
         this._clearDisconnectTimer(targetUserId);
         this._peerReconnectAttempts.delete(targetUserId);
+        this._logSelectedCandidatePair(pc, targetUserId);
       } else if (pc.connectionState === 'disconnected') {
         // Grace period: WebRTC often self-recovers from 'disconnected'
         this._startDisconnectTimer(targetUserId, 8000);
@@ -546,6 +558,7 @@ class WebRTCManager {
       const pc = this.createPeerConnection(fromUserId);
 
       await pc.setRemoteDescription(new RTCSessionDescription(offer));
+      await this._flushIceCandidateBuffer(fromUserId, pc);
 
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
@@ -583,6 +596,7 @@ class WebRTCManager {
       }
 
       await pc.setRemoteDescription(new RTCSessionDescription(answer));
+      await this._flushIceCandidateBuffer(fromUserId, pc);
       console.log('Set remote description for:', fromUserId);
     } catch (error) {
       // Race: state flipped to stable between the guard above and setRemoteDescription.
@@ -603,15 +617,38 @@ class WebRTCManager {
     try {
       const pc = this.peerConnections.get(fromUserId);
 
-      if (!pc) {
-        console.error('No peer connection found for:', fromUserId);
+      // Buffer candidates that arrive before the peer connection exists or before
+      // the remote description is set. On high-latency cross-country calls this
+      // prevents dropping TURN relay candidates that arrive during signaling.
+      if (!pc || !pc.remoteDescription) {
+        const buf = this._iceCandidateBuffer.get(fromUserId) || [];
+        if (buf.length < 50) buf.push(candidate);
+        this._iceCandidateBuffer.set(fromUserId, buf);
+        const typeMatch = candidate?.candidate?.match(/typ (\w+)/);
+        console.log(`[ICE] Buffered candidate from ${fromUserId} type=${typeMatch?.[1] || 'unknown'} buf=${buf.length}`);
         return;
       }
 
       await pc.addIceCandidate(new RTCIceCandidate(candidate));
     } catch (error) {
       console.error('Failed to handle ICE candidate:', error);
-      this.handleError(error);
+    }
+  }
+
+  /**
+   * Flush buffered ICE candidates for a peer after remote description is set.
+   */
+  async _flushIceCandidateBuffer(userId, pc) {
+    const buf = this._iceCandidateBuffer.get(userId);
+    if (!buf || buf.length === 0) return;
+    this._iceCandidateBuffer.delete(userId);
+    console.log(`[ICE] Flushing ${buf.length} buffered candidates for ${userId}`);
+    for (const candidate of buf) {
+      try {
+        await pc.addIceCandidate(new RTCIceCandidate(candidate));
+      } catch (err) {
+        console.warn(`[ICE] Buffered candidate rejected: ${err.message}`);
+      }
     }
   }
 
@@ -724,7 +761,9 @@ class WebRTCManager {
    * the participant's consent flag on the room document.
    */
   registerRecordingConsent() {
+    console.log('[Recording] registerRecordingConsent — currentRoomId:', this.currentRoomId, '| socket connected:', this.socket?.connected);
     if (!this.currentRoomId || !this.socket?.connected) return;
+    console.log('[Recording] emitting recording-consent to server');
     this.socket.emit('recording-consent', {
       roomId: this.currentRoomId,
       userId: this.userId,
@@ -821,7 +860,8 @@ class WebRTCManager {
 
     console.log(`Reconnecting to peer ${userId} (attempt ${attempts}/${this._maxPeerReconnectAttempts})`);
 
-    // Tear down old connection
+    // Tear down old connection and discard any stale buffered candidates
+    this._iceCandidateBuffer.delete(userId);
     const oldPc = this.peerConnections.get(userId);
     if (oldPc) {
       oldPc.onconnectionstatechange = null;
@@ -839,6 +879,29 @@ class WebRTCManager {
 
     // Create a fresh offer to the peer
     this.createOffer(userId);
+  }
+
+  /**
+   * Log the selected ICE candidate pair type after connection to confirm
+   * whether TURN relay is being used vs direct (host/srflx).
+   */
+  async _logSelectedCandidatePair(pc, userId) {
+    try {
+      const stats = await pc.getStats();
+      stats.forEach(report => {
+        if (report.type === 'candidate-pair' && report.state === 'succeeded' && report.nominated) {
+          const local = stats.get(report.localCandidateId);
+          const remote = stats.get(report.remoteCandidateId);
+          console.log(
+            `[ICE] ✅ Selected pair for ${userId}: ` +
+            `local=${local?.candidateType}/${local?.protocol} ` +
+            `remote=${remote?.candidateType}/${remote?.protocol}`
+          );
+        }
+      });
+    } catch (err) {
+      console.warn('[ICE] Could not read stats:', err.message);
+    }
   }
 
   /**
@@ -866,6 +929,8 @@ class WebRTCManager {
    * Clean up specific peer connection
    */
   cleanupPeerConnection(userId) {
+    this._iceCandidateBuffer.delete(userId);
+
     // Close peer connection
     const pc = this.peerConnections.get(userId);
     if (pc) {
@@ -891,6 +956,7 @@ class WebRTCManager {
     this._disconnectTimers.forEach(timer => clearTimeout(timer));
     this._disconnectTimers.clear();
     this._peerReconnectAttempts.clear();
+    this._iceCandidateBuffer.clear();
 
     // Close all peer connections
     this.peerConnections.forEach(pc => pc.close());

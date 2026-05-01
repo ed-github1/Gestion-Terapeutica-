@@ -38,40 +38,65 @@ export const useClinicalFileData = (patient) => {
   const patientId     = effectivePatientId
   const patientUserId = patient?.userId || patient?.user || patientId
 
-  // When there is no patient ID (name-only appointment), search /patients by full name
-  // to find the linked patient record and resolve the real ID.
+  // When there is no patient ID, resolve the Patient record in two steps:
+  // 1. exact full-name search (fast, works when appointment has patientName)
+  // 2. userId scan as fallback (works when the User document was passed instead of Patient)
   useEffect(() => {
-    if (rawPatientId || effectivePatientId) return  // already have an ID
-    const firstName  = patient?.firstName || patient?.nombre  || ''
+    if (rawPatientId || effectivePatientId) return
+
+    const firstName  = patient?.firstName || patient?.nombre || ''
     const lastName   = patient?.lastName  || patient?.apellido || ''
-    const searchName = `${firstName} ${lastName}`.trim()
-    if (!searchName) return
+    const searchName = `${firstName} ${lastName}`.trim() || patient?.name || ''
+    const userId     = patient?.userId || patient?.user
+
+    if (!searchName && !userId) return
 
     let cancelled = false
-    patientsService.getAll({ search: searchName, limit: 10 })
-      .then(res => {
-        if (cancelled) return
-        const raw  = res.data?.data?.data ?? res.data?.data ?? res.data ?? []
-        const list = Array.isArray(raw) ? raw : []
-        const lower = searchName.toLowerCase()
-        const match = list.find(p => {
-          const n = `${p.firstName || p.nombre || ''} ${p.lastName || p.apellido || ''}`.toLowerCase().trim()
-          return n === lower
+
+    const applyMatch = (match) => {
+      if (cancelled || !match) return
+      const foundId = match._id || match.id
+      if (!foundId) return
+      setEffectivePatientId(foundId)
+      setPatientProfile(prev => ({
+        ...match,
+        id: foundId, _id: foundId,
+        nombre:   match.firstName  || match.nombre  || prev.nombre,
+        apellido: match.lastName   || match.apellido || prev.apellido,
+      }))
+    }
+
+    const byName = () => {
+      if (!searchName) return Promise.resolve(null)
+      return patientsService.getAll({ search: searchName, limit: 10 })
+        .then(res => {
+          if (cancelled) return null
+          const raw  = res.data?.data?.data ?? res.data?.data ?? res.data ?? []
+          const list = Array.isArray(raw) ? raw : []
+          const lower = searchName.toLowerCase()
+          return list.find(p => {
+            const n = `${p.firstName || p.nombre || ''} ${p.lastName || p.apellido || ''}`.toLowerCase().trim()
+            return n === lower
+          }) ?? null
         })
-        if (match) {
-          const foundId = match._id || match.id
-          if (foundId) {
-            setEffectivePatientId(foundId)
-            setPatientProfile(prev => ({
-              ...match,
-              id: foundId, _id: foundId,
-              nombre:   match.firstName  || match.nombre  || prev.nombre,
-              apellido: match.lastName   || match.apellido || prev.apellido,
-            }))
-          }
-        }
-      })
-      .catch(err => console.warn('[useClinicalFileData] name-based patient lookup failed:', err?.message))
+    }
+
+    const byUserId = () => {
+      if (!userId) return Promise.resolve(null)
+      return patientsService.getAll({ limit: 200 })
+        .then(res => {
+          if (cancelled) return null
+          const raw  = res.data?.data?.data ?? res.data?.data ?? res.data ?? []
+          const list = Array.isArray(raw) ? raw : []
+          return list.find(p => String(p.userId || p.user || '') === String(userId)) ?? null
+        })
+    }
+
+    byName()
+      .then(match => match ? match : byUserId())
+      .then(applyMatch)
+      .catch(err => console.warn('[useClinicalFileData] patient lookup failed:', err?.message))
+
     return () => { cancelled = true }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rawPatientId, effectivePatientId])

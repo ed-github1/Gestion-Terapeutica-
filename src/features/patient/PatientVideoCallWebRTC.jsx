@@ -6,7 +6,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Mic, MicOff, Video as VideoIcon, VideoOff, MessageSquare, ChevronLeft, PhoneOff, LogOut, Circle, ShieldAlert } from 'lucide-react';
+import { Mic, MicOff, Video as VideoIcon, VideoOff, MessageSquare, PhoneOff, LogOut, Circle, ShieldAlert } from 'lucide-react';
 import { useWebRTC } from '@shared/hooks/useWebRTC';
 import { useCallRecording } from '@shared/hooks/useCallRecording';
 import { videoCallService } from '@shared/services/videoCallService';
@@ -31,7 +31,8 @@ const PatientVideoCallWebRTC = () => {
     isAudioEnabled,
     isVideoEnabled,
     isReconnecting,
-    isServerRecording,
+    isRecording: isServerRecording,
+    recordingAuthorized,
     reconnectFailed,
     userLeft,
     joinRoom,
@@ -39,6 +40,7 @@ const PatientVideoCallWebRTC = () => {
     toggleAudio,
     toggleVideo,
     sendMessage,
+    manager,
   } = useWebRTC();
 
   const [showChat, setShowChat] = useState(false);
@@ -48,6 +50,7 @@ const PatientVideoCallWebRTC = () => {
   const [recordingConsented, setRecordingConsented] = useState(false);
   const [consentLoading, setConsentLoading] = useState(false);
   const recordingAcknowledgedRef = useRef(false);
+  const isLeavingIntentionallyRef = useRef(false);
 
   const handleRecordingFailed = useCallback((errorMsg) => {
     console.error('[Recording] Patient recording failed:', errorMsg);
@@ -67,6 +70,8 @@ const PatientVideoCallWebRTC = () => {
   const durationIntervalRef = useRef(null);
   const durationDisplayRef = useRef(null);
   const countdownRef = useRef(null);
+  const statusBannerRef = useRef(null);
+  const [bannerHeight, setBannerHeight] = useState(0);
 
   // When a remote user leaves and no one is left, start 30s countdown
   useEffect(() => {
@@ -104,6 +109,26 @@ const PatientVideoCallWebRTC = () => {
     }
   }, [reconnectFailed, navigate]);
 
+  useEffect(() => {
+    if (statusBannerRef.current) setBannerHeight(statusBannerRef.current.offsetHeight);
+  }, [error, countdown, isServerRecording, isRecording, userLeft]);
+
+  // Cleanup on unmount when user navigates away without using the leave button.
+  const cleanupRef = useRef(null);
+  cleanupRef.current = { stopCallRecording, leaveRoom };
+  useEffect(() => () => {
+    if (isLeavingIntentionallyRef.current) return;
+    cleanupRef.current?.stopCallRecording();
+    cleanupRef.current?.leaveRoom();
+  }, []);
+
+  // Warn on browser tab close / refresh
+  useEffect(() => {
+    const handleBeforeUnload = (e) => { if (isInRoom) e.preventDefault(); };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isInRoom]);
+
   // Auto-leave when countdown reaches 0
   useEffect(() => {
     if (countdown === 0) {
@@ -111,7 +136,7 @@ const PatientVideoCallWebRTC = () => {
     }
   }, [countdown]);
 
-  // Show recording disclaimer when the professional starts recording (server event)
+  // Show disclaimer when server recording starts (notification from backend)
   useEffect(() => {
     if (isServerRecording && !recordingAcknowledgedRef.current) {
       setShowRecordingDisclaimer(true);
@@ -121,6 +146,14 @@ const PatientVideoCallWebRTC = () => {
       setRecordingConsented(false);
     }
   }, [isServerRecording]);
+
+  // Also show disclaimer when the professional registers consent (before server recording starts),
+  // so the patient can respond before recording actually begins.
+  useEffect(() => {
+    if (recordingAuthorized && !recordingAcknowledgedRef.current) {
+      setShowRecordingDisclaimer(true);
+    }
+  }, [recordingAuthorized]);
 
   // When the professional ends the room, stop recording and navigate back after 3 seconds
   useEffect(() => {
@@ -181,14 +214,14 @@ const PatientVideoCallWebRTC = () => {
   const handleJoinRoom = async () => {
     try {
       try { await videoCallService.acceptInvitation(appointmentId); } catch { /* may already be accepted */ }
-      await joinRoom(appointmentId, { recordingConsent: true });
+      await joinRoom(appointmentId, { recordingConsent: false });
     } catch (err) {
       console.error('Failed to join room:', err);
     }
   };
 
-  const handleLeaveRoom = async () => {
-    await stopCallRecording();
+  const handleLeaveRoom = () => {
+    isLeavingIntentionallyRef.current = true;
     leaveRoom();
     navigate('/dashboard/patient');
   };
@@ -212,11 +245,14 @@ const PatientVideoCallWebRTC = () => {
 
   const handleAcceptRecording = async () => {
     setConsentLoading(true);
+    // Update state and emit socket consent immediately — the socket event is what
+    // notifies the professional to start recording. API call is best-effort.
+    recordingAcknowledgedRef.current = true;
+    setRecordingConsented(true);
+    setShowRecordingDisclaimer(false);
+    manager?.registerRecordingConsent();
     try {
       await videoCallService.grantRecordingConsent(appointmentId);
-      recordingAcknowledgedRef.current = true;
-      setRecordingConsented(true);
-      setShowRecordingDisclaimer(false);
     } catch (err) {
       console.error('Failed to register recording consent:', err);
     } finally {
@@ -346,7 +382,7 @@ const PatientVideoCallWebRTC = () => {
       )}
 
       {/* ── Status banners — absolute top ───────────────────────────── */}
-      <div className="absolute top-0 left-0 right-0 z-50 flex flex-col">
+      <div ref={statusBannerRef} className="absolute top-0 left-0 right-0 z-50 flex flex-col">
         {error?.type === 'warning' && (
           <div className="text-white text-xs px-4 py-2 flex items-center justify-between backdrop-blur-sm" style={{ background: 'rgba(217,119,6,0.9)' }}>
             <span>{error.message}</span>
@@ -367,14 +403,6 @@ const PatientVideoCallWebRTC = () => {
         )}
       </div>
 
-      {/* ── Back button — top left ───────────────────────────────────── */}
-      <button onClick={handleLeaveRoom} aria-label="Salir"
-        className="absolute z-30 active:scale-90 transition-transform"
-        style={{ top: 'calc(env(safe-area-inset-top, 0px) + 14px)', left: 14 }}>
-        <div style={{ width: 42, height: 42, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
-          <ChevronLeft className="w-5 h-5 text-white" />
-        </div>
-      </button>
 
       {/* ── Timer — top center ───────────────────────────────────────── */}
       {isInRoom && (
@@ -441,7 +469,7 @@ const PatientVideoCallWebRTC = () => {
           <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 22, stiffness: 220 }}
             className="absolute top-0 right-0 w-full sm:w-96 h-full z-40 flex flex-col"
-            style={{ background: 'rgba(10,10,15,0.88)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', borderLeft: '1px solid rgba(255,255,255,0.08)' }}>
+            style={{ paddingTop: bannerHeight, background: 'rgba(10,10,15,0.88)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', borderLeft: '1px solid rgba(255,255,255,0.08)' }}>
             <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'rgba(14,165,233,0.15)' }}>

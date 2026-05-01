@@ -79,6 +79,14 @@ const PatientClinicalFile = ({ patient, onClose }) => {
               </div>
             ))}
           </div>
+
+          {/* Close button */}
+          {onClose && (
+            <button onClick={onClose}
+              className="w-8 h-8 shrink-0 flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/8 rounded-full transition-colors ml-1">
+              ✕
+            </button>
+          )}
         </div>
 
         {/* Tabs */}

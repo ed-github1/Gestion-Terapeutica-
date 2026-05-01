@@ -1,6 +1,6 @@
 import { motion } from 'motion/react'
 import {
-  Home, Calendar, BookOpen, MoreHorizontal,
+  Home, Calendar, BookOpen,
   LayoutGrid, Users, UserCircle,
 } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -27,14 +27,7 @@ const NavBtn = ({ path, exact, label, Icon, badge }) => {
   )
 }
 
-const MoreBtn = ({ badge, onClick }) => (
-  <motion.button whileTap={{ scale: 0.88 }} onClick={onClick} className="relative flex-1 flex items-center justify-center py-4 text-gray-400 dark:text-gray-600 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-150">
-    <MoreHorizontal style={{ width: 26, height: 26 }} strokeWidth={1.6} />
-    {badge && <span className="absolute top-3 right-[calc(50%-16px)] w-1.5 h-1.5 bg-red-500 rounded-full" />}
-  </motion.button>
-)
-
-const MobileBottomNav = ({ userRole, onMoreClick }) => {
+const MobileBottomNav = ({ userRole }) => {
   return (
     <motion.div
       initial={{ y: 100 }}
@@ -56,7 +49,7 @@ const MobileBottomNav = ({ userRole, onMoreClick }) => {
             <NavBtn path={`/dashboard/${userRole}`} exact label="INICIO" Icon={Home} />
             <NavBtn path={`/dashboard/${userRole}/appointments`} label="CITAS" Icon={Calendar} />
             <NavBtn path={`/dashboard/${userRole}/diary`} label="DIARIO" Icon={BookOpen} />
-            <MoreBtn badge onClick={onMoreClick} />
+            <NavBtn path={`/dashboard/${userRole}/profile`} label="PERFIL" Icon={UserCircle} />
           </>
         )}
       </div>
