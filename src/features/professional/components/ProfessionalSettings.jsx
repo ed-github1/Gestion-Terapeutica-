@@ -344,17 +344,21 @@ const ProfessionalSettings = ({ embedded = false }) => {
                                             {practice.currency === 'EUR' ? '€' : practice.currency === 'USD' ? '$' : '$'}
                                         </span>
                                         <input
-                                            type="number"
-                                            min="0"
-                                            step="0.01"
-                                            value={practice.sessionTypePrices?.[key] ?? ''}
-                                            onChange={(e) => setPractice(prev => ({
-                                                ...prev,
-                                                sessionTypePrices: {
+                                            type="text"
+                                            inputMode="decimal"
+                                            value={String(practice.sessionTypePrices?.[key] ?? '')}
+                                            onChange={(e) => {
+                                              const val = e.target.value
+                                              if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                                setPractice(prev => ({
+                                                  ...prev,
+                                                  sessionTypePrices: {
                                                     ...prev.sessionTypePrices,
-                                                    [key]: parseFloat(e.target.value) || 0,
-                                                },
-                                            }))}
+                                                    [key]: val === '' ? 0 : parseFloat(val) || 0,
+                                                  },
+                                                }))
+                                              }
+                                            }}
                                             className="w-full pl-6 pr-2 py-1.5 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-sky-400 focus:border-transparent outline-none transition"
                                             placeholder="0.00"
                                         />

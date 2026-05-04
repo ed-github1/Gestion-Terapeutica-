@@ -197,12 +197,16 @@ export default function RatesPanel({ onClose }) {
                       {currencySymbol}
                     </div>
                     <input
-                      type="number"
-                      min="0"
-                      step="0.01"
+                      type="text"
+                      inputMode="decimal"
                       value={prices[key]}
-                      onChange={(e) => setPrices(prev => ({ ...prev, [key]: e.target.value }))}
-                      className="flex-1 px-3.5 py-2.5 text-lg font-bold bg-transparent text-gray-800 dark:text-gray-100 focus:outline-none placeholder:text-gray-300 dark:placeholder:text-gray-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      onChange={(e) => {
+                        const val = e.target.value
+                        if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                          setPrices(prev => ({ ...prev, [key]: val }))
+                        }
+                      }}
+                      className="flex-1 px-3.5 py-2.5 text-lg font-bold bg-transparent text-gray-800 dark:text-gray-100 focus:outline-none placeholder:text-gray-300 dark:placeholder:text-gray-600"
                       placeholder="0"
                     />
                   </div>

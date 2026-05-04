@@ -144,7 +144,7 @@ export default function AppointmentDetailPanel({ appointment, onClose }) {
                     {price != null && Number(price) > 0 && (
                         <InfoCell label="Honorario">
                             <span className="font-bold text-gray-900 dark:text-white">
-                                ${Number(price).toLocaleString('es-MX', { minimumFractionDigits: 0 })}
+                                ${Number(price).toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 20 })}
                             </span>
                             {appointment.paymentStatus && (
                                 <span className={`block text-[11px] font-semibold mt-0.5 ${isPaid ? 'text-emerald-500' : 'text-amber-500'}`}>
