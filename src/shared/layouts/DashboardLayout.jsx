@@ -74,7 +74,7 @@ const DashboardLayoutInner = ({ children, userRole }) => {
       </div>
 
       {/* Main Container */}
-      <div className="flex-1 flex overflow-hidden pt-15 md:pt-0">
+      <div className="flex-1 flex overflow-hidden pt-16 md:pt-0">
         <div className="hidden md:block shrink-0 md:relative md:h-full">
           <DashboardSidebar userRole={userRole} onClose={() => {}} />
         </div>
