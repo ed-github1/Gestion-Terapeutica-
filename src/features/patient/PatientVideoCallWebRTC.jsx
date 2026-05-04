@@ -49,6 +49,7 @@ const PatientVideoCallWebRTC = () => {
   const [showRecordingDisclaimer, setShowRecordingDisclaimer] = useState(false);
   const [recordingConsented, setRecordingConsented] = useState(false);
   const [consentLoading, setConsentLoading] = useState(false);
+  const [showNavigationWarning, setShowNavigationWarning] = useState(false);
   const recordingAcknowledgedRef = useRef(false);
   const isLeavingIntentionallyRef = useRef(false);
 
@@ -124,10 +125,34 @@ const PatientVideoCallWebRTC = () => {
 
   // Warn on browser tab close / refresh
   useEffect(() => {
-    const handleBeforeUnload = (e) => { if (isInRoom) e.preventDefault(); };
+    const handleBeforeUnload = (e) => { if (isInRoom) e.returnValue = ''; };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isInRoom]);
+
+  // Block browser back button while recording is active
+  useEffect(() => {
+    if (!recordingConsented) return;
+    window.history.pushState(null, '', window.location.href);
+    const handlePopState = () => {
+      window.history.pushState(null, '', window.location.href);
+      setShowNavigationWarning(true);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [recordingConsented]);
+
+  const handleNavigationWarningConfirm = async () => {
+    setShowNavigationWarning(false);
+    isLeavingIntentionallyRef.current = true;
+    try { await stopCallRecording(); } catch { /* best-effort */ }
+    leaveRoom();
+    navigate('/dashboard/patient');
+  };
+
+  const handleNavigationWarningCancel = () => {
+    setShowNavigationWarning(false);
+  };
 
   // Auto-leave when countdown reaches 0
   useEffect(() => {
@@ -162,6 +187,16 @@ const PatientVideoCallWebRTC = () => {
     const timer = setTimeout(() => navigate('/dashboard/patient'), 3000);
     return () => clearTimeout(timer);
   }, [roomEnded, navigate, stopCallRecording]);
+
+  // Keep remote video elements in sync with streams (handles reconnects + autoPlay failures)
+  useEffect(() => {
+    remoteStreams.forEach(({ userId, stream }) => {
+      const el = remoteVideoRefs.current.get(userId);
+      if (!el) return;
+      if (el.srcObject !== stream) el.srcObject = stream;
+      if (el.paused) el.play().catch(() => {});
+    });
+  }, [remoteStreams]);
 
   // Stable ref callback for local video — sets srcObject once
   const setLocalVideoRef = useCallback((el) => {
@@ -359,13 +394,36 @@ const PatientVideoCallWebRTC = () => {
 
       {/* ── Full-screen remote video ─────────────────────────────────── */}
       {remoteStreams.length > 0 ? (
-        remoteStreams.map(({ userId, stream }) => (
-          <video key={userId}
-            ref={el => { if (el) { remoteVideoRefs.current.set(userId, el); if (el.srcObject !== stream) el.srcObject = stream; } }}
-            autoPlay playsInline
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-        ))
+        remoteStreams.map(({ userId, stream }) => {
+          const remoteP = participants.find(p => p.userId === userId);
+          const isCameraOff = remoteP?.videoEnabled === false;
+          return (
+            <div key={userId} className="absolute inset-0 bg-gray-900">
+              <video
+                ref={el => { if (el) { remoteVideoRefs.current.set(userId, el); if (el.srcObject !== stream) el.srcObject = stream; } }}
+                autoPlay playsInline
+                className="remote-video w-full h-full"
+                style={{ display: isCameraOff ? 'none' : 'block' }}
+              />
+              {isCameraOff && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-3"
+                      style={{ background: 'rgba(14,165,233,0.15)', border: '1px solid rgba(14,165,233,0.25)' }}>
+                      <span className="text-sky-300 text-4xl font-bold">
+                        {remoteP?.userName?.charAt(0)?.toUpperCase() ?? '?'}
+                      </span>
+                    </div>
+                    <p className="text-white/70 text-sm font-medium">{remoteP?.userName}</p>
+                    <p className="text-white/30 text-xs mt-1 flex items-center justify-center gap-1">
+                      <VideoOff className="w-3 h-3" /> Cámara desactivada
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })
       ) : (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
           <div className="text-center">
@@ -607,10 +665,38 @@ const PatientVideoCallWebRTC = () => {
         )}
       </AnimatePresence>
 
+      {/* Navigation Warning — back button or link click while recording */}
+      <AnimatePresence>
+        {showNavigationWarning && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="absolute inset-0 flex items-center justify-center z-50 p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="rounded-2xl p-6 max-w-sm w-full shadow-2xl"
+              style={{ background: 'rgba(15,15,20,0.95)', backdropFilter: 'blur(24px)', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.25)' }}>
+                  <ShieldAlert className="w-5 h-5 text-amber-400" />
+                </div>
+                <h3 className="text-base font-semibold text-white">Sesión en grabación</h3>
+              </div>
+              <p className="text-sm text-white/40 mb-5 leading-relaxed">La sesión está siendo grabada. Si sales ahora, el audio capturado hasta este momento se guardará de todas formas.</p>
+              <div className="flex gap-2">
+                <button onClick={handleNavigationWarningCancel}
+                  className="flex-1 px-4 py-2.5 rounded-xl text-white/60 hover:bg-white/5 transition-colors text-sm font-medium"
+                  style={{ border: '1px solid rgba(255,255,255,0.12)' }}>Quedarse</button>
+                <button onClick={handleNavigationWarningConfirm}
+                  className="flex-1 px-4 py-2.5 text-white rounded-xl transition-colors text-sm font-medium"
+                  style={{ background: 'linear-gradient(135deg,#d97706,#b45309)', border: '1px solid rgba(217,119,6,0.4)' }}>Salir de todas formas</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <style>{`
-        .mirror {
-          transform: scaleX(-1);
-        }
+        .mirror { transform: scaleX(-1); }
+        .remote-video { object-fit: contain; }
+        @media (orientation: portrait) { .remote-video { object-fit: cover; } }
       `}</style>
     </div>
   );

@@ -69,18 +69,22 @@ export const useCallRecording = ({ localStream, appointmentId, enabled, onRecord
       mediaRecorderRef.current = null
       setIsRecording(false)
 
-      if (blob.size > 0 && !unmountingRef.current) {
+      if (blob.size === 0) {
+        console.warn('[Recording] Stopped with empty blob — nothing to upload')
+        if (stopResolveRef.current) { stopResolveRef.current(); stopResolveRef.current = null }
+        return
+      }
+
+      if (!unmountingRef.current) {
         const uploadPromise = uploadBlob(blob)
         if (stopResolveRef.current) {
           uploadPromise.then(stopResolveRef.current, stopResolveRef.current)
           stopResolveRef.current = null
         }
       } else {
-        if (blob.size === 0) console.warn('[Recording] Stopped with empty blob — nothing to upload')
-        if (stopResolveRef.current) {
-          stopResolveRef.current()
-          stopResolveRef.current = null
-        }
+        // Component unmounted (e.g. back button hit) — fire-and-forget, cannot update state
+        videoCallService.uploadRecording(appointmentIdRef.current, blob).catch(() => {})
+        if (stopResolveRef.current) { stopResolveRef.current(); stopResolveRef.current = null }
       }
     },
     [uploadBlob],

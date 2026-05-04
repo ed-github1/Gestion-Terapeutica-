@@ -58,6 +58,26 @@ export const authService = {
   verifyPassword: (email, password) =>
     apiClient.post('/auth/verify-password', { email, password }),
 
+  /**
+   * Update the authenticated user's name and/or email.
+   * Backend re-issues a new JWT when identity claims change — the caller
+   * should update the stored token with the one in the response.
+   * Endpoint: PATCH /auth/me
+   * Body: { nombre?, apellido?, email? }
+   * Response: { success: true, data: { user, token, csrfToken } }
+   */
+  updateMe: ({ nombre, apellido, email } = {}) =>
+    apiClient.patch('/auth/me', { nombre, apellido, email }),
+
+  /**
+   * Change the authenticated user's password.
+   * Endpoint: PATCH /auth/me/password
+   * Body: { currentPassword, newPassword }
+   * Response: { success: true, message }
+   */
+  changePassword: (currentPassword, newPassword) =>
+    apiClient.patch('/auth/me/password', { currentPassword, newPassword }),
+
   sendOTP: (phone) =>
     apiClient.post('/auth/send-otp', { phone }),
 

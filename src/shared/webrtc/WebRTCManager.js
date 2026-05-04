@@ -300,9 +300,9 @@ class WebRTCManager {
     // for 1:1 therapy while cutting bandwidth ~4x vs 720p. Browser will negotiate
     // higher if bandwidth allows and simulcast/bitrate cap permits.
     video: {
-      width: { ideal: 640, max: 1280 },
+      width: { ideal: 854, max: 1280 },
       height: { ideal: 480, max: 720 },
-      aspectRatio: { ideal: 4/3 },
+      aspectRatio: { ideal: 16/9 },
       frameRate: { ideal: 24, max: 30 },
       facingMode: 'user'
     },
@@ -421,9 +421,8 @@ class WebRTCManager {
       this.localStream.getTracks().forEach(track => {
         pc.addTrack(track, this.localStream);
       });
-      // Cap outbound video bitrate so calls stay stable on shaky LATAM mobile
-      // networks. 500 kbps is plenty for 1:1 therapy at 480p.
-      this._applyVideoBitrateCap(pc, 500_000).catch(err => {
+      // Cap outbound video bitrate — 800 kbps fits 480p 16:9 on LATAM mobile networks.
+      this._applyVideoBitrateCap(pc, 800_000).catch(err => {
         console.warn('Could not apply video bitrate cap:', err?.message);
       });
     }
@@ -497,7 +496,7 @@ class WebRTCManager {
         this._logSelectedCandidatePair(pc, targetUserId);
       } else if (pc.connectionState === 'disconnected') {
         // Grace period: WebRTC often self-recovers from 'disconnected'
-        this._startDisconnectTimer(targetUserId, 8000);
+        this._startDisconnectTimer(targetUserId, 4000);
       } else if (pc.connectionState === 'failed') {
         // Failed is terminal — attempt reconnection immediately
         this._clearDisconnectTimer(targetUserId);

@@ -128,7 +128,11 @@ export const useWebRTC = () => {
         setError({ type: isRecordingError ? 'warning' : 'error', message: msg || 'Error en la videollamada' })
       }
 
-      manager.onConnectionStateChange = ({ state }) => setConnectionState(state)
+      manager.onConnectionStateChange = ({ state }) => {
+        setConnectionState(state)
+        if (state === 'reconnecting') setIsReconnecting(true)
+        else if (state === 'connected') setIsReconnecting(false)
+      }
 
       manager.onReconnecting = ({ reconnecting }) => setIsReconnecting(reconnecting)
 

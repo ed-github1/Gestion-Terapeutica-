@@ -103,7 +103,7 @@ const AppointmentsCalendar = () => {
       </div>
 
       {/* ── FAB — Nueva Sesión (mobile only, above bottom nav) ── */}
-      <motion.button
+      {/* <motion.button
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 380, damping: 22, delay: 0.15 }}
@@ -114,7 +114,7 @@ const AppointmentsCalendar = () => {
       >
         <Plus className="w-4 h-4 shrink-0" />
         Nueva Sesión
-      </motion.button>
+      </motion.button> */}
     </div>
   )
 }

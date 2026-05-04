@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
-import { motion } from 'motion/react'
+import { motion, AnimatePresence } from 'motion/react'
 import { useAuth } from '@features/auth'
+import { ChangePasswordForm } from '@features/auth'
 import { useNavigate } from 'react-router-dom'
 import {
     Bell, Shield, Building2, Check, ChevronRight,
-    Key, DollarSign, Crown, Sparkles, ArrowUpRight,
+    Key, DollarSign,
 } from 'lucide-react'
-import { PLAN_TYPES, PLAN_LIMITS, PROFESSIONAL_COUNTRIES, getCurrencyForCountry } from '@shared/constants/subscriptionPlans'
+import { getCurrencyForCountry } from '@shared/constants/subscriptionPlans'
 import { professionalsService } from '@shared/services/professionalsService'
 
 // ─── Toggle switch ─────────────────────────────────────────────────────────────
@@ -17,14 +18,12 @@ const Toggle = ({ checked, onChange, disabled }) => (
         aria-checked={checked}
         disabled={disabled}
         onClick={() => onChange(!checked)}
-        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 ${
-            checked ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
-        } ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
+        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 ${checked ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+            } ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
     >
         <span
-            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
-                checked ? 'translate-x-6' : 'translate-x-1'
-            }`}
+            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${checked ? 'translate-x-6' : 'translate-x-1'
+                }`}
         />
     </button>
 )
@@ -63,10 +62,10 @@ const SettingRow = ({ label, description, children, danger }) => (
 // ─── Badge ─────────────────────────────────────────────────────────────────────
 const Badge = ({ label, color = 'blue' }) => {
     const colors = {
-        blue:  'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-800',
+        blue: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-800',
         green: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-800',
         amber: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-800',
-        red:   'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/40 dark:text-red-300 dark:border-red-800',
+        red: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/40 dark:text-red-300 dark:border-red-800',
     }
     return (
         <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold border ${colors[color]}`}>
@@ -88,92 +87,12 @@ const Select = ({ value, onChange, options }) => (
     </select>
 )
 
-// ─── Plan & Subscription Section ──────────────────────────────────────────────
-const planMeta = {
-    [PLAN_TYPES.GRATUITO]: { label: 'Gratuito', color: 'amber', icon: null },
-    [PLAN_TYPES.PRO]:      { label: 'Pro',       color: 'blue',  icon: Crown },
-    [PLAN_TYPES.EMPRESA]:  { label: 'Empresa',   color: 'green', icon: Crown },
-}
-
-const PlanSection = ({ user, navigate }) => {
-    const rawPlan = (user?.plan || user?.subscriptionPlan || user?.planType || PLAN_TYPES.GRATUITO).toUpperCase()
-    const plan    = planMeta[rawPlan] ? rawPlan : PLAN_TYPES.GRATUITO
-    const meta    = planMeta[plan]
-    const limits  = PLAN_LIMITS[plan]
-    const isFree  = plan === PLAN_TYPES.GRATUITO
-
-    return (
-        <SectionCard
-            title="Plan y suscripción"
-            subtitle="Gestiona tu plan y accede a funciones avanzadas"
-            icon={Crown}
-            iconColor="text-blue-600 dark:text-blue-400"
-            iconBg="bg-blue-50 dark:bg-blue-900/40"
-        >
-            {/* Current plan row */}
-            <div className="px-5 py-4 flex items-center justify-between gap-4">
-                <div>
-                    <p className="text-sm font-medium text-gray-800 dark:text-gray-200 leading-none">Plan actual</p>
-                    <p className="text-[11px] text-gray-500 mt-1">
-                        {isFree
-                            ? `Hasta ${limits.maxPatients} pacientes · ${limits.videoCallMinutes} min de videollamada`
-                            : `Hasta ${limits.maxPatients} pacientes · ${limits.videoCallMinutes} min de videollamada · ${limits.storageGB} GB`}
-                    </p>
-                </div>
-                <Badge label={meta.label} color={meta.color} />
-            </div>
-
-            {/* Upgrade CTA — only for free plan */}
-            {isFree && (
-                <div className="px-5 py-4 border-t border-gray-200 dark:border-gray-700/50">
-                    <div className="relative rounded-xl overflow-hidden border border-blue-200 dark:border-blue-800/50 bg-blue-50 dark:bg-blue-950/40 p-4">
-                        {/* gradient accent bar */}
-                        <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: 'linear-gradient(to right, #0075C9, #54C0E8, #AEE058)' }} />
-                        <div className="flex items-start gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-900/60 border border-blue-200 dark:border-blue-800/50 flex items-center justify-center shrink-0">
-                                <Crown className="w-4.5 h-4.5 text-blue-600 dark:text-blue-300" strokeWidth={2.5} />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1.5 mb-0.5">
-                                    <p className="text-sm font-bold text-blue-900 dark:text-blue-100">Actualiza al Plan Pro</p>
-                                    <Sparkles className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400" />
-                                </div>
-                                <p className="text-[11px] text-blue-700/80 dark:text-blue-300/70 leading-relaxed mb-3">
-                                    Citas ilimitadas, hasta 50 pacientes, estadísticas avanzadas y soporte prioritario.
-                                </p>
-                                <motion.button
-                                    onClick={() => navigate('/pricing')}
-                                    whileTap={{ scale: 0.97 }}
-                                    className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-colors shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
-                                >
-                                    Ver planes <ArrowUpRight className="w-3.5 h-3.5" />
-                                </motion.button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Manage subscription — for paid plans */}
-            {!isFree && (
-                <SettingRow label="Gestionar suscripción" description="Facturación, facturas y cancelación">
-                    <button
-                        onClick={() => navigate('/pricing')}
-                        className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-                    >
-                        Gestionar <ArrowUpRight className="w-3.5 h-3.5" />
-                    </button>
-                </SettingRow>
-            )}
-        </SectionCard>
-    )
-}
-
 // ─── Main component ────────────────────────────────────────────────────────────
 const ProfessionalSettings = ({ embedded = false }) => {
     const { user } = useAuth()
     const navigate = useNavigate()
     const [saved, setSaved] = useState(false)
+    const [showPasswordForm, setShowPasswordForm] = useState(false)
 
     const countryInfo = getCurrencyForCountry(user?.country)
 
@@ -189,14 +108,16 @@ const ProfessionalSettings = ({ embedded = false }) => {
             const saved = sessionStorage.getItem('professionalSettings')
             if (saved) {
                 const parsed = JSON.parse(saved)
-                return { ...{
-                    videoCallEnabled: true,
-                    autoConfirm: false,
-                    reminderHours: '24',
-                    sessionDuration: '60',
-                    currency: 'MXN',
-                    sessionTypePrices: { primeraSesion: 50, seguimiento: 40, extraordinaria: 70 },
-                }, ...parsed }
+                return {
+                    ...{
+                        videoCallEnabled: true,
+                        autoConfirm: false,
+                        reminderHours: '24',
+                        sessionDuration: '60',
+                        currency: 'MXN',
+                        sessionTypePrices: { primeraSesion: 50, seguimiento: 40, extraordinaria: 70 },
+                    }, ...parsed
+                }
             }
         } catch { /* ignore */ }
         const defaultCurrency = getCurrencyForCountry(user?.country).currency
@@ -210,25 +131,6 @@ const ProfessionalSettings = ({ embedded = false }) => {
         }
     })
 
-    // Load tarifas from backend on mount
-    useEffect(() => {
-        let cancelled = false
-        professionalsService.getMyTarifas()
-            .then(res => {
-                if (cancelled) return
-                const t = res.data?.data?.tarifas || res.data?.tarifas || res.data?.data || {}
-                setPractice(prev => ({
-                    ...prev,
-                    sessionTypePrices: {
-                        primeraSesion:  t.primeraSesion ?? prev.sessionTypePrices?.primeraSesion ?? 50,
-                        seguimiento:    t.seguimiento ?? prev.sessionTypePrices?.seguimiento ?? 40,
-                        extraordinaria: t.extraordinaria ?? prev.sessionTypePrices?.extraordinaria ?? 70,
-                    },
-                }))
-            })
-            .catch(() => { /* keep cached/default values */ })
-        return () => { cancelled = true }
-    }, [])
 
     const setN = (key) => (val) => setNotif(prev => ({ ...prev, [key]: val }))
     const setP = (key) => (val) => setPractice(prev => ({ ...prev, [key]: val }))
@@ -253,76 +155,74 @@ const ProfessionalSettings = ({ embedded = false }) => {
     return (
         <div className={embedded ? '' : 'min-h-screen bg-gray-50 dark:bg-gray-900 p-3 md:p-6 lg:p-8'}>
             <div className={embedded ? 'space-y-5' : 'max-w-full space-y-5'}>
-
+            
                 {/* ── Header ── */}
-                {!embedded ? (
-                <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center justify-between"
-                >
-                    <div>
-                        <h1 className="text-base font-bold text-gray-900 dark:text-gray-100 leading-none">Configuración</h1>
-                        <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Personaliza tu experiencia en TotalMente</p>
-                    </div>
-                    <motion.button
-                        onClick={handleSave}
-                        whileTap={{ scale: 0.96 }}
-                        className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition-all duration-200 ${
-                            saved
-                                ? 'bg-emerald-500 text-white'
-                                : 'bg-blue-600 hover:bg-blue-700 text-white'
-                        }`}
+                {/* {!embedded ? (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex items-center justify-between"
                     >
-                        {saved ? (
-                            <><Check className="w-4 h-4" />Guardado</>
-                        ) : (
-                            'Guardar cambios'
-                        )}
-                    </motion.button>
-                </motion.div>
+                        <div>
+                            <h1 className="text-base font-bold text-gray-900 dark:text-gray-100 leading-none">Configuración</h1>
+                            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Personaliza tu experiencia en TotalMente</p>
+                        </div>
+                        <motion.button
+                            onClick={handleSave}
+                            whileTap={{ scale: 0.96 }}
+                            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition-all duration-200 ${saved
+                                    ? 'bg-emerald-500 text-white'
+                                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                }`}
+                        >
+                            {saved ? (
+                                <><Check className="w-4 h-4" />Guardado</>
+                            ) : (
+                                'Guardar cambios'
+                            )}
+                        </motion.button>
+                    </motion.div>
                 ) : (
-                <div className="flex items-center justify-end">
-                    <motion.button
-                        onClick={handleSave}
-                        whileTap={{ scale: 0.96 }}
-                        className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition-all duration-200 ${
-                            saved
-                                ? 'bg-emerald-500 text-white'
-                                : 'bg-blue-600 hover:bg-blue-700 text-white'
-                        }`}
-                    >
-                        {saved ? (
-                            <><Check className="w-4 h-4" />Guardado</>
-                        ) : (
-                            'Guardar cambios'
-                        )}
-                    </motion.button>
-                </div>
-                )}
+                    <div className="flex items-center justify-end">
+                        <motion.button
+                            onClick={handleSave}
+                            whileTap={{ scale: 0.96 }}
+                            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition-all duration-200 ${saved
+                                    ? 'bg-emerald-500 text-white'
+                                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                }`}
+                        >
+                            {saved ? (
+                                <><Check className="w-4 h-4" />Guardado</>
+                            ) : (
+                                'Guardar cambios'
+                            )}
+                        </motion.button>
+                    </div>
+                )} */}
 
                 {/* ── Account chip ── */}
                 {!embedded && (
-                <motion.div
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.04 }}
-                    className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm flex items-center gap-4 px-5 py-4"
-                >
-                    <div className="w-12 h-12 rounded-full bg-linear-to-br from-blue-700 to-sky-400 flex items-center justify-center text-white text-lg font-bold shadow-md shrink-0">
-                        {initials}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                        <p className="text-sm font-bold text-gray-900 dark:text-gray-100 leading-none truncate">{fullName}</p>
-                        <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">{user?.email || user?.correo || ''}</p>
-                    </div>
-                    <button
-                        onClick={() => navigate('/dashboard/professional/profile')}
-                        className="flex items-center gap-1 text-[11px] text-blue-600 dark:text-blue-400 font-semibold hover:text-blue-700 dark:hover:text-blue-300 shrink-0"
+                    <motion.div
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.04 }}
+                        className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm flex items-center gap-4 px-5 py-4"
                     >
-                        Editar perfil <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
-                </motion.div>
+                        <div className="w-12 h-12 rounded-full bg-linear-to-br from-blue-700 to-sky-400 flex items-center justify-center text-white text-lg font-bold shadow-md shrink-0">
+                            {initials}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <p className="text-sm font-bold text-gray-900 dark:text-gray-100 leading-none truncate">{fullName}</p>
+                            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">{user?.email || user?.correo || ''}</p>
+                        </div>
+                        <button
+                            onClick={() => navigate('/dashboard/professional/profile')}
+                            className="flex items-center gap-1 text-[11px] text-blue-600 dark:text-blue-400 font-semibold hover:text-blue-700 dark:hover:text-blue-300 shrink-0"
+                        >
+                            Editar perfil <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
+                    </motion.div>
                 )}
 
                 {/* ── Notifications ── */}
@@ -354,12 +254,26 @@ const ProfessionalSettings = ({ embedded = false }) => {
                 >
                     <SettingRow label="Cambiar contraseña" description="Actualiza tu contraseña regularmente">
                         <button
-                            onClick={() => {/* TODO */}}
+                            onClick={() => setShowPasswordForm(s => !s)}
                             className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
                         >
-                            <Key className="w-3.5 h-3.5" /> Actualizar
+                            <Key className="w-3.5 h-3.5" /> {showPasswordForm ? 'Cancelar' : 'Actualizar'}
                         </button>
                     </SettingRow>
+                    <AnimatePresence>
+                        {showPasswordForm && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="overflow-hidden"
+                            >
+                                <div className="px-5 pb-4 pt-1">
+                                    <ChangePasswordForm />
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </SectionCard>
 
                 {/* ── Practice ── */}
@@ -416,9 +330,9 @@ const ProfessionalSettings = ({ embedded = false }) => {
                         <p className="text-[11px] text-gray-500 mb-4">Estos precios se usarán como valor predeterminado al crear una nueva cita.</p>
                         <div className="grid grid-cols-2 gap-3">
                             {[
-                                { key: 'primeraSesion',    label: 'Primera consulta', color: 'text-blue-600 dark:text-blue-400',    dot: 'bg-blue-500 dark:bg-blue-400'    },
-                                { key: 'seguimiento',      label: 'Seguimiento',      color: 'text-emerald-600 dark:text-emerald-400', dot: 'bg-emerald-500 dark:bg-emerald-400' },
-                                { key: 'extraordinaria',   label: 'Extraordinaria',   color: 'text-amber-600 dark:text-amber-400',  dot: 'bg-amber-500 dark:bg-amber-400'  },
+                                { key: 'primeraSesion', label: 'Primera consulta', color: 'text-blue-600 dark:text-blue-400', dot: 'bg-blue-500 dark:bg-blue-400' },
+                                { key: 'seguimiento', label: 'Seguimiento', color: 'text-emerald-600 dark:text-emerald-400', dot: 'bg-emerald-500 dark:bg-emerald-400' },
+                                { key: 'extraordinaria', label: 'Extraordinaria', color: 'text-amber-600 dark:text-amber-400', dot: 'bg-amber-500 dark:bg-amber-400' },
                             ].map(({ key, label, color, dot }) => (
                                 <div key={key} className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3 border border-gray-200 dark:border-gray-600/60">
                                     <div className="flex items-center gap-1.5 mb-2">
@@ -451,8 +365,6 @@ const ProfessionalSettings = ({ embedded = false }) => {
                     </div>
                 </SectionCard>
 
-                {/* ── Plan & Subscription ── */}
-                <PlanSection user={user} navigate={navigate} />
 
                 {/* bottom spacer for mobile nav */}
                 <div className="h-4" />

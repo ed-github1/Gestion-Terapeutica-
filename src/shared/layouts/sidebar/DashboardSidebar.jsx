@@ -74,7 +74,7 @@ const DashboardSidebar = ({ userRole = 'professional', onClose }) => {
             animate={sidebarAnimationConfig.animate}
             exit={sidebarAnimationConfig.exit}
             transition={sidebarAnimationConfig.transition(prefersReducedMotion)}
-            className="h-full glass-sidebar flex flex-col justify-center w-[4.5rem]"
+            className="h-full  flex flex-col justify-center w-18"
             role="navigation"
             aria-label="Navegación principal"
         >

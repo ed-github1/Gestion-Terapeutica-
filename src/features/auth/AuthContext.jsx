@@ -286,6 +286,26 @@ export const AuthProvider = ({ children }) => {
     }
   }, [])
 
+  /** Update the current user's nombre, apellido, and/or email. */
+  const updateProfile = useCallback(async (fields) => {
+    const res = await authService.updateMe(fields)
+    const data = res.data?.data ?? res.data
+    const updatedUser = data?.user ?? {}
+    const newToken = data?.token ?? null
+    if (updatedUser && Object.keys(updatedUser).length) {
+      setUser(prev => ({ ...prev, ...updatedUser }))
+    }
+    if (newToken) {
+      setAuthToken(newToken)
+      scheduleTokenRefresh(newToken)
+    }
+  }, [scheduleTokenRefresh])
+
+  /** Change the current user's password. Does not alter auth state on success. */
+  const changePassword = useCallback(async (currentPassword, newPassword) => {
+    await authService.changePassword(currentPassword, newPassword)
+  }, [])
+
   const value = {
     user,
     loading,
@@ -296,6 +316,8 @@ export const AuthProvider = ({ children }) => {
     completeLogin,
     logout,
     refreshUser,
+    updateProfile,
+    changePassword,
     isAuthenticated: !!user,
     isHealthProfessional,
     isPatient,

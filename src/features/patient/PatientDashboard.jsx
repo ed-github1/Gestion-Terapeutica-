@@ -216,7 +216,7 @@ const PatientDashboard = () => {
 
       {/* Modals */}
       <AnimatePresence>
-        {showAppointmentRequest && (
+        {/* {showAppointmentRequest && (
           <AppointmentRequest
             onClose={() => setShowAppointmentRequest(false)}
             professionalId={
@@ -260,7 +260,7 @@ const PatientDashboard = () => {
               null
             }
           />
-        )}
+        )} */}
       </AnimatePresence>
 
       <CrisisButton />

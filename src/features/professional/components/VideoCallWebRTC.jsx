@@ -39,6 +39,7 @@ const ProfessionalVideoCallWebRTC = () => {
   const [awaitingPatientConsent, setAwaitingPatientConsent] = useState(false);
   const [showClinicalFile, setShowClinicalFile] = useState(false);
   const [clinicalPatient, setClinicalPatient] = useState(null);
+  const [showNavigationWarning, setShowNavigationWarning] = useState(false);
 
   useEffect(() => {
     if (reconnectFailed) navigate('/dashboard/professional/appointments');
@@ -70,6 +71,33 @@ const ProfessionalVideoCallWebRTC = () => {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isInRoom]);
 
+  // Block browser back button while recording is active
+  useEffect(() => {
+    if (!recordingEnabled) return;
+    window.history.pushState(null, '', window.location.href);
+    const handlePopState = () => {
+      window.history.pushState(null, '', window.location.href);
+      setShowNavigationWarning(true);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [recordingEnabled]);
+
+  const handleNavigationWarningConfirm = async () => {
+    setShowNavigationWarning(false);
+    setIsEndingSession(true);
+    isLeavingIntentionallyRef.current = true;
+    setRecordingEnabled(false);
+    stopRecording(appointmentId);
+    try { await stopCallRecording(); } catch (err) { console.error('[Recording] Upload error on nav:', err); }
+    leaveRoom();
+    navigate('/dashboard/professional');
+  };
+
+  const handleNavigationWarningCancel = () => {
+    setShowNavigationWarning(false);
+  };
+
   const localVideoRef = useRef(null);
   const remoteVideoRefs = useRef(new Map());
   const callStartTimeRef = useRef(null);
@@ -94,6 +122,16 @@ const ProfessionalVideoCallWebRTC = () => {
   useEffect(() => {
     if (statusBannerRef.current) setBannerHeight(statusBannerRef.current.offsetHeight);
   }, [error, countdown, isServerRecording, localRecording, isUploading, recordingError, uploadError, userLeft]);
+
+  // Keep remote video elements in sync with streams (handles reconnects + autoPlay failures)
+  useEffect(() => {
+    remoteStreams.forEach(({ userId, stream }) => {
+      const el = remoteVideoRefs.current.get(userId);
+      if (!el) return;
+      if (el.srcObject !== stream) el.srcObject = stream;
+      if (el.paused) el.play().catch(() => {});
+    });
+  }, [remoteStreams]);
 
   useEffect(() => {
     if (userLeft && remoteStreams.length === 0 && isInRoom && !showEndConfirm) {
@@ -275,6 +313,8 @@ const ProfessionalVideoCallWebRTC = () => {
   const isRecordingActive = isServerRecording || localRecording;
 
   const btnBase = { width: 54, height: 54, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', transition: 'all 0.2s' };
+  const btnSm   = { width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', transition: 'all 0.2s' };
+  const btnXs   = { width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', transition: 'all 0.2s' };
   const glassIdle = 'rgba(255,255,255,0.1)';
   const glassBorder = '1px solid rgba(255,255,255,0.2)';
   const glassShadow = '0 4px 20px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.12)';
@@ -291,13 +331,36 @@ const ProfessionalVideoCallWebRTC = () => {
 
       {/* ── Full-screen remote video ─────────────────────────────────── */}
       {remoteStreams.length > 0 ? (
-        remoteStreams.map(({ userId, stream }) => (
-          <video key={userId}
-            ref={el => { if (el) { remoteVideoRefs.current.set(userId, el); if (el.srcObject !== stream) el.srcObject = stream; } }}
-            autoPlay playsInline
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-        ))
+        remoteStreams.map(({ userId, stream }) => {
+          const remoteP = participants.find(p => p.userId === userId);
+          const isCameraOff = remoteP?.videoEnabled === false;
+          return (
+            <div key={userId} className="absolute inset-0 bg-gray-900">
+              <video
+                ref={el => { if (el) { remoteVideoRefs.current.set(userId, el); if (el.srcObject !== stream) el.srcObject = stream; } }}
+                autoPlay playsInline
+                className="remote-video w-full h-full"
+                style={{ display: isCameraOff ? 'none' : 'block' }}
+              />
+              {isCameraOff && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-3"
+                      style={{ background: 'rgba(14,165,233,0.15)', border: '1px solid rgba(14,165,233,0.25)' }}>
+                      <span className="text-sky-300 text-4xl font-bold">
+                        {remoteP?.userName?.charAt(0)?.toUpperCase() ?? '?'}
+                      </span>
+                    </div>
+                    <p className="text-white/70 text-sm font-medium">{remoteP?.userName}</p>
+                    <p className="text-white/30 text-xs mt-1 flex items-center justify-center gap-1">
+                      <VideoOff className="w-3 h-3" /> Cámara desactivada
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })
       ) : (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-900"
           style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 130px)' }}>
@@ -389,7 +452,7 @@ const ProfessionalVideoCallWebRTC = () => {
       {participant && (
         <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
           className="absolute z-30 flex items-center gap-2.5 px-3 py-2 rounded-xl"
-          style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 112px)', left: 16, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.1)' }}>
+          style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 168px)', left: 16, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.1)' }}>
           <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0" style={{ background: 'rgba(14,165,233,0.2)', border: '1px solid rgba(14,165,233,0.3)' }}>
             <span className="text-sky-300 text-xs font-bold">{participant.userName?.charAt(0)?.toUpperCase() ?? '?'}</span>
           </div>
@@ -409,9 +472,65 @@ const ProfessionalVideoCallWebRTC = () => {
       {/* ── Controls bar — centered row over gradient fade ───────────── */}
       <div className="absolute bottom-0 left-0 right-0 z-30" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         <div className="absolute inset-x-0 bottom-0 h-40 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%)' }} />
-        <div className="relative flex items-end justify-center gap-4 px-4 pb-6 pt-8">
 
-          {/* Mic */}
+        {/* Small screens: two rows — primary (Mic · End · Camera) + secondary (Record · Chat · Expediente) */}
+        <div className="relative sm:hidden flex flex-col items-center gap-2 px-4 pb-5 pt-8">
+          <div className="flex items-end justify-center gap-5">
+            <button onClick={handleToggleAudio} aria-label={isAudioEnabled ? 'Silenciar' : 'Activar micrófono'}
+              className="flex flex-col items-center gap-1 group active:scale-90 transition-transform">
+              <div style={{ ...btnSm, background: isAudioEnabled ? glassIdle : redActive, border: isAudioEnabled ? glassBorder : redBorder, boxShadow: isAudioEnabled ? glassShadow : redShadow }}>
+                {isAudioEnabled ? <Mic className="w-[18px] h-[18px] text-white" /> : <MicOff className="w-[18px] h-[18px] text-white" />}
+              </div>
+              <span style={labelStyle}>{isAudioEnabled ? 'Micro' : 'Silenciado'}</span>
+            </button>
+            <button onClick={() => setShowEndConfirm(true)} disabled={isEndingSession}
+              className="flex flex-col items-center gap-1 group active:scale-90 transition-transform disabled:opacity-50">
+              <div style={{ width: 56, height: 56, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: redActive, border: redBorder, boxShadow: '0 0 0 5px rgba(239,68,68,0.18),' + redShadow, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', transition: 'all 0.2s' }}>
+                <PhoneOff className="w-5 h-5 text-white" />
+              </div>
+              <span style={labelStyle}>Finalizar</span>
+            </button>
+            <button onClick={handleToggleVideo} aria-label={isVideoEnabled ? 'Apagar cámara' : 'Encender cámara'}
+              className="flex flex-col items-center gap-1 group active:scale-90 transition-transform">
+              <div style={{ ...btnSm, background: isVideoEnabled ? glassIdle : redActive, border: isVideoEnabled ? glassBorder : redBorder, boxShadow: isVideoEnabled ? glassShadow : redShadow }}>
+                {isVideoEnabled ? <VideoIcon className="w-[18px] h-[18px] text-white" /> : <VideoOff className="w-[18px] h-[18px] text-white" />}
+              </div>
+              <span style={labelStyle}>{isVideoEnabled ? 'Cámara' : 'Sin cámara'}</span>
+            </button>
+          </div>
+          <div className="flex items-center justify-center gap-6">
+            <button onClick={handleRecordClick} aria-label={isRecordingActive ? 'Detener' : 'Grabar'}
+              className="flex flex-col items-center gap-1 group active:scale-90 transition-transform">
+              <div style={{ ...btnXs, background: isRecordingActive ? redActive : glassIdle, border: isRecordingActive ? redBorder : glassBorder, boxShadow: isRecordingActive ? '0 0 0 3px rgba(239,68,68,0.3),' + redShadow : glassShadow }}>
+                <Circle className={`w-4 h-4 text-white ${isRecordingActive ? 'fill-white animate-pulse' : ''}`} />
+              </div>
+              <span style={labelStyle}>{isRecordingActive ? 'Grabando' : 'Grabar'}</span>
+            </button>
+            <button onClick={() => { setShowClinicalFile(false); setShowChat(!showChat); }} aria-label="Chat"
+              className="flex flex-col items-center gap-1 group active:scale-90 transition-transform relative">
+              <div style={{ ...btnXs, background: showChat ? skyActive : glassIdle, border: showChat ? skyBorder : glassBorder, boxShadow: showChat ? skyShadow : glassShadow }}>
+                <MessageSquare className="w-4 h-4 text-white" />
+              </div>
+              {chatMessages.length > 0 && !showChat && (
+                <span className="absolute -top-1 right-0.5 min-w-[16px] h-[16px] px-1 rounded-full text-[8px] flex items-center justify-center font-bold text-white"
+                  style={{ background: 'linear-gradient(135deg,#0ea5e9,#0284c7)', boxShadow: '0 2px 8px rgba(14,165,233,0.6)' }}>
+                  {chatMessages.length > 9 ? '9+' : chatMessages.length}
+                </span>
+              )}
+              <span style={labelStyle}>Chat</span>
+            </button>
+            <button onClick={handleOpenClinicalFile} aria-label="Expediente"
+              className="flex flex-col items-center gap-1 group active:scale-90 transition-transform">
+              <div style={{ ...btnXs, background: showClinicalFile ? skyActive : glassIdle, border: showClinicalFile ? skyBorder : glassBorder, boxShadow: showClinicalFile ? skyShadow : glassShadow }}>
+                <ClipboardList className="w-4 h-4 text-white" />
+              </div>
+              <span style={labelStyle}>Expediente</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Large screens (sm+): single row */}
+        <div className="relative hidden sm:flex items-end justify-center gap-4 px-4 pb-6 pt-8">
           <button onClick={handleToggleAudio} aria-label={isAudioEnabled ? 'Silenciar' : 'Activar micrófono'}
             className="flex flex-col items-center gap-1.5 group active:scale-90 transition-transform">
             <div style={{ ...btnBase, background: isAudioEnabled ? glassIdle : redActive, border: isAudioEnabled ? glassBorder : redBorder, boxShadow: isAudioEnabled ? glassShadow : redShadow }}>
@@ -419,8 +538,6 @@ const ProfessionalVideoCallWebRTC = () => {
             </div>
             <span style={labelStyle}>{isAudioEnabled ? 'Micrófono' : 'Silenciado'}</span>
           </button>
-
-          {/* Camera */}
           <button onClick={handleToggleVideo} aria-label={isVideoEnabled ? 'Apagar cámara' : 'Encender cámara'}
             className="flex flex-col items-center gap-1.5 group active:scale-90 transition-transform">
             <div style={{ ...btnBase, background: isVideoEnabled ? glassIdle : redActive, border: isVideoEnabled ? glassBorder : redBorder, boxShadow: isVideoEnabled ? glassShadow : redShadow }}>
@@ -428,8 +545,6 @@ const ProfessionalVideoCallWebRTC = () => {
             </div>
             <span style={labelStyle}>{isVideoEnabled ? 'Cámara' : 'Sin cámara'}</span>
           </button>
-
-          {/* End Session — center, larger */}
           <button onClick={() => setShowEndConfirm(true)} disabled={isEndingSession}
             className="flex flex-col items-center gap-1.5 group active:scale-90 transition-transform disabled:opacity-50 disabled:cursor-not-allowed">
             <div style={{ width: 62, height: 62, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: redActive, border: redBorder, boxShadow: '0 0 0 6px rgba(239,68,68,0.18),' + redShadow, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', transition: 'all 0.2s' }}>
@@ -437,8 +552,6 @@ const ProfessionalVideoCallWebRTC = () => {
             </div>
             <span style={labelStyle}>Finalizar</span>
           </button>
-
-          {/* Record */}
           <button onClick={handleRecordClick} aria-label={isRecordingActive ? 'Detener grabación' : 'Grabar sesión'}
             className="flex flex-col items-center gap-1.5 group active:scale-90 transition-transform">
             <div style={{ ...btnBase, background: isRecordingActive ? redActive : glassIdle, border: isRecordingActive ? redBorder : glassBorder, boxShadow: isRecordingActive ? '0 0 0 3px rgba(239,68,68,0.3),' + redShadow : glassShadow }}>
@@ -446,8 +559,6 @@ const ProfessionalVideoCallWebRTC = () => {
             </div>
             <span style={labelStyle}>{isRecordingActive ? 'Grabando' : 'Grabar'}</span>
           </button>
-
-          {/* Chat */}
           <button onClick={() => { setShowClinicalFile(false); setShowChat(!showChat); }} aria-label="Abrir chat"
             className="flex flex-col items-center gap-1.5 group active:scale-90 transition-transform relative">
             <div style={{ ...btnBase, background: showChat ? skyActive : glassIdle, border: showChat ? skyBorder : glassBorder, boxShadow: showChat ? skyShadow : glassShadow }}>
@@ -461,8 +572,6 @@ const ProfessionalVideoCallWebRTC = () => {
             )}
             <span style={labelStyle}>Chat</span>
           </button>
-
-          {/* Clinical File */}
           <button onClick={handleOpenClinicalFile} aria-label="Expediente del paciente"
             className="flex flex-col items-center gap-1.5 group active:scale-90 transition-transform">
             <div style={{ ...btnBase, background: showClinicalFile ? skyActive : glassIdle, border: showClinicalFile ? skyBorder : glassBorder, boxShadow: showClinicalFile ? skyShadow : glassShadow }}>
@@ -470,7 +579,6 @@ const ProfessionalVideoCallWebRTC = () => {
             </div>
             <span style={labelStyle}>Expediente</span>
           </button>
-
         </div>
       </div>
 
@@ -670,7 +778,37 @@ const ProfessionalVideoCallWebRTC = () => {
         )}
       </AnimatePresence>
 
-      <style>{`.mirror { transform: scaleX(-1); }`}</style>
+      {/* Navigation Warning — back button or link click while recording */}
+      <AnimatePresence>
+        {showNavigationWarning && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="rounded-2xl p-6 max-w-sm w-full shadow-2xl"
+              style={{ background: 'rgba(15,15,20,0.95)', backdropFilter: 'blur(24px)', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
+                  <StopCircle className="w-5 h-5 text-amber-400" />
+                </div>
+                <h3 className="text-base font-semibold text-white">Grabación en curso</h3>
+              </div>
+              <p className="text-sm text-white/40 mb-5 leading-relaxed">Si sales ahora, la grabación se detendrá y se subirá el audio capturado hasta este momento.</p>
+              <div className="flex gap-2">
+                <button onClick={handleNavigationWarningCancel}
+                  className="flex-1 px-4 py-2.5 border border-white/12 text-white/60 rounded-xl hover:bg-white/5 transition-colors text-sm font-medium">Continuar grabando</button>
+                <button onClick={handleNavigationWarningConfirm}
+                  className="flex-1 px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl transition-colors text-sm font-medium">Salir y guardar</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <style>{`
+        .mirror { transform: scaleX(-1); }
+        .remote-video { object-fit: contain; }
+        @media (orientation: portrait) { .remote-video { object-fit: cover; } }
+      `}</style>
     </div>
   );
 };

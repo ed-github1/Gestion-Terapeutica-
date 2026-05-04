@@ -19,8 +19,8 @@ const TherapistCard = ({ onRequestNew }) => {
 
   if (!loading && !professional) return null
 
-  const name     = professional?.name || professional?.nombre || 'Tu profesional'
-  const spec     = professional?.specialty || professional?.specialization || professional?.especialidad || 'Psicología clínica'
+  const name = professional?.name || professional?.nombre || 'Tu profesional'
+  const spec = professional?.specialty || professional?.specialization || professional?.especialidad || 'Psicología clínica'
   const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 
   return (
@@ -65,13 +65,7 @@ const TherapistCard = ({ onRequestNew }) => {
             </div>
           </div>
 
-          <button
-            onClick={onRequestNew}
-            className="mt-3.5 w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-xs font-semibold hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
-          >
-            <CalendarPlus className="w-3.5 h-3.5" />
-            Agendar sesión
-          </button>
+
         </>
       )}
     </motion.div>
