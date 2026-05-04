@@ -51,7 +51,7 @@ const DashboardLayoutInner = ({ children, userRole }) => {
     <div className={`${dark ? 'dark' : ''} h-screen tm-bg flex flex-col overflow-hidden`}>
 
       {/* Mobile Top Bar */}
-      <div className="md:hidden bg-transparent px-4 py-3 flex items-center justify-between shadow-sm fixed top-0 left-0 right-0 z-50 shrink-0">
+      <div className="md:hidden bg-white dark:bg-gray-900 px-4 py-3 flex items-center justify-between shadow-sm fixed top-0 left-0 right-0 z-50 shrink-0">
         <div className="flex items-center gap-2">
           <img src={logoSymbol} alt="" className="h-8 w-8 object-contain" />
           <span className="text-[18px] text-[#4A5568] dark:text-gray-200 tracking-tight leading-none">
