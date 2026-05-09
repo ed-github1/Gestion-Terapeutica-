@@ -202,7 +202,7 @@ export default function RatesPanel({ onClose }) {
                       value={prices[key]}
                       onChange={(e) => {
                         const val = e.target.value
-                        if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                        if (val === '' || /^[\d.]*$/.test(val)) {
                           setPrices(prev => ({ ...prev, [key]: val }))
                         }
                       }}

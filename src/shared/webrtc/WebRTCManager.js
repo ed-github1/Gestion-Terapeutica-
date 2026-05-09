@@ -178,10 +178,13 @@ class WebRTCManager {
     // Room joined
     this.socket.on('room-joined', async ({ roomId, users }) => {
       console.log('Joined room:', roomId, 'Users:', users);
-      
-      // Don't create offers to existing users - wait for them to send offers
-      // This prevents "glare" condition where both peers send offers simultaneously
-      // Existing users will receive 'user-joined' event and create offers
+      // Notify the UI about users already in the room. They never trigger
+      // 'user-joined' (that event only fires for new joiners), so without this
+      // the second participant's participants list would stay empty forever.
+      users.forEach(u => {
+        if (this.onUserJoined) this.onUserJoined({ userId: u.userId, userName: u.userName, role: u.role });
+      });
+      // Don't create offers — existing users receive 'user-joined' and offer to us.
     });
 
     // New user joined
@@ -441,15 +444,24 @@ class WebRTCManager {
       }
     };
 
-    // Handle remote stream — ontrack fires once per track (audio + video),
-    // so we deduplicate by checking if the stream is already stored.
+    // Handle remote stream — ontrack fires once per track (audio + video).
     pc.ontrack = (event) => {
-      const remoteStream = event.streams[0];
-      if (!remoteStream) return;
-      
-      // Only notify once per unique stream
-      const existing = this.remoteStreams.get(targetUserId);
-      if (existing?.id === remoteStream.id) return;
+      // event.streams[0] is absent in Firefox and transceiver-only setups.
+      // Build a per-peer MediaStream from individual tracks so we always
+      // have a renderable stream regardless of browser.
+      let remoteStream = event.streams[0];
+      if (!remoteStream) {
+        const existing = this.remoteStreams.get(targetUserId);
+        if (existing) {
+          if (!existing.getTracks().includes(event.track)) existing.addTrack(event.track);
+          return;
+        }
+        remoteStream = new MediaStream([event.track]);
+      }
+
+      // Deduplicate by object reference — ID-based comparison can incorrectly
+      // skip reconnect scenarios where the remote side reuses the same stream ID.
+      if (this.remoteStreams.get(targetUserId) === remoteStream) return;
       
       console.log('Received remote track from:', targetUserId);
       this.remoteStreams.set(targetUserId, remoteStream);
@@ -579,15 +591,14 @@ class WebRTCManager {
    * Handle incoming answer
    */
   async handleAnswer(answer, fromUserId) {
+    // Declare pc outside try so the catch block can inspect signalingState
+    // without hitting ReferenceError (const is block-scoped to try).
+    const pc = this.peerConnections.get(fromUserId);
+    if (!pc) {
+      console.error('No peer connection found for:', fromUserId);
+      return;
+    }
     try {
-      const pc = this.peerConnections.get(fromUserId);
-
-      if (!pc) {
-        console.error('No peer connection found for:', fromUserId);
-        return;
-      }
-
-      // Check if we're in the right state to accept an answer
       // Ignore answer if we're already stable (prevents "wrong state" error)
       if (pc.signalingState === 'stable') {
         console.log('Ignoring answer - already in stable state for:', fromUserId);
@@ -600,7 +611,7 @@ class WebRTCManager {
     } catch (error) {
       // Race: state flipped to stable between the guard above and setRemoteDescription.
       // This is harmless — the connection is already established.
-      if (pc?.signalingState === 'stable' || /stable|wrong state/i.test(error.message)) {
+      if (pc.signalingState === 'stable' || /stable|wrong state/i.test(error.message)) {
         console.log('Ignoring late answer — connection already stable for:', fromUserId);
         return;
       }
@@ -848,6 +859,9 @@ class WebRTCManager {
    * Attempt to reconnect a specific peer connection.
    */
   _attemptPeerReconnect(userId) {
+    // Room was ended (cleanup already ran) — don't attempt peer reconnection
+    if (!this.currentRoomId) return;
+
     const attempts = (this._peerReconnectAttempts.get(userId) || 0) + 1;
     this._peerReconnectAttempts.set(userId, attempts);
 

@@ -1,23 +1,42 @@
 import { useState } from 'react'
 import { motion } from 'motion/react'
-import { User, Mail, Save, Check, AlertCircle } from 'lucide-react'
+import { User, Mail, Save, Check, AlertCircle, Briefcase, Hash, Globe } from 'lucide-react'
 import { useAuth } from './AuthContext'
+import { PROFESSIONAL_COUNTRIES } from '@shared/constants/subscriptionPlans'
 
-const Field = ({ label, icon: Icon, type = 'text', value, onChange, disabled }) => (
+const GENDER_OPTIONS = [
+  { value: '',           label: 'Seleccionar...' },
+  { value: 'masculino',  label: 'Masculino' },
+  { value: 'femenino',   label: 'Femenino' },
+  { value: 'no_binario', label: 'No binario' },
+  { value: 'prefiero_no_decir', label: 'Prefiero no decirlo' },
+]
+
+const inputClass = `w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg
+  text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-sky-500 focus:border-transparent transition outline-none
+  disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-gray-50 dark:disabled:bg-gray-800/60`
+
+const Label = ({ icon: Icon, children }) => (
+  <label className="block text-[10px] font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-500 mb-1.5">
+    {Icon && <Icon className="inline w-3 h-3 mr-1 -mt-0.5" />}
+    {children}
+  </label>
+)
+
+const Field = ({ label, icon, type = 'text', value, onChange, disabled }) => (
   <div>
-    <label className="block text-[10px] font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-500 mb-1.5">
-      {Icon && <Icon className="inline w-3 h-3 mr-1 -mt-0.5" />}
-      {label}
-    </label>
-    <input
-      type={type}
-      value={value}
-      onChange={onChange}
-      disabled={disabled}
-      className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100
-                 focus:ring-2 focus:ring-sky-500 focus:border-transparent transition outline-none
-                 disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-gray-50 dark:disabled:bg-gray-800/60"
-    />
+    <Label icon={icon}>{label}</Label>
+    <input type={type} value={value} onChange={onChange} disabled={disabled} className={inputClass} />
+  </div>
+)
+
+const SelectField = ({ label, icon, value, onChange, disabled, options }) => (
+  <div>
+    <Label icon={icon}>{label}</Label>
+    <select value={value} onChange={onChange} disabled={disabled}
+      className={`${inputClass} appearance-none`}>
+      {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+    </select>
   </div>
 )
 
@@ -29,13 +48,17 @@ const EditProfileForm = () => {
   const { user, updateProfile } = useAuth()
 
   const [form, setForm] = useState({
-    nombre:   user?.nombre   || user?.name   || '',
-    apellido: user?.apellido || '',
-    email:    user?.email    || user?.correo || '',
+    nombre:      user?.nombre      || user?.name          || '',
+    apellido:    user?.apellido    || '',
+    email:       user?.email       || user?.correo        || '',
+    country:     user?.country     || '',
+    genero:      user?.gender      || user?.genero        || '',
+    especialidad: user?.specialty  || user?.especialidad  || '',
+    cedula:      user?.licenseNumber || user?.numeroLicencia || '',
   })
-  const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
-  const [error, setError]     = useState(null)
+  const [loading, setLoading]   = useState(false)
+  const [success, setSuccess]   = useState(false)
+  const [error, setError]       = useState(null)
 
   const set = (key) => (e) => {
     setSuccess(false)
@@ -49,9 +72,13 @@ const EditProfileForm = () => {
     setSuccess(false)
 
     const diff = {}
-    if (form.nombre   !== (user?.nombre   || user?.name   || '')) diff.nombre   = form.nombre
-    if (form.apellido !== (user?.apellido || ''))                  diff.apellido = form.apellido
-    if (form.email    !== (user?.email    || user?.correo || ''))  diff.email    = form.email
+    if (form.nombre       !== (user?.nombre      || user?.name          || '')) diff.nombre       = form.nombre
+    if (form.apellido     !== (user?.apellido    || ''))                         diff.apellido     = form.apellido
+    if (form.email        !== (user?.email       || user?.correo        || '')) diff.email        = form.email
+    if (form.country      !== (user?.country     || ''))                         diff.country      = form.country
+    if (form.genero       !== (user?.gender      || user?.genero        || '')) diff.genero       = form.genero
+    if (form.especialidad !== (user?.specialty   || user?.especialidad  || '')) diff.especialidad = form.especialidad
+    if (form.cedula       !== (user?.licenseNumber || user?.numeroLicencia || '')) diff.cedula    = form.cedula
 
     if (Object.keys(diff).length === 0) {
       setError('No hay cambios para guardar.')
@@ -70,6 +97,11 @@ const EditProfileForm = () => {
     }
   }
 
+  const countryOptions = [
+    { value: '', label: 'Seleccionar país...' },
+    ...PROFESSIONAL_COUNTRIES.map(c => ({ value: c.code, label: c.name })),
+  ]
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -77,23 +109,36 @@ const EditProfileForm = () => {
       className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm p-5"
     >
       <div className="flex items-center gap-3 mb-5">
-        <div className="w-8 h-8 rounded-xl bg-sky-50 dark:bg-sky-900/40 flex items-center justify-center shrink-0">
-          <User className="w-4 h-4 text-sky-600 dark:text-sky-400" />
-        </div>
+        <User className="w-4 h-4 text-gray-400 dark:text-gray-500 shrink-0" />
         <div>
           <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100 leading-none">Editar perfil</h2>
-          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Actualiza tu nombre y correo</p>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Actualiza tu información personal y profesional</p>
         </div>
       </div>
 
       <div className="border-t border-gray-200 dark:border-gray-800 mb-5" />
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Name row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Nombre"   icon={User} value={form.nombre}   onChange={set('nombre')}   disabled={loading} />
           <Field label="Apellido" icon={User} value={form.apellido} onChange={set('apellido')} disabled={loading} />
         </div>
+
+        {/* Email */}
         <Field label="Correo electrónico" icon={Mail} type="email" value={form.email} onChange={set('email')} disabled={loading} />
+
+        {/* Country + Gender */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <SelectField label="País" icon={Globe} value={form.country} onChange={set('country')} disabled={loading} options={countryOptions} />
+          <SelectField label="Género" icon={User} value={form.genero} onChange={set('genero')} disabled={loading} options={GENDER_OPTIONS} />
+        </div>
+
+        {/* Specialty + License */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field label="Especialidad" icon={Briefcase} value={form.especialidad} onChange={set('especialidad')} disabled={loading} />
+          <Field label="Cédula / Licencia" icon={Hash} value={form.cedula} onChange={set('cedula')} disabled={loading} />
+        </div>
 
         {success && (
           <div className="flex items-center gap-2 px-3 py-2.5 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-lg">

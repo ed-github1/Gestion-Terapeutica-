@@ -12,6 +12,7 @@ import { useLocation } from 'react-router-dom'
 import { useDarkModeContext } from '@shared/DarkModeContext'
 import DashboardSearchBar from '@features/professional/components/DashboardSearchBar'
 import { VideoCallNotificationManager } from '@shared/ui'
+import VideoCallMiniPlayer from '@shared/ui/VideoCallMiniPlayer'
 import { TopBarSlotProvider, useTopBarSlot } from '@shared/context/TopBarSlotContext'
 
 const ROUTE_TITLES = {
@@ -111,6 +112,9 @@ const DashboardLayoutInner = ({ children, userRole }) => {
 
       {/* Bottom Navigation – Mobile Only */}
       <MobileBottomNav userRole={userRole} />
+
+      {/* Persistent mini-player — shown when user navigates away mid-call */}
+      <VideoCallMiniPlayer />
 
     </div>
   )

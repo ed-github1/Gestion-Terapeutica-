@@ -143,6 +143,7 @@ const FC_STYLES = `
 .dark .fc .fc-list-event-time   { color: #60a5fa !important; }
 .dark .fc .fc-list-event-title  { color: #e2e8f0 !important; }
 .dark .fc .fc-list-day-text     { color: #60a5fa !important; }
+.dark .fc .fc-list-day-cushion  { background: #1a2234 !important; }
 .dark .fc-theme-standard td,
 .dark .fc-theme-standard th     { background: #111827; border-color: #1e293b !important; }
 .dark .fc .fc-col-header-cell   { background: #1a2234 !important; border-color: #1e293b !important; }

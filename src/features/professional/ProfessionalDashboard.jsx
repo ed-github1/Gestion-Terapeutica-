@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import { X, CheckCircle2, Sparkles, Loader2, RefreshCw } from 'lucide-react'
 import { useAuth } from '@features/auth'
@@ -24,6 +24,8 @@ const ProfessionalDashboardWrapper = () => {
     const [diaryPatient, setDiaryPatient] = useState(null)
     const [searchParams, setSearchParams] = useSearchParams()
     const { refreshUser, user } = useAuth()
+    const location = useLocation()
+    const navigate = useNavigate()
 
     // ── Top bar notification panel ────────────────────────────────────────────
     const { setSlot } = useTopBarSlot()
@@ -43,6 +45,21 @@ const ProfessionalDashboardWrapper = () => {
 
     useEffect(() => () => setSlot(null), [])
     // ─────────────────────────────────────────────────────────────────────────
+
+    // Open patient clinical file when selected from the global search bar
+    useEffect(() => {
+        const p = location.state?.openPatient
+        if (!p) return
+        navigate(location.pathname, { replace: true, state: {} })
+        const parts = (p.name || '').trim().split(' ')
+        setDiaryPatient({
+            _id: p.id, id: p.id,
+            firstName: parts[0] || 'Paciente', lastName: parts.slice(1).join(' ') || '',
+            nombre: parts[0] || 'Paciente', apellido: parts.slice(1).join(' ') || '',
+            name: p.name || '', email: p.email || '', status: p.status || 'active',
+        })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [location.state?.openPatient])
     const [showPaymentSuccess, setShowPaymentSuccess] = useState(
         () => searchParams.get('subscription') === 'success'
     )

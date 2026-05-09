@@ -6,9 +6,8 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Mic, MicOff, Video as VideoIcon, VideoOff, MessageSquare, PhoneOff, StopCircle, LogOut, Circle, ShieldCheck, ClipboardList } from 'lucide-react';
-import { useWebRTC } from '@shared/hooks/useWebRTC';
-import { useCallRecording } from '@shared/hooks/useCallRecording';
+import { Mic, MicOff, Video as VideoIcon, VideoOff, MessageSquare, PhoneOff, StopCircle, LogOut, Circle, ShieldCheck, ClipboardList, ChevronLeft } from 'lucide-react';
+import { useVideoCall as useWebRTC } from '@shared/context/VideoCallContext';
 import { videoCallService } from '@shared/services/videoCallService';
 import { appointmentsService } from '@shared/services/appointmentsService';
 import { useAuth } from '../../auth/AuthContext';
@@ -24,6 +23,9 @@ const ProfessionalVideoCallWebRTC = () => {
     chatMessages, error, isAudioEnabled, isVideoEnabled, isReconnecting, reconnectFailed,
     isRecording: isServerRecording, userLeft, recordingAuthorized, manager,
     joinRoom, leaveRoom, endRoom, toggleAudio, toggleVideo, sendMessage, startRecording, stopRecording,
+    // Recording lives in context so it survives navigation to the mini-player
+    recordingEnabled, setRecordingEnabled, localRecording, isUploading, uploadError, recordingError,
+    stopCallRecording, setIsMinimized, callStartTime,
   } = useWebRTC();
 
   const [showChat, setShowChat] = useState(false);
@@ -34,7 +36,6 @@ const ProfessionalVideoCallWebRTC = () => {
   const [sessionNotes, setSessionNotes] = useState('');
   const [countdown, setCountdown] = useState(null);
   const [isEndingSession, setIsEndingSession] = useState(false);
-  const [recordingEnabled, setRecordingEnabled] = useState(false);
   const [patientDeclinedRecording, setPatientDeclinedRecording] = useState(false);
   const [awaitingPatientConsent, setAwaitingPatientConsent] = useState(false);
   const [showClinicalFile, setShowClinicalFile] = useState(false);
@@ -53,15 +54,10 @@ const ProfessionalVideoCallWebRTC = () => {
     startRecording(appointmentId);
   }, [recordingAuthorized, awaitingPatientConsent, startRecording, appointmentId]);
 
-  // Cleanup on unmount when user navigates away without using leave/end buttons.
-  const cleanupRef = useRef(null);
+  // When navigating away without ending the call, minimize to mini-player instead of hanging up.
   useEffect(() => () => {
     if (isLeavingIntentionallyRef.current) return;
-    const fns = cleanupRef.current;
-    if (!fns) return;
-    if (fns.recordingEnabled) fns.stopRecording(fns.appointmentId);
-    fns.stopCallRecording();
-    fns.leaveRoom();
+    setIsMinimized(true);
   }, []);
 
   // Warn on browser tab close / refresh
@@ -109,28 +105,25 @@ const ProfessionalVideoCallWebRTC = () => {
   const statusBannerRef = useRef(null);
   const [bannerHeight, setBannerHeight] = useState(0);
 
-  const handleRecordingFailed = useCallback((errorMsg) => {
-    console.error('[Recording] Recording failed:', errorMsg);
-  }, []);
-
-  const {
-    isRecording: localRecording, isUploading, uploadError, recordingError,
-    stopRecording: stopCallRecording,
-  } = useCallRecording({ localStream, appointmentId, enabled: recordingEnabled, onRecordingFailed: handleRecordingFailed });
-  cleanupRef.current = { stopCallRecording, leaveRoom, recordingEnabled, stopRecording, appointmentId };
 
   useEffect(() => {
     if (statusBannerRef.current) setBannerHeight(statusBannerRef.current.offsetHeight);
-  }, [error, countdown, isServerRecording, localRecording, isUploading, recordingError, uploadError, userLeft]);
+  }, [error, countdown, isUploading, recordingError, uploadError, userLeft]);
 
   // Keep remote video elements in sync with streams (handles reconnects + autoPlay failures)
   useEffect(() => {
+    const cleanups = [];
     remoteStreams.forEach(({ userId, stream }) => {
       const el = remoteVideoRefs.current.get(userId);
       if (!el) return;
       if (el.srcObject !== stream) el.srcObject = stream;
       if (el.paused) el.play().catch(() => {});
+      // Retry play() when a track is added dynamically (e.g. video arrives after audio).
+      const tryPlay = () => { if (el.paused) el.play().catch(() => {}); };
+      stream.addEventListener('addtrack', tryPlay);
+      cleanups.push(() => stream.removeEventListener('addtrack', tryPlay));
     });
+    return () => cleanups.forEach(fn => fn());
   }, [remoteStreams]);
 
   useEffect(() => {
@@ -160,6 +153,8 @@ const ProfessionalVideoCallWebRTC = () => {
 
   useEffect(() => {
     if (isInitialized && !isInRoom && !isConnecting && appointmentId) handleJoinRoom();
+    // Returning from mini-player — restore full-screen mode
+    if (isInRoom) setIsMinimized(false);
   }, [isInitialized, appointmentId]);
 
   useEffect(() => {
@@ -168,22 +163,23 @@ const ProfessionalVideoCallWebRTC = () => {
   }, [localStream]);
 
   useEffect(() => {
-    if (isInRoom && !callStartTimeRef.current) {
-      callStartTimeRef.current = Date.now();
-      durationIntervalRef.current = setInterval(() => {
-        const elapsed = Math.floor((Date.now() - callStartTimeRef.current) / 1000);
-        callDurationRef.current = elapsed;
-        if (durationDisplayRef.current) {
-          const hrs = Math.floor(elapsed / 3600);
-          const mins = Math.floor((elapsed % 3600) / 60);
-          const secs = elapsed % 60;
-          durationDisplayRef.current.textContent =
-            `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-        }
-      }, 1000);
-    }
-    return () => { if (durationIntervalRef.current) clearInterval(durationIntervalRef.current); };
-  }, [isInRoom]);
+    if (!isInRoom || !callStartTime) return;
+    callStartTimeRef.current = callStartTime;
+    const tick = () => {
+      const elapsed = Math.floor((Date.now() - callStartTimeRef.current) / 1000);
+      callDurationRef.current = elapsed;
+      if (durationDisplayRef.current) {
+        const hrs = Math.floor(elapsed / 3600);
+        const mins = Math.floor((elapsed % 3600) / 60);
+        const secs = elapsed % 60;
+        durationDisplayRef.current.textContent =
+          `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      }
+    };
+    tick(); // show correct elapsed time immediately on (re)mount
+    durationIntervalRef.current = setInterval(tick, 1000);
+    return () => { clearInterval(durationIntervalRef.current); durationIntervalRef.current = null; };
+  }, [isInRoom, callStartTime]);
 
   const handleJoinRoom = async () => {
     try { await joinRoom(appointmentId); }
@@ -194,6 +190,11 @@ const ProfessionalVideoCallWebRTC = () => {
     isLeavingIntentionallyRef.current = true;
     // Recording is intentionally NOT uploaded on leave — only "Finalizar Sesión" uploads.
     leaveRoom();
+    navigate('/dashboard/professional');
+  };
+
+  const handleMinimize = () => {
+    // Cleanup effect will call setIsMinimized(true) on unmount since we don't set isLeavingIntentionallyRef
     navigate('/dashboard/professional');
   };
 
@@ -390,13 +391,6 @@ const ProfessionalVideoCallWebRTC = () => {
             <button onClick={() => setShowEndConfirm(true)} className="ml-3 underline font-medium">Finalizar ahora</button>
           </div>
         )}
-        {isRecordingActive && (
-          <div className="bg-red-600/90 text-white text-xs px-4 py-1.5 flex items-center justify-center gap-2 backdrop-blur-sm">
-            <Circle className="w-2.5 h-2.5 fill-white animate-pulse" />
-            <span className="font-medium">Grabando sesión</span>
-            <button onClick={handleRecordClick} className="ml-2 underline">Detener</button>
-          </div>
-        )}
         {isUploading && (
           <div className="bg-sky-600/90 text-white text-xs px-4 py-1.5 flex items-center justify-center gap-2 backdrop-blur-sm">
             <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -418,18 +412,56 @@ const ProfessionalVideoCallWebRTC = () => {
       {/* ── Timer — top center ───────────────────────────────────────── */}
       {isInRoom && (
         <div className="absolute z-30 left-1/2 -translate-x-1/2"
-          style={{ top: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}>
-          <div className="flex items-center gap-2 px-4 py-2 rounded-full"
-            style={{ background: 'rgba(0,0,0,0.38)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.13)', boxShadow: '0 2px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.07)' }}>
-            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: '#4ade80', boxShadow: '0 0 8px rgba(74,222,128,0.9)' }} />
+          style={{ top: `calc(env(safe-area-inset-top, 0px) + ${bannerHeight + 16}px)` }}>
+          <div className="flex items-center gap-2 px-3.5 py-2 rounded-full"
+            style={{
+              background: isRecordingActive ? 'rgba(160,0,0,0.55)' : 'rgba(0,0,0,0.38)',
+              backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+              border: isRecordingActive ? '1px solid rgba(239,68,68,0.4)' : '1px solid rgba(255,255,255,0.13)',
+              boxShadow: isRecordingActive
+                ? '0 2px 20px rgba(239,68,68,0.2), inset 0 1px 0 rgba(255,255,255,0.07)'
+                : '0 2px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.07)',
+              transition: 'background 0.35s, border-color 0.35s, box-shadow 0.35s',
+            }}>
+            {isRecordingActive
+              ? <Circle className="w-2 h-2 fill-red-400 text-red-400 animate-pulse shrink-0" />
+              : <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: '#4ade80', boxShadow: '0 0 8px rgba(74,222,128,0.9)' }} />}
             <span ref={durationDisplayRef} className="text-[13px] font-light text-white/85 tabular-nums" style={{ letterSpacing: '0.12em', fontVariantNumeric: 'tabular-nums' }}>00:00:00</span>
+            {isRecordingActive && (
+              <>
+                <span style={{ width: 1, height: 10, background: 'rgba(255,255,255,0.25)', borderRadius: 1, flexShrink: 0 }} />
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.9)', letterSpacing: '0.06em' }}>REC</span>
+                <button onClick={handleRecordClick} style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', textDecoration: 'underline', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}>
+                  Detener
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
 
+      {/* ── Go back button — top left ────────────────────────────────── */}
+      <button
+        onClick={handleMinimize}
+        title="Minimizar llamada"
+        className="absolute z-30 flex items-center gap-1.5 active:scale-90 transition-transform"
+        style={{
+          top: `calc(env(safe-area-inset-top, 0px) + ${bannerHeight + 14}px)`, left: 14,
+          padding: '7px 12px 7px 8px', borderRadius: 99,
+          background: 'rgba(255,255,255,0.1)',
+          border: '1px solid rgba(255,255,255,0.18)',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.1)',
+          backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+          color: 'white', cursor: 'pointer',
+        }}
+      >
+        <ChevronLeft className="w-4 h-4" />
+        <span style={{ fontSize: 12, fontWeight: 500, letterSpacing: '0.01em' }}>Volver</span>
+      </button>
+
       {/* ── PIP local video — top right ──────────────────────────────── */}
       <div className="absolute z-30 rounded-2xl overflow-hidden"
-        style={{ top: 'calc(env(safe-area-inset-top, 0px) + 14px)', right: 14, width: 88, height: 120, border: '2px solid rgba(255,255,255,0.2)', boxShadow: '0 8px 28px rgba(0,0,0,0.6)' }}>
+        style={{ top: `calc(env(safe-area-inset-top, 0px) + ${bannerHeight + 14}px)`, right: 14, width: 88, height: 120, border: '2px solid rgba(255,255,255,0.2)', boxShadow: '0 8px 28px rgba(0,0,0,0.6)' }}>
         {localStream ? (
           <>
             <video ref={setLocalVideoRef} autoPlay muted playsInline className="w-full h-full object-cover mirror" />
@@ -806,8 +838,7 @@ const ProfessionalVideoCallWebRTC = () => {
 
       <style>{`
         .mirror { transform: scaleX(-1); }
-        .remote-video { object-fit: contain; }
-        @media (orientation: portrait) { .remote-video { object-fit: cover; } }
+        .remote-video { object-fit: cover; }
       `}</style>
     </div>
   );

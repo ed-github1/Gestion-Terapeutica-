@@ -28,6 +28,7 @@ import { ROUTES, ROLES } from '@shared/constants/routes'
 import DashboardLayout from '@shared/layouts/DashboardLayout'
 import { usePageTitle } from '@shared/hooks'
 import { DarkModeProvider } from '@shared/DarkModeContext'
+import { VideoCallProvider } from '@shared/context/VideoCallContext'
 
 function PageTitleManager() {
   usePageTitle()
@@ -69,6 +70,7 @@ function App() {
     <Router>
       <DarkModeProvider>
       <AuthProvider>
+        <VideoCallProvider>
         <PageTitleManager />
         <Toast />
         <Routes>
@@ -280,6 +282,7 @@ function App() {
 
           <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
         </Routes>
+        </VideoCallProvider>
       </AuthProvider>
       </DarkModeProvider>
     </Router>

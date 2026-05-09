@@ -59,9 +59,8 @@ export default function CalendarEventCard({ arg }) {
   const apt  = arg.event.extendedProps
   const meta = TYPE_META[apt.type] || TYPE_META.default
 
-  const isPaid    = apt.paymentStatus === 'paid' || apt.paymentStatus === 'completed'
-  const isPending = !isPaid && (apt.paymentStatus === 'pending' || apt.status === 'reserved' || apt.status === 'accepted')
-  const isVideo   = apt.isVideoCall || apt.mode === 'videollamada'
+  const isPaid  = apt.paymentStatus === 'paid' || apt.paymentStatus === 'completed'
+  const isVideo = apt.isVideoCall || apt.mode === 'videollamada'
 
   const patientName = arg.event.title || ''
   const viewType = arg.view?.type || ''
@@ -95,9 +94,6 @@ export default function CalendarEventCard({ arg }) {
             className="shrink-0" style={{ color: dark ? '#34d399' : 'rgba(255,255,255,0.85)' }}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
-        )}
-        {isPending && (
-          <span className="shrink-0 text-[7px] font-black" style={{ color: dark ? '#fbbf24' : 'rgba(255,255,255,0.7)' }}>$</span>
         )}
       </div>
     )
@@ -134,11 +130,6 @@ export default function CalendarEventCard({ arg }) {
             <svg width="8" height="8" fill="none" stroke="white" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
             </svg>
-          </span>
-        )}
-        {isPending && (
-          <span className="shrink-0 text-[7px] font-bold text-amber-600 dark:text-amber-400 border border-amber-300 dark:border-amber-600 bg-amber-50 dark:bg-amber-900/30 rounded-sm px-1 leading-none py-0.5">
-            $?
           </span>
         )}
       </div>

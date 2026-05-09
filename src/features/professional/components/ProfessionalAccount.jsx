@@ -4,7 +4,6 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import {
     User as UserIcon,
     BarChart2,
-    Settings as SettingsIcon,
     LogOut,
     Crown,
     Shield,
@@ -12,20 +11,16 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@features/auth'
 import ProfessionalStats from '../ProfessionalStats'
-import ProfessionalProfile from './ProfessionalProfile'
-import ProfessionalSettings from './ProfessionalSettings'
+import ProfessionalAccountTab from './ProfessionalAccountTab'
 
 const TABS = [
-    { id: 'profile', label: 'Perfil', icon: UserIcon, path: '/dashboard/professional/profile' },
     { id: 'stats', label: 'Estadísticas', icon: BarChart2, path: '/dashboard/professional/stats' },
-    { id: 'settings', label: 'Configuración', icon: SettingsIcon, path: '/dashboard/professional/settings' },
+    { id: 'cuenta', label: 'Cuenta', icon: UserIcon, path: '/dashboard/professional/profile' },
 ]
-
 
 const tabFromPath = (pathname) => {
     if (pathname.includes('/stats')) return 'stats'
-    if (pathname.includes('/settings')) return 'settings'
-    return 'profile'
+    return 'cuenta'
 }
 
 const ProfessionalAccount = () => {
@@ -170,9 +165,8 @@ const ProfessionalAccount = () => {
                         exit={{ opacity: 0, y: -4 }}
                         transition={{ duration: 0.2 }}
                     >
-                        {active === 'profile' && <ProfessionalProfile embedded />}
-                        {/* {active === 'stats' && <ProfessionalStats embedded />} */}
-                        {/* {active === 'settings' && <ProfessionalSettings embedded />} */}
+                        {active === 'stats' && <ProfessionalStats embedded />}
+                        {active === 'cuenta' && <ProfessionalAccountTab />}
                     </motion.div>
                 </AnimatePresence>
 
