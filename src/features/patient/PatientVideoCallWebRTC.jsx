@@ -714,7 +714,7 @@ const PatientVideoCallWebRTC = () => {
 
       <style>{`
         .mirror { transform: scaleX(-1); }
-        .remote-video { object-fit: cover; }
+        .remote-video { object-fit: contain; background: #000; }
       `}</style>
     </div>
   );
