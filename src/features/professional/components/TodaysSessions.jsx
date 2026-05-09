@@ -49,7 +49,8 @@ const getAvatarColor = (name) => {
     return AVATAR_PALETTES[Math.abs(hash) % AVATAR_PALETTES.length]
 }
 
-const GHOST_BTN = 'w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/70 active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-1'
+const GHOST_BTN          = 'w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/70 active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-1'
+const GHOST_BTN_ACTIVE   = 'w-8 h-8 flex items-center justify-center rounded-lg text-sky-500 dark:text-sky-400 hover:text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-900/20 active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-1'
 const GHOST_BTN_IMMINENT = 'w-8 h-8 flex items-center justify-center rounded-lg text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-1'
 
 /** Derive all appointment metadata from raw data */
@@ -86,8 +87,8 @@ const parseAppointment = (appointment) => {
 const getCardBg = ({ isCancelled, isCompleted, isNext, isInProgress, riskLevel }) => {
     if (isCancelled)   return 'bg-white dark:bg-gray-800/50 border border-dashed border-gray-300 dark:border-gray-600'
     if (isCompleted)   return 'bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/60'
-    if (isInProgress)  return 'bg-sky-50/80 dark:bg-sky-950/20 border border-sky-300 dark:border-sky-700/50 shadow-sm ring-1 ring-inset ring-sky-500/20 dark:ring-sky-500/20'
-    if (isNext)        return 'bg-white dark:bg-gray-800 border border-sky-200 dark:border-sky-700/40 shadow-sm ring-1 ring-inset ring-sky-500/10 dark:ring-sky-500/15'
+    if (isInProgress)  return 'bg-sky-50/80 dark:bg-sky-950/20 border border-sky-200 dark:border-sky-700/50 border-l-[3px] border-l-sky-500 dark:border-l-sky-400 shadow-sm'
+    if (isNext)        return 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/40 border-l-[3px] border-l-sky-300 dark:border-l-sky-600 shadow-sm'
     if (riskLevel === 'high') return 'bg-white dark:bg-gray-800/80 border border-rose-200 dark:border-rose-700/30'
     return 'bg-white dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700/60'
 }
@@ -156,33 +157,29 @@ const TimelineRow = ({ index, isFirst, isLast, timeStr, dateLabel, dotClass = DE
    4. SESSION CARD SUB-COMPONENTS
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/** Action buttons (message, video, complete, file) */
-const SessionActions = ({ appointment, data, isImminent, onJoinVideo, onViewDiary, onMessage, onMarkComplete }) => {
+/** Action buttons (video, complete, file) */
+const SessionActions = ({ appointment, data, isActive, isImminent, onJoinVideo, onViewDiary, onMarkComplete }) => {
     const { isCancelled, isCompleted, isVideoCall } = data
+    const primaryBtn = isImminent ? GHOST_BTN_IMMINENT : isActive ? GHOST_BTN_ACTIVE : GHOST_BTN
     return (
         <div className="flex items-center gap-0.5 shrink-0">
-            {!isCancelled && (
-                <button type="button" title="Mensaje" onClick={() => onMessage?.(appointment)} className={GHOST_BTN}>
-                    <MessageSquare className="w-4 h-4" />
-                </button>
-            )}
             {!isCancelled && !isCompleted && isVideoCall && (
                 <button
                     type="button"
                     title={isImminent ? 'Iniciar videollamada' : 'Videollamada'}
                     onClick={() => onJoinVideo?.(appointment)}
-                    className={isImminent ? GHOST_BTN_IMMINENT : GHOST_BTN}
+                    className={primaryBtn}
                 >
-                    <Video className="w-4 h-4" />
+                    <Video className="w-5 h-5" />
                 </button>
             )}
             {!isCancelled && !isCompleted && !isVideoCall && (
-                <button type="button" title="Marcar como completada" onClick={() => onMarkComplete?.(appointment)} className={GHOST_BTN}>
-                    <CheckCircle2 className="w-4 h-4" />
+                <button type="button" title="Marcar como completada" onClick={() => onMarkComplete?.(appointment)} className={primaryBtn}>
+                    <CheckCircle2 className="w-5 h-5" />
                 </button>
             )}
             <button type="button" title="Expediente" onClick={() => onViewDiary?.(appointment)} className={GHOST_BTN}>
-                <FileText className="w-4 h-4" />
+                <FileText className="w-5 h-5" />
             </button>
         </div>
     )
@@ -197,7 +194,7 @@ const SessionChips = ({ data }) => {
     const modeLabel = isVideoCall ? 'Videollamada' : 'Presencial'
     const modeColor = isDone ? CHIP_FADED
         : isVideoCall ? 'border-sky-200 dark:border-sky-700/60 text-sky-600 dark:text-sky-400'
-        : 'border-amber-200 dark:border-amber-700/60 text-amber-600 dark:text-amber-400'
+        : 'border-violet-200 dark:border-violet-700/60 text-violet-600 dark:text-violet-400'
 
     return (
         <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
@@ -239,7 +236,7 @@ const SessionChips = ({ data }) => {
    5. SESSION CARD (composed from sub-components)
    ═══════════════════════════════════════════════════════════════════════════ */
 
-const SessionCard = ({ appointment, index, isFirst, isNext, isLast, countdown, isImminent, onJoinVideo, onViewDiary, onMessage, onMarkComplete }) => {
+const SessionCard = ({ appointment, index, isFirst, isNext, isLast, countdown, isImminent, onJoinVideo, onViewDiary, onMarkComplete }) => {
     const data = parseAppointment(appointment)
     const { patientName, startTime, endTime, isCancelled, isCompleted, isInProgress, dateLabel, timeRange } = data
 
@@ -248,16 +245,10 @@ const SessionCard = ({ appointment, index, isFirst, isNext, isLast, countdown, i
     const dotClass   = getTimelineDot(data)
     const spineColor = getSpineColor()
 
+    const isActive = isNext || isInProgress
+
     return (
         <div className="min-w-0 w-full group">
-            {(isNext || isInProgress) && (
-                <div className="flex items-center pl-12 mb-1">
-                    <span className={`text-[9px] font-bold uppercase tracking-widest ${isInProgress ? 'text-sky-500 dark:text-sky-400' : 'text-sky-500'}`}>
-                        {isInProgress ? 'En curso' : 'Próxima sesión'}
-                    </span>
-                </div>
-            )}
-
             <TimelineRow index={index} isFirst={isFirst} isLast={isLast} timeStr={fmtTime(startTime)} dateLabel={dateLabel} dotClass={dotClass} spineColor={spineColor} dimmed={isCancelled}>
                 <div className={`${bgClass} rounded-2xl px-4 py-3 transition-shadow duration-200 ${!isCancelled ? 'group-hover:shadow-md' : ''}`}>
                     <div className="flex items-start gap-3">
@@ -274,13 +265,13 @@ const SessionCard = ({ appointment, index, isFirst, isNext, isLast, countdown, i
                                     <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                                         <span className={`text-xs leading-none ${isCancelled ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-500 dark:text-gray-400'}`}>{timeRange}</span>
                                         {dateLabel && <span className="text-[10px] text-gray-400 dark:text-gray-500 uppercase">{dateLabel}</span>}
-                                        {isInProgress && <span className="text-[10px] font-semibold text-amber-500 dark:text-amber-400">En curso</span>}
+                                        {isInProgress && <span className="text-[10px] font-semibold text-sky-500 dark:text-sky-400">En curso</span>}
                                         {isNext && countdown && !isInProgress && (
                                             <span className={`text-[10px] font-semibold ${isImminent ? 'text-emerald-500 dark:text-emerald-400' : 'text-sky-500 dark:text-sky-400'}`}>{countdown}</span>
                                         )}
                                     </div>
                                 </div>
-                                <SessionActions appointment={appointment} data={data} isImminent={isImminent} onJoinVideo={onJoinVideo} onViewDiary={onViewDiary} onMessage={onMessage} onMarkComplete={onMarkComplete} />
+                                <SessionActions appointment={appointment} data={data} isActive={isActive} isImminent={isImminent} onJoinVideo={onJoinVideo} onViewDiary={onViewDiary} onMarkComplete={onMarkComplete} />
                             </div>
                             <SessionChips data={data} />
                         </div>
@@ -334,7 +325,7 @@ const AvailableSlotCard = ({ slot, index, isFirst = false, isLast = false }) => 
    EmptyState
 ───────────────────────────────────────────────────────────────────────────── */
 const EmptyState = () => (
-    <div className="text-center py-12">
+    <div className="flex-1 flex flex-col items-center justify-center text-center py-12">
         <div className="w-14 h-14 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-3">
             <Calendar className="w-7 h-7 text-gray-400 dark:text-gray-500" />
         </div>

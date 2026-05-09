@@ -457,7 +457,7 @@ const MobileProfessionalDashboard = ({
                 )}
             </div>
 
-            {/* Pending payments banner */}
+            {/* Pending payments banner
             {outstandingAmount > 0 && (
                 <motion.div
                     initial={{ opacity: 0, y: 4 }}
@@ -468,8 +468,9 @@ const MobileProfessionalDashboard = ({
                     <p className="text-[12px] text-amber-700 dark:text-amber-300 font-medium">
                         <span className="font-bold">${outstandingAmount.toLocaleString()}</span> pendiente de cobrar
                     </p>
-                </motion.div>
-            )}
+                </motion.div> */}
+            
+            
 
             {/* ─────────────────────────────────────────────────────
                 TODOS — planning, last

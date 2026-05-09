@@ -20,48 +20,59 @@ const avatarColor = (id) => {
  */
 const DashboardSearchBar = ({ onSelect, className = '' }) => {
     const navigate = useNavigate()
-    const [query, setQuery]               = useState('')
-    const [results, setResults]           = useState([])
-    const [open, setOpen]                 = useState(false)
-    const [loading, setLoading]           = useState(false)
-    const [focused, setFocused]           = useState(false)
-    const inputRef                        = useRef(null)
-    const debounceRef                     = useRef(null)
+    const [query, setQuery]     = useState('')
+    const [results, setResults] = useState([])
+    const [open, setOpen]       = useState(false)
+    const [loading, setLoading] = useState(false)
+    const [focused, setFocused] = useState(false)
+    const inputRef              = useRef(null)
+    const debounceRef           = useRef(null)
+    const cacheRef              = useRef(null)   // all patients, fetched once
 
-    const search = useCallback(async (q) => {
-        if (!q || q.length < 2) { setResults([]); return }
+    const ensureCache = useCallback(async () => {
+        if (cacheRef.current) return cacheRef.current
         setLoading(true)
         try {
-            const res  = await patientsService.getAll({ search: q, limit: 6 })
-            const raw  = res.data?.data?.data ?? res.data?.data ?? res.data ?? []
-            const list = (Array.isArray(raw) ? raw : []).map(p => ({
-                id:      p._id || p.id,
-                name:    `${p.firstName || p.nombre || ''} ${p.lastName || p.apellido || ''}`.trim() || 'Paciente',
-                email:   p.email || '',
-                status:  p.status || 'active',
+            const res = await patientsService.getAll()
+            const raw = res.data?.data?.data ?? res.data?.data ?? res.data ?? []
+            cacheRef.current = (Array.isArray(raw) ? raw : []).map(p => ({
+                id:     p._id || p.id,
+                name:   `${p.firstName || p.nombre || ''} ${p.lastName || p.apellido || ''}`.trim() || 'Paciente',
+                email:  p.email || '',
+                status: p.status || 'active',
             }))
-            setResults(list)
-            setOpen(list.length > 0)
         } catch {
-            setResults([])
+            cacheRef.current = []
         } finally {
             setLoading(false)
         }
+        return cacheRef.current
     }, [])
+
+    const runSearch = useCallback(async (q) => {
+        if (!q || q.length < 2) { setResults([]); setOpen(false); return }
+        const all = await ensureCache()
+        const lower = q.toLowerCase()
+        const matched = all
+            .filter(p => p.name.toLowerCase().includes(lower) || p.email.toLowerCase().includes(lower))
+            .slice(0, 6)
+        setResults(matched)
+        setOpen(matched.length > 0)
+    }, [ensureCache])
 
     useEffect(() => {
         clearTimeout(debounceRef.current)
         if (!query.trim()) { setResults([]); setOpen(false); return }
-        debounceRef.current = setTimeout(() => search(query), 280)
+        debounceRef.current = setTimeout(() => runSearch(query), 200)
         return () => clearTimeout(debounceRef.current)
-    }, [query, search])
+    }, [query, runSearch])
 
     const handleSelect = (patient) => {
         setQuery('')
         setResults([])
         setOpen(false)
         if (onSelect) onSelect(patient)
-        else navigate('/dashboard/professional/patients')
+        else navigate('/dashboard/professional', { state: { openPatient: patient } })
     }
 
     const clear = () => { setQuery(''); setResults([]); setOpen(false); inputRef.current?.focus() }
@@ -112,7 +123,7 @@ const DashboardSearchBar = ({ onSelect, className = '' }) => {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -6, scale: 0.97 }}
                         transition={{ duration: 0.14, ease: [0.22, 1, 0.36, 1] }}
-                        className="absolute left-0 right-0 top-full mt-2 bg-white dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700/80 rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/40 overflow-hidden z-999"
+                        className="absolute left-0 right-0 top-full mt-2 bg-white dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700/80 rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/40 overflow-hidden z-[999]"
                     >
                         {/* Header row */}
                         <div className="px-4 pt-3 pb-1.5 flex items-center justify-between">

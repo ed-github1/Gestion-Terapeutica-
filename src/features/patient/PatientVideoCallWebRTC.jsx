@@ -6,9 +6,8 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Mic, MicOff, Video as VideoIcon, VideoOff, MessageSquare, PhoneOff, LogOut, Circle, ShieldAlert } from 'lucide-react';
-import { useWebRTC } from '@shared/hooks/useWebRTC';
-import { useCallRecording } from '@shared/hooks/useCallRecording';
+import { Mic, MicOff, Video as VideoIcon, VideoOff, MessageSquare, PhoneOff, LogOut, Circle, ShieldAlert, ChevronLeft } from 'lucide-react';
+import { useVideoCall as useWebRTC } from '@shared/context/VideoCallContext';
 import { videoCallService } from '@shared/services/videoCallService';
 import { useAuth } from '../auth/AuthContext';
 
@@ -41,6 +40,8 @@ const PatientVideoCallWebRTC = () => {
     toggleVideo,
     sendMessage,
     manager,
+    localRecording: isRecording, isUploading, uploadError, recordingError,
+    stopCallRecording, setRecordingEnabled, setIsMinimized, callStartTime,
   } = useWebRTC();
 
   const [showChat, setShowChat] = useState(false);
@@ -52,18 +53,6 @@ const PatientVideoCallWebRTC = () => {
   const [showNavigationWarning, setShowNavigationWarning] = useState(false);
   const recordingAcknowledgedRef = useRef(false);
   const isLeavingIntentionallyRef = useRef(false);
-
-  const handleRecordingFailed = useCallback((errorMsg) => {
-    console.error('[Recording] Patient recording failed:', errorMsg);
-  }, []);
-
-  const {
-    isRecording,
-    isUploading,
-    uploadError,
-    recordingError,
-    stopRecording: stopCallRecording,
-  } = useCallRecording({ localStream, appointmentId, enabled: recordingConsented, onRecordingFailed: handleRecordingFailed });
 
   const localVideoRef = useRef(null);
   const remoteVideoRefs = useRef(new Map());
@@ -112,15 +101,12 @@ const PatientVideoCallWebRTC = () => {
 
   useEffect(() => {
     if (statusBannerRef.current) setBannerHeight(statusBannerRef.current.offsetHeight);
-  }, [error, countdown, isServerRecording, isRecording, userLeft]);
+  }, [error, countdown, userLeft]);
 
-  // Cleanup on unmount when user navigates away without using the leave button.
-  const cleanupRef = useRef(null);
-  cleanupRef.current = { stopCallRecording, leaveRoom };
+  // When navigating away without ending the call, minimize to mini-player instead of hanging up.
   useEffect(() => () => {
     if (isLeavingIntentionallyRef.current) return;
-    cleanupRef.current?.stopCallRecording();
-    cleanupRef.current?.leaveRoom();
+    setIsMinimized(true);
   }, []);
 
   // Warn on browser tab close / refresh
@@ -180,22 +166,27 @@ const PatientVideoCallWebRTC = () => {
     }
   }, [recordingAuthorized]);
 
-  // When the professional ends the room, stop recording and navigate back after 3 seconds
+  // When the professional ends the room, navigate back after 3 seconds
   useEffect(() => {
     if (!roomEnded) return;
-    stopCallRecording();
     const timer = setTimeout(() => navigate('/dashboard/patient'), 3000);
     return () => clearTimeout(timer);
-  }, [roomEnded, navigate, stopCallRecording]);
+  }, [roomEnded, navigate]);
 
   // Keep remote video elements in sync with streams (handles reconnects + autoPlay failures)
   useEffect(() => {
+    const cleanups = [];
     remoteStreams.forEach(({ userId, stream }) => {
       const el = remoteVideoRefs.current.get(userId);
       if (!el) return;
       if (el.srcObject !== stream) el.srcObject = stream;
       if (el.paused) el.play().catch(() => {});
+      // Retry play() when a track is added dynamically (e.g. video arrives after audio).
+      const tryPlay = () => { if (el.paused) el.play().catch(() => {}); };
+      stream.addEventListener('addtrack', tryPlay);
+      cleanups.push(() => stream.removeEventListener('addtrack', tryPlay));
     });
+    return () => cleanups.forEach(fn => fn());
   }, [remoteStreams]);
 
   // Stable ref callback for local video — sets srcObject once
@@ -224,31 +215,25 @@ const PatientVideoCallWebRTC = () => {
 
   // Call duration timer — updates DOM directly to avoid React re-renders
   useEffect(() => {
-    if (isInRoom && !callStartTimeRef.current) {
-      callStartTimeRef.current = Date.now();
-
-      durationIntervalRef.current = setInterval(() => {
-        const elapsed = Math.floor((Date.now() - callStartTimeRef.current) / 1000);
-        if (durationDisplayRef.current) {
-          const hrs = Math.floor(elapsed / 3600);
-          const mins = Math.floor((elapsed % 3600) / 60);
-          const secs = elapsed % 60;
-          durationDisplayRef.current.textContent =
-            `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-        }
-      }, 1000);
-    }
-
-    return () => {
-      if (durationIntervalRef.current) {
-        clearInterval(durationIntervalRef.current);
+    if (!isInRoom || !callStartTime) return;
+    callStartTimeRef.current = callStartTime;
+    const tick = () => {
+      const elapsed = Math.floor((Date.now() - callStartTimeRef.current) / 1000);
+      if (durationDisplayRef.current) {
+        const hrs = Math.floor(elapsed / 3600);
+        const mins = Math.floor((elapsed % 3600) / 60);
+        const secs = elapsed % 60;
+        durationDisplayRef.current.textContent =
+          `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
       }
     };
-  }, [isInRoom]);
+    tick();
+    durationIntervalRef.current = setInterval(tick, 1000);
+    return () => { clearInterval(durationIntervalRef.current); durationIntervalRef.current = null; };
+  }, [isInRoom, callStartTime]);
 
   const handleJoinRoom = async () => {
     try {
-      try { await videoCallService.acceptInvitation(appointmentId); } catch { /* may already be accepted */ }
       await joinRoom(appointmentId, { recordingConsent: false });
     } catch (err) {
       console.error('Failed to join room:', err);
@@ -258,6 +243,11 @@ const PatientVideoCallWebRTC = () => {
   const handleLeaveRoom = () => {
     isLeavingIntentionallyRef.current = true;
     leaveRoom();
+    navigate('/dashboard/patient');
+  };
+
+  const handleMinimize = () => {
+    // Cleanup effect will call setIsMinimized(true) on unmount since we don't set isLeavingIntentionallyRef
     navigate('/dashboard/patient');
   };
 
@@ -453,30 +443,59 @@ const PatientVideoCallWebRTC = () => {
             <button onClick={handleLeaveRoom} className="ml-3 underline font-medium">Salir ahora</button>
           </div>
         )}
-        {(isServerRecording || isRecording) && (
-          <div className="text-white text-xs px-4 py-1.5 flex items-center justify-center gap-2 backdrop-blur-sm" style={{ background: 'rgba(220,38,38,0.9)' }}>
-            <Circle className="w-2.5 h-2.5 fill-white animate-pulse" />
-            <span className="font-medium">Grabando sesión</span>
-          </div>
-        )}
       </div>
 
 
       {/* ── Timer — top center ───────────────────────────────────────── */}
       {isInRoom && (
         <div className="absolute z-30 left-1/2 -translate-x-1/2"
-          style={{ top: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}>
-          <div className="flex items-center gap-2 px-4 py-2 rounded-full"
-            style={{ background: 'rgba(0,0,0,0.38)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.13)', boxShadow: '0 2px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.07)' }}>
-            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: '#4ade80', boxShadow: '0 0 8px rgba(74,222,128,0.9)' }} />
+          style={{ top: `calc(env(safe-area-inset-top, 0px) + ${bannerHeight + 16}px)` }}>
+          <div className="flex items-center gap-2 px-3.5 py-2 rounded-full"
+            style={{
+              background: (isServerRecording || isRecording) ? 'rgba(160,0,0,0.55)' : 'rgba(0,0,0,0.38)',
+              backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+              border: (isServerRecording || isRecording) ? '1px solid rgba(239,68,68,0.4)' : '1px solid rgba(255,255,255,0.13)',
+              boxShadow: (isServerRecording || isRecording)
+                ? '0 2px 20px rgba(239,68,68,0.2), inset 0 1px 0 rgba(255,255,255,0.07)'
+                : '0 2px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.07)',
+              transition: 'background 0.35s, border-color 0.35s, box-shadow 0.35s',
+            }}>
+            {(isServerRecording || isRecording)
+              ? <Circle className="w-2 h-2 fill-red-400 text-red-400 animate-pulse shrink-0" />
+              : <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: '#4ade80', boxShadow: '0 0 8px rgba(74,222,128,0.9)' }} />}
             <span ref={durationDisplayRef} className="text-[13px] font-light text-white/85 tabular-nums" style={{ letterSpacing: '0.12em', fontVariantNumeric: 'tabular-nums' }}>00:00:00</span>
+            {(isServerRecording || isRecording) && (
+              <>
+                <span style={{ width: 1, height: 10, background: 'rgba(255,255,255,0.25)', borderRadius: 1, flexShrink: 0 }} />
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.9)', letterSpacing: '0.06em' }}>REC</span>
+              </>
+            )}
           </div>
         </div>
       )}
 
+      {/* ── Go back button — top left ────────────────────────────────── */}
+      <button
+        onClick={handleMinimize}
+        title="Minimizar llamada"
+        className="absolute z-30 flex items-center gap-1.5 active:scale-90 transition-transform"
+        style={{
+          top: `calc(env(safe-area-inset-top, 0px) + ${bannerHeight + 14}px)`, left: 14,
+          padding: '7px 12px 7px 8px', borderRadius: 99,
+          background: 'rgba(255,255,255,0.1)',
+          border: '1px solid rgba(255,255,255,0.18)',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.1)',
+          backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+          color: 'white', cursor: 'pointer',
+        }}
+      >
+        <ChevronLeft className="w-4 h-4" />
+        <span style={{ fontSize: 12, fontWeight: 500, letterSpacing: '0.01em' }}>Volver</span>
+      </button>
+
       {/* ── PIP local video — top right ──────────────────────────────── */}
       <div className="absolute z-30 rounded-2xl overflow-hidden"
-        style={{ top: 'calc(env(safe-area-inset-top, 0px) + 14px)', right: 14, width: 88, height: 120, border: '2px solid rgba(255,255,255,0.2)', boxShadow: '0 8px 28px rgba(0,0,0,0.6)' }}>
+        style={{ top: `calc(env(safe-area-inset-top, 0px) + ${bannerHeight + 14}px)`, right: 14, width: 88, height: 120, border: '2px solid rgba(255,255,255,0.2)', boxShadow: '0 8px 28px rgba(0,0,0,0.6)' }}>
         {localStream ? (
           <>
             <video ref={setLocalVideoRef} autoPlay muted playsInline className="w-full h-full object-cover mirror" />
@@ -695,8 +714,7 @@ const PatientVideoCallWebRTC = () => {
 
       <style>{`
         .mirror { transform: scaleX(-1); }
-        .remote-video { object-fit: contain; }
-        @media (orientation: portrait) { .remote-video { object-fit: cover; } }
+        .remote-video { object-fit: cover; }
       `}</style>
     </div>
   );

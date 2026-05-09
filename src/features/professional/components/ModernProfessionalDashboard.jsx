@@ -158,12 +158,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
             }
         }
 
-        // 1. Try to start the call (creates room on backend)
-        try {
-            await videoCallService.startCall(appointment.id)
-        } catch { /* Room may already exist */ }
-
-        // 2. Notify patient (REST + socket) — only if we have a target user ID
+        // Notify patient (REST + socket) — only if we have a target user ID
         if (targetUserId) {
             try {
                 await videoCallService.sendVideoInvitation(
@@ -190,11 +185,17 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
         navigate(`/professional/video/${appointment.id}`)
     }, [navigate, user])
 
-    // Handler for marking a presencial session as completed
+    // Backend state machine: reserved/scheduled/rescheduled cannot jump directly
+    // to completed — they must go through confirmed first.
     const handleMarkComplete = useCallback(async (appointment) => {
         const id = appointment._id || appointment.id
         if (!id) return
         try {
+            const currentStatus = appointment.estado || appointment.status || ''
+            const needsConfirm = ['reserved', 'scheduled', 'rescheduled'].includes(currentStatus)
+            if (needsConfirm) {
+                await appointmentsService.updateStatus(id, 'confirmed')
+            }
             await appointmentsService.updateStatus(id, 'completed')
             showToast('Sesión marcada como completada', 'success')
             refreshData()

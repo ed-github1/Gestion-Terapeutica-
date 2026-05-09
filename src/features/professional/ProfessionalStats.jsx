@@ -1,10 +1,11 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import {
     ChevronDown, BarChart2, TrendingUp, TrendingDown,
     DollarSign, Users, Clock, UserMinus, Lightbulb,
     Calendar, Target, ArrowUpRight, ArrowDownRight,
 } from 'lucide-react'
+import { statsService } from '@shared/services/statsService'
 
 // ─── Mock data (TODO: replace with /api/professional/stats?year=YYYY) ─────────
 const MOCK_DATA = {
@@ -323,9 +324,34 @@ const ProfessionalStats = ({ embedded = false }) => {
     const [yearOpen, setYearOpen] = useState(false)
     const [showDemographics, setShowDemographics] = useState(false)
     const [showAnalysis, setShowAnalysis] = useState(false)
+    const [apiData, setApiData] = useState({})
+    const [apiLoading, setApiLoading] = useState(false)
 
-    const data = useMemo(() => MOCK_DATA[year] ?? MOCK_DATA[availableYears[0]], [year])
-    const prevData = useMemo(() => MOCK_DATA[year - 1], [year])
+    useEffect(() => {
+        if (apiData[year] !== undefined) return
+        setApiLoading(true)
+        statsService.getProfessionalStats(year)
+            .then(res => {
+                const payload = res.data?.data ?? res.data
+                setApiData(prev => ({ ...prev, [year]: payload }))
+            })
+            .catch(() => {
+                setApiData(prev => ({ ...prev, [year]: null }))
+            })
+            .finally(() => setApiLoading(false))
+    }, [year])
+
+    const data = useMemo(() => {
+        const live = apiData[year]
+        if (live) return live
+        return MOCK_DATA[year] ?? MOCK_DATA[availableYears[0]]
+    }, [year, apiData])
+
+    const prevData = useMemo(() => {
+        const live = apiData[year - 1]
+        if (live !== undefined) return live
+        return MOCK_DATA[year - 1]
+    }, [year, apiData])
 
     const maxRevenue = Math.max(...data.monthlyRevenue)
     const maxHours   = Math.max(...data.monthlyHours)
@@ -389,10 +415,12 @@ const ProfessionalStats = ({ embedded = false }) => {
                             Rendimiento y crecimiento de tu consulta
                         </p>
                     </div>
+                    {apiLoading && <span className="w-4 h-4 border-2 border-sky-400 border-t-transparent rounded-full animate-spin shrink-0" />}
                     <YearSelector year={year} setYear={setYear} yearOpen={yearOpen} setYearOpen={setYearOpen} availableYears={availableYears} />
                 </div>
             ) : (
-                <div className="flex items-center justify-end">
+                <div className="flex items-center justify-end gap-2">
+                    {apiLoading && <span className="w-4 h-4 border-2 border-sky-400 border-t-transparent rounded-full animate-spin shrink-0" />}
                     <YearSelector year={year} setYear={setYear} yearOpen={yearOpen} setYearOpen={setYearOpen} availableYears={availableYears} />
                 </div>
             )}
@@ -643,7 +671,7 @@ const ProfessionalStats = ({ embedded = false }) => {
             </div>}
 
             <p className="text-[9px] text-gray-300 dark:text-gray-700 text-center pb-2">
-                Datos ilustrativos · integración con API próximamente
+                {apiData[year] ? 'Datos en tiempo real' : 'Datos ilustrativos · conectando con API…'}
             </p>
         </div>
     )

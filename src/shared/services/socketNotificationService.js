@@ -40,15 +40,10 @@ class SocketNotificationService {
     })
 
     this.socket.on('connect', () => {
-      console.log('[SocketNotificationService] connected, registering userId:', userId)
-      // Register so the server knows which socket belongs to this user
       this.socket.emit('register', { userId, role: 'notification-listener' })
-      // Flush any emissions that arrived while we were still connecting
       const pending = this._pendingEmits.splice(0)
-      if (pending.length > 0) console.log('[SocketNotificationService] flushing', pending.length, 'pending emits')
-      pending.forEach(({ event, data }) => {
-        this.socket.emit(event, data)
-      })
+      pending.forEach(({ event, data }) => this.socket.emit(event, data))
+      this._emit('connect', {})
     })
 
     this.socket.on('call-invitation', (data) => {
@@ -89,11 +84,12 @@ class SocketNotificationService {
 
     this.socket.on('disconnect', () => {
       console.debug('[SocketNotificationService] disconnected')
+      this._emit('disconnect', {})
     })
 
     this.socket.on('reconnect', () => {
       console.debug('[SocketNotificationService] reconnected')
-      this._emit('reconnect', {})
+      this._emit('connect', {})
     })
   }
 

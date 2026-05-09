@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useAuth } from '@features/auth'
 import { ChangePasswordForm } from '@features/auth'
@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { getCurrencyForCountry } from '@shared/constants/subscriptionPlans'
 import { professionalsService } from '@shared/services/professionalsService'
+import { statsService } from '@shared/services/statsService'
 
 // ─── Toggle switch ─────────────────────────────────────────────────────────────
 const Toggle = ({ checked, onChange, disabled }) => (
@@ -59,20 +60,6 @@ const SettingRow = ({ label, description, children, danger }) => (
     </div>
 )
 
-// ─── Badge ─────────────────────────────────────────────────────────────────────
-const Badge = ({ label, color = 'blue' }) => {
-    const colors = {
-        blue: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-800',
-        green: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-800',
-        amber: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-800',
-        red: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/40 dark:text-red-300 dark:border-red-800',
-    }
-    return (
-        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold border ${colors[color]}`}>
-            {label}
-        </span>
-    )
-}
 
 // ─── Select ────────────────────────────────────────────────────────────────────
 const Select = ({ value, onChange, options }) => (
@@ -136,15 +123,21 @@ const ProfessionalSettings = ({ embedded = false }) => {
     const setP = (key) => (val) => setPractice(prev => ({ ...prev, [key]: val }))
 
     const handleSave = async () => {
-        // Always cache locally
         sessionStorage.setItem('professionalSettings', JSON.stringify(practice))
         localStorage.setItem('professionalSettings', JSON.stringify({
             currency: practice.currency,
             sessionTypePrices: practice.sessionTypePrices,
         }))
-        try {
-            await professionalsService.updateMyTarifas(practice.sessionTypePrices)
-        } catch { /* API not available yet — saved locally */ }
+        await Promise.allSettled([
+            professionalsService.updateMyTarifas(practice.sessionTypePrices),
+            statsService.updateProfessionalSettings({
+                notifications: notif,
+                videoCallEnabled: practice.videoCallEnabled,
+                autoConfirm: practice.autoConfirm,
+                reminderHours: practice.reminderHours,
+                sessionDuration: practice.sessionDuration,
+            }),
+        ])
         setSaved(true)
         setTimeout(() => setSaved(false), 2500)
     }
@@ -157,7 +150,7 @@ const ProfessionalSettings = ({ embedded = false }) => {
             <div className={embedded ? 'space-y-5' : 'max-w-full space-y-5'}>
             
                 {/* ── Header ── */}
-                {/* {!embedded ? (
+                {!embedded ? (
                     <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -175,11 +168,7 @@ const ProfessionalSettings = ({ embedded = false }) => {
                                     : 'bg-blue-600 hover:bg-blue-700 text-white'
                                 }`}
                         >
-                            {saved ? (
-                                <><Check className="w-4 h-4" />Guardado</>
-                            ) : (
-                                'Guardar cambios'
-                            )}
+                            {saved ? <><Check className="w-4 h-4" />Guardado</> : 'Guardar cambios'}
                         </motion.button>
                     </motion.div>
                 ) : (
@@ -192,14 +181,10 @@ const ProfessionalSettings = ({ embedded = false }) => {
                                     : 'bg-blue-600 hover:bg-blue-700 text-white'
                                 }`}
                         >
-                            {saved ? (
-                                <><Check className="w-4 h-4" />Guardado</>
-                            ) : (
-                                'Guardar cambios'
-                            )}
+                            {saved ? <><Check className="w-4 h-4" />Guardado</> : 'Guardar cambios'}
                         </motion.button>
                     </div>
-                )} */}
+                )}
 
                 {/* ── Account chip ── */}
                 {!embedded && (

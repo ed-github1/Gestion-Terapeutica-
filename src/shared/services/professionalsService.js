@@ -16,4 +16,8 @@ export const professionalsService = {
   /** GET /api/professionals/:id/tarifas — public: get a professional's session rates (for patients) */
   getTarifas: (professionalId) =>
     apiClient.get(`/professionals/${professionalId}/tarifas`),
+
+  /** PATCH /api/professional/profile — update authenticated professional's profile fields */
+  updateProfile: (fields) =>
+    apiClient.patch('/professional/profile', fields),
 }

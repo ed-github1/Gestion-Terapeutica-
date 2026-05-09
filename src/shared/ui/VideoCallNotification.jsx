@@ -138,9 +138,10 @@ const VideoCallNotification = ({ invitation, onAccept, onDecline, onClose }) => 
 export const VideoCallNotificationManager = () => {
   const [invitations, setInvitations] = useState([])
   const [current, setCurrent] = useState(null)
+  const [socketOk, setSocketOk] = useState(() => !!socketNotificationService.socket?.connected)
   const { user } = useAuth()
   const currentRef = useRef(current)
-  const checkedRoomsRef = useRef(new Set()) // track dismissed/accepted rooms
+  const checkedRoomsRef = useRef(new Set())
   currentRef.current = current
 
   const showInvitation = (invitation) => {
@@ -153,75 +154,61 @@ export const VideoCallNotificationManager = () => {
     if (!currentRef.current) setCurrent(invitation)
   }
 
-  // ── Channel 1: Socket listener for real-time call-invitation events ──
+  // ── Channel 1: Socket — primary delivery path ──
   useEffect(() => {
     const userId = user?._id || user?.id
     if (!userId) return
 
-    console.log('[VideoCallNotificationManager] mounted for user:', userId)
     socketNotificationService.connect(userId)
 
-    const unsub = socketNotificationService.on('call-invitation', (data) => {
-      console.log('[VideoCallNotificationManager] socket call-invitation received:', data)
-      showInvitation(data)
-    })
+    const unsubInvite = socketNotificationService.on('call-invitation', showInvitation)
+    const unsubConnect = socketNotificationService.on('connect', () => setSocketOk(true))
+    const unsubDisconnect = socketNotificationService.on('disconnect', () => setSocketOk(false))
 
-    return () => unsub()
+    return () => {
+      unsubInvite()
+      unsubConnect()
+      unsubDisconnect()
+    }
   }, [user?._id, user?.id])
 
-  // ── Channel 2: REST polling /video/active-invitations ──
+  // ── Channel 2: REST polling /video/active-invitations — fallback only ──
   useEffect(() => {
+    if (socketOk) return
     const poll = async () => {
       try {
         const { data } = await videoCallService.getActiveInvitations()
-        console.log('[VideoCallNotificationManager] poll /video/active-invitations:', data)
-        if (data?.invitations?.length > 0) {
-          data.invitations.forEach(showInvitation)
-        }
-      } catch {
-        // endpoint may not exist — silently skip
-      }
+        if (data?.invitations?.length > 0) data.invitations.forEach(showInvitation)
+      } catch { /* endpoint may not exist */ }
     }
     poll()
     const interval = setInterval(poll, 6_000)
     return () => clearInterval(interval)
-  }, [])
+  }, [socketOk])
 
-  // ── Channel 3: Poll patient's video appointments for active rooms ──
-  // This is the most reliable fallback — uses known-working endpoints:
-  //   GET /appointments  →  GET /rtc/rooms/:appointmentId
+  // ── Channel 3: Appointment room-status polling — fallback only ──
+  // Fetches patient appointments then checks each room; only runs when socket is down.
   useEffect(() => {
     const userId = user?._id || user?.id
-    if (!userId) return
+    if (socketOk || !userId) return
 
     const checkRooms = async () => {
       try {
         const res = await appointmentsService.getPatientAppointments()
         const raw = res.data?.data || res.data?.appointments || res.data || []
         const appointments = Array.isArray(raw) ? raw : []
-        
-        console.log('[VideoCallNotificationManager] channel 3: total appointments:', appointments.length)
-
-        // Check all non-completed/cancelled appointments (broad filter)
-        const candidateApts = appointments.filter((a) => {
+        const candidates = appointments.filter((a) => {
           const st = a.status || a.estado || ''
           return st !== 'completed' && st !== 'cancelled'
         })
-        
-        console.log('[VideoCallNotificationManager] channel 3: candidate (non-completed) appointments:', candidateApts.length,
-          candidateApts.map(a => ({ id: a._id || a.id, mode: a.mode, isVideoCall: a.isVideoCall, status: a.status || a.estado, date: a.date })))
-
-        for (const apt of candidateApts.slice(0, 8)) {
+        for (const apt of candidates.slice(0, 8)) {
           const aptId = apt._id || apt.id
-          if (!aptId) continue
-          if (checkedRoomsRef.current.has(aptId)) continue
+          if (!aptId || checkedRoomsRef.current.has(aptId)) continue
           if (currentRef.current?.appointmentId === aptId) continue
           try {
             const roomRes = await videoCallService.getRoomStatus(aptId)
             const room = roomRes.data?.room || roomRes.data
-            console.log('[VideoCallNotificationManager] room status for', aptId, ':', room)
             if (room && (room.isActive || room.status === 'active' || room.participants?.length > 0)) {
-              console.log('[VideoCallNotificationManager] ✅ active room found for appointment:', aptId)
               showInvitation({
                 appointmentId: aptId,
                 professionalName: apt.professionalName || apt.professional?.name || 'Tu profesional',
@@ -231,23 +218,42 @@ export const VideoCallNotificationManager = () => {
               })
               break
             }
-          } catch {
-            // room doesn't exist yet — normal
-          }
+          } catch { /* room doesn't exist yet */ }
         }
-      } catch (err) {
-        console.warn('[VideoCallNotificationManager] room check error:', err.message || err)
-      }
+      } catch { /* ignore */ }
     }
 
     checkRooms()
     const interval = setInterval(checkRooms, 8_000)
     return () => clearInterval(interval)
-  }, [user?._id, user?.id])
+  }, [socketOk, user?._id, user?.id])
+
+  // ── Auto-dismiss: poll room status while banner is visible ──
+  // If the professional ends the call before the patient joins, dismiss the notification.
+  useEffect(() => {
+    const aptId = current?.appointmentId
+    if (!aptId) return
+    const dismiss = () => {
+      checkedRoomsRef.current.add(aptId)
+      setCurrent(prev => prev?.appointmentId === aptId ? null : prev)
+      setInvitations(prev => prev.filter(i => i.appointmentId !== aptId))
+    }
+    const check = async () => {
+      try {
+        const { data } = await videoCallService.getRoomStatus(aptId)
+        const room = data?.room || data
+        const isActive = room && (room.isActive || room.status === 'active' || (room.participants?.length > 0))
+        if (!isActive) dismiss()
+      } catch {
+        dismiss()
+      }
+    }
+    const interval = setInterval(check, 5_000)
+    return () => clearInterval(interval)
+  }, [current?.appointmentId])
 
   const handleAccept = async (invitation) => {
     checkedRoomsRef.current.add(invitation.appointmentId)
-    try { await videoCallService.acceptInvitation(invitation.appointmentId) } catch { /* noop */ }
     setCurrent(null)
     setInvitations([])
   }

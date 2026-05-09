@@ -81,7 +81,7 @@ const LoginPage = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white">
-      <div className="w-full max-w-lg min-h-screen flex flex-col justify-between px-8 sm:px-12 py-10">
+      <div className="w-full max-w-lg min-h-screen flex flex-col justify-center px-8 sm:px-12 py-10">
           {/* Logo top-left */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
