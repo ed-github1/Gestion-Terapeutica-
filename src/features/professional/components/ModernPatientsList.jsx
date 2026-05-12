@@ -677,7 +677,12 @@ const ModernPatientsList = () => {
         <div className="flex h-full min-h-screen">
 
             {/* ── LEFT: Patient list panel ── */}
-            <div className={`flex-col shrink-0 bg-white dark:bg-gray-800/60 border-r border-gray-200 dark:border-gray-700/60 w-full md:max-w-95 md:min-w-70 ${mobileView === 'detail' ? 'hidden md:flex' : 'flex'}`}>
+            <motion.div
+                initial={{ opacity: 0, x: -28 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.38, ease: 'easeOut' }}
+                className={`flex-col shrink-0 bg-white dark:bg-gray-800/60 w-full md:max-w-95 md:min-w-70 ${mobileView === 'detail' ? 'hidden md:flex' : 'flex'}`}
+            >
 
                 {/* List header */}
                 <div className="px-4 pt-5 pb-3 border-b border-gray-100 dark:border-gray-700/50">
@@ -751,10 +756,15 @@ const ModernPatientsList = () => {
                         </AnimatePresence>
                     )}
                 </div>
-            </div>
+            </motion.div>
 
             {/* ── RIGHT: Detail panel or suggestions ── */}
-            <div className={`min-w-0 flex-col ${mobileView === 'list' ? 'hidden md:flex md:flex-1' : 'flex flex-1'}`}>
+            <motion.div
+                initial={{ opacity: 0, x: 28 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.38, ease: 'easeOut', delay: 0.06 }}
+                className={`min-w-0 flex-col ${mobileView === 'list' ? 'hidden md:flex md:flex-1' : 'flex flex-1'}`}
+            >
                 {/* Mobile back button */}
                 <div className="md:hidden shrink-0 flex items-center gap-2 px-4 py-3 border-b border-gray-100 dark:border-gray-700/50 bg-white dark:bg-gray-800/60">
                     <button
@@ -857,7 +867,7 @@ const ModernPatientsList = () => {
                     )}
                 </AnimatePresence>
                 </div>
-            </div>
+            </motion.div>
 
         </div>
 

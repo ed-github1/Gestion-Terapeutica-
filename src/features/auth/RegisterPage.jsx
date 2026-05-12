@@ -59,7 +59,7 @@ const RegisterPage = () => {
         setApiError(null)
         clearErrors(['email', 'password'])
         try {
-            await authService.register({
+            const response = await authService.register({
                 firstName: data.firstName,
                 lastName: data.lastName,
                 email: data.email,
@@ -67,8 +67,13 @@ const RegisterPage = () => {
                 role: data.role,
                 country: data.country,
             })
-            showToast('Cuenta creada exitosamente', 'success')
-            navigate('/login')
+            const kycSessionUrl = response?.data?.kycSessionUrl
+            if (kycSessionUrl) {
+                window.location.href = kycSessionUrl
+            } else {
+                showToast('Cuenta creada exitosamente', 'success')
+                navigate('/login')
+            }
         } catch (err) {
             const message = err?.message || 'Error al registrar'
             const status  = err?.status

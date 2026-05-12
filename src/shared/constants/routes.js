@@ -30,6 +30,8 @@ export const ROUTES = {
   PATIENT_INVITE: '/register/:inviteCode',
   PATIENT_ONBOARDING: '/onboarding/:token',
 
+  KYC_COMPLETE: '/kyc-complete',
+
   // Admin
   ADMIN_DASHBOARD: '/dashboard/admin',
   ADMIN_USERS: '/dashboard/admin/users',

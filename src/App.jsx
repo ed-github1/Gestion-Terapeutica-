@@ -23,6 +23,7 @@ import CheckoutPage from '@pages/CheckoutPage'
 import PrivacyPolicyPage from '@pages/PrivacyPolicyPage'
 import TermsPage from '@pages/TermsPage'
 import CookiesPage from '@pages/CookiesPage'
+import KycCompletePage from '@pages/KycCompletePage'
 import { Toast } from '@shared/ui'
 import { ROUTES, ROLES } from '@shared/constants/routes'
 import DashboardLayout from '@shared/layouts/DashboardLayout'
@@ -84,6 +85,7 @@ function App() {
           <Route path={ROUTES.LOGIN} element={<LoginRoute />} />
           <Route path="/verify-2fa" element={<Verify2FAPage />} />
           <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
+          <Route path={ROUTES.KYC_COMPLETE} element={<KycCompletePage />} />
           <Route path="/patient/register" element={<PatientRegisterPage />} />
           <Route path="/register/:inviteCode" element={<PatientRegister />} />
           <Route path="/onboarding/:token" element={<PatientOnboardingPage />} />

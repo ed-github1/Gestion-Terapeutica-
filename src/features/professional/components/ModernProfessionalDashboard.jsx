@@ -42,6 +42,7 @@ const getWeekDays = (date) => {
     })
 }
 
+
 const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
     const { user } = useAuth()
     const navigate = useNavigate()
@@ -252,8 +253,22 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
         }
     }, [patients, setDiaryPatient])
 
+    const kycStatus = user?.kycStatus
+
     return (
         <>
+            {/* ── KYC status banners ── */}
+            {(kycStatus === 'pending' || kycStatus === 'in_review') && (
+                <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 text-center text-sm text-amber-800 font-medium">
+                    Tu identidad está siendo verificada. Algunas funciones estarán disponibles una vez aprobada.
+                </div>
+            )}
+            {kycStatus === 'declined' && (
+                <div className="bg-rose-50 border-b border-rose-200 px-4 py-3 text-center text-sm text-rose-800 font-medium">
+                    Tu verificación fue rechazada. Contacta a soporte.
+                </div>
+            )}
+
             <div className="bg-transparent dark:bg-gray-900/50 xl:h-full xl:flex xl:flex-col">
                 <div className="xl:h-full xl:flex xl:flex-col">
 
@@ -310,14 +325,14 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                     ═══════════════════════════════════════════════════════════════════ */}
                     <div className="hidden md:block p-2 md:p-3 lg:p-4 xl:overflow-hidden xl:flex xl:flex-col xl:flex-1 xl:min-h-0 xl:h-screen">
                         {/* ── Layout: [Calendar card] | [Sessions col] ── */}
-                        <div className="flex flex-col md:flex-row gap-2 md:gap-3 xl:flex-1 xl:min-h-0">
+                        <div className="flex flex-col md:flex-row gap-2 md:gap-3 xl:gap-4 xl:flex-1 xl:min-h-0">
 
                             {/* LEFT — Calendar card (pure calendar, no embedded sessions on xl) */}
                             <motion.div
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.08 }}
-                                className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm w-full min-w-0 xl:w-105 xl:shrink-0 xl:flex-1 xl:min-h-0 overflow-hidden flex flex-col"
+                                initial={{ opacity: 0, x: -32 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.4, ease: 'easeOut' }}
+                                className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm w-full min-w-0 xl:w-105 xl:shrink-0 xl:flex-1 xl:min-h-0 overflow-hidden flex flex-col gap-2"
                             >
                                 <MiniCalendarWidget
                                     calendarData={calendarData}
@@ -372,15 +387,15 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                             </motion.div>
 
                             {/* RIGHT col — Stats (top) + Sessions (fills rest) — desktop only */}
-                            <div className="hidden xl:flex flex-col gap-2 flex-1 min-w-0 xl:min-h-0">
+                            <motion.div
+                                initial={{ opacity: 0, x: 32 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.4, ease: 'easeOut', delay: 0.08 }}
+                                className="hidden xl:flex flex-col gap-2 flex-1 min-w-0 xl:min-h-0"
+                            >
 
                                 {/* Stats */}
-                                <motion.div
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.12 }}
-                                    className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 px-2 py-2 shadow-sm shrink-0 grid grid-cols-4 gap-2 overflow-hidden"
-                                >
+                                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 px-2 py-2 shadow-sm shrink-0 grid grid-cols-4 gap-2 overflow-hidden">
                                     {loading ? (
                                         Array.from({ length: 4 }).map((_, i) => (
                                             <div key={i} className="min-w-0 bg-gray-50 dark:bg-gray-700/50 rounded-2xl px-3 pt-2.5 pb-3 animate-pulse flex flex-col gap-1.5">
@@ -407,15 +422,10 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                             </div>
                                         ))
                                     )}
-                                </motion.div>
+                                </div>
 
                                 {/* Today's sessions */}
-                                <motion.div
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.16 }}
-                                    className="flex flex-col flex-1 min-h-0"
-                                >
+                                <div className="flex flex-col flex-1 min-h-0">
                                     <SessionsCalendarPanel
                                         sessionsOnly
                                         selectedDateLabel={selectedDateLabel}
@@ -437,9 +447,9 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                         handleMarkComplete={handleMarkComplete}
                                         totalPatients={stats?.totalPatients}
                                     />
-                                </motion.div>
+                                </div>
 
-                            </div>
+                            </motion.div>
 
                         </div>{/* end flex row */}
 
