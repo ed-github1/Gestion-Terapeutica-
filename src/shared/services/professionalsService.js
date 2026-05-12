@@ -20,4 +20,8 @@ export const professionalsService = {
   /** PATCH /api/professional/profile — update authenticated professional's profile fields */
   updateProfile: (fields) =>
     apiClient.patch('/professional/profile', fields),
+
+  /** GET /api/professional/kyc-url — returns a fresh KYC session URL for the logged-in professional */
+  getKycUrl: () =>
+    apiClient.get('/professional/kyc-url'),
 }

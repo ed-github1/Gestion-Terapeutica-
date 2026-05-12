@@ -8,6 +8,7 @@ import { useDashboardData, useCurrentTime } from '../hooks/useDashboard'
 import { videoCallService } from '@shared/services/videoCallService'
 import { appointmentsService } from '@shared/services/appointmentsService'
 import { patientsService } from '@shared/services/patientsService'
+import { professionalsService } from '@shared/services/professionalsService'
 import { socketNotificationService } from '@shared/services/socketNotificationService'
 import { showToast } from '@shared/ui/Toast'
 import { ROUTES } from '@shared/constants/routes'
@@ -254,18 +255,49 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
     }, [patients, setDiaryPatient])
 
     const kycStatus = user?.kycStatus
+    const [kycUrl, setKycUrl] = useState(null)
+
+    useEffect(() => {
+        if (kycStatus === 'approved') return
+        professionalsService.getKycUrl()
+            .then(res => setKycUrl(res.data?.url ?? res.data?.kycSessionUrl ?? null))
+            .catch(() => {})
+    }, [kycStatus])
 
     return (
         <>
             {/* ── KYC status banners ── */}
             {(kycStatus === 'pending' || kycStatus === 'in_review') && (
-                <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 text-center text-sm text-amber-800 font-medium">
-                    Tu identidad está siendo verificada. Algunas funciones estarán disponibles una vez aprobada.
+                <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 flex items-center justify-center gap-3 text-sm text-amber-800 font-medium">
+                    <span>Tu identidad está siendo verificada. Algunas funciones estarán disponibles una vez aprobada.</span>
+                    {kycUrl && (
+                        <a href={kycUrl} target="_blank" rel="noopener noreferrer"
+                            className="shrink-0 px-3 py-1 rounded-lg bg-amber-600 text-white text-xs font-semibold hover:bg-amber-700 transition-colors">
+                            Continuar verificación
+                        </a>
+                    )}
                 </div>
             )}
             {kycStatus === 'declined' && (
-                <div className="bg-rose-50 border-b border-rose-200 px-4 py-3 text-center text-sm text-rose-800 font-medium">
-                    Tu verificación fue rechazada. Contacta a soporte.
+                <div className="bg-rose-50 border-b border-rose-200 px-4 py-3 flex items-center justify-center gap-3 text-sm text-rose-800 font-medium">
+                    <span>Tu verificación fue rechazada.</span>
+                    {kycUrl && (
+                        <a href={kycUrl} target="_blank" rel="noopener noreferrer"
+                            className="shrink-0 px-3 py-1 rounded-lg bg-rose-600 text-white text-xs font-semibold hover:bg-rose-700 transition-colors">
+                            Reintentar verificación
+                        </a>
+                    )}
+                </div>
+            )}
+            {!kycStatus && (
+                <div className="bg-sky-50 border-b border-sky-200 px-4 py-3 flex items-center justify-center gap-3 text-sm text-sky-800 font-medium">
+                    <span>Verifica tu identidad para acceder a todas las funciones de la plataforma.</span>
+                    {kycUrl && (
+                        <a href={kycUrl} target="_blank" rel="noopener noreferrer"
+                            className="shrink-0 px-3 py-1 rounded-lg bg-sky-600 text-white text-xs font-semibold hover:bg-sky-700 transition-colors">
+                            Verificar identidad
+                        </a>
+                    )}
                 </div>
             )}
 
