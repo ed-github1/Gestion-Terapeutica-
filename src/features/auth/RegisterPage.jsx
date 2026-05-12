@@ -67,7 +67,10 @@ const RegisterPage = () => {
                 role: data.role,
                 country: data.country,
             })
-            const kycSessionUrl = response?.data?.kycSessionUrl
+            const kycSessionUrl =
+                response?.data?.data?.kycSessionUrl ??
+                response?.data?.kycSessionUrl ??
+                null
             if (kycSessionUrl) {
                 window.location.href = kycSessionUrl
             } else {

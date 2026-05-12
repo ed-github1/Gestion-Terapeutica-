@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { ShieldAlert } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useAuth } from '@features/auth'
 import { useNavigate } from 'react-router-dom'
@@ -254,50 +255,46 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
         }
     }, [patients, setDiaryPatient])
 
-    const kycStatus = user?.kycStatus
-    const [kycUrl, setKycUrl] = useState(null)
+    const [kyc, setKyc] = useState({ status: null, url: null })
 
     useEffect(() => {
-        if (kycStatus === 'approved') return
         professionalsService.getKycUrl()
-            .then(res => setKycUrl(res.data?.url ?? res.data?.kycSessionUrl ?? null))
+            .then(res => {
+                const raw = res.data?.data ?? res.data ?? {}
+                setKyc({
+                    status: raw.kycStatus ?? null,
+                    url: raw.kycSessionUrl ?? raw.url ?? null,
+                })
+            })
             .catch(() => {})
-    }, [kycStatus])
+    }, [])
+
+    const showKycBanner = kyc.url && kyc.status !== 'approved'
+
+    const kycBannerProps = kyc.status === 'declined'
+        ? { bg: 'bg-rose-50', border: 'border-rose-200', icon: 'text-rose-500', text: 'text-rose-900', sub: 'text-rose-700', btn: 'bg-rose-600 hover:bg-rose-700', label: 'Reintentar verificación', heading: 'Verificación rechazada', body: 'Tu verificación de identidad fue rechazada. Por favor complétala nuevamente para poder usar la plataforma.' }
+        : kyc.status === 'pending' || kyc.status === 'in_review'
+        ? { bg: 'bg-amber-50', border: 'border-amber-200', icon: 'text-amber-500', text: 'text-amber-900', sub: 'text-amber-700', btn: 'bg-amber-600 hover:bg-amber-700', label: 'Continuar verificación', heading: 'Verificación en proceso', body: 'Tu identidad está siendo verificada. Puedes continuar el proceso si aún no lo completaste.' }
+        : { bg: 'bg-sky-50', border: 'border-sky-200', icon: 'text-sky-500', text: 'text-sky-900', sub: 'text-sky-700', btn: 'bg-[#0075C9] hover:bg-[#005faa]', label: 'Verificar identidad', heading: 'Verifica tu identidad', body: 'Antes de atender pacientes necesitas completar la verificación de identidad. Solo toma unos minutos.' }
 
     return (
         <>
-            {/* ── KYC status banners ── */}
-            {(kycStatus === 'pending' || kycStatus === 'in_review') && (
-                <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 flex items-center justify-center gap-3 text-sm text-amber-800 font-medium">
-                    <span>Tu identidad está siendo verificada. Algunas funciones estarán disponibles una vez aprobada.</span>
-                    {kycUrl && (
-                        <a href={kycUrl} target="_blank" rel="noopener noreferrer"
-                            className="shrink-0 px-3 py-1 rounded-lg bg-amber-600 text-white text-xs font-semibold hover:bg-amber-700 transition-colors">
-                            Continuar verificación
-                        </a>
-                    )}
-                </div>
-            )}
-            {kycStatus === 'declined' && (
-                <div className="bg-rose-50 border-b border-rose-200 px-4 py-3 flex items-center justify-center gap-3 text-sm text-rose-800 font-medium">
-                    <span>Tu verificación fue rechazada.</span>
-                    {kycUrl && (
-                        <a href={kycUrl} target="_blank" rel="noopener noreferrer"
-                            className="shrink-0 px-3 py-1 rounded-lg bg-rose-600 text-white text-xs font-semibold hover:bg-rose-700 transition-colors">
-                            Reintentar verificación
-                        </a>
-                    )}
-                </div>
-            )}
-            {!kycStatus && (
-                <div className="bg-sky-50 border-b border-sky-200 px-4 py-3 flex items-center justify-center gap-3 text-sm text-sky-800 font-medium">
-                    <span>Verifica tu identidad para acceder a todas las funciones de la plataforma.</span>
-                    {kycUrl && (
-                        <a href={kycUrl} target="_blank" rel="noopener noreferrer"
-                            className="shrink-0 px-3 py-1 rounded-lg bg-sky-600 text-white text-xs font-semibold hover:bg-sky-700 transition-colors">
-                            Verificar identidad
-                        </a>
-                    )}
+            {/* ── KYC banner ── */}
+            {showKycBanner && (
+                <div className={`${kycBannerProps.bg} border-b ${kycBannerProps.border} px-5 py-4 flex items-start gap-4`}>
+                    <ShieldAlert className={`w-6 h-6 shrink-0 mt-0.5 ${kycBannerProps.icon}`} strokeWidth={2} />
+                    <div className="flex-1 min-w-0">
+                        <p className={`font-semibold text-[15px] ${kycBannerProps.text}`}>{kycBannerProps.heading}</p>
+                        <p className={`text-sm mt-0.5 ${kycBannerProps.sub}`}>{kycBannerProps.body}</p>
+                    </div>
+                    <a
+                        href={kyc.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`shrink-0 self-center px-4 py-2 rounded-xl ${kycBannerProps.btn} text-white text-sm font-semibold transition-colors`}
+                    >
+                        {kycBannerProps.label}
+                    </a>
                 </div>
             )}
 
