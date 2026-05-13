@@ -1,17 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useAuth } from '@features/auth'
 import { ChangePasswordForm } from '@features/auth'
 import { useNavigate } from 'react-router-dom'
-import {
-    Bell, Shield, Building2, Check, ChevronRight,
-    Key, DollarSign,
-} from 'lucide-react'
 import { getCurrencyForCountry } from '@shared/constants/subscriptionPlans'
 import { professionalsService } from '@shared/services/professionalsService'
 import { statsService } from '@shared/services/statsService'
 
-// ─── Toggle switch ─────────────────────────────────────────────────────────────
+// ─── Toggle ────────────────────────────────────────────────────────────────────
 const Toggle = ({ checked, onChange, disabled }) => (
     <button
         type="button"
@@ -19,60 +15,49 @@ const Toggle = ({ checked, onChange, disabled }) => (
         aria-checked={checked}
         disabled={disabled}
         onClick={() => onChange(!checked)}
-        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 ${checked ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
-            } ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
+        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 ${checked ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'} ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
     >
-        <span
-            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${checked ? 'translate-x-6' : 'translate-x-1'
-                }`}
-        />
+        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${checked ? 'translate-x-6' : 'translate-x-1'}`} />
     </button>
 )
-
-// ─── Section card ──────────────────────────────────────────────────────────────
-const SectionCard = ({ title, subtitle, icon: Icon, iconColor = 'text-blue-600 dark:text-blue-400', iconBg = 'bg-blue-50 dark:bg-blue-900/40', children }) => (
-    <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden"
-    >
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-200 dark:border-gray-700">
-            <div className={`w-8 h-8 rounded-xl ${iconBg} flex items-center justify-center shrink-0`}>
-                <Icon className={`w-4 h-4 ${iconColor}`} />
-            </div>
-            <div>
-                <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100 leading-none">{title}</h2>
-                {subtitle && <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{subtitle}</p>}
-            </div>
-        </div>
-        <div className="divide-y divide-gray-200 dark:divide-gray-700/50">{children}</div>
-    </motion.div>
-)
-
-// ─── Setting row ───────────────────────────────────────────────────────────────
-const SettingRow = ({ label, description, children, danger }) => (
-    <div className={`flex items-center justify-between gap-4 px-5 py-3.5 ${danger ? 'hover:bg-red-50 dark:hover:bg-red-900/30' : 'hover:bg-gray-50 dark:hover:bg-gray-700/40'} transition-colors`}>
-        <div className="min-w-0">
-            <p className={`text-sm font-medium leading-none ${danger ? 'text-red-600 dark:text-red-400' : 'text-gray-800 dark:text-gray-200'}`}>{label}</p>
-            {description && <p className="text-[11px] text-gray-500 dark:text-gray-500 mt-1 leading-snug">{description}</p>}
-        </div>
-        <div className="shrink-0">{children}</div>
-    </div>
-)
-
 
 // ─── Select ────────────────────────────────────────────────────────────────────
 const Select = ({ value, onChange, options }) => (
     <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-transparent outline-none transition"
+        className="text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-transparent outline-none transition"
     >
-        {options.map(o => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-        ))}
+        {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
     </select>
 )
+
+// ─── Section ───────────────────────────────────────────────────────────────────
+const Section = ({ title, subtitle, children }) => (
+    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700/60">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
+            {subtitle && <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">{subtitle}</p>}
+        </div>
+        <div className="divide-y divide-gray-100 dark:divide-gray-700/40">{children}</div>
+    </div>
+)
+
+// ─── Row ───────────────────────────────────────────────────────────────────────
+const Row = ({ label, description, children }) => (
+    <div className="flex items-center justify-between gap-6 px-6 py-3.5 hover:bg-gray-50/60 dark:hover:bg-gray-700/20 transition-colors">
+        <div className="min-w-0">
+            <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
+            {description && <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5 leading-snug">{description}</p>}
+        </div>
+        <div className="shrink-0">{children}</div>
+    </div>
+)
+
+const inputCls = `text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5
+  text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-transparent outline-none transition`
+
+const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
 
 // ─── Main component ────────────────────────────────────────────────────────────
 const ProfessionalSettings = ({ embedded = false }) => {
@@ -80,10 +65,10 @@ const ProfessionalSettings = ({ embedded = false }) => {
     const navigate = useNavigate()
     const [saved, setSaved] = useState(false)
     const [showPasswordForm, setShowPasswordForm] = useState(false)
+    const [kycStatus, setKycStatus] = useState(null)
 
     const countryInfo = getCurrencyForCountry(user?.country)
 
-    // Notifications
     const [notif, setNotif] = useState({
         emailAppointments: true,
         emailReminders: true,
@@ -118,6 +103,63 @@ const ProfessionalSettings = ({ embedded = false }) => {
         }
     })
 
+    const [contacto, setContacto] = useState({
+        telefono: '', calle: '', ciudad: '', estado: '', codigoPostal: '',
+    })
+
+    const [horario, setHorario] = useState({
+        dias: [], horaInicio: '09:00', horaFin: '18:00',
+    })
+
+    useEffect(() => {
+        Promise.allSettled([
+            professionalsService.getMyTarifas(),
+            statsService.getProfessionalSettings(),
+            professionalsService.getMyProfile(),
+        ]).then(([tarifasResult, settingsResult, profileResult]) => {
+            if (tarifasResult.status === 'fulfilled' && tarifasResult.value?.data) {
+                const t = tarifasResult.value.data
+                setPractice(prev => ({
+                    ...prev,
+                    sessionTypePrices: {
+                        primeraSesion:  t.primeraSesion  ?? prev.sessionTypePrices.primeraSesion,
+                        seguimiento:    t.seguimiento    ?? prev.sessionTypePrices.seguimiento,
+                        extraordinaria: t.extraordinaria ?? prev.sessionTypePrices.extraordinaria,
+                    },
+                }))
+            }
+            if (settingsResult.status === 'fulfilled' && settingsResult.value?.data) {
+                const s = settingsResult.value.data
+                if (s.notifications) setNotif(s.notifications)
+                setPractice(prev => ({
+                    ...prev,
+                    videoCallEnabled: s.videoCallEnabled ?? prev.videoCallEnabled,
+                    autoConfirm:      s.autoConfirm      ?? prev.autoConfirm,
+                    reminderHours:    s.reminderHours    ?? prev.reminderHours,
+                    sessionDuration:  s.sessionDuration  ?? prev.sessionDuration,
+                }))
+            }
+            if (profileResult.status === 'fulfilled' && profileResult.value?.data) {
+                const p = profileResult.value.data
+                const dp = p.datosPersonales || {}
+                const dir = dp.direccionConsultorio || {}
+                const ha = p.horarioAtencion || {}
+                setKycStatus(p.kycStatus ?? null)
+                setContacto({
+                    telefono:     dp.telefono      || '',
+                    calle:        dir.calle        || '',
+                    ciudad:       dir.ciudad       || '',
+                    estado:       dir.estado       || '',
+                    codigoPostal: dir.codigoPostal || '',
+                })
+                setHorario({
+                    dias:       ha.dias       || [],
+                    horaInicio: ha.horaInicio || '09:00',
+                    horaFin:    ha.horaFin    || '18:00',
+                })
+            }
+        })
+    }, [])
 
     const setN = (key) => (val) => setNotif(prev => ({ ...prev, [key]: val }))
     const setP = (key) => (val) => setPractice(prev => ({ ...prev, [key]: val }))
@@ -137,6 +179,18 @@ const ProfessionalSettings = ({ embedded = false }) => {
                 reminderHours: practice.reminderHours,
                 sessionDuration: practice.sessionDuration,
             }),
+            professionalsService.updateProfile({
+                datosPersonales: {
+                    telefono: contacto.telefono,
+                    direccionConsultorio: {
+                        calle:        contacto.calle,
+                        ciudad:       contacto.ciudad,
+                        estado:       contacto.estado,
+                        codigoPostal: contacto.codigoPostal,
+                    },
+                },
+                horarioAtencion: horario,
+            }),
         ])
         setSaved(true)
         setTimeout(() => setSaved(false), 2500)
@@ -144,11 +198,12 @@ const ProfessionalSettings = ({ embedded = false }) => {
 
     const fullName = user?.name || user?.nombre || 'Profesional'
     const initials = fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+    const isVerified = kycStatus === 'approved'
 
     return (
         <div className={embedded ? '' : 'min-h-screen bg-gray-50 dark:bg-gray-900 p-3 md:p-6 lg:p-8'}>
-            <div className={embedded ? 'space-y-5' : 'max-w-full space-y-5'}>
-            
+            <div className={embedded ? 'space-y-4' : 'max-w-full space-y-4'}>
+
                 {/* ── Header ── */}
                 {!embedded ? (
                     <motion.div
@@ -157,18 +212,15 @@ const ProfessionalSettings = ({ embedded = false }) => {
                         className="flex items-center justify-between"
                     >
                         <div>
-                            <h1 className="text-base font-bold text-gray-900 dark:text-gray-100 leading-none">Configuración</h1>
-                            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Personaliza tu experiencia en TotalMente</p>
+                            <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100">Configuración</h1>
+                            <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">Personaliza tu experiencia en TotalMente</p>
                         </div>
                         <motion.button
                             onClick={handleSave}
                             whileTap={{ scale: 0.96 }}
-                            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition-all duration-200 ${saved
-                                    ? 'bg-emerald-500 text-white'
-                                    : 'bg-blue-600 hover:bg-blue-700 text-white'
-                                }`}
+                            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${saved ? 'bg-emerald-500 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
                         >
-                            {saved ? <><Check className="w-4 h-4" />Guardado</> : 'Guardar cambios'}
+                            {saved ? 'Guardado' : 'Guardar cambios'}
                         </motion.button>
                     </motion.div>
                 ) : (
@@ -176,75 +228,67 @@ const ProfessionalSettings = ({ embedded = false }) => {
                         <motion.button
                             onClick={handleSave}
                             whileTap={{ scale: 0.96 }}
-                            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition-all duration-200 ${saved
-                                    ? 'bg-emerald-500 text-white'
-                                    : 'bg-blue-600 hover:bg-blue-700 text-white'
-                                }`}
+                            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${saved ? 'bg-emerald-500 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
                         >
-                            {saved ? <><Check className="w-4 h-4" />Guardado</> : 'Guardar cambios'}
+                            {saved ? 'Guardado' : 'Guardar cambios'}
                         </motion.button>
                     </div>
                 )}
 
-                {/* ── Account chip ── */}
+                {/* ── Profile card ── */}
                 {!embedded && (
                     <motion.div
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.04 }}
-                        className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm flex items-center gap-4 px-5 py-4"
+                        className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 flex items-center gap-4 px-6 py-5"
                     >
-                        <div className="w-12 h-12 rounded-full bg-linear-to-br from-blue-700 to-sky-400 flex items-center justify-center text-white text-lg font-bold shadow-md shrink-0">
+                        <div className="w-12 h-12 rounded-full bg-linear-to-br from-blue-700 to-sky-400 flex items-center justify-center text-white text-lg font-bold shrink-0">
                             {initials}
                         </div>
                         <div className="min-w-0 flex-1">
-                            <p className="text-sm font-bold text-gray-900 dark:text-gray-100 leading-none truncate">{fullName}</p>
-                            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">{user?.email || user?.correo || ''}</p>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{fullName}</p>
+                                {isVerified && (
+                                    <svg className="w-4 h-4 shrink-0 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+                                    </svg>
+                                )}
+                            </div>
+                            <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5 truncate">{user?.email || user?.correo || ''}</p>
                         </div>
                         <button
                             onClick={() => navigate('/dashboard/professional/profile')}
-                            className="flex items-center gap-1 text-[11px] text-blue-600 dark:text-blue-400 font-semibold hover:text-blue-700 dark:hover:text-blue-300 shrink-0"
+                            className="flex items-center gap-1 text-[11px] text-blue-600 dark:text-blue-400 font-medium hover:text-blue-700 dark:hover:text-blue-300 shrink-0"
                         >
-                            Editar perfil <ChevronRight className="w-3.5 h-3.5" />
+                            Editar perfil
                         </button>
                     </motion.div>
                 )}
 
                 {/* ── Notifications ── */}
-                <SectionCard
-                    title="Notificaciones"
-                    subtitle="Elige cómo y cuándo recibir alertas"
-                    icon={Bell}
-                    iconColor="text-sky-600 dark:text-sky-400"
-                    iconBg="bg-sky-50 dark:bg-sky-900/40"
-                >
-                    <SettingRow label="Nuevas citas por correo" description="Recibe un correo cuando un paciente agende">
+                <Section title="Notificaciones" subtitle="Elige cómo y cuándo recibir alertas">
+                    <Row label="Nuevas citas por correo" description="Recibe un correo cuando un paciente agende">
                         <Toggle checked={notif.emailAppointments} onChange={setN('emailAppointments')} />
-                    </SettingRow>
-                    <SettingRow label="Recordatorios por correo" description="24 h antes de cada sesión programada">
+                    </Row>
+                    <Row label="Recordatorios por correo" description="24 h antes de cada sesión programada">
                         <Toggle checked={notif.emailReminders} onChange={setN('emailReminders')} />
-                    </SettingRow>
-                    <SettingRow label="Notificaciones push" description="Citas, sesiones y mensajes de pacientes">
+                    </Row>
+                    <Row label="Notificaciones push" description="Citas, sesiones y mensajes de pacientes">
                         <Toggle checked={notif.push} onChange={setN('push')} />
-                    </SettingRow>
-                </SectionCard>
+                    </Row>
+                </Section>
 
                 {/* ── Security ── */}
-                <SectionCard
-                    title="Seguridad"
-                    subtitle="Controla el acceso y la privacidad de tu cuenta"
-                    icon={Shield}
-                    iconColor="text-violet-600 dark:text-violet-400"
-                    iconBg="bg-violet-50 dark:bg-violet-900/40"
-                >
-                    <SettingRow label="Cambiar contraseña" description="Actualiza tu contraseña regularmente">
+                <Section title="Seguridad" subtitle="Controla el acceso y privacidad de tu cuenta">
+                    <Row label="Contraseña" description="Actualiza tu contraseña regularmente">
                         <button
                             onClick={() => setShowPasswordForm(s => !s)}
-                            className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                            className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
                         >
-                            <Key className="w-3.5 h-3.5" /> {showPasswordForm ? 'Cancelar' : 'Actualizar'}
+                            {showPasswordForm ? 'Cancelar' : 'Cambiar'}
                         </button>
-                    </SettingRow>
+                    </Row>
                     <AnimatePresence>
                         {showPasswordForm && (
                             <motion.div
@@ -253,41 +297,35 @@ const ProfessionalSettings = ({ embedded = false }) => {
                                 exit={{ opacity: 0, height: 0 }}
                                 className="overflow-hidden"
                             >
-                                <div className="px-5 pb-4 pt-1">
+                                <div className="px-6 pb-5 pt-1">
                                     <ChangePasswordForm />
                                 </div>
                             </motion.div>
                         )}
                     </AnimatePresence>
-                </SectionCard>
+                </Section>
 
                 {/* ── Practice ── */}
-                <SectionCard
-                    title="Mi consulta"
-                    subtitle="Configura las opciones de tu práctica clínica"
-                    icon={Building2}
-                    iconColor="text-emerald-600 dark:text-emerald-400"
-                    iconBg="bg-emerald-50 dark:bg-emerald-900/40"
-                >
-                    <SettingRow label="Videollamadas habilitadas" description="Permitir sesiones de videollamada con pacientes">
+                <Section title="Mi consulta" subtitle="Opciones de tu práctica clínica">
+                    <Row label="Videollamadas" description="Permitir sesiones de videollamada con pacientes">
                         <Toggle checked={practice.videoCallEnabled} onChange={setP('videoCallEnabled')} />
-                    </SettingRow>
-                    <SettingRow label="Confirmar citas automáticamente" description="Sin requerir tu aprobación manual">
+                    </Row>
+                    <Row label="Confirmar citas automáticamente" description="Sin requerir tu aprobación manual">
                         <Toggle checked={practice.autoConfirm} onChange={setP('autoConfirm')} />
-                    </SettingRow>
-                    <SettingRow label="Recordatorios antes de la cita">
+                    </Row>
+                    <Row label="Recordatorio antes de la cita">
                         <Select
                             value={practice.reminderHours}
                             onChange={setP('reminderHours')}
                             options={[
-                                { value: '1', label: '1 hora antes' },
-                                { value: '2', label: '2 horas antes' },
+                                { value: '1',  label: '1 hora antes' },
+                                { value: '2',  label: '2 horas antes' },
                                 { value: '24', label: '24 horas antes' },
                                 { value: '48', label: '48 horas antes' },
                             ]}
                         />
-                    </SettingRow>
-                    <SettingRow label="Duración de sesión por defecto">
+                    </Row>
+                    <Row label="Duración de sesión">
                         <Select
                             value={practice.sessionDuration}
                             onChange={setP('sessionDuration')}
@@ -298,53 +336,48 @@ const ProfessionalSettings = ({ embedded = false }) => {
                                 { value: '90', label: '90 min' },
                             ]}
                         />
-                    </SettingRow>
-                    <SettingRow label="Moneda de facturación">
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600/60 rounded-xl">
-                            <span className="text-sm font-bold text-gray-800 dark:text-gray-200">{countryInfo.symbol} {countryInfo.currency}</span>
-                            <span className="text-[11px] text-gray-500">— {countryInfo.currencyLabel}</span>
-                        </div>
-                    </SettingRow>
+                    </Row>
+                    <Row label="Moneda">
+                        <span className="text-sm text-gray-700 dark:text-gray-300">
+                            {countryInfo.symbol} {countryInfo.currency}
+                        </span>
+                    </Row>
 
-                    {/* ── Prices per session type ── */}
-                    <div className="px-5 py-4 border-t border-gray-200 dark:border-gray-700/50">
-                        <div className="flex items-center gap-2 mb-3">
-                            <DollarSign className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-400">Precio por tipo de sesión</p>
+                    {/* Prices */}
+                    <div className="px-6 py-4 space-y-3">
+                        <div>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Precio por tipo de sesión</p>
+                            <p className="text-[11px] text-gray-400 mt-0.5">Valor predeterminado al crear una cita</p>
                         </div>
-                        <p className="text-[11px] text-gray-500 mb-4">Estos precios se usarán como valor predeterminado al crear una nueva cita.</p>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-3 gap-2.5">
                             {[
-                                { key: 'primeraSesion', label: 'Primera consulta', color: 'text-blue-600 dark:text-blue-400', dot: 'bg-blue-500 dark:bg-blue-400' },
-                                { key: 'seguimiento', label: 'Seguimiento', color: 'text-emerald-600 dark:text-emerald-400', dot: 'bg-emerald-500 dark:bg-emerald-400' },
-                                { key: 'extraordinaria', label: 'Extraordinaria', color: 'text-amber-600 dark:text-amber-400', dot: 'bg-amber-500 dark:bg-amber-400' },
-                            ].map(({ key, label, color, dot }) => (
-                                <div key={key} className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3 border border-gray-200 dark:border-gray-600/60">
-                                    <div className="flex items-center gap-1.5 mb-2">
-                                        <span className={`w-2 h-2 rounded-full ${dot} shrink-0`} />
-                                        <span className={`text-[11px] font-semibold ${color}`}>{label}</span>
-                                    </div>
+                                { key: 'primeraSesion',  label: 'Primera consulta' },
+                                { key: 'seguimiento',    label: 'Seguimiento' },
+                                { key: 'extraordinaria', label: 'Extraordinaria' },
+                            ].map(({ key, label }) => (
+                                <div key={key}>
+                                    <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-1.5">{label}</p>
                                     <div className="relative">
-                                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-500 dark:text-gray-400 pointer-events-none">
-                                            {practice.currency === 'EUR' ? '€' : practice.currency === 'USD' ? '$' : '$'}
+                                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">
+                                            {countryInfo.symbol}
                                         </span>
                                         <input
                                             type="text"
                                             inputMode="decimal"
                                             value={String(practice.sessionTypePrices?.[key] ?? '')}
                                             onChange={(e) => {
-                                              const val = e.target.value
-                                              if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                                                setPractice(prev => ({
-                                                  ...prev,
-                                                  sessionTypePrices: {
-                                                    ...prev.sessionTypePrices,
-                                                    [key]: val === '' ? 0 : parseFloat(val) || 0,
-                                                  },
-                                                }))
-                                              }
+                                                const val = e.target.value
+                                                if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                                    setPractice(prev => ({
+                                                        ...prev,
+                                                        sessionTypePrices: {
+                                                            ...prev.sessionTypePrices,
+                                                            [key]: val === '' ? 0 : parseFloat(val) || 0,
+                                                        },
+                                                    }))
+                                                }
                                             }}
-                                            className="w-full pl-6 pr-2 py-1.5 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-sky-400 focus:border-transparent outline-none transition"
+                                            className="w-full pl-6 pr-2 py-1.5 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-transparent outline-none transition"
                                             placeholder="0.00"
                                         />
                                     </div>
@@ -352,10 +385,97 @@ const ProfessionalSettings = ({ embedded = false }) => {
                             ))}
                         </div>
                     </div>
-                </SectionCard>
+                </Section>
 
+                {/* ── Contact & office ── */}
+                <Section title="Contacto y consultorio" subtitle="Teléfono y dirección de tu consultorio">
+                    <Row label="Teléfono">
+                        <input
+                            type="tel"
+                            value={contacto.telefono}
+                            onChange={(e) => setContacto(prev => ({ ...prev, telefono: e.target.value }))}
+                            placeholder="+52 55 0000 0000"
+                            className={`${inputCls} w-44`}
+                        />
+                    </Row>
+                    <div className="px-6 py-4 space-y-2.5">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Dirección del consultorio</p>
+                        <input
+                            type="text"
+                            value={contacto.calle}
+                            onChange={(e) => setContacto(prev => ({ ...prev, calle: e.target.value }))}
+                            placeholder="Calle y número"
+                            className={`${inputCls} w-full`}
+                        />
+                        <div className="grid grid-cols-2 gap-2.5">
+                            <input
+                                type="text"
+                                value={contacto.ciudad}
+                                onChange={(e) => setContacto(prev => ({ ...prev, ciudad: e.target.value }))}
+                                placeholder="Ciudad"
+                                className={`${inputCls} w-full`}
+                            />
+                            <input
+                                type="text"
+                                value={contacto.estado}
+                                onChange={(e) => setContacto(prev => ({ ...prev, estado: e.target.value }))}
+                                placeholder="Estado"
+                                className={`${inputCls} w-full`}
+                            />
+                        </div>
+                        <input
+                            type="text"
+                            value={contacto.codigoPostal}
+                            onChange={(e) => setContacto(prev => ({ ...prev, codigoPostal: e.target.value }))}
+                            placeholder="Código postal"
+                            className={`${inputCls} w-36`}
+                        />
+                    </div>
+                </Section>
 
-                {/* bottom spacer for mobile nav */}
+                {/* ── Schedule ── */}
+                <Section title="Horario de atención" subtitle="Días y horas en que atiendes pacientes">
+                    <div className="px-6 py-4 space-y-3">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Días de atención</p>
+                        <div className="flex flex-wrap gap-2">
+                            {DIAS.map(dia => {
+                                const active = horario.dias.includes(dia)
+                                return (
+                                    <button
+                                        key={dia}
+                                        type="button"
+                                        onClick={() => setHorario(prev => ({
+                                            ...prev,
+                                            dias: active
+                                                ? prev.dias.filter(d => d !== dia)
+                                                : [...prev.dias, dia],
+                                        }))}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${active ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
+                                    >
+                                        {dia.slice(0, 3)}
+                                    </button>
+                                )
+                            })}
+                        </div>
+                    </div>
+                    <Row label="Hora de inicio">
+                        <input
+                            type="time"
+                            value={horario.horaInicio}
+                            onChange={(e) => setHorario(prev => ({ ...prev, horaInicio: e.target.value }))}
+                            className={inputCls}
+                        />
+                    </Row>
+                    <Row label="Hora de fin">
+                        <input
+                            type="time"
+                            value={horario.horaFin}
+                            onChange={(e) => setHorario(prev => ({ ...prev, horaFin: e.target.value }))}
+                            className={inputCls}
+                        />
+                    </Row>
+                </Section>
+
                 <div className="h-4" />
             </div>
         </div>

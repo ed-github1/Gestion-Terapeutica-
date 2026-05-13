@@ -7,7 +7,7 @@ import {
   ShieldCheck,
   CreditCard,
   PenLine,
-  UserCircle,
+  UserCircle
 } from 'lucide-react'
 
 /**
@@ -35,13 +35,6 @@ export const professionalMenuItems = [
     label: 'Citas',
     description: 'Sesiones y citas',
     ariaLabel: 'Citas y sesiones programadas'
-  },
-  {
-    icon: PenLine,
-    path: '/dashboard/professional/consent',
-    label: 'Consentimiento',
-    description: 'Firmar consentimiento',
-    ariaLabel: 'Firmar consentimiento informado'
   }
 ]
 
@@ -78,7 +71,7 @@ export const patientMenuItems = [
     label: 'Mi Perfil',
     description: 'Tu cuenta',
     ariaLabel: 'Mi perfil y cuenta'
-  },
+  }
 ]
 
 /**
@@ -101,29 +94,29 @@ export const adminMenuItems = [
     path: '/dashboard/admin',
     label: 'Panel',
     description: 'Visión general',
-    ariaLabel: 'Panel de administración',
+    ariaLabel: 'Panel de administración'
   },
   {
     icon: Users,
     path: '/dashboard/admin/users',
     label: 'Usuarios',
     description: 'Gestionar cuentas',
-    ariaLabel: 'Gestión de usuarios',
+    ariaLabel: 'Gestión de usuarios'
   },
   {
     icon: ShieldCheck,
     path: '/dashboard/admin/professionals',
     label: 'Profesionales',
     description: 'Terapeutas y clínicos',
-    ariaLabel: 'Gestión de profesionales',
+    ariaLabel: 'Gestión de profesionales'
   },
   {
     icon: CreditCard,
     path: '/dashboard/admin/subscriptions',
     label: 'Suscripciones',
     description: 'Planes y facturación',
-    ariaLabel: 'Gestión de suscripciones',
-  },
+    ariaLabel: 'Gestión de suscripciones'
+  }
 ]
 
 /**

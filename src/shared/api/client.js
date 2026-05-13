@@ -96,6 +96,12 @@ apiClient.interceptors.response.use(
         clearAuthCookie()
         window.location.href = '/login'
       }
+      // 403 KYC required: redirect to the Didit verification URL
+      if (status === 403 && data?.code === 'KYC_REQUIRED' && data?.kycSessionUrl) {
+        window.__toastHandler?.('Debes completar tu verificación de identidad para continuar.', 'warning')
+        setTimeout(() => { window.location.href = data.kycSessionUrl }, 800)
+        return Promise.reject(new Error('KYC_REQUIRED'))
+      }
       // 403 role mismatch: JWT was likely issued with a different role value.
       // Clear the stale token and force re-login so a fresh JWT is issued.
       const message403 = data?.message || data?.error || ''

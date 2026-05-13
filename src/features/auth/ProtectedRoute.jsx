@@ -1,6 +1,7 @@
 import React from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from './AuthContext'
+import { ROUTES } from '@shared/constants/routes'
 
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   const { user, loading, isAuthenticated } = useAuth()
@@ -25,7 +26,18 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
 
   // Check if user has required role (support both 'role' and 'rol' from backend)
   const userRole = user?.role || user?.rol
-  
+
+  // Gate: professional with approved KYC must sign the platform contract before accessing the dashboard
+  const isProfessional = userRole === 'health_professional' || userRole === 'professional'
+  if (
+    isProfessional &&
+    user?.kycStatus === 'approved' &&
+    !user?.contractSigned &&
+    location.pathname !== ROUTES.PROFESSIONAL_CONTRACT
+  ) {
+    return <Navigate to={ROUTES.PROFESSIONAL_CONTRACT} replace />
+  }
+
   if (allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
     console.log('ProtectedRoute: Access denied. User role:', userRole, 'Allowed:', allowedRoles)
     // Redirect to appropriate dashboard based on their actual role

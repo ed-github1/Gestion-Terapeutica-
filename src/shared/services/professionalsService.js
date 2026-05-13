@@ -17,6 +17,10 @@ export const professionalsService = {
   getTarifas: (professionalId) =>
     apiClient.get(`/professionals/${professionalId}/tarifas`),
 
+  /** GET /api/professional/profile — authenticated professional's full profile */
+  getMyProfile: () =>
+    apiClient.get('/professional/profile'),
+
   /** PATCH /api/professional/profile — update authenticated professional's profile fields */
   updateProfile: (fields) =>
     apiClient.patch('/professional/profile', fields),
@@ -24,4 +28,8 @@ export const professionalsService = {
   /** GET /api/professional/kyc-url — returns a fresh KYC session URL for the logged-in professional */
   getKycUrl: () =>
     apiClient.get('/professional/kyc-url'),
+
+  /** POST /api/professional/contract/sign — send signature data URL as JSON */
+  signContract: (signatureDataUrl) =>
+    apiClient.post('/professional/contract/sign', { signatureDataUrl }),
 }

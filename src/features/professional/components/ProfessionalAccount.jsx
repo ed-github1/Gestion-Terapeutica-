@@ -6,7 +6,6 @@ import {
     BarChart2,
     LogOut,
     Crown,
-    Shield,
     ArrowLeft,
 } from 'lucide-react'
 import { useAuth } from '@features/auth'
@@ -14,8 +13,8 @@ import ProfessionalStats from '../ProfessionalStats'
 import ProfessionalAccountTab from './ProfessionalAccountTab'
 
 const TABS = [
-    { id: 'stats', label: 'Estadísticas', icon: BarChart2, path: '/dashboard/professional/stats' },
-    { id: 'cuenta', label: 'Cuenta', icon: UserIcon, path: '/dashboard/professional/profile' },
+    { id: 'stats', label: 'Estadísticas', icon: BarChart2 },
+    { id: 'cuenta', label: 'Cuenta', icon: UserIcon },
 ]
 
 const tabFromPath = (pathname) => {
@@ -31,7 +30,6 @@ const ProfessionalAccount = () => {
 
     const fullName = user?.name || user?.nombre || 'Profesional'
     const initials = fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-    const email = user?.email || user?.correo || ''
     const specialty = user?.specialty || user?.especialidad || 'Profesional de Salud'
     const planRaw = (user?.subscriptionPlan || user?.plan || user?.planType || 'GRATUITO').toUpperCase()
     const isPro = planRaw === 'PRO' || planRaw === 'EMPRESA'
@@ -40,10 +38,6 @@ const ProfessionalAccount = () => {
     const handleTab = (id) => {
         if (id === active) return
         setActive(id)
-        const tab = TABS.find(t => t.id === id)
-        if (tab && location.pathname !== tab.path) {
-            navigate(tab.path, { replace: true })
-        }
     }
 
     const handleLogout = async () => {
@@ -52,126 +46,83 @@ const ProfessionalAccount = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-3 md:p-6 lg:p-8">
-            <div className="max-w-6xl mx-auto space-y-5">
-                {/* ── Plan banner ── */}
-                {/* {(() => {
-                    const planRaw = (user?.plan || user?.subscriptionPlan || user?.planType || 'GRATUITO').toUpperCase()
-                    const isFree = planRaw === 'GRATUITO'
-                    const label = planRaw === 'PRO' ? 'Pro' : planRaw === 'EMPRESA' ? 'Empresa' : 'Gratuito'
-                    return (
-                        <div className="flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
-                            <span className="text-sm text-gray-500 dark:text-gray-400">Plan actual</span>
-                            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md border ${isFree
-                                ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-800'
-                                : 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-800'
-                                }`}>{label}</span>
-                            {isFree && (
-                                <button
-                                    onClick={() => navigate('/pricing')}
-                                    className="ml-auto text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline"
-                                >
-                                    Actualizar plan →
-                                </button>
-                            )}
-                        </div>
-                    )
-                })()} */}
+        <div className="h-screen bg-gray-100 dark:bg-gray-950 flex p-3 md:p-4">
+            <div className="flex-1 flex flex-col bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden">
 
-                {/* ── Identity hero ── */}
-                <motion.div
-                    initial={{ opacity: 0, y: -8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="relative bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 md:p-5 shadow-sm overflow-hidden"
-                >
-                    <div className="flex items-center gap-3 md:gap-4">
-                        <button
-                            onClick={() => navigate(-1)}
-                            className="shrink-0 w-8 h-8 flex items-center justify-center rounded-xl text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 border border-transparent hover:border-gray-200 dark:hover:border-gray-700 transition-all"
-                            aria-label="Volver"
-                        >
-                            <ArrowLeft className="w-4 h-4" />
-                        </button>
-                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-linear-to-br from-blue-700 to-sky-400 flex items-center justify-center text-white text-base md:text-lg font-bold shadow-lg shrink-0">
-                            {initials}
+                {/* ── Top bar: breadcrumb + tabs ── */}
+                <div className="flex items-center gap-2 px-6 py-3 border-b border-gray-100 dark:border-gray-800 shrink-0">
+
+                    {/* tabs at top-right */}
+                    <div className="flex items-center gap-2 ml-auto">
+                        <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
+                            {TABS.map(t => {
+                                const isActive = active === t.id
+                                const Icon = t.icon
+                                return (
+                                    <button
+                                        key={t.id}
+                                        onClick={() => handleTab(t.id)}
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${isActive
+                                            ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white'
+                                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+                                            }`}
+                                    >
+                                        <Icon className="w-3.5 h-3.5" strokeWidth={2.2} />
+                                        <span className="hidden sm:inline">{t.label}</span>
+                                    </button>
+                                )
+                            })}
                         </div>
-                        <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                                <h1 className="text-sm md:text-base font-bold text-gray-900 dark:text-white leading-none truncate">{fullName}</h1>
-                                {isPro ? (
-                                    <span className="inline-flex items-center gap-1 text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-[#0075C9] text-white uppercase tracking-wide leading-none">
-                                        <Crown className="w-2.5 h-2.5" /> {planLabel}
-                                    </span>
-                                ) : (
-                                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60 uppercase tracking-wide leading-none">
-                                        {planLabel}
-                                    </span>
-                                )}
-                                <span className="hidden sm:inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-sky-50 dark:bg-sky-950 border border-sky-200 dark:border-sky-800 text-sky-700 dark:text-sky-300 leading-none">
-                                    <Shield className="w-2.5 h-2.5" /> Verificado
-                                </span>
-                            </div>
-                            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1 truncate">{specialty}</p>
-                            {email && <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5 truncate">{email}</p>}
-                        </div>
-                        <button
-                            onClick={handleLogout}
-                            className="hidden sm:flex shrink-0 items-center gap-1.5 px-3 py-2 bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 rounded-xl text-xs font-semibold hover:bg-red-100 dark:hover:bg-red-900/70 transition-colors border border-red-200 dark:border-red-900/60"
-                        >
-                            <LogOut className="w-3.5 h-3.5" /> Cerrar sesión
-                        </button>
                         <button
                             onClick={handleLogout}
                             aria-label="Cerrar sesión"
-                            className="sm:hidden shrink-0 w-9 h-9 flex items-center justify-center bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/70 border border-red-200 dark:border-red-900/60"
+                            className="w-8 h-8 flex items-center justify-center rounded-xl text-red-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/60 transition-all"
                         >
                             <LogOut className="w-4 h-4" />
                         </button>
                     </div>
-                </motion.div>
-
-                {/* ── Tabs ── */}
-                <div className="sticky top-2 z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur border border-gray-200 dark:border-gray-800 rounded-2xl p-1 flex gap-1 shadow-sm">
-                    {TABS.map(t => {
-                        const isActive = active === t.id
-                        const Icon = t.icon
-                        return (
-                            <button
-                                key={t.id}
-                                onClick={() => handleTab(t.id)}
-                                className={`relative flex-1 flex items-center justify-center gap-1.5 py-2 md:py-2.5 px-2 md:px-3 rounded-xl text-xs md:text-sm font-semibold transition-colors ${isActive ? 'text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
-                                    }`}
-                            >
-                                {isActive && (
-                                    <motion.span
-                                        layoutId="accountTabPill"
-                                        className="absolute inset-0 bg-linear-to-br from-blue-600 to-sky-500 rounded-xl shadow"
-                                        transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-                                    />
-                                )}
-                                <Icon className="w-3.5 h-3.5 relative z-10" strokeWidth={2.5} />
-                                <span className="relative z-10">{t.label}</span>
-                            </button>
-                        )
-                    })}
                 </div>
 
-                {/* ── Active tab ── */}
-                <AnimatePresence mode="wait">
-                    <motion.div
-                        key={active}
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -4 }}
-                        transition={{ duration: 0.2 }}
-                    >
-                        {active === 'stats' && <ProfessionalStats embedded />}
-                        {active === 'cuenta' && <ProfessionalAccountTab />}
-                    </motion.div>
-                </AnimatePresence>
+                {/* ── Content ── */}
+                <div className="flex-1 overflow-y-auto">
+                    {/* Profile hero */}
+                    <div className="px-8 pt-8 pb-6 border-b border-gray-100 dark:border-gray-800">
+                        <div className="w-20 h-20 rounded-full bg-linear-to-br from-blue-700 to-sky-400 flex items-center justify-center text-white text-2xl font-bold mb-4">
+                            {initials}
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{fullName}</h1>
+                            <svg className="w-5 h-5 text-blue-500 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+                            </svg>
+                            {isPro ? (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-blue-600 text-white uppercase tracking-wide">
+                                    <Crown className="w-3 h-3" /> {planLabel}
+                                </span>
+                            ) : (
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60 uppercase tracking-wide">
+                                    {planLabel}
+                                </span>
+                            )}
+                        </div>
+                        <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{specialty}</p>
+                    </div>
 
-                {/* bottom spacer for mobile nav */}
-                <div className="h-4" />
+                    {/* Tab content */}
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={active}
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -4 }}
+                            transition={{ duration: 0.15 }}
+                            className="p-5 md:p-8"
+                        >
+                            {active === 'stats' && <ProfessionalStats embedded />}
+                            {active === 'cuenta' && <ProfessionalAccountTab />}
+                        </motion.div>
+                    </AnimatePresence>
+                </div>
             </div>
         </div>
     )

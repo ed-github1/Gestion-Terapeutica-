@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { ShieldAlert } from 'lucide-react'
+import { TriangleAlert } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useAuth } from '@features/auth'
 import { useNavigate } from 'react-router-dom'
@@ -269,32 +269,27 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
             .catch(() => {})
     }, [])
 
-    const showKycBanner = kyc.url && kyc.status !== 'approved'
-
-    const kycBannerProps = kyc.status === 'declined'
-        ? { bg: 'bg-rose-50', border: 'border-rose-200', icon: 'text-rose-500', text: 'text-rose-900', sub: 'text-rose-700', btn: 'bg-rose-600 hover:bg-rose-700', label: 'Reintentar verificación', heading: 'Verificación rechazada', body: 'Tu verificación de identidad fue rechazada. Por favor complétala nuevamente para poder usar la plataforma.' }
-        : kyc.status === 'pending' || kyc.status === 'in_review'
-        ? { bg: 'bg-amber-50', border: 'border-amber-200', icon: 'text-amber-500', text: 'text-amber-900', sub: 'text-amber-700', btn: 'bg-amber-600 hover:bg-amber-700', label: 'Continuar verificación', heading: 'Verificación en proceso', body: 'Tu identidad está siendo verificada. Puedes continuar el proceso si aún no lo completaste.' }
-        : { bg: 'bg-sky-50', border: 'border-sky-200', icon: 'text-sky-500', text: 'text-sky-900', sub: 'text-sky-700', btn: 'bg-[#0075C9] hover:bg-[#005faa]', label: 'Verificar identidad', heading: 'Verifica tu identidad', body: 'Antes de atender pacientes necesitas completar la verificación de identidad. Solo toma unos minutos.' }
+    const showKycBanner = kyc.status !== 'approved'
 
     return (
         <>
             {/* ── KYC banner ── */}
             {showKycBanner && (
-                <div className={`${kycBannerProps.bg} border-b ${kycBannerProps.border} px-5 py-4 flex items-start gap-4`}>
-                    <ShieldAlert className={`w-6 h-6 shrink-0 mt-0.5 ${kycBannerProps.icon}`} strokeWidth={2} />
-                    <div className="flex-1 min-w-0">
-                        <p className={`font-semibold text-[15px] ${kycBannerProps.text}`}>{kycBannerProps.heading}</p>
-                        <p className={`text-sm mt-0.5 ${kycBannerProps.sub}`}>{kycBannerProps.body}</p>
-                    </div>
-                    <a
-                        href={kyc.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`shrink-0 self-center px-4 py-2 rounded-xl ${kycBannerProps.btn} text-white text-sm font-semibold transition-colors`}
-                    >
-                        {kycBannerProps.label}
-                    </a>
+                <div className="bg-amber-500 px-4 py-2.5 flex items-center gap-3">
+                    <TriangleAlert className="w-4 h-4 shrink-0 text-white" strokeWidth={2.5} />
+                    <p className="flex-1 text-sm font-medium text-white leading-snug">
+                        Tu cuenta está pendiente de verificación. No puedes gestionar citas ni pacientes hasta completarla.
+                    </p>
+                    {kyc.url && (
+                        <a
+                            href={kyc.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="shrink-0 px-3 py-1 rounded-lg bg-white text-amber-700 text-xs font-semibold hover:bg-amber-50 transition-colors"
+                        >
+                            Verificar ahora
+                        </a>
+                    )}
                 </div>
             )}
 

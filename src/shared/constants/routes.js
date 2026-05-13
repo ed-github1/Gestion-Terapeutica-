@@ -31,6 +31,7 @@ export const ROUTES = {
   PATIENT_ONBOARDING: '/onboarding/:token',
 
   KYC_COMPLETE: '/kyc-complete',
+  PROFESSIONAL_CONTRACT: '/professional/sign-contract',
 
   // Admin
   ADMIN_DASHBOARD: '/dashboard/admin',
