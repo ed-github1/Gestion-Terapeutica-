@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { format } from 'date-fns'
 import { motion } from 'motion/react'
 import { X, User, Clock, FileText, Video, Building2 } from 'lucide-react'
@@ -157,9 +158,9 @@ export default function AddEventPanel({ appointment, slotDate, onClose, onSave, 
   const selectedType = TYPE_OPTIONS.find(t => t.value === formData.type) || TYPE_OPTIONS[0]
 
   const inputCls = 'w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/60 transition'
-  const labelCls = 'block text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-1.5'
+  const labelCls = 'block text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-1'
 
-  return (
+  return createPortal(
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -176,17 +177,17 @@ export default function AddEventPanel({ appointment, slotDate, onClose, onSave, 
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-5 pt-5 pb-4 shrink-0">
-          <div className="flex items-start justify-between mb-3">
+        <div className="px-5 pt-4 pb-3 shrink-0">
+          <div className="flex items-start justify-between mb-2.5">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-white/50 mb-0.5">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-white/50 mb-0.5">
                 {isEdit ? 'Editar sesión' : 'Nueva sesión'}
               </p>
-              <h2 className="text-lg font-bold text-white leading-tight">{selectedType.label}</h2>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">{selectedType.label}</h2>
             </div>
             <button
               onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/15 hover:bg-white/25 text-white transition-colors shrink-0"
+              className="w-8 h-8 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-white/15 hover:bg-gray-200 dark:hover:bg-white/25 text-gray-500 dark:text-white transition-colors shrink-0"
             >
               <X className="w-4 h-4" />
             </button>
@@ -201,8 +202,8 @@ export default function AddEventPanel({ appointment, slotDate, onClose, onSave, 
                 onClick={() => updateField('type', value)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
                   formData.type === value
-                    ? 'bg-white text-gray-800 shadow-sm'
-                    : 'bg-white/15 text-white/80 hover:bg-white/25'
+                    ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-800 shadow-sm'
+                    : 'bg-gray-100 dark:bg-white/15 text-gray-600 dark:text-white/80 hover:bg-gray-200 dark:hover:bg-white/25'
                 }`}
               >
                 <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
@@ -214,7 +215,7 @@ export default function AddEventPanel({ appointment, slotDate, onClose, onSave, 
 
         {/* Body */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto custom-scrollbar">
-          <div className="px-5 py-4 space-y-4">
+          <div className="px-5 py-3 space-y-3">
 
             {/* Patient */}
             <div>
@@ -312,7 +313,7 @@ export default function AddEventPanel({ appointment, slotDate, onClose, onSave, 
               <textarea
                 value={formData.notes}
                 onChange={(e) => updateField('notes', e.target.value)}
-                rows={3}
+                rows={2}
                 className={`${inputCls} resize-none`}
                 placeholder="Motivo de consulta, indicaciones…"
               />
@@ -320,7 +321,7 @@ export default function AddEventPanel({ appointment, slotDate, onClose, onSave, 
           </div>
 
           {/* Footer */}
-          <div className="sticky bottom-0 border-t border-gray-100 dark:border-gray-800 px-5 py-3 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm flex items-center justify-between gap-3">
+          <div className="sticky bottom-0 border-t border-gray-100 dark:border-gray-800 px-5 py-2.5 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm flex items-center justify-between gap-3">
             {isEdit ? (
               <button
                 type="button"
@@ -347,6 +348,7 @@ export default function AddEventPanel({ appointment, slotDate, onClose, onSave, 
           </div>
         </form>
       </motion.div>
-    </motion.div>
+    </motion.div>,
+    document.body
   )
 }

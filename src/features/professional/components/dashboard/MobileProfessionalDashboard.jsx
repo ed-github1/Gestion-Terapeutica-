@@ -416,13 +416,6 @@ const MobileProfessionalDashboard = ({
                         <p className="text-[13px] text-gray-500 dark:text-gray-500">
                             {isViewingToday ? 'Sin citas hoy' : 'Sin citas este día'}
                         </p>
-                        <button
-                            onClick={onShowCalendar}
-                            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700/80 text-[12px] font-semibold text-gray-500 dark:text-gray-400 active:scale-[0.96] transition-all"
-                        >
-                            <Plus className="w-3.5 h-3.5" />
-                            Agendar cita
-                        </button>
                     </div>
                 ) : (
                     <>

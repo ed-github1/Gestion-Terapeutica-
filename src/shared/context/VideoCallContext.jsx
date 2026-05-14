@@ -187,7 +187,7 @@ export const VideoCallProvider = ({ children }) => {
     setIsConnecting(true)
     setError(null)
     setActiveAppointmentId(appointmentId)
-    if (userRole) setActiveUserRole(userRole)
+    setActiveUserRole(userRole || user?.role || user?.rol || 'patient')
     try {
       const room = await managerRef.current.joinRoom(appointmentId, { recordingConsent })
       setLocalStream(managerRef.current.localStream)
@@ -208,7 +208,7 @@ export const VideoCallProvider = ({ children }) => {
       setError({ type: 'error', message: err.message })
       throw err
     }
-  }, [])
+  }, [user])
 
   const leaveRoom = useCallback(() => {
     if (!managerRef.current) return

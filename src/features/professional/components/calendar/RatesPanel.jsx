@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { motion } from 'motion/react'
 import { X, Check, Wallet } from 'lucide-react'
 import { showToast } from '@shared/ui/Toast'
@@ -125,12 +126,12 @@ export default function RatesPanel({ onClose }) {
     }, 1200)
   }
 
-  return (
+  return createPortal(
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center pb-14 sm:pb-0 sm:p-4 z-60"
+      className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-60"
       onClick={onClose}
     >
       <motion.div
@@ -138,14 +139,9 @@ export default function RatesPanel({ onClose }) {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 24 }}
         transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
-        className="bg-white dark:bg-gray-900 w-full sm:max-w-sm sm:max-h-[92dvh] max-h-[92dvh] overflow-hidden flex flex-col sm:rounded-2xl rounded-t-2xl shadow-2xl border border-gray-100 dark:border-gray-800"
+        className="bg-white dark:bg-gray-900 w-full max-w-sm max-h-[92dvh] overflow-hidden flex flex-col rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Drag handle — mobile only */}
-        <div className="sm:hidden flex justify-center pt-3 pb-1 shrink-0">
-          <div className="w-9 h-1 rounded-full bg-gray-300 dark:bg-gray-700" />
-        </div>
-
         {/* ── Header ── */}
         <div className="flex items-center justify-between px-5 pt-5 pb-4 shrink-0">
           <div className="flex items-center gap-3">
@@ -187,10 +183,10 @@ export default function RatesPanel({ onClose }) {
             <div className="space-y-2.5">
               {SESSION_TYPES.map(({ key, label, description, dotLight, accent, pillBg, pillBorder, inputFocus, symbolBg }) => (
                 <div key={key} className={`rounded-xl border ${pillBg} ${pillBorder} p-3.5`}>
-                  <div className="flex items-center gap-2 mb-2.5">
+                  <div className="flex items-center gap-2 mb-2.5 min-w-0">
                     <span className={`w-2 h-2 rounded-full ${dotLight} shrink-0`} />
-                    <span className={`text-[13px] font-semibold ${accent}`}>{label}</span>
-                    <span className="ml-auto text-[10px] text-gray-400 dark:text-gray-500">{description}</span>
+                    <span className={`text-[13px] font-semibold ${accent} min-w-0 truncate`}>{label}</span>
+                    <span className="ml-auto text-[10px] text-gray-400 dark:text-gray-500 shrink-0 whitespace-nowrap pl-1">{description}</span>
                   </div>
                   <div className={`flex items-center rounded-xl border bg-white dark:bg-gray-800/80 border-gray-200 dark:border-gray-700 overflow-hidden transition-all ${inputFocus}`}>
                     <div className={`flex items-center justify-center px-3.5 self-stretch text-sm font-bold border-r border-gray-200 dark:border-gray-700 ${symbolBg}`}>
@@ -231,9 +227,9 @@ export default function RatesPanel({ onClose }) {
               <><Wallet className="w-4 h-4" /> Guardar tarifas</>
             )}
           </button>
-          <div className="sm:hidden" style={{ height: 'env(safe-area-inset-bottom, 0px)' }} />
         </div>
       </motion.div>
-    </motion.div>
+    </motion.div>,
+    document.body
   )
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { motion } from 'motion/react'
 import { Clock, X, Check, Wallet } from 'lucide-react'
 import { showToast } from '@shared/ui/Toast'
@@ -161,13 +162,12 @@ const AvailabilityManager = ({ onClose }) => {
 
   const border = dark ? 'border-gray-800' : 'border-gray-200'
 
-  return (
+  return createPortal(
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      // ↓ on mobile sits at bottom like a sheet, on desktop centered
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center pb-14 sm:pb-0 sm:p-4 z-60"
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-60"
       onClick={onClose}
     >
       <motion.div
@@ -176,14 +176,8 @@ const AvailabilityManager = ({ onClose }) => {
         exit={{ opacity: 0, y: 24 }}
         transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
         onClick={(e) => e.stopPropagation()}
-        // ↓ full width bottom sheet on mobile, constrained modal on desktop
-        className={`w-full sm:max-w-2xl sm:max-h-[88dvh] max-h-[92dvh] overflow-hidden flex flex-col sm:rounded-xl rounded-t-2xl shadow-xl ${dark ? 'bg-gray-900' : 'bg-white'}`}
+        className={`w-full max-w-2xl max-h-[88dvh] overflow-hidden flex flex-col rounded-xl shadow-xl ${dark ? 'bg-gray-900' : 'bg-white'}`}
       >
-        {/* Drag handle — mobile only */}
-        <div className="sm:hidden flex justify-center pt-3 pb-1 shrink-0">
-          <div className={`w-9 h-1 rounded-full ${dark ? 'bg-gray-700' : 'bg-gray-300'}`} />
-        </div>
-
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-3 sm:pt-5 pb-3 sm:pb-4 shrink-0">
           <div className="flex items-center gap-3">
@@ -254,9 +248,9 @@ const AvailabilityManager = ({ onClose }) => {
             <div className={`animate-spin rounded-full h-6 w-6 border-2 ${dark ? 'border-gray-700 border-t-gray-300' : 'border-gray-200 border-t-gray-600'}`} />
           </div>
         ) : (
-          <div className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-6 py-3 sm:py-5 custom-scrollbar">
+          <div className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-6 py-2 sm:py-5 custom-scrollbar">
             {/* 4 cols on mobile, 8 on desktop */}
-            <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5 sm:gap-1">
+            <div className="grid grid-cols-6 sm:grid-cols-8 gap-1 sm:gap-1">
               {SLOTS.map(time => {
                 const selected = daySlots.includes(time)
                 const isHour = time.endsWith(':00')
@@ -267,8 +261,7 @@ const AvailabilityManager = ({ onClose }) => {
                     key={time}
                     type="button"
                     onClick={() => toggleSlot(time)}
-                    // ↓ taller tap target on mobile
-                    className={`py-3 sm:py-2 rounded-lg sm:rounded text-[12px] sm:text-[11px] font-medium tabular-nums transition
+                    className={`py-2 rounded-lg sm:rounded text-[11px] font-medium tabular-nums transition
                       ${isAnchor ? (dark ? 'ring-2 ring-sky-400 ring-offset-1 ring-offset-gray-900' : 'ring-2 ring-sky-400 ring-offset-1') : ''}
                       ${selected
                         ? dark
@@ -329,11 +322,11 @@ const AvailabilityManager = ({ onClose }) => {
               </button>
             </div>
           </div>
-          <div className="sm:hidden" style={{ height: 'env(safe-area-inset-bottom, 0px)' }} />
         </div>
 
       </motion.div>
-    </motion.div>
+    </motion.div>,
+    document.body
   )
 }
 
