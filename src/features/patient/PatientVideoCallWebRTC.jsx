@@ -240,8 +240,11 @@ const PatientVideoCallWebRTC = () => {
     }
   };
 
-  const handleLeaveRoom = () => {
+  const handleLeaveRoom = async () => {
     isLeavingIntentionallyRef.current = true;
+    if (recordingConsented) {
+      try { await stopCallRecording(); } catch { /* best-effort */ }
+    }
     leaveRoom();
     navigate('/dashboard/patient');
   };
@@ -274,6 +277,7 @@ const PatientVideoCallWebRTC = () => {
     // notifies the professional to start recording. API call is best-effort.
     recordingAcknowledgedRef.current = true;
     setRecordingConsented(true);
+    setRecordingEnabled(true);
     setShowRecordingDisclaimer(false);
     manager?.registerRecordingConsent();
     try {
