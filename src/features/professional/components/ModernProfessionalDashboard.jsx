@@ -255,7 +255,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
         }
     }, [patients, setDiaryPatient])
 
-    const [kyc, setKyc] = useState({ status: null, url: null })
+    const [kyc, setKyc] = useState({ status: null, url: null, loaded: false })
 
     useEffect(() => {
         professionalsService.getKycUrl()
@@ -264,12 +264,13 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                 setKyc({
                     status: raw.kycStatus ?? null,
                     url: raw.kycSessionUrl ?? raw.url ?? null,
+                    loaded: true,
                 })
             })
-            .catch(() => {})
+            .catch(() => setKyc(prev => ({ ...prev, loaded: true })))
     }, [])
 
-    const showKycBanner = kyc.status !== 'approved'
+    const showKycBanner = kyc.loaded && kyc.status !== 'approved'
 
     return (
         <>

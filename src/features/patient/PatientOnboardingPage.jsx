@@ -380,7 +380,7 @@ const PatientOnboardingPage = () => {
             Tu perfil ha sido creado exitosamente. Ya puedes acceder a tu portal de paciente.
           </p>
           <button
-            onClick={() => window.location.assign('/patient/dashboard')}
+            onClick={() => navigate('/dashboard/patient', { replace: true })}
             className="w-full bg-[#0075C9] text-white py-3 rounded-xl text-[14px] font-semibold hover:bg-[#005faa] transition-colors"
           >
             Ir a mi portal
