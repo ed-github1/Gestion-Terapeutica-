@@ -268,7 +268,6 @@ const PatientVideoCallWebRTC = () => {
     try {
       await videoCallService.declineRecordingConsent?.(appointmentId);
     } catch { /* best-effort */ }
-    handleLeaveRoom();
   };
 
   const handleAcceptRecording = async () => {
@@ -670,12 +669,12 @@ const PatientVideoCallWebRTC = () => {
                   </div>
                 </div>
               </div>
-              <p className="text-sm text-white/40 mb-4">Si no deseas que la sesión sea grabada, puedes abandonar la videollamada.</p>
+              <p className="text-sm text-white/40 mb-4">Puedes continuar en la sesión aunque no consientas la grabación.</p>
               <div className="flex gap-3">
                 <button onClick={handleDeclineRecording}
                   className="flex-1 px-4 py-2.5 rounded-xl text-white/60 hover:bg-white/5 transition-colors text-sm font-medium"
                   style={{ border: '1px solid rgba(255,255,255,0.12)' }}>
-                  Salir de la sesión
+                  No consiento
                 </button>
                 <button onClick={handleAcceptRecording} disabled={consentLoading}
                   className="flex-1 px-4 py-2.5 text-white rounded-xl transition-colors text-sm font-medium disabled:opacity-50"

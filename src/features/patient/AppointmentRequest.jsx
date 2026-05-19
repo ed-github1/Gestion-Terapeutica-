@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { Calendar, Clock, CreditCard, X, CheckCircle2 } from 'lucide-react'
+import { Clock, X, CheckCircle2 } from 'lucide-react'
 import { showToast } from '@shared/ui/Toast'
 import { useAuth } from '@features/auth/AuthContext'
 import { appointmentsService } from '@shared/services/appointmentsService'
@@ -25,7 +25,7 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
     let cancelled = false
     resolveLinkedProfessional(user).then(({ professionalUserId: uid }) => {
       if (!cancelled && uid) setProfessionalUserId(uid)
-    }).catch(() => {})
+    }).catch(() => { })
     return () => { cancelled = true }
   }, [user, professionalUserId])
 
@@ -37,11 +37,11 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
   }, [user])
 
   const toLocalDateStr = (d = new Date()) =>
-    `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
   const [selectedDate, setSelectedDate] = useState(() => toLocalDateStr())
   const [selectedSlot, setSelectedSlot] = useState(null)
-  
+
   const [formData, setFormData] = useState({
     type: 'Primera Sesión',
     mode: 'consultorio',
@@ -54,9 +54,9 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
 
   // Default fallback — will be replaced once tarifas load
   const [appointmentTypes, setAppointmentTypes] = useState([
-    { value: 'Primera Sesión',  label: 'Primera Sesión',  price: null, duration: 60, backendKey: 'primeraSesion' },
-    { value: 'Seguimiento',     label: 'Seguimiento',     price: null, duration: 45, backendKey: 'seguimiento' },
-    { value: 'Extraordinaria',  label: 'Extraordinaria',  price: null, duration: 60, backendKey: 'extraordinaria' },
+    { value: 'Primera Sesión', label: 'Primera Sesión', price: null, duration: 60, backendKey: 'primeraSesion' },
+    { value: 'Seguimiento', label: 'Seguimiento', price: null, duration: 45, backendKey: 'seguimiento' },
+    { value: 'Extraordinaria', label: 'Extraordinaria', price: null, duration: 60, backendKey: 'extraordinaria' },
   ])
 
   // Fetch the linked professional's tarifas
@@ -68,9 +68,9 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
       if (!t || (!t.primeraSesion && !t.seguimiento && !t.extraordinaria)) return false
       setCurrencySymbol(cur === 'MXN' ? '$' : cur === 'EUR' ? '€' : cur.length <= 3 ? '$' : cur)
       setAppointmentTypes([
-        { value: 'Primera Sesión',  label: 'Primera Sesión',  price: t.primeraSesion ?? null, duration: 60, backendKey: 'primeraSesion' },
-        { value: 'Seguimiento',     label: 'Seguimiento',     price: t.seguimiento ?? null, duration: 45, backendKey: 'seguimiento' },
-        { value: 'Extraordinaria',  label: 'Extraordinaria',  price: t.extraordinaria ?? null, duration: 60, backendKey: 'extraordinaria' },
+        { value: 'Primera Sesión', label: 'Primera Sesión', price: t.primeraSesion ?? null, duration: 60, backendKey: 'primeraSesion' },
+        { value: 'Seguimiento', label: 'Seguimiento', price: t.seguimiento ?? null, duration: 45, backendKey: 'seguimiento' },
+        { value: 'Extraordinaria', label: 'Extraordinaria', price: t.extraordinaria ?? null, duration: 60, backendKey: 'extraordinaria' },
       ])
       setTarifasLoaded(true)
       return true
@@ -234,9 +234,7 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
     }
   }
 
-  // Removed generateSlotsFromAvailability. Only backend data is used for available slots.
 
-  // Removed generateMockSlots. Only real data is used.
 
   const handleReserveSlot = async () => {
     if (!selectedSlot) {
@@ -252,7 +250,7 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
     setLoading(true)
     try {
       const selectedType = appointmentTypes.find(t => t.value === formData.type)
-      
+
       let appointmentId
       let apptData
       try {
@@ -324,9 +322,9 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
   }
 
   const inputCls =
-    'w-full px-3 py-2.5 text-[13px] border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-transparent transition bg-white placeholder:text-gray-300'
+    'w-full px-3 py-2.5 text-[13px] border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-transparent transition bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-300 dark:placeholder:text-gray-600'
   const labelCls =
-    'block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5'
+    'block text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1.5'
 
   const selectedType = appointmentTypes.find(t => t.value === formData.type)
   const chargeAmount = paymentData.amount
@@ -344,7 +342,7 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 24 }}
         transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
-        className="bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl border border-gray-200 shadow-xl flex flex-col overflow-hidden"
+        className="bg-white dark:bg-gray-900 w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl border border-gray-200 dark:border-gray-800 shadow-xl flex flex-col overflow-hidden"
         style={{ maxHeight: 'calc(100dvh - 2rem)' }}
         onClick={e => e.stopPropagation()}
       >
@@ -354,37 +352,30 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
         </div>
 
         {/* ── Header ── */}
-        <div className="px-5 pt-5 pb-4 flex items-start justify-between border-b border-gray-100 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
-              {step === 1 && <Calendar className="w-4 h-4 text-blue-600" />}
-              {step === 2 && <CreditCard className="w-4 h-4 text-blue-600" />}
-              {step === 3 && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
-            </div>
-            <div>
-              <p className="text-[11px] font-semibold text-blue-600 uppercase tracking-wider leading-none mb-0.5">
-                {step === 1 && 'Paso 1 de 2'}
-                {step === 2 && 'Paso 2 de 2'}
-                {step === 3 && 'Confirmada'}
-              </p>
-              <h2 className="text-[15px] font-bold text-gray-900 leading-tight">
-                {step === 1 && 'Reservar cita'}
-                {step === 2 && 'Confirmar pago'}
-                {step === 3 && '¡Reserva exitosa!'}
-              </h2>
-            </div>
+        <div className="px-5 pt-5 pb-4 flex items-start justify-between border-b border-gray-100 dark:border-gray-800 shrink-0">
+          <div>
+            <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider leading-none mb-0.5">
+              {step === 1 && 'Paso 1 de 2'}
+              {step === 2 && 'Paso 2 de 2'}
+              {step === 3 && 'Confirmada'}
+            </p>
+            <h2 className="text-[15px] font-bold text-gray-900 dark:text-white leading-tight">
+              {step === 1 && 'Reservar cita'}
+              {step === 2 && 'Confirmar pago'}
+              {step === 3 && '¡Reserva exitosa!'}
+            </h2>
           </div>
           <div className="flex items-center gap-2 ml-2 shrink-0">
             {/* Step dots */}
             <div className="flex gap-1">
               {[1, 2].map(s => (
-                <div key={s} className={`h-1.5 rounded-full transition-all duration-300 ${step > s ? 'w-3 bg-blue-500' : step === s ? 'w-4 bg-blue-500' : 'w-1.5 bg-gray-200'}`} />
+                <div key={s} className={`h-1.5 rounded-full transition-all duration-300 ${step > s ? 'w-3 bg-blue-500' : step === s ? 'w-4 bg-blue-500' : 'w-1.5 bg-gray-200 dark:bg-gray-700'}`} />
               ))}
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 hover:bg-gray-100 rounded-lg transition text-gray-400 hover:text-gray-600"
+              className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
             >
               <X className="w-4 h-4" />
             </button>
@@ -413,14 +404,13 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
                       <div
                         key={type.value}
                         onClick={() => setFormData(p => ({ ...p, type: type.value }))}
-                        className={`px-3 py-2.5 rounded-xl text-left border transition text-[13px] cursor-pointer ${
-                          formData.type === type.value
-                            ? 'border-blue-500 bg-blue-50 text-blue-700'
-                            : 'border-gray-200 text-gray-700 hover:border-gray-300 bg-white'
-                        }`}
+                        className={`px-3 py-2.5 rounded-xl text-left border transition text-[13px] cursor-pointer ${formData.type === type.value
+                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
+                            : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-800'
+                          }`}
                       >
                         <p className="font-semibold leading-tight">{type.label}</p>
-                        <p className="text-[11px] opacity-60 mt-0.5">{type.price != null ? `${currencySymbol}${type.price}` : 'Precio pendiente'} · {type.duration} min</p>
+                        <p className="text-[11px] opacity-60 mt-0.5">{type.price != null ? `${currencySymbol}${type.price}` : 'Precio pendiente'}</p>
                       </div>
                     ))}
                   </div>
@@ -433,29 +423,21 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
                     <button
                       type="button"
                       onClick={() => setFormData(p => ({ ...p, mode: 'consultorio' }))}
-                      className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-[13px] font-semibold transition ${
-                        formData.mode === 'consultorio'
-                          ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
-                          : 'border-gray-200 text-gray-600 hover:border-gray-300 bg-white'
-                      }`}
+                      className={`px-3 py-2.5 rounded-xl border text-[13px] font-semibold transition ${formData.mode === 'consultorio'
+                          ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400'
+                          : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-800'
+                        }`}
                     >
-                      <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                      </svg>
                       Consultorio
                     </button>
                     <button
                       type="button"
                       onClick={() => setFormData(p => ({ ...p, mode: 'videollamada' }))}
-                      className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-[13px] font-semibold transition ${
-                        formData.mode === 'videollamada'
-                          ? 'border-blue-500 bg-blue-50 text-blue-700'
-                          : 'border-gray-200 text-gray-600 hover:border-gray-300 bg-white'
-                      }`}
+                      className={`px-3 py-2.5 rounded-xl border text-[13px] font-semibold transition ${formData.mode === 'videollamada'
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
+                          : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-800'
+                        }`}
                     >
-                      <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
                       Videollamada
                     </button>
                   </div>
@@ -482,26 +464,25 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
                       Cargando horarios...
                     </div>
                   ) : availableSlots.length === 0 ? (
-                    <div className="bg-gray-50 rounded-xl border border-gray-100 px-4 py-5 text-center">
-                      <Clock className="w-6 h-6 text-gray-300 mx-auto mb-1.5" />
-                      <p className="text-[13px] text-gray-500 font-medium">Sin disponibilidad</p>
-                      <p className="text-[11px] text-gray-400 mt-0.5">El profesional no tiene horarios para este día.</p>
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 px-4 py-5 text-center">
+                      <Clock className="w-6 h-6 text-gray-300 dark:text-gray-600 mx-auto mb-1.5" />
+                      <p className="text-[13px] text-gray-500 dark:text-gray-400 font-medium">Sin disponibilidad</p>
+                      <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">El profesional no tiene horarios para este día.</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-4 gap-1.5 max-h-36 overflow-y-auto pr-0.5 custom-scrollbar">
-                      {availableSlots.map((slot, i) => (
+                      {availableSlots.filter(s => s.time?.endsWith(':00')).map((slot, i) => (
                         <button
                           key={i}
                           type="button"
                           disabled={!slot.available}
                           onClick={() => setSelectedSlot(slot)}
-                          className={`py-2 rounded-xl text-[12px] font-semibold transition border ${
-                            selectedSlot?.time === slot.time
+                          className={`py-2 rounded-xl text-[12px] font-semibold transition border ${selectedSlot?.time === slot.time
                               ? 'bg-blue-500 text-white border-blue-500'
                               : slot.available
-                              ? 'bg-white border-gray-200 text-gray-700 hover:border-blue-300 hover:text-blue-600'
-                              : 'bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed'
-                          }`}
+                                ? 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-blue-300 hover:text-blue-600'
+                                : 'bg-gray-50 dark:bg-gray-800/50 border-gray-100 dark:border-gray-800 text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                            }`}
                         >
                           {slot.time}
                         </button>
@@ -512,37 +493,37 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
 
                 {/* Reason — appears after slot selection */}
                 <AnimatePresence>
-                {selectedSlot && (
-                  <motion.div
-                    key="reason"
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="space-y-3 overflow-hidden"
-                  >
-                    <div>
-                      <label className={labelCls}>Motivo de la consulta *</label>
-                      <textarea
-                        value={formData.reason}
-                        onChange={e => setFormData(p => ({ ...p, reason: e.target.value }))}
-                        rows={2}
-                        className={`${inputCls} resize-none`}
-                        placeholder="Describe brevemente el motivo..."
-                      />
-                    </div>
-                    {/* Summary pill */}
-                    <div className="flex items-center justify-between bg-blue-50 rounded-xl px-3 py-2.5 border border-blue-100">
+                  {selectedSlot && (
+                    <motion.div
+                      key="reason"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="space-y-3 overflow-hidden"
+                    >
                       <div>
-                        <p className="text-[12px] font-semibold text-gray-800">
-                          {new Date(`${selectedDate}T00:00:00`).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
-                          {' · '}{selectedSlot.time}
-                        </p>
-                        <p className="text-[11px] text-gray-500">{selectedType?.label} · {selectedType?.duration} min</p>
+                        <label className={labelCls}>Motivo de la consulta *</label>
+                        <textarea
+                          value={formData.reason}
+                          onChange={e => setFormData(p => ({ ...p, reason: e.target.value }))}
+                          rows={2}
+                          className={`${inputCls} resize-none`}
+                          placeholder="Describe brevemente el motivo..."
+                        />
                       </div>
-                      <p className="text-[15px] font-bold text-blue-600">{selectedType?.price != null ? `${currencySymbol}${selectedType.price}` : 'Pendiente'}</p>
-                    </div>
-                  </motion.div>
-                )}
+                      {/* Summary pill */}
+                      <div className="flex items-center justify-between bg-blue-50 rounded-xl px-3 py-2.5 border border-blue-100">
+                        <div>
+                          <p className="text-[12px] font-semibold text-gray-800">
+                            {new Date(`${selectedDate}T00:00:00`).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
+                            {' · '}{selectedSlot.time}
+                          </p>
+                          <p className="text-[11px] text-gray-500">{selectedType?.label} · {selectedType?.duration} min</p>
+                        </div>
+                        <p className="text-[15px] font-bold text-blue-600">{selectedType?.price != null ? `${currencySymbol}${selectedType.price}` : 'Pendiente'}</p>
+                      </div>
+                    </motion.div>
+                  )}
                 </AnimatePresence>
 
                 {/* Actions */}
@@ -584,12 +565,12 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
                 className="px-5 pt-4 pb-5 space-y-3"
               >
                 {/* Session summary */}
-                <div className="bg-gray-50 rounded-xl border border-gray-100 divide-y divide-gray-100 overflow-hidden">
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700 overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-2.5">
-                    <p className="text-[13px] font-semibold text-gray-800">{selectedType?.label}</p>
-                    <span className="text-[15px] font-bold text-blue-600">{currencySymbol}{paymentData.amount}</span>
+                    <p className="text-[13px] font-semibold text-gray-800 dark:text-gray-200">{selectedType?.label}</p>
+                    <span className="text-[15px] font-bold text-blue-600 dark:text-blue-400">{currencySymbol}{paymentData.amount}</span>
                   </div>
-                  <div className="px-4 py-2 text-[11px] text-gray-400">
+                  <div className="px-4 py-2 text-[11px] text-gray-400 dark:text-gray-500">
                     {new Date(`${selectedDate}T00:00:00`).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
                     {' · '}{selectedSlot?.time}{' · '}{selectedType?.duration} min
                   </div>
@@ -615,19 +596,19 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
                 animate={{ opacity: 1, scale: 1 }}
                 className="px-5 pt-6 pb-6 flex flex-col items-center text-center"
               >
-                <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mb-4">
+                <div className="w-14 h-14 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl flex items-center justify-center mb-4">
                   <CheckCircle2 className="w-7 h-7 text-emerald-500" />
                 </div>
-                <h3 className="text-[16px] font-bold text-gray-900 mb-1">¡Reserva confirmada!</h3>
-                <p className="text-[13px] text-gray-500 mb-4 leading-relaxed">
+                <h3 className="text-[16px] font-bold text-gray-900 dark:text-white mb-1">¡Reserva confirmada!</h3>
+                <p className="text-[13px] text-gray-500 dark:text-gray-400 mb-4 leading-relaxed">
                   Tu pago fue procesado y la cita queda confirmada.
                 </p>
-                <div className="w-full bg-gray-50 rounded-xl border border-gray-100 divide-y divide-gray-100 mb-5 text-left overflow-hidden">
+                <div className="w-full bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700 mb-5 text-left overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-2.5">
-                    <p className="text-[13px] font-semibold text-gray-800">{selectedType?.label}</p>
-                    <span className="text-[13px] font-bold text-emerald-600">${chargeAmount} pagado</span>
+                    <p className="text-[13px] font-semibold text-gray-800 dark:text-gray-200">{selectedType?.label}</p>
+                    <span className="text-[13px] font-bold text-emerald-600 dark:text-emerald-400">{currencySymbol}{chargeAmount} pagado</span>
                   </div>
-                  <div className="px-4 py-2 text-[11px] text-gray-400">
+                  <div className="px-4 py-2 text-[11px] text-gray-400 dark:text-gray-500">
                     {new Date(`${selectedDate}T00:00:00`).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'long' })}
                     {' · '}{selectedSlot?.time}
                   </div>

@@ -81,8 +81,8 @@ const CaratulaTab = ({
 
   return (
     <div className="space-y-4">
-      {/* Row 1: Personal info + Contact — 2-col grid of compact fields */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Row 1: Personal info + Contact */}
+      <div className="grid grid-cols-1 gap-4">
         <Card icon={User} title="Información personal">
           <div className="grid grid-cols-2 gap-x-4 gap-y-4">
             <div className="col-span-2">

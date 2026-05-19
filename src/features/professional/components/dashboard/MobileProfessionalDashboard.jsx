@@ -3,6 +3,7 @@
  * Mobile-only (< md) layout for the professional dashboard.
  * Pure presentational component — all data/logic lives in ModernProfessionalDashboard.
  */
+import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import {
@@ -11,6 +12,8 @@ import {
     Ban, CheckCircle2, Video, Plus, CalendarDays,
     AlertCircle,
 } from 'lucide-react'
+import { useTodos } from '@features/professional/hooks'
+import TodoModal from '../TodoModal'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const DOW_LABELS = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
@@ -295,12 +298,10 @@ const MobileProfessionalDashboard = ({
     // Quick access
     onNewPatient,
     onNavigateAgenda,
-    // Todos
-    todos,
-    pendingTodoCount,
-    onTodoToggle,
-    onTodoOpen,
 }) => {
+    const [todoOpen, setTodoOpen] = useState(false)
+    const { todos, loading: todosLoading, error: todosError, addTodo, toggleDone, deleteTodo, clearDone } = useTodos()
+    const pendingTodoCount = todos.filter(t => !t.completed).length
     // Decide which sessions list to render
     const sessions = selectedDateSessions?.length > 0
         ? selectedDateSessions
@@ -320,6 +321,7 @@ const MobileProfessionalDashboard = ({
     const rowApts = sessions.filter(apt => apt !== heroApt)
 
     return (
+        <>
         <div className="md:hidden px-4 pt-4 pb-28 flex flex-col gap-5 max-w-lg mx-auto w-full">
 
             {/* ─────────────────────────────────────────────────────
@@ -477,7 +479,7 @@ const MobileProfessionalDashboard = ({
                 </div>
                 {todos.length === 0 ? (
                     <button
-                        onClick={onTodoOpen}
+                        onClick={() => setTodoOpen(true)}
                         className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-white dark:bg-gray-900/60 border border-dashed border-gray-300 dark:border-gray-700/60 text-[12px] font-semibold text-gray-400 dark:text-gray-600 active:scale-[0.98] transition-all"
                     >
                         <Plus className="w-3.5 h-3.5" />
@@ -486,27 +488,21 @@ const MobileProfessionalDashboard = ({
                 ) : (
                     <div className="bg-white dark:bg-gray-900/60 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
                         <ul className="divide-y divide-gray-100 dark:divide-gray-800/80">
-                            {todos.slice(0, 4).map((todo) => {
-                                const badge = TODO_BADGE_COLORS[todo.category] || TODO_BADGE_COLORS.personal
-                                return (
-                                    <li key={todo.id} className="flex items-center gap-3 px-4 py-3">
-                                        <button onClick={() => onTodoToggle(todo.id)} className="shrink-0">
-                                            {todo.done
-                                                ? <CheckSquare className="w-4 h-4 text-emerald-500" />
-                                                : <Square className="w-4 h-4 text-gray-600" />}
-                                        </button>
-                                        <span className={`flex-1 text-[13px] leading-tight ${todo.done ? 'line-through text-gray-400 dark:text-gray-600' : 'text-gray-700 dark:text-gray-300'}`}>
-                                            {todo.text}
-                                        </span>
-                                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${badge.bg} ${badge.text}`}>
-                                            {badge.label}
-                                        </span>
-                                    </li>
-                                )
-                            })}
+                            {todos.slice(0, 4).map((todo) => (
+                                <li key={todo.id} className="flex items-center gap-3 px-4 py-3">
+                                    <button onClick={() => toggleDone(todo.id, todo.completed)} className="shrink-0">
+                                        {todo.completed
+                                            ? <CheckSquare className="w-4 h-4 text-emerald-500" />
+                                            : <Square className="w-4 h-4 text-gray-600" />}
+                                    </button>
+                                    <span className={`flex-1 text-[13px] leading-tight ${todo.completed ? 'line-through text-gray-400 dark:text-gray-600' : 'text-gray-700 dark:text-gray-300'}`}>
+                                        {todo.title}
+                                    </span>
+                                </li>
+                            ))}
                         </ul>
                         <button
-                            onClick={onTodoOpen}
+                            onClick={() => setTodoOpen(true)}
                             className="w-full py-2.5 text-[11px] font-semibold text-gray-400 dark:text-gray-500 border-t border-gray-100 dark:border-gray-800 active:bg-gray-50 dark:active:bg-gray-800/50 transition-colors"
                         >
                             Ver todas las tareas
@@ -516,6 +512,19 @@ const MobileProfessionalDashboard = ({
             </motion.div>
 
         </div>
+
+        <TodoModal
+            open={todoOpen}
+            onClose={() => setTodoOpen(false)}
+            todos={todos}
+            loading={todosLoading}
+            error={todosError}
+            addTodo={addTodo}
+            toggleDone={toggleDone}
+            deleteTodo={deleteTodo}
+            clearDone={clearDone}
+        />
+        </>
     )
 }
 

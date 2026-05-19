@@ -17,7 +17,7 @@ export const subscriptionService = {
 
   /** Legacy: returns { checkoutUrl } for Stripe Hosted Checkout redirect */
   createCheckoutSession: (planId, billingCycle) => {
-    const origin = window.location.origin
+    const origin = import.meta.env.VITE_APP_URL || window.location.origin
     return apiClient.post('/subscriptions/checkout', {
       planId,
       billingCycle,

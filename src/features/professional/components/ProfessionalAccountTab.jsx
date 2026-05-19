@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useAuth } from '@features/auth'
 import { ChangePasswordForm } from '@features/auth'
@@ -76,51 +76,50 @@ const Row = ({ label, description, children }) => (
     </div>
 )
 
-const Select = ({ value, onChange, options }) => (
-    <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-transparent outline-none transition"
-    >
-        {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-    </select>
-)
 
 // ─── Main component ─────────────────────────────────────────────────────────────
 const ProfessionalAccountTab = () => {
     const { user, updateProfile } = useAuth()
+    const originalProfessional = useRef({ especialidad: '', cedula: '' })
     const [saving, setSaving]     = useState(false)
     const [saved, setSaved]       = useState(false)
     const [saveError, setSaveError] = useState(null)
     const [showPasswordForm, setShowPasswordForm] = useState(false)
 
     const [profile, setProfile] = useState({
-        nombre:       user?.nombre        || user?.name          || '',
-        apellido:     user?.apellido      || '',
-        email:        user?.email         || user?.correo        || '',
-        country:      user?.country       || '',
-        genero:       user?.gender        || user?.genero        || '',
-        especialidad: user?.specialty     || user?.especialidad  || '',
-        cedula:       user?.licenseNumber || user?.numeroLicencia || '',
+        nombre:       user?.nombre   || user?.name  || '',
+        apellido:     user?.apellido || '',
+        email:        user?.email    || user?.correo || '',
+        country:      user?.country  || '',
+        genero:       user?.gender   || user?.genero || '',
+        especialidad: '',
+        cedula:       '',
     })
 
-    const [notif, setNotif] = useState({
-        emailAppointments: true,
-        emailReminders:    true,
-        push:              true,
-    })
+    // Sync all fields from user (getMe / getProfile returns user + professional data merged)
+    useEffect(() => {
+        if (!user) return
+        const dp = user.datosPersonales ?? {}
+        const especialidad = dp.especialidad      || user.especialidad  || ''
+        const cedula       = dp.cedulaProfesional || user.cedula        || ''
+        originalProfessional.current = { especialidad, cedula }
+        setProfile({
+            nombre:       user.nombre   || user.name   || '',
+            apellido:     user.apellido || '',
+            email:        user.email    || user.correo  || '',
+            country:      user.country  || '',
+            genero:       (user.gender || user.genero || '').toLowerCase(),
+            especialidad,
+            cedula,
+        })
+    }, [user])
 
-    const [practice, setPractice] = useState(() => {
-        try {
-            const stored = sessionStorage.getItem('professionalSettings')
-            if (stored) return { videoCallEnabled: true, autoConfirm: false, reminderHours: '24', sessionDuration: '60', ...JSON.parse(stored) }
-        } catch { /* ignore */ }
-        return { videoCallEnabled: true, autoConfirm: false, reminderHours: '24', sessionDuration: '60' }
-    })
+    const [notif, setNotif] = useState({ emailReminders: true })
 
-    const setP   = (key) => (e) => setProfile(prev => ({ ...prev, [key]: typeof e === 'string' ? e : e.target.value }))
-    const setN   = (key) => (val) => setNotif(prev => ({ ...prev, [key]: val }))
-    const setPr  = (key) => (val) => setPractice(prev => ({ ...prev, [key]: val }))
+    const [practice] = useState({ reminderHours: '24' })
+
+    const setP = (key) => (e) => setProfile(prev => ({ ...prev, [key]: typeof e === 'string' ? e : e.target.value }))
+    const setN = (key) => (val) => setNotif(prev => ({ ...prev, [key]: val }))
 
     const countryInfo = getCurrencyForCountry(profile.country) ?? getCurrencyForCountry(user?.country)
 
@@ -132,23 +131,19 @@ const ProfessionalAccountTab = () => {
         const emailChanged = profile.email !== (user?.email || user?.correo || '')
 
         const profileDiff = {}
-        if (profile.nombre       !== (user?.nombre        || user?.name           || '')) profileDiff.nombre       = profile.nombre
-        if (profile.apellido     !== (user?.apellido       || ''))                         profileDiff.apellido     = profile.apellido
-        if (profile.country      !== (user?.country        || ''))                         profileDiff.country      = profile.country.toUpperCase()
-        if (profile.genero       !== (user?.gender         || user?.genero         || '')) profileDiff.genero       = profile.genero
-        if (profile.especialidad !== (user?.specialty      || user?.especialidad   || '')) profileDiff.especialidad = profile.especialidad
-        if (profile.cedula       !== (user?.licenseNumber  || user?.numeroLicencia || '')) profileDiff.cedula       = profile.cedula
+        if (profile.nombre       !== (user?.nombre   || user?.name   || '')) profileDiff.nombre       = profile.nombre
+        if (profile.apellido     !== (user?.apellido || ''))                  profileDiff.apellido     = profile.apellido
+        if (profile.country      !== (user?.country  || ''))                  profileDiff.country      = profile.country.toUpperCase()
+        if (profile.genero       !== (user?.gender   || user?.genero || '').toLowerCase()) profileDiff.gender           = profile.genero
+        if (profile.especialidad !== originalProfessional.current.especialidad)           profileDiff.especialidad     = profile.especialidad
+        if (profile.cedula       !== originalProfessional.current.cedula)                 profileDiff.cedulaProfesional = profile.cedula
 
-        sessionStorage.setItem('professionalSettings', JSON.stringify(practice))
         localStorage.setItem('professionalSettings', JSON.stringify({ currency: countryInfo?.currency }))
 
         const tasks = [
             statsService.updateProfessionalSettings({
-                notifications:    notif,
-                videoCallEnabled: practice.videoCallEnabled,
-                autoConfirm:      practice.autoConfirm,
-                reminderHours:    practice.reminderHours,
-                sessionDuration:  practice.sessionDuration,
+                notifications: { emailReminders: notif.emailReminders },
+                reminderHours: practice.reminderHours,
             }),
         ]
         if (Object.keys(profileDiff).length > 0) tasks.push(professionalsService.updateProfile(profileDiff))
@@ -189,15 +184,9 @@ const ProfessionalAccountTab = () => {
             </Section>
 
             {/* ── Notifications ── */}
-            <Section title="Notificaciones" subtitle="Elige cómo y cuándo recibir alertas">
-                <Row label="Nuevas citas por correo" description="Recibe un correo cuando un paciente agende">
-                    <Toggle checked={notif.emailAppointments} onChange={setN('emailAppointments')} disabled={saving} />
-                </Row>
-                <Row label="Recordatorios por correo" description="24 h antes de cada sesión programada">
+            <Section title="Notificaciones" subtitle="Elige cuándo recibir recordatorios">
+                <Row label="Recordatorio 24 h antes" description="Recibe un aviso un día antes de cada sesión">
                     <Toggle checked={notif.emailReminders} onChange={setN('emailReminders')} disabled={saving} />
-                </Row>
-                <Row label="Notificaciones push" description="Citas, sesiones y mensajes de pacientes">
-                    <Toggle checked={notif.push} onChange={setN('push')} disabled={saving} />
                 </Row>
             </Section>
 
@@ -230,36 +219,6 @@ const ProfessionalAccountTab = () => {
 
             {/* ── Practice ── */}
             <Section title="Mi consulta" subtitle="Opciones de tu práctica clínica">
-                <Row label="Videollamadas" description="Permitir sesiones de videollamada con pacientes">
-                    <Toggle checked={practice.videoCallEnabled} onChange={setPr('videoCallEnabled')} disabled={saving} />
-                </Row>
-                <Row label="Confirmar citas automáticamente" description="Sin requerir tu aprobación manual">
-                    <Toggle checked={practice.autoConfirm} onChange={setPr('autoConfirm')} disabled={saving} />
-                </Row>
-                <Row label="Recordatorio antes de la cita">
-                    <Select
-                        value={practice.reminderHours}
-                        onChange={setPr('reminderHours')}
-                        options={[
-                            { value: '1',  label: '1 hora antes' },
-                            { value: '2',  label: '2 horas antes' },
-                            { value: '24', label: '24 horas antes' },
-                            { value: '48', label: '48 horas antes' },
-                        ]}
-                    />
-                </Row>
-                <Row label="Duración de sesión">
-                    <Select
-                        value={practice.sessionDuration}
-                        onChange={setPr('sessionDuration')}
-                        options={[
-                            { value: '30', label: '30 min' },
-                            { value: '45', label: '45 min' },
-                            { value: '60', label: '60 min' },
-                            { value: '90', label: '90 min' },
-                        ]}
-                    />
-                </Row>
                 <Row label="Moneda">
                     <span className="text-sm text-gray-700 dark:text-gray-300">
                         {countryInfo?.symbol} {countryInfo?.currency}

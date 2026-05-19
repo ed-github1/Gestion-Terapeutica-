@@ -6,7 +6,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Mic, MicOff, Video as VideoIcon, VideoOff, MessageSquare, PhoneOff, StopCircle, LogOut, Circle, ShieldCheck, ClipboardList, ChevronLeft } from 'lucide-react';
+import { Mic, MicOff, Video as VideoIcon, VideoOff, MessageSquare, PhoneOff, StopCircle, LogOut, Circle, ShieldCheck, ClipboardList, MoreHorizontal, ChevronLeft } from 'lucide-react';
 import { useVideoCall as useWebRTC } from '@shared/context/VideoCallContext';
 import { videoCallService } from '@shared/services/videoCallService';
 import { appointmentsService } from '@shared/services/appointmentsService';
@@ -41,10 +41,22 @@ const ProfessionalVideoCallWebRTC = () => {
   const [showClinicalFile, setShowClinicalFile] = useState(false);
   const [clinicalPatient, setClinicalPatient] = useState(null);
   const [showNavigationWarning, setShowNavigationWarning] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [showDesktopPanel, setShowDesktopPanel] = useState(true);
+  const moreMenuRef = useRef(null);
 
   useEffect(() => {
     if (reconnectFailed) navigate('/dashboard/professional/appointments');
   }, [reconnectFailed, navigate]);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target))
+        setShowMoreMenu(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   // Start server recording once patient has given consent (recording-authorized event)
   useEffect(() => {
@@ -234,24 +246,18 @@ const ProfessionalVideoCallWebRTC = () => {
     catch (err) { console.error('Failed to set recording consent on backend:', err); }
   };
 
-  const handleOpenClinicalFile = async () => {
-    if (showClinicalFile) { setShowClinicalFile(false); return; }
-    setShowChat(false);
-    setShowClinicalFile(true);
+  const loadClinicalPatient = useCallback(async () => {
     if (clinicalPatient) return;
     try {
       const apptRes = await appointmentsService.getById(appointmentId);
       const appt = apptRes?.data?.data ?? apptRes?.data ?? apptRes;
       const raw  = appt?.patientId ?? appt?.patient ?? appt?.paciente;
 
-      // Backend now populates patientId as a Patient document (has _id + userId).
       if (raw && typeof raw === 'object' && (raw.userId || raw.user)) {
         setClinicalPatient(raw);
         return;
       }
 
-      // Legacy fallback: patientId is still a plain User._id string on old appointments.
-      // Pass name + userId so useClinicalFileData can resolve via its userId scan.
       const userIdStr = typeof raw === 'string' ? raw : raw?._id ? String(raw._id) : null;
       const apptName  = appt?.patientName || appt?.nombrePaciente || '';
       const rawName   = raw && typeof raw === 'object'
@@ -264,10 +270,20 @@ const ProfessionalVideoCallWebRTC = () => {
         ...(userIdStr ? { userId: userIdStr } : {}),
       });
     } catch (err) {
-      console.error('[handleOpenClinicalFile] failed:', err?.message);
-      setShowClinicalFile(false);
+      console.error('[loadClinicalPatient] failed:', err?.message);
     }
+  }, [appointmentId, clinicalPatient]);
+
+  const handleOpenClinicalFile = async () => {
+    if (showClinicalFile) { setShowClinicalFile(false); return; }
+    setShowChat(false);
+    setShowClinicalFile(true);
+    loadClinicalPatient();
   };
+
+  useEffect(() => {
+    if (isInRoom) loadClinicalPatient();
+  }, [isInRoom]);
 
   const handleSendMessage = (e) => {
     e.preventDefault();
@@ -314,9 +330,7 @@ const ProfessionalVideoCallWebRTC = () => {
   const isRecordingActive = isServerRecording || localRecording;
 
   const btnBase = { width: 54, height: 54, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', transition: 'all 0.2s' };
-  const btnSm   = { width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', transition: 'all 0.2s' };
-  const btnXs   = { width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', transition: 'all 0.2s' };
-  const glassIdle = 'rgba(255,255,255,0.1)';
+const glassIdle = 'rgba(255,255,255,0.1)';
   const glassBorder = '1px solid rgba(255,255,255,0.2)';
   const glassShadow = '0 4px 20px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.12)';
   const redActive = 'rgba(200,30,30,0.6)';
@@ -328,367 +342,401 @@ const ProfessionalVideoCallWebRTC = () => {
   const labelStyle = { fontSize: 10, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.02em' };
 
   return (
-    <div className="fixed inset-0 bg-black overflow-hidden">
+    <div className="fixed inset-0 flex bg-black overflow-hidden">
 
-      {/* ── Full-screen remote video ─────────────────────────────────── */}
-      {remoteStreams.length > 0 ? (
-        remoteStreams.map(({ userId, stream }) => {
-          const remoteP = participants.find(p => p.userId === userId);
-          const isCameraOff = remoteP?.videoEnabled === false;
-          return (
-            <div key={userId} className="absolute inset-0 bg-gray-900">
-              <video
-                ref={el => { if (el) { remoteVideoRefs.current.set(userId, el); if (el.srcObject !== stream) el.srcObject = stream; } }}
-                autoPlay playsInline
-                className="remote-video w-full h-full"
-                style={{ display: isCameraOff ? 'none' : 'block' }}
-              />
-              {isCameraOff && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-3"
-                      style={{ background: 'rgba(14,165,233,0.15)', border: '1px solid rgba(14,165,233,0.25)' }}>
-                      <span className="text-sky-300 text-4xl font-bold">
-                        {remoteP?.userName?.charAt(0)?.toUpperCase() ?? '?'}
-                      </span>
+      {/* ── Left: Video area ─────────────────────────────────────────── */}
+      <div className="relative flex-1 min-w-0 bg-gray-900 overflow-hidden">
+
+        {/* ── Full-screen remote video ─── */}
+        {remoteStreams.length > 0 ? (
+          remoteStreams.map(({ userId, stream }) => {
+            const remoteP = participants.find(p => p.userId === userId);
+            const isCameraOff = remoteP?.videoEnabled === false;
+            return (
+              <div key={userId} className="absolute inset-0 bg-gray-900">
+                <video
+                  ref={el => { if (el) { remoteVideoRefs.current.set(userId, el); if (el.srcObject !== stream) el.srcObject = stream; } }}
+                  autoPlay playsInline
+                  className="remote-video w-full h-full"
+                  style={{ display: isCameraOff ? 'none' : 'block' }}
+                />
+                {isCameraOff && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-3"
+                        style={{ background: 'rgba(14,165,233,0.15)', border: '1px solid rgba(14,165,233,0.25)' }}>
+                        <span className="text-sky-300 text-4xl font-bold">
+                          {remoteP?.userName?.charAt(0)?.toUpperCase() ?? '?'}
+                        </span>
+                      </div>
+                      <p className="text-white/70 text-sm font-medium">{remoteP?.userName}</p>
+                      <p className="text-white/30 text-xs mt-1 flex items-center justify-center gap-1">
+                        <VideoOff className="w-3 h-3" /> Cámara desactivada
+                      </p>
                     </div>
-                    <p className="text-white/70 text-sm font-medium">{remoteP?.userName}</p>
-                    <p className="text-white/30 text-xs mt-1 flex items-center justify-center gap-1">
-                      <VideoOff className="w-3 h-3" /> Cámara desactivada
-                    </p>
                   </div>
+                )}
+              </div>
+            );
+          })
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-900"
+            style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 130px)' }}>
+            <div className="text-center">
+              <div className="w-20 h-20 bg-sky-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-10 h-10 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+              <p className="text-white text-base font-medium">Esperando al paciente...</p>
+              <p className="text-gray-500 text-sm mt-1">La sesión comenzará cuando se conecte</p>
+            </div>
+          </div>
+        )}
+
+        {/* ── Status banners — absolute top ─── */}
+        <div ref={statusBannerRef} className="absolute top-0 left-0 right-0 z-50 flex flex-col">
+          {error?.type === 'warning' && (
+            <div className="bg-amber-600/90 text-white text-xs px-4 py-2 flex items-center justify-between backdrop-blur-sm">
+              <span>{error.message}</span>
+              <button onClick={() => window.location.reload()} className="ml-3 underline font-medium">Reintentar</button>
+            </div>
+          )}
+          {countdown !== null && userLeft && (
+            <div className="bg-amber-500/90 text-white text-xs px-4 py-2 flex items-center justify-between backdrop-blur-sm">
+              <span className="flex items-center gap-2"><LogOut className="w-3.5 h-3.5" />{userLeft.userName} ha abandonado — termina en {countdown}s</span>
+              <button onClick={() => setShowEndConfirm(true)} className="ml-3 underline font-medium">Finalizar ahora</button>
+            </div>
+          )}
+          {isUploading && (
+            <div className="bg-sky-600/90 text-white text-xs px-4 py-1.5 flex items-center justify-center gap-2 backdrop-blur-sm">
+              <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <span className="font-medium">Subiendo grabación…</span>
+            </div>
+          )}
+          {recordingError && !localRecording && (
+            <div className="bg-amber-600/90 text-white text-xs px-4 py-1.5 flex items-center justify-center gap-2 backdrop-blur-sm">
+              <span>Error de grabación: {recordingError}</span>
+              <button onClick={handleRecordClick} className="ml-2 underline">Reintentar</button>
+            </div>
+          )}
+          {uploadError && (
+            <div className="bg-amber-600/90 text-white text-xs px-4 py-2 backdrop-blur-sm">{uploadError}</div>
+          )}
+        </div>
+
+        {/* ── Back button + Timer — top left ─── */}
+        <div className="absolute z-30 left-3 flex items-center gap-2"
+          style={{ top: `calc(env(safe-area-inset-top, 0px) + ${bannerHeight + 14}px)` }}>
+          <button
+            onClick={handleMinimize}
+            title="Minimizar llamada"
+            className="flex items-center gap-1 active:scale-90 transition-transform"
+            style={{
+              padding: '6px 10px 6px 7px', borderRadius: 99,
+              background: 'rgba(255,255,255,0.1)',
+              border: '1px solid rgba(255,255,255,0.18)',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.35)',
+              backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+              color: 'white', cursor: 'pointer',
+            }}
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+            <span style={{ fontSize: 11, fontWeight: 500 }}>Volver</span>
+          </button>
+          {isInRoom && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full"
+              style={{
+                background: isRecordingActive ? 'rgba(160,0,0,0.55)' : 'rgba(0,0,0,0.45)',
+                backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
+                border: isRecordingActive ? '1px solid rgba(239,68,68,0.4)' : '1px solid rgba(255,255,255,0.13)',
+              }}>
+              {isRecordingActive
+                ? <Circle className="w-2 h-2 fill-red-400 text-red-400 animate-pulse shrink-0" />
+                : <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: '#4ade80', boxShadow: '0 0 8px rgba(74,222,128,0.9)' }} />}
+              <span ref={durationDisplayRef} className="text-[13px] font-light text-white/85 tabular-nums" style={{ letterSpacing: '0.12em', fontVariantNumeric: 'tabular-nums' }}>00:00:00</span>
+            </div>
+          )}
+        </div>
+
+        {/* ── PIP local video — top right ─── */}
+        <div className="absolute z-30 rounded-2xl overflow-hidden"
+          style={{ top: `calc(env(safe-area-inset-top, 0px) + ${bannerHeight + 14}px)`, right: 14, width: 88, height: 120, border: '2px solid rgba(255,255,255,0.2)', boxShadow: '0 8px 28px rgba(0,0,0,0.6)' }}>
+          {localStream ? (
+            <>
+              <video ref={setLocalVideoRef} autoPlay muted playsInline className="w-full h-full object-cover mirror" />
+              {!isVideoEnabled && (
+                <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'rgba(10,10,20,0.9)' }}>
+                  <VideoOff className="w-5 h-5 text-white/40" />
                 </div>
               )}
-            </div>
-          );
-        })
-      ) : (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-900"
-          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 130px)' }}>
-          <div className="text-center">
-            <div className="w-20 h-20 bg-sky-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-10 h-10 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            </>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center" style={{ background: 'rgba(10,10,20,0.9)' }}>
+              <svg className="w-6 h-6 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             </div>
-            <p className="text-white text-base font-medium">Esperando al paciente...</p>
-            <p className="text-gray-500 text-sm mt-1">La sesión comenzará cuando se conecte</p>
-          </div>
-        </div>
-      )}
-
-      {/* ── Status banners — absolute top ───────────────────────────── */}
-      <div ref={statusBannerRef} className="absolute top-0 left-0 right-0 z-50 flex flex-col">
-        {error?.type === 'warning' && (
-          <div className="bg-amber-600/90 text-white text-xs px-4 py-2 flex items-center justify-between backdrop-blur-sm">
-            <span>{error.message}</span>
-            <button onClick={() => window.location.reload()} className="ml-3 underline font-medium">Reintentar</button>
-          </div>
-        )}
-        {countdown !== null && userLeft && (
-          <div className="bg-amber-500/90 text-white text-xs px-4 py-2 flex items-center justify-between backdrop-blur-sm">
-            <span className="flex items-center gap-2"><LogOut className="w-3.5 h-3.5" />{userLeft.userName} ha abandonado — termina en {countdown}s</span>
-            <button onClick={() => setShowEndConfirm(true)} className="ml-3 underline font-medium">Finalizar ahora</button>
-          </div>
-        )}
-        {isUploading && (
-          <div className="bg-sky-600/90 text-white text-xs px-4 py-1.5 flex items-center justify-center gap-2 backdrop-blur-sm">
-            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            <span className="font-medium">Subiendo grabación…</span>
-          </div>
-        )}
-        {recordingError && !localRecording && (
-          <div className="bg-amber-600/90 text-white text-xs px-4 py-1.5 flex items-center justify-center gap-2 backdrop-blur-sm">
-            <span>Error de grabación: {recordingError}</span>
-            <button onClick={handleRecordClick} className="ml-2 underline">Reintentar</button>
-          </div>
-        )}
-        {uploadError && (
-          <div className="bg-amber-600/90 text-white text-xs px-4 py-2 backdrop-blur-sm">{uploadError}</div>
-        )}
-      </div>
-
-
-      {/* ── Timer — top center ───────────────────────────────────────── */}
-      {isInRoom && (
-        <div className="absolute z-30 left-1/2 -translate-x-1/2"
-          style={{ top: `calc(env(safe-area-inset-top, 0px) + ${bannerHeight + 16}px)` }}>
-          <div className="flex items-center gap-2 px-3.5 py-2 rounded-full"
-            style={{
-              background: isRecordingActive ? 'rgba(160,0,0,0.55)' : 'rgba(0,0,0,0.38)',
-              backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-              border: isRecordingActive ? '1px solid rgba(239,68,68,0.4)' : '1px solid rgba(255,255,255,0.13)',
-              boxShadow: isRecordingActive
-                ? '0 2px 20px rgba(239,68,68,0.2), inset 0 1px 0 rgba(255,255,255,0.07)'
-                : '0 2px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.07)',
-              transition: 'background 0.35s, border-color 0.35s, box-shadow 0.35s',
-            }}>
-            {isRecordingActive
-              ? <Circle className="w-2 h-2 fill-red-400 text-red-400 animate-pulse shrink-0" />
-              : <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: '#4ade80', boxShadow: '0 0 8px rgba(74,222,128,0.9)' }} />}
-            <span ref={durationDisplayRef} className="text-[13px] font-light text-white/85 tabular-nums" style={{ letterSpacing: '0.12em', fontVariantNumeric: 'tabular-nums' }}>00:00:00</span>
-            {isRecordingActive && (
-              <>
-                <span style={{ width: 1, height: 10, background: 'rgba(255,255,255,0.25)', borderRadius: 1, flexShrink: 0 }} />
-                <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.9)', letterSpacing: '0.06em' }}>REC</span>
-                <button onClick={handleRecordClick} style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', textDecoration: 'underline', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}>
-                  Detener
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ── Go back button — top left ────────────────────────────────── */}
-      <button
-        onClick={handleMinimize}
-        title="Minimizar llamada"
-        className="absolute z-30 flex items-center gap-1.5 active:scale-90 transition-transform"
-        style={{
-          top: `calc(env(safe-area-inset-top, 0px) + ${bannerHeight + 14}px)`, left: 14,
-          padding: '7px 12px 7px 8px', borderRadius: 99,
-          background: 'rgba(255,255,255,0.1)',
-          border: '1px solid rgba(255,255,255,0.18)',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.1)',
-          backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-          color: 'white', cursor: 'pointer',
-        }}
-      >
-        <ChevronLeft className="w-4 h-4" />
-        <span style={{ fontSize: 12, fontWeight: 500, letterSpacing: '0.01em' }}>Volver</span>
-      </button>
-
-      {/* ── PIP local video — top right ──────────────────────────────── */}
-      <div className="absolute z-30 rounded-2xl overflow-hidden"
-        style={{ top: `calc(env(safe-area-inset-top, 0px) + ${bannerHeight + 14}px)`, right: 14, width: 88, height: 120, border: '2px solid rgba(255,255,255,0.2)', boxShadow: '0 8px 28px rgba(0,0,0,0.6)' }}>
-        {localStream ? (
-          <>
-            <video ref={setLocalVideoRef} autoPlay muted playsInline className="w-full h-full object-cover mirror" />
-            {!isVideoEnabled && (
-              <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'rgba(10,10,20,0.9)' }}>
-                <VideoOff className="w-5 h-5 text-white/40" />
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="w-full h-full flex items-center justify-center" style={{ background: 'rgba(10,10,20,0.9)' }}>
-            <svg className="w-6 h-6 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-          </div>
-        )}
-      </div>
-
-      {/* ── Participant name tag — bottom left, above controls ───────── */}
-      {participant && (
-        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-          className="absolute z-30 flex items-center gap-2.5 px-3 py-2 rounded-xl"
-          style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 168px)', left: 16, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.1)' }}>
-          <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0" style={{ background: 'rgba(14,165,233,0.2)', border: '1px solid rgba(14,165,233,0.3)' }}>
-            <span className="text-sky-300 text-xs font-bold">{participant.userName?.charAt(0)?.toUpperCase() ?? '?'}</span>
-          </div>
-          <div>
-            <p className="text-white text-xs font-semibold leading-tight">{participant.userName}</p>
-            <p className="text-white/35 text-[10px]">Paciente</p>
-          </div>
-          {isRecordingActive && (
-            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(239,68,68,0.18)', border: '1px solid rgba(239,68,68,0.28)' }}>
-              <Circle className="w-2 h-2 fill-red-400 animate-pulse" />
-              <span className="text-red-300 text-[10px] font-medium">REC</span>
-            </div>
           )}
-        </motion.div>
-      )}
+        </div>
 
-      {/* ── Controls bar — centered row over gradient fade ───────────── */}
-      <div className="absolute bottom-0 left-0 right-0 z-30" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
-        <div className="absolute inset-x-0 bottom-0 h-40 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%)' }} />
+        {/* ── Participant name tag ─── */}
+        {participant && (
+          <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+            className="absolute z-30 flex items-center gap-2.5 px-3 py-2 rounded-xl"
+            style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 130px)', left: 16, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0" style={{ background: 'rgba(14,165,233,0.2)', border: '1px solid rgba(14,165,233,0.3)' }}>
+              <span className="text-sky-300 text-xs font-bold">{participant.userName?.charAt(0)?.toUpperCase() ?? '?'}</span>
+            </div>
+            <div>
+              <p className="text-white text-xs font-semibold leading-tight">{participant.userName}</p>
+              <p className="text-white/35 text-[10px]">Paciente</p>
+            </div>
+            {isRecordingActive && (
+              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(239,68,68,0.18)', border: '1px solid rgba(239,68,68,0.28)' }}>
+                <Circle className="w-2 h-2 fill-red-400 animate-pulse" />
+                <span className="text-red-300 text-[10px] font-medium">REC</span>
+              </div>
+            )}
+          </motion.div>
+        )}
 
-        {/* Small screens: two rows — primary (Mic · End · Camera) + secondary (Record · Chat · Expediente) */}
-        <div className="relative sm:hidden flex flex-col items-center gap-2 px-4 pb-5 pt-8">
-          <div className="flex items-end justify-center gap-5">
+        {/* ── Controls bar ─── */}
+        <div className="absolute bottom-0 left-0 right-0 z-30" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+          <div className="absolute inset-x-0 bottom-0 h-40 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%)' }} />
+
+          <div className="relative flex items-end justify-center gap-5 px-4 pb-6 pt-8">
+            {/* Mic */}
             <button onClick={handleToggleAudio} aria-label={isAudioEnabled ? 'Silenciar' : 'Activar micrófono'}
-              className="flex flex-col items-center gap-1 group active:scale-90 transition-transform">
-              <div style={{ ...btnSm, background: isAudioEnabled ? glassIdle : redActive, border: isAudioEnabled ? glassBorder : redBorder, boxShadow: isAudioEnabled ? glassShadow : redShadow }}>
-                {isAudioEnabled ? <Mic className="w-[18px] h-[18px] text-white" /> : <MicOff className="w-[18px] h-[18px] text-white" />}
+              className="flex flex-col items-center gap-1.5 active:scale-90 transition-transform">
+              <div style={{ ...btnBase, background: isAudioEnabled ? glassIdle : redActive, border: isAudioEnabled ? glassBorder : redBorder, boxShadow: isAudioEnabled ? glassShadow : redShadow }}>
+                {isAudioEnabled ? <Mic className="w-5 h-5 text-white" /> : <MicOff className="w-5 h-5 text-white" />}
               </div>
-              <span style={labelStyle}>{isAudioEnabled ? 'Micro' : 'Silenciado'}</span>
+              <span style={labelStyle}>{isAudioEnabled ? 'Mic' : 'Silenciado'}</span>
             </button>
-            <button onClick={() => setShowEndConfirm(true)} disabled={isEndingSession}
-              className="flex flex-col items-center gap-1 group active:scale-90 transition-transform disabled:opacity-50">
-              <div style={{ width: 56, height: 56, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: redActive, border: redBorder, boxShadow: '0 0 0 5px rgba(239,68,68,0.18),' + redShadow, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', transition: 'all 0.2s' }}>
-                <PhoneOff className="w-5 h-5 text-white" />
-              </div>
-              <span style={labelStyle}>Finalizar</span>
-            </button>
+
+            {/* Cámara */}
             <button onClick={handleToggleVideo} aria-label={isVideoEnabled ? 'Apagar cámara' : 'Encender cámara'}
-              className="flex flex-col items-center gap-1 group active:scale-90 transition-transform">
-              <div style={{ ...btnSm, background: isVideoEnabled ? glassIdle : redActive, border: isVideoEnabled ? glassBorder : redBorder, boxShadow: isVideoEnabled ? glassShadow : redShadow }}>
-                {isVideoEnabled ? <VideoIcon className="w-[18px] h-[18px] text-white" /> : <VideoOff className="w-[18px] h-[18px] text-white" />}
+              className="flex flex-col items-center gap-1.5 active:scale-90 transition-transform">
+              <div style={{ ...btnBase, background: isVideoEnabled ? glassIdle : redActive, border: isVideoEnabled ? glassBorder : redBorder, boxShadow: isVideoEnabled ? glassShadow : redShadow }}>
+                {isVideoEnabled ? <VideoIcon className="w-5 h-5 text-white" /> : <VideoOff className="w-5 h-5 text-white" />}
               </div>
               <span style={labelStyle}>{isVideoEnabled ? 'Cámara' : 'Sin cámara'}</span>
             </button>
-          </div>
-          <div className="flex items-center justify-center gap-6">
-            <button onClick={handleRecordClick} aria-label={isRecordingActive ? 'Detener' : 'Grabar'}
-              className="flex flex-col items-center gap-1 group active:scale-90 transition-transform">
-              <div style={{ ...btnXs, background: isRecordingActive ? redActive : glassIdle, border: isRecordingActive ? redBorder : glassBorder, boxShadow: isRecordingActive ? '0 0 0 3px rgba(239,68,68,0.3),' + redShadow : glassShadow }}>
-                <Circle className={`w-4 h-4 text-white ${isRecordingActive ? 'fill-white animate-pulse' : ''}`} />
+
+            {/* Finalizar */}
+            <button onClick={() => setShowEndConfirm(true)} disabled={isEndingSession}
+              className="flex flex-col items-center gap-1.5 active:scale-90 transition-transform disabled:opacity-50 disabled:cursor-not-allowed">
+              <div style={{ width: 62, height: 62, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: redActive, border: redBorder, boxShadow: '0 0 0 6px rgba(239,68,68,0.18),' + redShadow, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', transition: 'all 0.2s' }}>
+                <PhoneOff className="w-6 h-6 text-white" />
               </div>
-              <span style={labelStyle}>{isRecordingActive ? 'Grabando' : 'Grabar'}</span>
+              <span style={labelStyle}>Finalizar</span>
             </button>
-            <button onClick={() => { setShowClinicalFile(false); setShowChat(!showChat); }} aria-label="Chat"
-              className="flex flex-col items-center gap-1 group active:scale-90 transition-transform relative">
-              <div style={{ ...btnXs, background: showChat ? skyActive : glassIdle, border: showChat ? skyBorder : glassBorder, boxShadow: showChat ? skyShadow : glassShadow }}>
-                <MessageSquare className="w-4 h-4 text-white" />
-              </div>
-              {chatMessages.length > 0 && !showChat && (
-                <span className="absolute -top-1 right-0.5 min-w-[16px] h-[16px] px-1 rounded-full text-[8px] flex items-center justify-center font-bold text-white"
-                  style={{ background: 'linear-gradient(135deg,#0ea5e9,#0284c7)', boxShadow: '0 2px 8px rgba(14,165,233,0.6)' }}>
-                  {chatMessages.length > 9 ? '9+' : chatMessages.length}
-                </span>
-              )}
-              <span style={labelStyle}>Chat</span>
-            </button>
-            <button onClick={handleOpenClinicalFile} aria-label="Expediente"
-              className="flex flex-col items-center gap-1 group active:scale-90 transition-transform">
-              <div style={{ ...btnXs, background: showClinicalFile ? skyActive : glassIdle, border: showClinicalFile ? skyBorder : glassBorder, boxShadow: showClinicalFile ? skyShadow : glassShadow }}>
-                <ClipboardList className="w-4 h-4 text-white" />
-              </div>
-              <span style={labelStyle}>Expediente</span>
-            </button>
+
+            {/* Más — with popup */}
+            <div className="relative" ref={moreMenuRef}>
+              <AnimatePresence>
+                {showMoreMenu && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute bottom-full mb-3 right-0 rounded-2xl overflow-hidden min-w-[160px]"
+                    style={{ background: 'rgba(20,20,30,0.95)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}
+                  >
+                    <button
+                      onClick={() => { handleRecordClick(); setShowMoreMenu(false); }}
+                      className="flex items-center gap-3 w-full px-4 py-3 text-white hover:bg-white/8 transition-colors text-left"
+                    >
+                      <Circle className={`w-4 h-4 shrink-0 ${isRecordingActive ? 'fill-red-400 text-red-400 animate-pulse' : 'text-white/60'}`} />
+                      <span className="text-sm">{isRecordingActive ? 'Detener grabación' : 'Grabar'}</span>
+                    </button>
+                    <div className="h-px bg-white/8" />
+                    <button
+                      onClick={() => { setShowClinicalFile(false); setShowChat(!showChat); setShowMoreMenu(false); }}
+                      className="flex items-center gap-3 w-full px-4 py-3 text-white hover:bg-white/8 transition-colors text-left"
+                    >
+                      <MessageSquare className="w-4 h-4 shrink-0 text-white/60" />
+                      <span className="text-sm">Chat</span>
+                      {chatMessages.length > 0 && !showChat && (
+                        <span className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full text-[9px] flex items-center justify-center font-bold text-white"
+                          style={{ background: 'linear-gradient(135deg,#0ea5e9,#0284c7)' }}>
+                          {chatMessages.length > 9 ? '9+' : chatMessages.length}
+                        </span>
+                      )}
+                    </button>
+                    <div className="h-px bg-white/8" />
+                    <button
+                      onClick={() => {
+                        setShowDesktopPanel(prev => !prev);
+                        handleOpenClinicalFile();
+                        setShowMoreMenu(false);
+                      }}
+                      className="flex items-center gap-3 w-full px-4 py-3 text-white hover:bg-white/8 transition-colors text-left"
+                    >
+                      <ClipboardList className="w-4 h-4 shrink-0 text-white/60" />
+                      <span className="text-sm">Expediente</span>
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <button
+                onClick={() => setShowMoreMenu(!showMoreMenu)}
+                className="flex flex-col items-center gap-1.5 active:scale-90 transition-transform"
+              >
+                <div style={{ ...btnBase, background: showMoreMenu ? skyActive : glassIdle, border: showMoreMenu ? skyBorder : glassBorder, boxShadow: showMoreMenu ? skyShadow : glassShadow }}>
+                  <MoreHorizontal className="w-5 h-5 text-white" />
+                </div>
+                <span style={labelStyle}>Más</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Large screens (sm+): single row */}
-        <div className="relative hidden sm:flex items-end justify-center gap-4 px-4 pb-6 pt-8">
-          <button onClick={handleToggleAudio} aria-label={isAudioEnabled ? 'Silenciar' : 'Activar micrófono'}
-            className="flex flex-col items-center gap-1.5 group active:scale-90 transition-transform">
-            <div style={{ ...btnBase, background: isAudioEnabled ? glassIdle : redActive, border: isAudioEnabled ? glassBorder : redBorder, boxShadow: isAudioEnabled ? glassShadow : redShadow }}>
-              {isAudioEnabled ? <Mic className="w-5 h-5 text-white" /> : <MicOff className="w-5 h-5 text-white" />}
-            </div>
-            <span style={labelStyle}>{isAudioEnabled ? 'Micrófono' : 'Silenciado'}</span>
-          </button>
-          <button onClick={handleToggleVideo} aria-label={isVideoEnabled ? 'Apagar cámara' : 'Encender cámara'}
-            className="flex flex-col items-center gap-1.5 group active:scale-90 transition-transform">
-            <div style={{ ...btnBase, background: isVideoEnabled ? glassIdle : redActive, border: isVideoEnabled ? glassBorder : redBorder, boxShadow: isVideoEnabled ? glassShadow : redShadow }}>
-              {isVideoEnabled ? <VideoIcon className="w-5 h-5 text-white" /> : <VideoOff className="w-5 h-5 text-white" />}
-            </div>
-            <span style={labelStyle}>{isVideoEnabled ? 'Cámara' : 'Sin cámara'}</span>
-          </button>
-          <button onClick={() => setShowEndConfirm(true)} disabled={isEndingSession}
-            className="flex flex-col items-center gap-1.5 group active:scale-90 transition-transform disabled:opacity-50 disabled:cursor-not-allowed">
-            <div style={{ width: 62, height: 62, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: redActive, border: redBorder, boxShadow: '0 0 0 6px rgba(239,68,68,0.18),' + redShadow, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', transition: 'all 0.2s' }}>
-              <PhoneOff className="w-6 h-6 text-white" />
-            </div>
-            <span style={labelStyle}>Finalizar</span>
-          </button>
-          <button onClick={handleRecordClick} aria-label={isRecordingActive ? 'Detener grabación' : 'Grabar sesión'}
-            className="flex flex-col items-center gap-1.5 group active:scale-90 transition-transform">
-            <div style={{ ...btnBase, background: isRecordingActive ? redActive : glassIdle, border: isRecordingActive ? redBorder : glassBorder, boxShadow: isRecordingActive ? '0 0 0 3px rgba(239,68,68,0.3),' + redShadow : glassShadow }}>
-              <Circle className={`w-5 h-5 text-white ${isRecordingActive ? 'fill-white animate-pulse' : ''}`} />
-            </div>
-            <span style={labelStyle}>{isRecordingActive ? 'Grabando' : 'Grabar'}</span>
-          </button>
-          <button onClick={() => { setShowClinicalFile(false); setShowChat(!showChat); }} aria-label="Abrir chat"
-            className="flex flex-col items-center gap-1.5 group active:scale-90 transition-transform relative">
-            <div style={{ ...btnBase, background: showChat ? skyActive : glassIdle, border: showChat ? skyBorder : glassBorder, boxShadow: showChat ? skyShadow : glassShadow }}>
-              <MessageSquare className="w-5 h-5 text-white" />
-            </div>
-            {chatMessages.length > 0 && !showChat && (
-              <span className="absolute -top-1 right-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[9px] flex items-center justify-center font-bold text-white"
-                style={{ background: 'linear-gradient(135deg,#0ea5e9,#0284c7)', boxShadow: '0 2px 8px rgba(14,165,233,0.6)' }}>
-                {chatMessages.length > 9 ? '9+' : chatMessages.length}
-              </span>
-            )}
-            <span style={labelStyle}>Chat</span>
-          </button>
-          <button onClick={handleOpenClinicalFile} aria-label="Expediente del paciente"
-            className="flex flex-col items-center gap-1.5 group active:scale-90 transition-transform">
-            <div style={{ ...btnBase, background: showClinicalFile ? skyActive : glassIdle, border: showClinicalFile ? skyBorder : glassBorder, boxShadow: showClinicalFile ? skyShadow : glassShadow }}>
-              <ClipboardList className="w-5 h-5 text-white" />
-            </div>
-            <span style={labelStyle}>Expediente</span>
-          </button>
-        </div>
-      </div>
-
-      {/* ── Chat Panel ───────────────────────────────────────────────── */}
-      <AnimatePresence>
-        {showChat && (
-          <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 22, stiffness: 220 }}
-            className="absolute top-0 right-0 w-full sm:w-96 h-full z-40 flex flex-col"
-            style={{ paddingTop: bannerHeight, background: 'rgba(10,10,15,0.88)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', borderLeft: '1px solid rgba(255,255,255,0.08)' }}>
-            <div className="px-4 py-3 flex items-center justify-between border-b border-white/8">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-sky-500/20 flex items-center justify-center">
-                  <MessageSquare className="w-4 h-4 text-sky-400" />
+        {/* ── Chat Panel — mobile only (sm+: rendered in right panel) ─── */}
+        <AnimatePresence>
+          {showChat && (
+            <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 22, stiffness: 220 }}
+              className="sm:hidden absolute top-0 right-0 w-full h-full z-40 flex flex-col"
+              style={{ paddingTop: bannerHeight, background: 'rgba(10,10,15,0.95)', borderLeft: '1px solid rgba(255,255,255,0.08)' }}>
+              <div className="px-4 py-3 flex items-center justify-between border-b border-white/8">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-sky-500/20 flex items-center justify-center">
+                    <MessageSquare className="w-4 h-4 text-sky-400" />
+                  </div>
+                  <h3 className="font-semibold text-white text-sm">Chat de Sesión</h3>
                 </div>
-                <h3 className="font-semibold text-white text-sm">Chat de Sesión</h3>
+                <button onClick={() => setShowChat(false)}
+                  className="w-8 h-8 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/8 rounded-full transition-colors">✕</button>
               </div>
-              <button onClick={() => setShowChat(false)}
-                className="w-8 h-8 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/8 rounded-full transition-colors">✕</button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-2">
-              {chatMessages.length === 0 && (
-                <div className="h-full flex items-center justify-center text-center px-6">
-                  <p className="text-xs text-white/30">No hay mensajes aún.<br />Envía el primero para iniciar la conversación.</p>
+              <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                {chatMessages.length === 0 && (
+                  <div className="h-full flex items-center justify-center text-center px-6">
+                    <p className="text-xs text-white/30">No hay mensajes aún.<br />Envía el primero para iniciar la conversación.</p>
+                  </div>
+                )}
+                {chatMessages.map((msg, idx) => (
+                  <div key={idx} className={`flex ${msg.isOwn ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[78%] rounded-2xl px-3.5 py-2 ${msg.isOwn ? 'bg-sky-500 text-white rounded-br-md' : 'bg-white/10 text-white rounded-bl-md'}`}>
+                      {!msg.isOwn && <p className="text-[11px] font-semibold mb-0.5 text-sky-400">{msg.userName}</p>}
+                      <p className="text-sm leading-relaxed">{msg.message}</p>
+                      <p className={`text-[10px] mt-1 ${msg.isOwn ? 'text-white/60' : 'text-white/40'}`}>
+                        {new Date(msg.timestamp).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <form onSubmit={handleSendMessage} className="p-3 border-t border-white/8"
+                style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+                <div className="flex gap-2 items-center">
+                  <input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)}
+                    placeholder="Escribe un mensaje…"
+                    className="flex-1 px-4 py-2.5 bg-white/8 border border-white/10 rounded-full text-sm text-white placeholder-white/25 focus:outline-none focus:ring-2 focus:ring-sky-500/40 transition" />
+                  <button type="submit" disabled={!chatInput.trim()}
+                    className="w-10 h-10 shrink-0 bg-sky-500 text-white rounded-full hover:bg-sky-600 disabled:opacity-40 transition-colors flex items-center justify-center">
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M22 2 11 13" /><path d="m22 2-7 20-4-9-9-4Z" />
+                    </svg>
+                  </button>
                 </div>
-              )}
-              {chatMessages.map((msg, idx) => (
-                <div key={idx} className={`flex ${msg.isOwn ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[78%] rounded-2xl px-3.5 py-2 ${msg.isOwn ? 'bg-sky-500 text-white rounded-br-md' : 'bg-white/10 text-white rounded-bl-md'}`}>
-                    {!msg.isOwn && <p className="text-[11px] font-semibold mb-0.5 text-sky-400">{msg.userName}</p>}
-                    <p className="text-sm leading-relaxed">{msg.message}</p>
-                    <p className={`text-[10px] mt-1 ${msg.isOwn ? 'text-white/60' : 'text-white/40'}`}>
-                      {new Date(msg.timestamp).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
-                    </p>
+              </form>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ── Clinical File Panel — mobile slide-in only ─── */}
+        <AnimatePresence>
+          {showClinicalFile && (
+            <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 22, stiffness: 220 }}
+              className="dark sm:hidden absolute top-0 right-0 w-full h-full z-40 overflow-hidden"
+              style={{ paddingTop: bannerHeight }}>
+              {clinicalPatient ? (
+                <PatientClinicalFile patient={clinicalPatient} onClose={() => setShowClinicalFile(false)} />
+              ) : (
+                <div className="h-full flex items-center justify-center" style={{ background: '#0f1623' }}>
+                  <div className="text-center">
+                    <div className="w-8 h-8 border-2 border-sky-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                    <p className="text-white/40 text-sm">Cargando expediente…</p>
                   </div>
                 </div>
-              ))}
-            </div>
-            <form onSubmit={handleSendMessage} className="p-3 border-t border-white/8"
-              style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
-              <div className="flex gap-2 items-center">
-                <input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)}
-                  placeholder="Escribe un mensaje…"
-                  className="flex-1 px-4 py-2.5 bg-white/8 border border-white/10 rounded-full text-sm text-white placeholder-white/25 focus:outline-none focus:ring-2 focus:ring-sky-500/40 transition" />
-                <button type="submit" disabled={!chatInput.trim()}
-                  className="w-10 h-10 shrink-0 bg-sky-500 text-white rounded-full hover:bg-sky-600 disabled:opacity-40 transition-colors flex items-center justify-center">
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M22 2 11 13" /><path d="m22 2-7 20-4-9-9-4Z" />
-                  </svg>
-                </button>
-              </div>
-            </form>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-      {/* ── Clinical File Panel ──────────────────────────────────────── */}
-      <AnimatePresence>
-        {showClinicalFile && (
-          <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 22, stiffness: 220 }}
-            className="dark absolute top-0 right-0 w-full sm:w-110 h-full z-40 overflow-hidden"
-            style={{ paddingTop: bannerHeight }}>
-            {clinicalPatient ? (
-              <PatientClinicalFile patient={clinicalPatient} onClose={() => setShowClinicalFile(false)} />
-            ) : (
-              <div className="h-full flex items-center justify-center" style={{ background: '#0f1623' }}>
-                <div className="text-center">
-                  <div className="w-8 h-8 border-2 border-sky-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-                  <p className="text-white/40 text-sm">Cargando expediente…</p>
+      </div>
+
+      {/* ── Right: panel — swaps between clinical file and chat (sm+) ─── */}
+      <div className={`dark flex-col w-[460px] shrink-0 border-l border-white/10 overflow-hidden ${showDesktopPanel ? 'hidden sm:flex' : 'hidden'}`} style={{ background: '#0f1623' }}>
+        <AnimatePresence mode="wait">
+          {showChat ? (
+            <motion.div key="chat" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }} className="flex flex-col h-full">
+              <div className="px-4 py-3 flex items-center justify-between border-b border-white/8 shrink-0">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-sky-500/20 flex items-center justify-center">
+                    <MessageSquare className="w-4 h-4 text-sky-400" />
+                  </div>
+                  <h3 className="font-semibold text-white text-sm">Chat de Sesión</h3>
                 </div>
+                <button onClick={() => setShowChat(false)}
+                  className="w-8 h-8 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/8 rounded-full transition-colors">✕</button>
               </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+              <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                {chatMessages.length === 0 && (
+                  <div className="h-full flex items-center justify-center text-center px-6">
+                    <p className="text-xs text-white/30">No hay mensajes aún.<br />Envía el primero para iniciar la conversación.</p>
+                  </div>
+                )}
+                {chatMessages.map((msg, idx) => (
+                  <div key={idx} className={`flex ${msg.isOwn ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[78%] rounded-2xl px-3.5 py-2 ${msg.isOwn ? 'bg-sky-500 text-white rounded-br-md' : 'bg-white/10 text-white rounded-bl-md'}`}>
+                      {!msg.isOwn && <p className="text-[11px] font-semibold mb-0.5 text-sky-400">{msg.userName}</p>}
+                      <p className="text-sm leading-relaxed">{msg.message}</p>
+                      <p className={`text-[10px] mt-1 ${msg.isOwn ? 'text-white/60' : 'text-white/40'}`}>
+                        {new Date(msg.timestamp).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <form onSubmit={handleSendMessage} className="p-3 border-t border-white/8 shrink-0">
+                <div className="flex gap-2 items-center">
+                  <input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)}
+                    placeholder="Escribe un mensaje…"
+                    className="flex-1 px-4 py-2.5 bg-white/8 border border-white/10 rounded-full text-sm text-white placeholder-white/25 focus:outline-none focus:ring-2 focus:ring-sky-500/40 transition" />
+                  <button type="submit" disabled={!chatInput.trim()}
+                    className="w-10 h-10 shrink-0 bg-sky-500 text-white rounded-full hover:bg-sky-600 disabled:opacity-40 transition-colors flex items-center justify-center">
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M22 2 11 13" /><path d="m22 2-7 20-4-9-9-4Z" />
+                    </svg>
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          ) : clinicalPatient ? (
+            <motion.div key="clinical" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }} className="h-full overflow-hidden">
+              <PatientClinicalFile patient={clinicalPatient} onClose={() => setShowDesktopPanel(false)} />
+            </motion.div>
+          ) : (
+            <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }} className="h-full flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-8 h-8 border-2 border-sky-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                <p className="text-white/40 text-sm">Cargando expediente…</p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
-      {/* ── Reconnecting overlay ─────────────────────────────────────── */}
+      {/* ── Reconnecting overlay — covers full screen ─── */}
       <AnimatePresence>
         {isReconnecting && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -702,7 +750,7 @@ const ProfessionalVideoCallWebRTC = () => {
         )}
       </AnimatePresence>
 
-      {/* ── Ending session overlay ───────────────────────────────────── */}
+      {/* ── Ending session overlay — covers full screen ─── */}
       <AnimatePresence>
         {isEndingSession && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -716,7 +764,7 @@ const ProfessionalVideoCallWebRTC = () => {
         )}
       </AnimatePresence>
 
-      {/* ── Modals ───────────────────────────────────────────────────── */}
+      {/* ── Modals ─── */}
 
       {/* End Session */}
       <AnimatePresence>
@@ -810,7 +858,7 @@ const ProfessionalVideoCallWebRTC = () => {
         )}
       </AnimatePresence>
 
-      {/* Navigation Warning — back button or link click while recording */}
+      {/* Navigation Warning */}
       <AnimatePresence>
         {showNavigationWarning && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}

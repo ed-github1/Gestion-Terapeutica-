@@ -219,7 +219,7 @@ export const AuthProvider = ({ children }) => {
     sessionStorage.removeItem('professionalAppointments')
     sessionStorage.removeItem('professionalSettings')
     sessionStorage.removeItem('professionalAvailability')
-    localStorage.removeItem('professional_todos')
+
   }, [user])
 
   // ── Session lock (replaces full logout on idle) ───────────────────────────

@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import { showToast } from '@shared/ui/Toast'
 import { patientsService } from '@shared/services/patientsService'
 import { invitationsService } from '@shared/services/invitationsService'
-import PatientInvitation from './PatientInvitation'
+import NewPatientLinkModal from './NewPatientLinkModal'
 import PatientClinicalFile from './PatientClinicalFile'
 import { homeworkService } from '@shared/services/homeworkService'
 import {
@@ -874,9 +874,8 @@ const ModernPatientsList = () => {
         {/* Add patient modal */}
         <AnimatePresence>
             {showAddPatient && (
-                <PatientInvitation
+                <NewPatientLinkModal
                     onClose={() => { setShowAddPatient(false); loadPatients() }}
-                    onSuccess={() => { setShowAddPatient(false); loadPatients() }}
                 />
             )}
         </AnimatePresence>

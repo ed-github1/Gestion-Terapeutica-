@@ -89,6 +89,7 @@ class SocketNotificationService {
 
     this.socket.on('reconnect', () => {
       console.debug('[SocketNotificationService] reconnected')
+      this.socket.emit('register', { userId, role: 'notification-listener' })
       this._emit('connect', {})
     })
   }

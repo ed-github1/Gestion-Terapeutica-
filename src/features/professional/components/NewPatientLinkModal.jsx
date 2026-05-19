@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'motion/react'
-import { X, Link2, Copy, Check, MessageCircle, UserPlus, Loader2 } from 'lucide-react'
+import { X, Link2, Copy, Check, MessageCircle, Loader2 } from 'lucide-react'
 import { showToast } from '@shared/ui'
 import { invitationsService } from '@shared/services/invitationsService'
+import { useDarkModeContext } from '@shared/DarkModeContext'
 
 const DEFAULT_MESSAGE =
   'Hola, bienvenido/a a este espacio de terapia. Te pido que completes estos datos para poder darte de alta en la plataforma.'
 
 
 const NewPatientLinkModal = ({ onClose, professionalName }) => {
+  const { dark } = useDarkModeContext()
   const [linkData, setLinkData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -83,7 +86,8 @@ const NewPatientLinkModal = ({ onClose, professionalName }) => {
     window.open(url, '_blank', 'noopener')
   }
 
-  return (
+  return createPortal(
+    <div className={dark ? 'dark' : ''}>
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -108,18 +112,13 @@ const NewPatientLinkModal = ({ onClose, professionalName }) => {
           >
             <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
           </button>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/40 rounded-xl flex items-center justify-center shrink-0">
-              <UserPlus className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div className="min-w-0">
-              <h2 className="text-base font-bold text-gray-900 dark:text-white leading-tight">
-                Nuevo Paciente
-              </h2>
-              <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
-                Genera un enlace para que el paciente se registre
-              </p>
-            </div>
+          <div className="min-w-0">
+            <h2 className="text-base font-bold text-gray-900 dark:text-white leading-tight">
+              Nuevo Paciente
+            </h2>
+            <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
+              Genera un enlace para que el paciente se registre
+            </p>
           </div>
         </div>
 
@@ -149,8 +148,8 @@ const NewPatientLinkModal = ({ onClose, professionalName }) => {
                 exit={{ opacity: 0 }}
                 className="text-center py-10"
               >
-                <div className="w-14 h-14 bg-red-100 rounded-full mx-auto mb-3 flex items-center justify-center">
-                  <X className="w-7 h-7 text-red-500" />
+                <div className="w-14 h-14 bg-red-100 dark:bg-red-900/30 rounded-full mx-auto mb-3 flex items-center justify-center">
+                  <X className="w-7 h-7 text-red-500 dark:text-red-400" />
                 </div>
                 <p className="text-sm text-red-600 dark:text-red-400 mb-4">{error}</p>
                 <button
@@ -222,7 +221,7 @@ const NewPatientLinkModal = ({ onClose, professionalName }) => {
                   <p className="text-[13px] text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
                     {message}
                   </p>
-                  <p className="text-xs text-blue-600 break-all mt-2">
+                  <p className="text-xs text-blue-600 dark:text-blue-400 break-all mt-2">
                     {linkData.registrationLink}
                   </p>
                 </div>
@@ -252,6 +251,8 @@ const NewPatientLinkModal = ({ onClose, professionalName }) => {
         )}
       </motion.div>
     </motion.div>
+    </div>,
+    document.body
   )
 }
 

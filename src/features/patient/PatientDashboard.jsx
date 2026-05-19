@@ -22,6 +22,25 @@ import AppointmentPaymentModal from './components/AppointmentPaymentModal'
 import { resolveLinkedProfessional } from '@shared/services/patientsService'
 import { toLocalDateObj, endTimeOf } from '@shared/utils/appointments'
 
+const _DISMISSED_KEY = 'dismissed_apt_ids'
+const _DISMISSED_TTL = 30 * 24 * 60 * 60 * 1000 // 30 days
+
+function _loadDismissedIds() {
+  try {
+    const raw = localStorage.getItem(_DISMISSED_KEY)
+    if (!raw) return new Set()
+    const { ids, expiry } = JSON.parse(raw)
+    if (Date.now() > expiry) { localStorage.removeItem(_DISMISSED_KEY); return new Set() }
+    return new Set(ids)
+  } catch { return new Set() }
+}
+
+function _saveDismissedIds(set) {
+  try {
+    localStorage.setItem(_DISMISSED_KEY, JSON.stringify({ ids: [...set], expiry: Date.now() + _DISMISSED_TTL }))
+  } catch { /* storage full or unavailable */ }
+}
+
 const PatientDashboard = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -76,10 +95,13 @@ const PatientDashboard = () => {
     }
   }
 
-  const dismissedAptIds = useRef(new Set())
+  const dismissedAptIds = useRef(_loadDismissedIds())
   const _markDismissed = (apt) => {
     const id = apt?._id || apt?.id || apt?.appointmentId || apt?.data?.appointmentId || apt?.data?._id || apt?.data?.id
-    if (id) dismissedAptIds.current.add(String(id))
+    if (id) {
+      dismissedAptIds.current.add(String(id))
+      _saveDismissedIds(dismissedAptIds.current)
+    }
   }
 
   // ── Effects ───────────────────────────────────────────────────────────────

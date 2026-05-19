@@ -1,17 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { motion } from 'motion/react'
 import { UserPlus, CheckSquare } from 'lucide-react'
 import TodoModal from '../TodoModal'
-
-const STORAGE_KEY = 'professional_todos'
-
-function getPendingCount() {
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY)
-        const todos = raw ? JSON.parse(raw) : []
-        return todos.filter(t => !t.done).length
-    } catch { return 0 }
-}
+import { useTodos } from '@features/professional/hooks'
 
 const Badge = ({ count, onDark = false }) => {
     if (!count || count <= 0) return null
@@ -34,18 +25,9 @@ const springTransition = { type: 'spring', stiffness: 380, damping: 22 }
  */
 const QuickActions = ({ setShowPatientForm, setShowCalendar, variant = 'mobile' }) => {
     const [todoOpen, setTodoOpen] = useState(false)
-    const [pendingCount, setPendingCount] = useState(getPendingCount)
+    const { todos, loading, error, addTodo, toggleDone, deleteTodo, clearDone } = useTodos()
 
-    const handleClose = () => {
-        setTodoOpen(false)
-        setPendingCount(getPendingCount())
-    }
-
-    useEffect(() => {
-        const sync = () => setPendingCount(getPendingCount())
-        window.addEventListener('storage', sync)
-        return () => window.removeEventListener('storage', sync)
-    }, [])
+    const pendingCount = todos.filter(t => !t.completed).length
 
     const actions = [
         {
@@ -68,6 +50,20 @@ const QuickActions = ({ setShowPatientForm, setShowCalendar, variant = 'mobile' 
             onClick: () => setTodoOpen(true),
         },
     ]
+
+    const todoModal = (
+        <TodoModal
+            open={todoOpen}
+            onClose={() => setTodoOpen(false)}
+            todos={todos}
+            loading={loading}
+            error={error}
+            addTodo={addTodo}
+            toggleDone={toggleDone}
+            deleteTodo={deleteTodo}
+            clearDone={clearDone}
+        />
+    )
 
     /* ── iconbar: compact icons for collapsed sidebar ── */
     if (variant === 'iconbar') {
@@ -107,7 +103,7 @@ const QuickActions = ({ setShowPatientForm, setShowCalendar, variant = 'mobile' 
                         ))}
                     </div>
                 </motion.div>
-                <TodoModal open={todoOpen} onClose={handleClose} />
+                {todoModal}
             </>
         )
     }
@@ -138,7 +134,7 @@ const QuickActions = ({ setShowPatientForm, setShowCalendar, variant = 'mobile' 
                         </button>
                     ))}
                 </div>
-                <TodoModal open={todoOpen} onClose={handleClose} />
+                {todoModal}
             </>
         )
     }
@@ -181,7 +177,7 @@ const QuickActions = ({ setShowPatientForm, setShowCalendar, variant = 'mobile' 
                         ))}
                     </div>
                 </motion.div>
-                <TodoModal open={todoOpen} onClose={handleClose} />
+                {todoModal}
             </>
         )
     }
@@ -221,7 +217,7 @@ const QuickActions = ({ setShowPatientForm, setShowCalendar, variant = 'mobile' 
                     </motion.button>
                 ))}
             </motion.div>
-            <TodoModal open={todoOpen} onClose={handleClose} />
+            {todoModal}
         </>
     )
 }

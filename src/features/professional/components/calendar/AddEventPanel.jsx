@@ -44,7 +44,7 @@ export default function AddEventPanel({ appointment, slotDate, onClose, onSave, 
     type:     appointment?.type || appointment?.appointmentType || 'primera_consulta',
     date:     appointment?.start ? new Date(appointment.start) : (appointment?.fechaHora ? new Date(appointment.fechaHora) : (slotDate || new Date())),
     time:     appointment?.start ? format(new Date(appointment.start), 'HH:mm') : (appointment?.fechaHora ? format(new Date(appointment.fechaHora), 'HH:mm') : '09:00'),
-    duration: appointment?.duration || '60',
+    duration: '60',
     notes:    appointment?.notes || '',
     mode:     appointment?.mode ?? (appointment?.isVideoCall ? 'videollamada' : 'consultorio'),
   })
@@ -248,10 +248,10 @@ export default function AddEventPanel({ appointment, slotDate, onClose, onSave, 
               )}
             </div>
 
-            {/* Date / Time / Duration */}
+            {/* Date / Time */}
             <div>
               <label className={labelCls}><Clock className="w-3 h-3 inline mr-1" />Fecha y hora</label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <input
                   type="date"
                   required
@@ -259,7 +259,7 @@ export default function AddEventPanel({ appointment, slotDate, onClose, onSave, 
                   onChange={(e) => {
                     if (e.target.value) updateField('date', new Date(e.target.value + 'T12:00:00'))
                   }}
-                  className={`${inputCls} col-span-1`}
+                  className={inputCls}
                 />
                 <input
                   type="time"
@@ -268,17 +268,6 @@ export default function AddEventPanel({ appointment, slotDate, onClose, onSave, 
                   onChange={(e) => updateField('time', e.target.value)}
                   className={inputCls}
                 />
-                <select
-                  value={formData.duration}
-                  onChange={(e) => updateField('duration', e.target.value)}
-                  className={inputCls}
-                >
-                  <option value="30">30 min</option>
-                  <option value="45">45 min</option>
-                  <option value="60">1 h</option>
-                  <option value="90">1h 30</option>
-                  <option value="120">2 h</option>
-                </select>
               </div>
             </div>
 

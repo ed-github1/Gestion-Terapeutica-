@@ -6,7 +6,7 @@
  * Design: matches the ModernProfessionalDashboard aesthetic —
  * white card, border border-gray-200 shadow-sm, clean gray typography.
  */
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'motion/react'
 import {
   Stethoscope, RefreshCw, Zap,
@@ -14,6 +14,8 @@ import {
   X, Check, FileText, Bell,
 } from 'lucide-react'
 import { appointmentsService } from '@shared/services/appointmentsService'
+import { professionalsService } from '@shared/services/professionalsService'
+import { patientsService } from '@shared/services/patientsService'
 import { showToast } from '@shared/ui/Toast'
 import { toLocalDateObj } from '@shared/utils/appointments'
 import { useAuth } from '@features/auth/AuthContext'
@@ -31,6 +33,8 @@ const AppointmentAcceptanceModal = ({ appointment, onClose, onAccepted, onReject
   const [accepting, setAccepting] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
   const [showRejectForm, setShowRejectForm] = useState(false)
+  const [currencySymbol, setCurrencySymbol] = useState('€')
+  const [resolvedPrice, setResolvedPrice] = useState(null)
 
   const y = useMotionValue(0)
   const opacity = useTransform(y, [0, 250], [1, 0.4])
@@ -42,6 +46,65 @@ const AppointmentAcceptanceModal = ({ appointment, onClose, onAccepted, onReject
       animate(y, 0, { type: 'spring', stiffness: 400, damping: 30 })
     }
   }
+
+  const TYPE_TO_TARIFA = {
+    primera_consulta: 'primeraSesion',
+    seguimiento: 'seguimiento',
+    extraordinaria: 'extraordinaria',
+  }
+
+  useEffect(() => {
+    if (!appointment) return
+    let cancelled = false
+
+    const appt = appointment
+    const sessionType = appt.type || appt.data?.type
+    const tarifaKey = TYPE_TO_TARIFA[sessionType] || 'primeraSesion'
+
+    const candidates = [...new Set([
+      appt.professionalUserId,
+      appt.data?.professionalUserId,
+      typeof appt.professionalId === 'string' ? appt.professionalId : null,
+      typeof appt.data?.professionalId === 'string' ? appt.data?.professionalId : null,
+      professionalUserIdProp,
+      localStorage.getItem('_linkedProUserId'),
+    ].filter(Boolean))]
+
+    const apply = (t, cur) => {
+      if (cancelled || !t) return false
+      const price = t[tarifaKey] ?? t.primeraSesion ?? null
+      if (price == null) return false
+      setResolvedPrice(price)
+      setCurrencySymbol(cur === 'EUR' ? '€' : cur === 'MXN' ? '$' : cur || '€')
+      return true
+    }
+
+    const fetch = async () => {
+      for (const id of candidates) {
+        try {
+          const res = await professionalsService.getTarifas(id)
+          const data = res.data?.data || res.data || {}
+          if (apply(data.tarifas || data, data.currency || data.currencySymbol || '€')) return
+        } catch { /* try next */ }
+      }
+      for (const id of candidates) {
+        try {
+          const res = await patientsService.getProfessionalInfo(id)
+          if (res.status !== 200) continue
+          const pro = res.data?.data || res.data || {}
+          if (apply(pro.tarifas, pro.currency || pro.defaultCurrency || '€')) return
+        } catch { /* try next */ }
+      }
+      try {
+        const res = await patientsService.getMyProfessional()
+        const pro = res.data?.data || res.data || {}
+        apply(pro.tarifas, pro.currency || pro.defaultCurrency || '€')
+      } catch { /* ignore */ }
+    }
+
+    fetch()
+    return () => { cancelled = true }
+  }, [appointment, professionalUserIdProp])
 
   if (!appointment) return null
 
@@ -64,7 +127,7 @@ const AppointmentAcceptanceModal = ({ appointment, onClose, onAccepted, onReject
         weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
       })
     : 'Fecha por confirmar'
-  const price = appointment.price ?? appointment.data?.price ?? 50
+  const price = resolvedPrice ?? appointment.price ?? appointment.data?.price ?? 50
 
   // Resolve the professional's user account ID for socket routing.
   // appointment.professionalId IS the user account _id (set from user._id when creating).
@@ -90,8 +153,13 @@ const AppointmentAcceptanceModal = ({ appointment, onClose, onAccepted, onReject
     try {
       const id = resolveId(appointment)
       if (!id) throw new Error('No se pudo resolver el ID de la cita')
-      await appointmentsService.accept(id)
-      // Also send client-side socket notification as fallback
+
+      const origin = window.location.origin
+      const res = await appointmentsService.accept(id, {
+        successUrl: `${origin}/dashboard/appointments?payment=success`,
+        cancelUrl: `${origin}/dashboard/appointments?payment=cancelled`,
+      })
+
       const proId = resolveProUserId()
       if (proId) {
         socketNotificationService.sendAcceptanceNotification(proId, {
@@ -102,7 +170,15 @@ const AppointmentAcceptanceModal = ({ appointment, onClose, onAccepted, onReject
           type: appointment.type,
         })
       }
-      showToast('Cita aceptada. Procede al pago.', 'success')
+
+      if (res.data?.requiresPayment && res.data?.checkoutUrl) {
+        showToast('Redirigiendo al pago...', 'info')
+        onAccepted?.(appointment) // persist dismissal before page navigates away
+        window.location.href = res.data.checkoutUrl
+        return
+      }
+
+      showToast('Cita aceptada.', 'success')
       onAccepted?.(appointment)
     } catch (err) {
       console.error('Error accepting appointment:', err)
@@ -245,7 +321,7 @@ const AppointmentAcceptanceModal = ({ appointment, onClose, onAccepted, onReject
               <Banknote className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-[11px] text-gray-400 leading-none mb-0.5">Precio de la sesión</p>
-                <p className="text-[15px] font-bold text-emerald-600">€{price}</p>
+                <p className="text-[15px] font-bold text-emerald-600">{currencySymbol}{price}</p>
               </div>
             </div>
           </div>
@@ -316,7 +392,7 @@ const AppointmentAcceptanceModal = ({ appointment, onClose, onAccepted, onReject
               whileTap={{ scale: 0.985 }}
               onClick={handleAccept}
               disabled={accepting}
-              className="flex-[2] px-4 py-2.5 text-[13px] font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex-2 px-4 py-2.5 text-[13px] font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {accepting ? (
                 <>

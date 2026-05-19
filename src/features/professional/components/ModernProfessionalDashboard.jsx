@@ -4,7 +4,6 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useAuth } from '@features/auth'
 import { useNavigate } from 'react-router-dom'
 import NewPatientLinkModal from './NewPatientLinkModal'
-import TodoModal from './TodoModal'
 import { useDashboardData, useCurrentTime } from '../hooks/useDashboard'
 import { videoCallService } from '@shared/services/videoCallService'
 import { appointmentsService } from '@shared/services/appointmentsService'
@@ -27,11 +26,6 @@ import {
     useDashboardSessions,
     buildKpis,
 } from '../hooks'
-
-// ── Todo localStorage helpers ─────────────────────────────────────────────────
-const TODO_STORAGE_KEY = 'professional_todos'
-const loadTodos = () => { try { return JSON.parse(localStorage.getItem(TODO_STORAGE_KEY) || '[]') } catch { return [] } }
-const saveTodos = (t) => { try { localStorage.setItem(TODO_STORAGE_KEY, JSON.stringify(t)) } catch {} }
 
 // ── Week strip helper ─────────────────────────────────────────────────────────
 const getWeekDays = (date) => {
@@ -62,16 +56,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
     const [quickForm, setQuickForm] = useState({ patientName: '', time: '09:00', duration: '60', mode: 'consultorio' })
     const [selectedDate, setSelectedDate] = useState(() => new Date())
     const [calendarView, setCalendarView] = useState('sessions')
-    const [todoOpen, setTodoOpen] = useState(false)
-    const [todos, setTodos] = useState(loadTodos)
     const [mobileWeekOffset, setMobileWeekOffset] = useState(0)
-
-    // Keep todos in sync with localStorage
-    useEffect(() => {
-        const sync = () => setTodos(loadTodos())
-        window.addEventListener('storage', sync)
-        return () => window.removeEventListener('storage', sync)
-    }, [])
 
     // Derived session data
     const {
@@ -121,22 +106,13 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
     const revenuePct = revenueGoal > 0 ? Math.min(Math.round((revenueThisMonth / revenueGoal) * 100), 100) : 0
     const outstandingAmount = stats?.outstandingAmount ?? 0
 
-    // Pending todo count
-    const pendingTodoCount = todos.filter(t => !t.done).length
-
-    // Toggle todo done
-    const handleTodoToggle = (id) => {
-        const updated = todos.map(t => t.id === id ? { ...t, done: !t.done } : t)
-        setTodos(updated)
-        saveTodos(updated)
-    }
-
     // KPIs (shared between mobile calendar widget and desktop stats bar)
     const kpis = buildKpis(stats, 'Semana')
     const kpisDesktop = buildKpis(stats, 'Esta semana')
 
     // Handler for joining video call
     const handleJoinVideo = useCallback(async (appointment) => {
+        const aptId = appointment._id || appointment.id
         const professionalName = user?.name || user?.nombre || 'Professional'
         const patientName = appointment.nombrePaciente || appointment.patientName || appointment.patient?.name || 'Paciente'
 
@@ -144,7 +120,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
         let targetUserId = appointment.patientUserId || appointment.patientId
         if (!targetUserId) {
             try {
-                const res = await appointmentsService.getById(appointment.id)
+                const res = await appointmentsService.getById(aptId)
                 const fullApt = res.data?.data ?? res.data?.appointment ?? res.data ?? res
                 const rawPid =
                     fullApt.patientUserId || fullApt.patientUser ||
@@ -165,7 +141,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
         if (targetUserId) {
             try {
                 await videoCallService.sendVideoInvitation(
-                    appointment.id, targetUserId, patientName, professionalName,
+                    aptId, targetUserId, patientName, professionalName,
                 )
             } catch (err) {
                 console.warn('Could not notify patient via REST:', err.message)
@@ -175,7 +151,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
             const proUserId = user?._id || user?.id
             socketNotificationService.connect(proUserId)
             socketNotificationService.sendCallInvitation(targetUserId, {
-                appointmentId: appointment.id,
+                appointmentId: aptId,
                 professionalName,
                 patientName,
                 appointmentType: appointment.type || appointment.appointmentType || 'consultation',
@@ -185,7 +161,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
             console.warn('[handleJoinVideo] No patientId available — skipping notification. Patient must join via link.')
         }
 
-        navigate(`/professional/video/${appointment.id}`)
+        navigate(`/professional/video/${aptId}`)
     }, [navigate, user])
 
     // Backend state machine: reserved/scheduled/rescheduled cannot jump directly
@@ -333,17 +309,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                         onShowCalendar={() => setShowCalendar(true)}
                         onNewPatient={() => setShowPatientForm(true)}
                         onNavigateAgenda={() => navigate('/dashboard/professional/appointments')}
-                        todos={todos}
-                        pendingTodoCount={pendingTodoCount}
-                        onTodoToggle={handleTodoToggle}
-                        onTodoOpen={() => setTodoOpen(true)}
                     />
-
-
-
-
-
-
 
                     {/* ═══════════════════════════════════════════════════════════════════
                         md + DESKTOP — Existing calendar-based layout
@@ -492,7 +458,6 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                 )}
             </AnimatePresence>
 
-            <TodoModal open={todoOpen} onClose={() => { setTodoOpen(false); setTodos(loadTodos()) }} />
 
             {/* Quick-create appointment popover */}
             <QuickCreateModal

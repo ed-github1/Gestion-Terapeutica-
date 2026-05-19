@@ -42,8 +42,9 @@ export function usePendingAppointmentCheck({
       try {
         const res = await appointmentsService.getPatientAppointments()
         const all = normalizeAppointmentsResponse(res)
+        const NEEDS_ACTION = new Set(['reserved', 'pending'])
         const pending = all.find(a => {
-          if (a.status !== 'reserved' && a.status !== 'pending') return false
+          if (!NEEDS_ACTION.has(a.status)) return false
           if (a.createdBy === 'patient') return false
           const id = a._id || a.id
           return id ? !dismissedIdsRef.current.has(String(id)) : true

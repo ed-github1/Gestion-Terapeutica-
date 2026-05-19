@@ -2,9 +2,9 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import {
-  CheckCircle2, Clock, ArrowLeft, Calendar,
+  Clock, ArrowLeft, Calendar,
   Edit3, Mic, Copy, AlertCircle, MessageSquare,
-  Video, MapPin, Save, Check, RefreshCw,
+  Save, Check, RefreshCw,
 } from 'lucide-react'
 import { appointmentsService } from '@shared/services/appointmentsService'
 import { ROUTES } from '@shared/constants/routes'
@@ -50,11 +50,10 @@ const TabBtn = ({ active, onClick, icon: Icon, label, indicator }) => (
   <button
     type="button"
     onClick={onClick}
-    className={`relative inline-flex items-center gap-1.5 px-0.5 pt-3 pb-2.75 text-xs font-semibold border-b-2 transition-all ${
-      active
+    className={`relative inline-flex items-center gap-1.5 px-0.5 pt-3 pb-2.75 text-xs font-semibold border-b-2 transition-all ${active
         ? 'border-sky-500 text-sky-600 dark:text-sky-400'
         : 'border-transparent text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
-    }`}
+      }`}
   >
     <Icon className="w-3.5 h-3.5" />
     {label}
@@ -93,7 +92,7 @@ const TranscriptProcessing = () => {
   useEffect(() => {
     // Simulate progress: fast at first, slows down, caps at 92% until ready
     const TOTAL_MS = 150_000 // ~2.5 min estimate
-    const TICK_MS  = 400
+    const TICK_MS = 400
     const startedAt = Date.now()
 
     const timer = setInterval(() => {
@@ -107,7 +106,7 @@ const TranscriptProcessing = () => {
   }, [])
 
   const stages = [
-    { at: 0,  label: 'Subiendo audio…' },
+    { at: 0, label: 'Subiendo audio…' },
     { at: 15, label: 'Analizando audio…' },
     { at: 35, label: 'Transcribiendo…' },
     { at: 65, label: 'Identificando hablantes…' },
@@ -211,20 +210,20 @@ const SessionSummary = () => {
   const navigate = useNavigate()
 
   const [appointment, setAppointment] = useState(null)
-  const [loading, setLoading]   = useState(true)
-  const [error, setError]       = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  const [activeTab, setActiveTab]       = useState('manual')
-  const [manualNotes, setManualNotes]   = useState('')
-  const [savingNotes, setSavingNotes]   = useState(false)
-  const [notesSaved, setNotesSaved]     = useState(false)
+  const [activeTab, setActiveTab] = useState('manual')
+  const [manualNotes, setManualNotes] = useState('')
+  const [savingNotes, setSavingNotes] = useState(false)
+  const [notesSaved, setNotesSaved] = useState(false)
 
-  const [transcriptState, setTranscriptState]     = useState('idle')
-  const [transcript, setTranscript]               = useState('')
-  const [transcriptEdited, setTranscriptEdited]   = useState(false)
+  const [transcriptState, setTranscriptState] = useState('idle')
+  const [transcript, setTranscript] = useState('')
+  const [transcriptEdited, setTranscriptEdited] = useState(false)
   const [originalTranscript, setOriginalTranscript] = useState('')
   const [errorVariant, setErrorVariant] = useState('failed')
-  const pollRef    = useRef(null)
+  const pollRef = useRef(null)
   const idlePollRef = useRef(null)
   const userPickedTabRef = useRef(false)
 
@@ -367,14 +366,14 @@ const SessionSummary = () => {
   /* ── Derived data ── */
   const isCompleted = appointment?.status === 'completed'
   const isVideoCall = appointment?.isVideoCall || appointment?.mode === 'videollamada'
-  const startDate   = fmtDate(appointment?.callStartedAt ?? appointment?.fechaHora)
-  const startTime   = fmtTime(appointment?.callStartedAt ?? appointment?.fechaHora)
-  const endTime     = fmtTime(appointment?.callEndedAt)
-  const hasEndTime  = !!appointment?.callEndedAt
-  const duration    = fmtDuration(appointment?.callDuration)
+  const startDate = fmtDate(appointment?.callStartedAt ?? appointment?.fechaHora)
+  const startTime = fmtTime(appointment?.callStartedAt ?? appointment?.fechaHora)
+  const endTime = fmtTime(appointment?.callEndedAt)
+  const hasEndTime = !!appointment?.callEndedAt
+  const duration = fmtDuration(appointment?.callDuration)
   const patientName = resolvePatientName(appointment)
-  const avatar      = patientName.charAt(0).toUpperCase()
-  const timeRange   = hasEndTime ? `${startTime} – ${endTime}` : startTime
+  const avatar = patientName.charAt(0).toUpperCase()
+  const timeRange = hasEndTime ? `${startTime} – ${endTime}` : startTime
 
   /* ═══════════════════════════════════════════════════════════
      RENDER
@@ -405,11 +404,10 @@ const SessionSummary = () => {
               <span className="text-lg font-bold text-white">{avatar}</span>
             </div>
             <h1 className="text-lg font-bold text-gray-900 dark:text-white leading-tight mb-1.5">{patientName}</h1>
-            <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full ${
-              isCompleted
+            <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full ${isCompleted
                 ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
                 : 'bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'
-            }`}>
+              }`}>
               <span className={`w-1.5 h-1.5 rounded-full ${isCompleted ? 'bg-emerald-500' : 'bg-amber-500'}`} />
               {isCompleted ? 'Completada' : (appointment?.status ?? '—')}
             </span>
@@ -446,17 +444,16 @@ const SessionSummary = () => {
                   type="button"
                   onClick={handleSaveNotes}
                   disabled={savingNotes}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all ${
-                    notesSaved
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all ${notesSaved
                       ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
                       : 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 hover:opacity-85'
-                  }`}
+                    }`}
                 >
                   {notesSaved
                     ? <><Check className="w-3 h-3" /> Guardado</>
                     : savingNotes
-                    ? 'Guardando…'
-                    : <><Save className="w-3 h-3" /> Guardar</>
+                      ? 'Guardando…'
+                      : <><Save className="w-3 h-3" /> Guardar</>
                   }
                 </button>
               </div>
@@ -501,10 +498,10 @@ const SessionSummary = () => {
                 </motion.div>
               ) : (
                 <motion.div key="transcript" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }}>
-                  {transcriptState === 'idle'       && <TranscriptIdle />}
+                  {transcriptState === 'idle' && <TranscriptIdle />}
                   {transcriptState === 'processing' && <TranscriptProcessing />}
-                  {transcriptState === 'ready'      && <TranscriptReady text={transcript} onChange={handleTranscriptChange} edited={transcriptEdited} />}
-                  {transcriptState === 'error'      && <TranscriptError variant={errorVariant} />}
+                  {transcriptState === 'ready' && <TranscriptReady text={transcript} onChange={handleTranscriptChange} edited={transcriptEdited} />}
+                  {transcriptState === 'error' && <TranscriptError variant={errorVariant} />}
                 </motion.div>
               )}
             </AnimatePresence>

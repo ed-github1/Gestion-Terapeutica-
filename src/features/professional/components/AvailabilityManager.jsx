@@ -16,16 +16,9 @@ const DAYS = [
   { value: 0, label: 'Domingo', short: 'D' }
 ]
 
-const SLOTS = (() => {
-  const s = []
-  for (let h = 0; h <= 23; h++) {
-    s.push(`${String(h).padStart(2, '0')}:00`)
-    s.push(`${String(h).padStart(2, '0')}:30`)
-  }
-  return s
-})()
+const SLOTS = Array.from({ length: 24 }, (_, h) => `${String(h).padStart(2, '0')}:00`)
 
-function addHalfHour(time) {
+function addOneHour(time) {
   const idx = SLOTS.indexOf(time)
   if (idx === -1) return time
   if (idx === SLOTS.length - 1) return '24:00'
@@ -34,19 +27,19 @@ function addHalfHour(time) {
 
 function slotsToRanges(slots) {
   if (!slots?.length) return []
-  const sorted = [...slots].sort()
+  const sorted = [...slots].filter(t => t.endsWith(':00')).sort()
   const ranges = []
   let start = sorted[0]
   let prevIdx = SLOTS.indexOf(start)
   for (let i = 1; i < sorted.length; i++) {
     const idx = SLOTS.indexOf(sorted[i])
     if (idx !== prevIdx + 1) {
-      ranges.push([start, addHalfHour(sorted[i - 1])])
+      ranges.push([start, addOneHour(sorted[i - 1])])
       start = sorted[i]
     }
     prevIdx = idx
   }
-  ranges.push([start, addHalfHour(sorted[sorted.length - 1])])
+  ranges.push([start, addOneHour(sorted[sorted.length - 1])])
   return ranges
 }
 
@@ -156,8 +149,8 @@ const AvailabilityManager = ({ onClose }) => {
   const ranges = useMemo(() => slotsToRanges(daySlots), [daySlots])
   const totalHours = useMemo(() => {
     let n = 0
-    DAYS.forEach(d => { n += (availability[d.value] || []).length })
-    return n * 0.5
+    DAYS.forEach(d => { n += (availability[d.value] || []).filter(t => t.endsWith(':00')).length })
+    return n
   }, [availability])
 
   const border = dark ? 'border-gray-800' : 'border-gray-200'
@@ -249,11 +242,9 @@ const AvailabilityManager = ({ onClose }) => {
           </div>
         ) : (
           <div className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-6 py-2 sm:py-5 custom-scrollbar">
-            {/* 4 cols on mobile, 8 on desktop */}
-            <div className="grid grid-cols-6 sm:grid-cols-8 gap-1 sm:gap-1">
+            <div className="grid grid-cols-4 sm:grid-cols-6 gap-1">
               {SLOTS.map(time => {
                 const selected = daySlots.includes(time)
-                const isHour = time.endsWith(':00')
                 const isAnchor = rangeStart === time
 
                 return (
@@ -268,8 +259,8 @@ const AvailabilityManager = ({ onClose }) => {
                           ? 'bg-slate-600 text-slate-200'
                           : 'bg-slate-200 text-slate-800 border border-slate-300'
                         : dark
-                          ? `${isHour ? 'bg-slate-800' : 'bg-slate-800/50'} text-slate-500 hover:bg-slate-700 hover:text-slate-300`
-                          : `bg-white border ${isHour ? 'border-slate-300 text-slate-500 hover:border-slate-400 hover:text-slate-700' : 'border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-600'}`
+                          ? 'bg-slate-800 text-slate-500 hover:bg-slate-700 hover:text-slate-300'
+                          : 'bg-white border border-slate-300 text-slate-500 hover:border-slate-400 hover:text-slate-700'
                       }`}
                   >
                     {time}

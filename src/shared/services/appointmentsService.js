@@ -90,9 +90,9 @@ export const appointmentsService = {
   getCalendarEvents: (startDate, endDate) =>
     apiClient.get(`/appointments/calendar?startDate=${startDate}&endDate=${endDate}`),
 
-  /** Patient accepts a pending appointment */
-  accept: (id) =>
-    apiClient.patch(`/appointments/${id}/accept`),
+  /** Patient accepts a pending appointment. Pass successUrl/cancelUrl to override Stripe redirect URLs. */
+  accept: (id, body = {}) =>
+    apiClient.patch(`/appointments/${id}/accept`, body),
 
   /** Patient rejects/declines an appointment */
   reject: (id, reason) =>
