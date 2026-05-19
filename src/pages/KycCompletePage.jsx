@@ -3,12 +3,18 @@ import { useNavigate } from 'react-router-dom'
 import { Clock } from 'lucide-react'
 import { BrandLogo } from '@shared/ui'
 import { ROUTES } from '@shared/constants/routes'
+import { useAuth } from '@features/auth'
 
 const COUNTDOWN = 5
 
 const KycCompletePage = () => {
     const navigate = useNavigate()
+    const { refreshUser } = useAuth()
     const [seconds, setSeconds] = useState(COUNTDOWN)
+
+    useEffect(() => {
+        refreshUser()
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         if (seconds <= 0) {
