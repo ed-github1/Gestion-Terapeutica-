@@ -18,6 +18,10 @@ export function usePendingAppointmentCheck({
   isPayModalOpenRef,    // ref<any>         — truthy when pay modal is already open
 }) {
   useEffect(() => {
+    // Tracks IDs surfaced this session so reconnects don't re-open the same modal
+    // before the user has had a chance to dismiss/accept it.
+    const surfacedIds = new Set()
+
     const checkPending = async () => {
       // Step 1: server notification inbox
       try {
@@ -27,10 +31,14 @@ export function usePendingAppointmentCheck({
           ? notifs.find(n => {
               if (n.type !== 'appointment-pending') return false
               const id = n.data?.appointmentId || n.data?._id || n._id
-              return id ? !dismissedIdsRef.current.has(String(id)) : true
+              if (!id) return true
+              const idStr = String(id)
+              return !dismissedIdsRef.current.has(idStr) && !surfacedIds.has(idStr)
             })
           : null
         if (pendingNotif && !isAcceptModalOpenRef.current && !isPayModalOpenRef.current) {
+          const id = pendingNotif.data?.appointmentId || pendingNotif.data?._id || pendingNotif._id
+          if (id) surfacedIds.add(String(id))
           onPendingFound(pendingNotif.data || pendingNotif)
           const notifId = pendingNotif._id || pendingNotif.id
           if (notifId) notificationsService.markRead(notifId).catch(() => {})
@@ -47,9 +55,13 @@ export function usePendingAppointmentCheck({
           if (!NEEDS_ACTION.has(a.status)) return false
           if (a.createdBy === 'patient') return false
           const id = a._id || a.id
-          return id ? !dismissedIdsRef.current.has(String(id)) : true
+          if (!id) return true
+          const idStr = String(id)
+          return !dismissedIdsRef.current.has(idStr) && !surfacedIds.has(idStr)
         })
         if (pending && !isAcceptModalOpenRef.current && !isPayModalOpenRef.current) {
+          const id = pending._id || pending.id
+          if (id) surfacedIds.add(String(id))
           onPendingFound(pending)
         }
       } catch { /* silent — best-effort */ }

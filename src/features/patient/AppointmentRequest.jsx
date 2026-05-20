@@ -281,7 +281,20 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
       // Notify parent immediately so it can dismiss this ID from polling —
       // prevents the AppointmentAcceptanceModal from opening for patient-created appointments.
       if (appointmentId) onPatientCreated?.(String(appointmentId))
-      setStep(3) // Jump straight to success — payment disabled until backend mismatch is resolved
+
+      const amount = apptData?.amount ?? selectedType?.price ?? 0
+
+      if (amount > 0) {
+        const prefRes = await appointmentsService.createMercadoPagoPreference(appointmentId)
+        const { initPoint, sandboxInitPoint } = prefRes.data?.data ?? prefRes.data ?? {}
+        const url = import.meta.env.DEV ? (sandboxInitPoint || initPoint) : initPoint
+        if (url) {
+          window.location.href = url
+          return
+        }
+      }
+
+      setStep(3)
       showToast('Cita reservada exitosamente', 'success')
     } catch (error) {
       console.error('Error reserving slot:', error)

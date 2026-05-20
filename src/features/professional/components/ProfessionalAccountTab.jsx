@@ -1,10 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
+import { useLocation } from 'react-router-dom'
 import { useAuth } from '@features/auth'
 import { ChangePasswordForm } from '@features/auth'
 import { getCurrencyForCountry, PROFESSIONAL_COUNTRIES } from '@shared/constants/subscriptionPlans'
 import { statsService } from '@shared/services/statsService'
 import { professionalsService } from '@shared/services/professionalsService'
+import { showToast } from '@shared/ui/Toast'
+import apiClient from '@shared/api/client'
 
 const inputClass = `w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg
   text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-sky-500 focus:border-transparent transition outline-none
@@ -80,11 +83,28 @@ const Row = ({ label, description, children }) => (
 // ─── Main component ─────────────────────────────────────────────────────────────
 const ProfessionalAccountTab = () => {
     const { user, updateProfile } = useAuth()
+    const location = useLocation()
     const originalProfessional = useRef({ especialidad: '', cedula: '' })
     const [saving, setSaving]     = useState(false)
     const [saved, setSaved]       = useState(false)
     const [saveError, setSaveError] = useState(null)
     const [showPasswordForm, setShowPasswordForm] = useState(false)
+    const [mpConnected, setMpConnected] = useState(false)
+    const [mpConnecting, setMpConnecting] = useState(false)
+
+    // Handle OAuth callback: ?mp=connected or ?mp=error
+    useEffect(() => {
+        const params = new URLSearchParams(location.search)
+        const mp = params.get('mp')
+        if (!mp) return
+        if (mp === 'connected') {
+            setMpConnected(true)
+            showToast('MercadoPago conectado correctamente.', 'success')
+        } else if (mp === 'error') {
+            showToast('No se pudo conectar MercadoPago. Intenta de nuevo.', 'error')
+        }
+        window.history.replaceState({}, '', location.pathname)
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
     const [profile, setProfile] = useState({
         nombre:       user?.nombre   || user?.name  || '',
@@ -112,6 +132,7 @@ const ProfessionalAccountTab = () => {
             especialidad,
             cedula,
         })
+        setMpConnected(user.mpConnected ?? false)
     }, [user])
 
     const [notif, setNotif] = useState({ emailReminders: true })
@@ -158,6 +179,17 @@ const ProfessionalAccountTab = () => {
         } else {
             setSaved(true)
             setTimeout(() => setSaved(false), 2500)
+        }
+    }
+
+    const handleConnectMP = async () => {
+        setMpConnecting(true)
+        try {
+            const { url } = await apiClient.get('/auth/mercadopago/connect')
+            window.location.href = url
+        } catch {
+            showToast('No se pudo iniciar la conexión con MercadoPago.', 'error')
+            setMpConnecting(false)
         }
     }
 
@@ -223,6 +255,30 @@ const ProfessionalAccountTab = () => {
                     <span className="text-sm text-gray-700 dark:text-gray-300">
                         {countryInfo?.symbol} {countryInfo?.currency}
                     </span>
+                </Row>
+            </Section>
+
+            {/* ── Payments ── */}
+            <Section title="Cobros" subtitle="Conecta tu cuenta de MercadoPago para recibir pagos de tus pacientes">
+                <Row
+                    label="MercadoPago"
+                    description={mpConnected ? 'Cuenta conectada. Los pagos se depositan directamente.' : 'Conecta tu cuenta para aceptar pagos en línea.'}
+                >
+                    {mpConnected ? (
+                        <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                            <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                            Conectado
+                        </span>
+                    ) : (
+                        <button
+                            type="button"
+                            disabled={mpConnecting}
+                            onClick={handleConnectMP}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-sky-500 hover:bg-sky-600 text-white transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                            {mpConnecting ? 'Redirigiendo...' : 'Conectar cuenta'}
+                        </button>
+                    )}
                 </Row>
             </Section>
 

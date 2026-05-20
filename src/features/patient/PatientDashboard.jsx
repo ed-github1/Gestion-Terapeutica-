@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@features/auth/AuthContext'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { showToast } from '@shared/ui/Toast'
 import { AnimatePresence } from 'motion/react'
 
 import AppointmentRequest from './AppointmentRequest'
@@ -95,11 +96,22 @@ const PatientDashboard = () => {
     }
   }
 
-  const dismissedAptIds = useRef(_loadDismissedIds())
+  const dismissedAptIds   = useRef(_loadDismissedIds())
+  // Tracks IDs surfaced in THIS page session — resets on every page load.
+  // Prevents the same appointment from triggering the modal more than once
+  // per session via socket reconnects or concurrent hook + socket events.
+  const sessionSurfacedIds = useRef(new Set())
+
+  const _resolveAptId = (apt) =>
+    apt?._id || apt?.id || apt?.appointmentId ||
+    apt?.data?.appointmentId || apt?.data?._id || apt?.data?.id || null
+
   const _markDismissed = (apt) => {
-    const id = apt?._id || apt?.id || apt?.appointmentId || apt?.data?.appointmentId || apt?.data?._id || apt?.data?.id
+    const id = _resolveAptId(apt)
     if (id) {
-      dismissedAptIds.current.add(String(id))
+      const s = String(id)
+      dismissedAptIds.current.add(s)
+      sessionSurfacedIds.current.add(s)   // also block re-trigger this session
       _saveDismissedIds(dismissedAptIds.current)
     }
   }
@@ -112,6 +124,24 @@ const PatientDashboard = () => {
   }, [lastBooking]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { loadDashboardData() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Handle MercadoPago return after appointment payment
+  const location = useLocation()
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const payment = params.get('payment')
+    if (!payment) return
+    if (payment === 'success') {
+      showToast('Pago exitoso. Tu cita ha sido confirmada.', 'success')
+      refreshAppointments()
+    } else if (payment === 'failure') {
+      showToast('El pago no pudo procesarse. Intenta de nuevo.', 'error')
+    } else if (payment === 'pending') {
+      showToast('Tu pago está siendo procesado. Te notificaremos cuando se confirme.', 'info')
+    }
+    // Clean the query string without reloading
+    window.history.replaceState({}, '', location.pathname)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Derive next appointment from the shared list reactively
   useEffect(() => {
@@ -133,9 +163,18 @@ const PatientDashboard = () => {
   const appointmentToPayRef = useRef(appointmentToPay)
   useEffect(() => { appointmentToPayRef.current = appointmentToPay }, [appointmentToPay])
 
+  // Suppress acceptance modal while the patient is actively booking (avoids race where
+  // the backend socket notification arrives before onPatientCreated adds the ID to dismissed set)
+  const isBookingRef = useRef(showAppointmentRequest)
+  useEffect(() => { isBookingRef.current = showAppointmentRequest }, [showAppointmentRequest])
+
   // Surface any pending appointment from notifications or direct API on mount + reconnect
   usePendingAppointmentCheck({
     onPendingFound: (apt) => {
+      if (isBookingRef.current) return
+      const id = _resolveAptId(apt)
+      if (id && sessionSurfacedIds.current.has(String(id))) return
+      if (id) sessionSurfacedIds.current.add(String(id))
       setAppointmentToAccept(apt)
       const uid = apt?.professionalUserId || apt?.data?.professionalUserId
       if (uid) _setProUserId(uid)
@@ -150,9 +189,14 @@ const PatientDashboard = () => {
     if (!pendingAppointment) return
     // Ignore appointments the patient just created themselves
     if (pendingAppointment.createdBy === 'patient') return
-    const id = pendingAppointment?._id || pendingAppointment?.id ||
-      pendingAppointment?.appointmentId || pendingAppointment?.data?.appointmentId
-    if (id && dismissedAptIds.current.has(String(id))) return
+    if (isBookingRef.current) return
+    const id = _resolveAptId(pendingAppointment)
+    if (id) {
+      const s = String(id)
+      if (dismissedAptIds.current.has(s) || sessionSurfacedIds.current.has(s)) return
+      sessionSurfacedIds.current.add(s)
+    }
+    if (appointmentToAcceptRef.current) return
     setAppointmentToAccept(pendingAppointment)
     const uid = pendingAppointment?.professionalUserId || pendingAppointment?.data?.professionalUserId
     if (uid) _setProUserId(uid)
@@ -250,7 +294,7 @@ const PatientDashboard = () => {
             }
             professionalUserId={professionalUserId}
             onSuccess={handleAppointmentRequestSuccess}
-            onPatientCreated={(id) => { if (id) dismissedAptIds.current.add(id) }}
+            onPatientCreated={(id) => { if (id) { dismissedAptIds.current.add(id); _saveDismissedIds(dismissedAptIds.current) } }}
           />
         )}
 
@@ -282,7 +326,7 @@ const PatientDashboard = () => {
               null
             }
           />
-        )} */}
+        )}
       </AnimatePresence>
 
       <CrisisButton />

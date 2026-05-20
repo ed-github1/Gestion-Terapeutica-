@@ -102,6 +102,10 @@ export const appointmentsService = {
   pay: (id, paymentData) =>
     apiClient.post(`/appointments/${id}/pay`, paymentData),
 
+  /** Create a MercadoPago one-time preference for an appointment — returns { initPoint, preferenceId } */
+  createMercadoPagoPreference: (id) =>
+    apiClient.post(`/appointments/${id}/mercadopago/preference`),
+
   /** Professional creates an appointment for a patient.
    * Uses POST /appointments (not /reserve which is patient-only).
    * professionalId must be supplied by the caller from the auth context.

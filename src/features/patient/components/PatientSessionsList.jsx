@@ -25,7 +25,7 @@ const STATUS_CONFIG = {
 const statusCfg = (s) => STATUS_CONFIG[s] || STATUS_CONFIG.reserved
 
 const ACTIVE_STATUSES  = new Set(['scheduled', 'confirmed', 'reserved', 'accepted', 'pending', 'paid'])
-const VIDEO_STATUSES   = new Set(['scheduled', 'confirmed', 'reserved', 'accepted'])
+const VIDEO_STATUSES   = new Set(['scheduled', 'confirmed', 'reserved', 'accepted', 'paid'])
 
 const derivedStatus = (apt) => {
   if (!ACTIVE_STATUSES.has(apt.status)) return apt.status
