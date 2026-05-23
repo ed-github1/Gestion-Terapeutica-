@@ -99,9 +99,9 @@ const ProfessionalAccountTab = () => {
         if (!mp) return
         if (mp === 'connected') {
             setMpConnected(true)
-            showToast('MercadoPago conectado correctamente.', 'success')
+            showToast('Cuenta de MercadoPago conectada', 'success')
         } else if (mp === 'error') {
-            showToast('No se pudo conectar MercadoPago. Intenta de nuevo.', 'error')
+            showToast('Error al conectar MercadoPago, intenta de nuevo', 'error')
         }
         window.history.replaceState({}, '', location.pathname)
     }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -185,7 +185,8 @@ const ProfessionalAccountTab = () => {
     const handleConnectMP = async () => {
         setMpConnecting(true)
         try {
-            const { url } = await apiClient.get('/auth/mercadopago/connect')
+            const res = await apiClient.get('/auth/mercadopago/connect')
+            const url = res.data?.url
             window.location.href = url
         } catch {
             showToast('No se pudo iniciar la conexión con MercadoPago.', 'error')
