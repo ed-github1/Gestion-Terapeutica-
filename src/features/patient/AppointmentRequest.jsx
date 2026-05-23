@@ -285,17 +285,22 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
       const amount = apptData?.amount ?? selectedType?.price ?? 0
 
       if (amount > 0) {
-        const prefRes = await appointmentsService.createMercadoPagoPreference(appointmentId)
-        const { initPoint, sandboxInitPoint } = prefRes.data?.data ?? prefRes.data ?? {}
-        const url = import.meta.env.DEV ? (sandboxInitPoint || initPoint) : initPoint
-        if (url) {
-          window.location.href = url
-          return
+        try {
+          const prefRes = await appointmentsService.createMercadoPagoPreference(appointmentId)
+          const { initPoint, sandboxInitPoint } = prefRes.data?.data ?? prefRes.data ?? {}
+          const url = import.meta.env.DEV ? (sandboxInitPoint || initPoint) : initPoint
+          if (url) {
+            window.location.href = url
+            return
+          }
+        } catch (prefError) {
+          console.error('Error creating MercadoPago preference:', prefError)
+          showToast('Tu cita fue reservada, pero no pudimos iniciar el pago. Intenta pagar más tarde.', 'warning')
         }
       }
 
       setStep(3)
-      showToast('Cita reservada exitosamente', 'success')
+      if (amount === 0) showToast('Cita reservada exitosamente', 'success')
     } catch (error) {
       console.error('Error reserving slot:', error)
       showToast(`${error.message}`, 'error')
@@ -309,18 +314,7 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
 
     setLoading(true)
     try {
-      const aptId = appointmentData?._id || appointmentData?.id || null
-      await appointmentsService.pay(aptId, {
-        amount: chargeAmount,
-        totalAmount: paymentData.amount,
-        currency: 'MXN',
-        paymentMethod: 'card',
-        cardLast4: (cardFields.cardNumber || paymentData.cardNumber || '').replace(/\s/g, '').slice(-4),
-        splitPayment: false,
-        remainingAmount: 0,
-      })
-
-      setStep(3) // Success
+      setStep(3)
       showToast('Pago procesado exitosamente', 'success')
       setTimeout(() => {
         onSuccess?.(appointmentData)
@@ -614,12 +608,12 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
                 </div>
                 <h3 className="text-[16px] font-bold text-gray-900 dark:text-white mb-1">¡Reserva confirmada!</h3>
                 <p className="text-[13px] text-gray-500 dark:text-gray-400 mb-4 leading-relaxed">
-                  Tu pago fue procesado y la cita queda confirmada.
+                  Tu solicitud fue enviada al profesional.
                 </p>
                 <div className="w-full bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700 mb-5 text-left overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-2.5">
                     <p className="text-[13px] font-semibold text-gray-800 dark:text-gray-200">{selectedType?.label}</p>
-                    <span className="text-[13px] font-bold text-emerald-600 dark:text-emerald-400">{currencySymbol}{chargeAmount} pagado</span>
+                    <span className="text-[13px] font-bold text-emerald-600 dark:text-emerald-400">{currencySymbol}{chargeAmount > 0 ? `${chargeAmount} pagado` : 'Sin costo'}</span>
                   </div>
                   <div className="px-4 py-2 text-[11px] text-gray-400 dark:text-gray-500">
                     {new Date(`${selectedDate}T00:00:00`).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'long' })}

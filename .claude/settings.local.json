@@ -4,7 +4,12 @@
       "Bash(Remove-Item \"c:\\\\Users\\\\Eddie\\\\TotalmenteGestionTerapeuticaWebApp\\\\TotalmenteGestionTerapeutica-Frontend\\\\src\\\\features\\\\professional\\\\components\\\\dashboard\\\\SessionsCalendarPanel.jsx\")",
       "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\Eddie\\\\TotalmenteGestionTerapeuticaWebApp\\\\TotalmentGestionTerapeutica-Backend\\\\src\\\\controllers\" -Directory)",
       "Bash(Select-Object -ExpandProperty Name)",
-      "Bash(xargs grep -l \"webhook\\\\|mercado\\\\|payment\")"
+      "Bash(xargs grep -l \"webhook\\\\|mercado\\\\|payment\")",
+      "Bash(ls \"c:\\\\Users\\\\Eddie\\\\TotalmenteGestionTerapeuticaWebApp\")",
+      "Read(//c/Users/Eddie/TotalmenteGestionTerapeuticaWebApp/**)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\Eddie\\\\TotalmenteGestionTerapeuticaWebApp\\\\TotalmenteGestionTerapeutica-Frontend\" -Recurse -Include \"*.jsx\", \"*.js\", \"*.json\")",
+      "Bash(Select-Object -First 50)",
+      "Bash(Format-Table FullName)"
     ]
   }
 }

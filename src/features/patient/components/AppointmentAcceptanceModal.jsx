@@ -154,11 +154,7 @@ const AppointmentAcceptanceModal = ({ appointment, onClose, onAccepted, onReject
       const id = resolveId(appointment)
       if (!id) throw new Error('No se pudo resolver el ID de la cita')
 
-      const origin = window.location.origin
-      const res = await appointmentsService.accept(id, {
-        successUrl: `${origin}/dashboard/appointments?payment=success`,
-        cancelUrl: `${origin}/dashboard/appointments?payment=cancelled`,
-      })
+      const res = await appointmentsService.accept(id)
 
       const proId = resolveProUserId()
       if (proId) {
@@ -171,11 +167,16 @@ const AppointmentAcceptanceModal = ({ appointment, onClose, onAccepted, onReject
         })
       }
 
-      if (res.data?.requiresPayment && res.data?.checkoutUrl) {
+      if (res.data?.requiresPayment) {
         showToast('Redirigiendo al pago...', 'info')
-        onAccepted?.(appointment) // persist dismissal before page navigates away
-        window.location.href = res.data.checkoutUrl
-        return
+        onAccepted?.(appointment)
+        const prefRes = await appointmentsService.createMercadoPagoPreference(id)
+        const { initPoint, sandboxInitPoint } = prefRes.data?.data ?? prefRes.data ?? {}
+        const url = import.meta.env.DEV ? (sandboxInitPoint || initPoint) : initPoint
+        if (url) {
+          window.location.href = url
+          return
+        }
       }
 
       showToast('Cita aceptada.', 'success')

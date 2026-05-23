@@ -98,10 +98,6 @@ export const appointmentsService = {
   reject: (id, reason) =>
     apiClient.patch(`/appointments/${id}/reject`, { reason }),
 
-  /** Patient pays for an accepted appointment — returns { checkoutUrl } or { success } */
-  pay: (id, paymentData) =>
-    apiClient.post(`/appointments/${id}/pay`, paymentData),
-
   /** Create a MercadoPago one-time preference for an appointment — returns { initPoint, preferenceId } */
   createMercadoPagoPreference: (id) =>
     apiClient.post(`/appointments/${id}/mercadopago/preference`),

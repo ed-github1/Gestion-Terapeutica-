@@ -9,8 +9,8 @@
  */
 import { useState } from 'react'
 import { motion } from 'motion/react'
-import { CreditCard, X } from 'lucide-react'
 import { appointmentsService } from '@shared/services/appointmentsService'
+import { CreditCard, X } from 'lucide-react'
 import { showToast } from '@shared/ui/Toast'
 import { socketNotificationService } from '@shared/services/socketNotificationService'
 import { toLocalDateObj } from '@shared/utils/appointments'
@@ -53,22 +53,19 @@ const AppointmentPaymentModal = ({ appointment, onClose, onPaymentSuccess, profe
   const handleSubmit = async () => {
     setLoading(true)
     try {
-      let checkoutUrl = null
-      const res = await appointmentsService.pay(aptId, {
-        amount: price,
-        currency: 'EUR',
-        paymentMethod: 'card',
-      })
-      const data = res.data?.data || res.data
-      checkoutUrl = data?.checkoutUrl || null
-
-      if (checkoutUrl) {
-        window.location.href = checkoutUrl
+      const prefRes = await appointmentsService.createMercadoPagoPreference(aptId)
+      const { initPoint, sandboxInitPoint } = prefRes.data?.data ?? prefRes.data ?? {}
+      const url = import.meta.env.DEV ? (sandboxInitPoint || initPoint) : initPoint
+      if (url) {
+        showToast('Redirigiendo al pago...', 'info')
+        notifyProfessional(appointment)
+        onPaymentSuccess?.(appointment)
+        window.location.href = url
         return
       }
-
+      // No redirect URL — no payment required
       notifyProfessional(appointment)
-      showToast('Pago procesado exitosamente. ¡Cita confirmada!', 'success')
+      showToast('Cita confirmada.', 'success')
       onPaymentSuccess?.(appointment)
       onClose()
     } catch (err) {

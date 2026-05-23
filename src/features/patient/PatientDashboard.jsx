@@ -136,8 +136,10 @@ const PatientDashboard = () => {
       refreshAppointments()
     } else if (payment === 'failure') {
       showToast('El pago no pudo procesarse. Intenta de nuevo.', 'error')
+      refreshAppointments()
     } else if (payment === 'pending') {
       showToast('Tu pago está siendo procesado. Te notificaremos cuando se confirme.', 'info')
+      refreshAppointments()
     }
     // Clean the query string without reloading
     window.history.replaceState({}, '', location.pathname)
