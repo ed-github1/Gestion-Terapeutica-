@@ -9,6 +9,7 @@ import {
 import { appointmentsService } from '@shared/services/appointmentsService'
 import { ROUTES } from '@shared/constants/routes'
 import { resolvePatientName } from '../utils/dashboardUtils'
+import { getAvatarColor } from '@shared/utils/avatarColor'
 
 /* ═══════════════════════════════════════════════════════════════
    1. HELPERS
@@ -372,7 +373,9 @@ const SessionSummary = () => {
   const hasEndTime = !!appointment?.callEndedAt
   const duration = fmtDuration(appointment?.callDuration)
   const patientName = resolvePatientName(appointment)
-  const avatar = patientName.charAt(0).toUpperCase()
+  const patientId = appointment?.patientId || appointment?.patient?._id
+  const avatar = patientName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+  const avatarCls = getAvatarColor(patientId || patientName)
   const timeRange = hasEndTime ? `${startTime} – ${endTime}` : startTime
 
   /* ═══════════════════════════════════════════════════════════
@@ -400,8 +403,8 @@ const SessionSummary = () => {
 
           {/* Avatar + name + status */}
           <div className="flex flex-col items-start mb-6">
-            <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center mb-3">
-              <span className="text-lg font-bold text-white">{avatar}</span>
+            <div className={`w-12 h-12 rounded-full ${avatarCls} flex items-center justify-center mb-3`}>
+              <span className="text-lg font-bold">{avatar}</span>
             </div>
             <h1 className="text-lg font-bold text-gray-900 dark:text-white leading-tight mb-1.5">{patientName}</h1>
             <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full ${isCompleted

@@ -221,6 +221,7 @@ const PatientPersonalDiary = () => {
                 onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSave(e) }}
                 placeholder="Escribe cómo te has sentido hoy…"
                 rows={5}
+                maxLength={4000}
                 className="w-full outline-none resize-none bg-transparent text-sm text-gray-800 dark:text-gray-200 placeholder-gray-300 dark:placeholder-gray-600"
                 style={{
                   paddingTop: '14px',

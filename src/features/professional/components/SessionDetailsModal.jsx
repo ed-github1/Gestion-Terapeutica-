@@ -1,5 +1,6 @@
 import { motion } from 'motion/react'
 import { X, FileText, MessageSquare, Clock, Target, AlertTriangle, BookOpen } from 'lucide-react'
+import { getAvatarColor } from '@shared/utils/avatarColor'
 
 /**
  * Get patient initials from name
@@ -32,15 +33,7 @@ const SessionDetailsModal = ({ session, onClose, onJoinVideo, onAddNote, onMessa
     const timeStr = startTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
     const endTimeStr = endTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
     
-    // Avatar color based on name
-    const avatarColors = [
-        'bg-orange-200 text-orange-900',
-        'bg-sky-200 text-blue-950',
-        'bg-emerald-200 text-emerald-900',
-        'bg-teal-200 text-teal-900',
-        'bg-sky-200 text-sky-800'
-    ]
-    const avatarColor = avatarColors[patientName.length % avatarColors.length]
+    const avatarColor = getAvatarColor(session.patientId || session.patient?._id || patientName)
 
     const handleStartSession = () => {
         console.log('handleStartSession called, session:', session)

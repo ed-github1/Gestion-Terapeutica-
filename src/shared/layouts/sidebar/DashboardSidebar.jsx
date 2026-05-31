@@ -88,7 +88,7 @@ const DashboardSidebar = ({ userRole = 'professional', onClose }) => {
             />
 
             <SidebarProBanner
-                show={showProBanner}
+                show={false}
                 onClose={handleCloseBanner}
                 prefersReducedMotion={prefersReducedMotion}
             />

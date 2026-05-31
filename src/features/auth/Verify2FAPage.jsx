@@ -19,6 +19,8 @@ const Verify2FAPage = () => {
   const [code, setCode] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [resending, setResending] = useState(false)
+  const [resendCooldown, setResendCooldown] = useState(0)
+  const cooldownRef = useRef(null)
   const [error, setError] = useState(null)
   const [info, setInfo] = useState(null)
 
@@ -61,7 +63,6 @@ const Verify2FAPage = () => {
           data.accessToken ??
           data.access_token ??
           null
-        console.debug('[Verify2FA] verify-2fa response:', JSON.stringify(data))
         if (!realToken) {
           setError('El servidor no devolvió un token válido. Contactá soporte.')
           return
@@ -112,7 +113,18 @@ const Verify2FAPage = () => {
     }
   }
 
+  const startCooldown = () => {
+    setResendCooldown(60)
+    cooldownRef.current = setInterval(() => {
+      setResendCooldown(prev => {
+        if (prev <= 1) { clearInterval(cooldownRef.current); return 0 }
+        return prev - 1
+      })
+    }, 1000)
+  }
+
   const handleResend = async () => {
+    if (resendCooldown > 0) return
     if (!email || !password) {
       setError('No se pueden reenviar las credenciales. Volvé al inicio de sesión.')
       return
@@ -129,6 +141,7 @@ const Verify2FAPage = () => {
         setTempToken(newTempToken)
         setCode('')
         setInfo('Código reenviado. Revisá tu correo.')
+        startCooldown()
       } else {
         setError('No se pudo reenviar el código.')
       }
@@ -225,11 +238,11 @@ const Verify2FAPage = () => {
             <button
               type="button"
               onClick={handleResend}
-              disabled={resending || !email}
+              disabled={resending || !email || resendCooldown > 0}
               className="inline-flex items-center gap-1.5 text-xs text-blue-700 hover:text-blue-800 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${resending ? 'animate-spin' : ''}`} />
-              {resending ? 'Reenviando...' : 'Reenviar código'}
+              {resending ? 'Reenviando...' : resendCooldown > 0 ? `Reenviar en ${resendCooldown}s` : 'Reenviar código'}
             </button>
           </div>
         </div>

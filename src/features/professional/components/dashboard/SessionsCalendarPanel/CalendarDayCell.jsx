@@ -11,9 +11,6 @@ const CalendarDayCell = ({ day, cellDate, isToday, isSelected, info, onSelect, c
             ? 'relative flex flex-col items-center justify-center py-0.5 rounded-xl transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-1 '
             : 'relative flex flex-col items-center justify-center py-1 rounded-2xl transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-1 '
 
-    if (!isSelected && !isToday && !info && hasAvailability) {
-        buttonClass += ' ring-1 ring-inset ring-sky-200'
-    }
 
     let circleClass = 'flex items-center justify-center rounded-full transition-all leading-none '
     circleClass += isLarge

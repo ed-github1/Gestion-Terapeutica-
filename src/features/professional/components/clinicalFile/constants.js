@@ -7,18 +7,7 @@ import {
 export const BRAND_GRAD = 'from-[#54C0E8] to-[#0075C9]'
 export const getInitials = (nombre, apellido) =>
   `${nombre?.[0] || ''}${apellido?.[0] || ''}`.toUpperCase()
-export const avatarPalette = [
-  'bg-sky-100 dark:bg-sky-900/50 text-blue-800 dark:text-sky-300',
-  'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300',
-  'bg-violet-100 dark:bg-violet-900/50 text-violet-700 dark:text-violet-300',
-  'bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300',
-  'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300',
-  'bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300',
-]
-export const getAvatarColor = (id) => {
-  const n = typeof id === 'number' ? id : String(id).split('').reduce((acc, c) => acc + c.charCodeAt(0), 0)
-  return avatarPalette[n % avatarPalette.length] || avatarPalette[0]
-}
+export { getAvatarColor } from '@shared/utils/avatarColor'
 
 // ─── Relative date ────────────────────────────────────────────────────────────
 export const rel = (iso) => {

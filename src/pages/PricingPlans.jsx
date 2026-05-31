@@ -3,11 +3,22 @@ import { motion } from 'motion/react'
 import { useNavigate } from 'react-router-dom'
 import { PLAN_TYPES, PLAN_PRICING, PLAN_LIMITS } from '@shared/constants/subscriptionPlans'
 import { useDarkModeContext } from '@shared/DarkModeContext'
+import { useAuth } from '@features/auth'
 
 const PricingPlans = () => {
   const navigate = useNavigate()
   const { dark } = useDarkModeContext()
+  const { user, isAuthenticated } = useAuth()
   const [billingPeriod, setBillingPeriod] = useState('monthly')
+
+  const handleBack = () => {
+    if (!isAuthenticated || !user) return navigate('/')
+    const role = user.role || user.rol
+    if (role === 'health_professional' || role === 'professional') return navigate('/dashboard/professional')
+    if (role === 'patient' || role === 'pacient') return navigate('/dashboard/patient')
+    if (role === 'admin') return navigate('/dashboard/admin')
+    navigate('/')
+  }
 
   const handleSelectPlan = (planType) => {
     if (planType === PLAN_TYPES.GRATUITO) {
@@ -36,7 +47,7 @@ const PricingPlans = () => {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate(-1)}
+              onClick={handleBack}
               className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             >
               <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -127,49 +138,6 @@ const PricingPlans = () => {
           />
         </div>
 
-        {/* Guarantee strip */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm px-6 py-4 flex flex-col sm:flex-row items-center justify-center gap-4 text-center sm:text-left mb-14"
-        >
-          <div className="w-10 h-10 rounded-xl bg-[#0075C9]/10 dark:bg-[#54C0E8]/10 flex items-center justify-center shrink-0">
-            <span className="text-lg font-black text-[#0075C9] dark:text-[#54C0E8]">30</span>
-          </div>
-          <div>
-            <p className="font-bold text-gray-900 dark:text-white text-sm">Garantía de devolución de 30 días</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Si no estás satisfecho en los primeros 30 días, te devolvemos tu dinero sin preguntas.</p>
-          </div>
-        </motion.div>
-
-        {/* FAQ Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35 }}
-          className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-8"
-        >
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-6">Preguntas frecuentes</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <FAQItem
-              question="¿Puedo cambiar de plan en cualquier momento?"
-              answer="Sí, puedes actualizar o degradar tu plan cuando quieras. Los cambios se aplican inmediatamente."
-            />
-            <FAQItem
-              question="¿Qué métodos de pago aceptan?"
-              answer="Aceptamos tarjetas de crédito/débito, PayPal y transferencias bancarias para planes Empresa."
-            />
-            <FAQItem
-              question="¿Hay contrato de permanencia?"
-              answer="No, todos nuestros planes son sin compromiso. Puedes cancelar en cualquier momento."
-            />
-            <FAQItem
-              question="¿Los datos están seguros?"
-              answer="Sí, cumplimos con HIPAA y GDPR. Todos los datos están cifrados y almacenados de forma segura."
-            />
-          </div>
-        </motion.div>
       </div>
     </div>
     </div>
@@ -284,16 +252,6 @@ const PlanCard = ({ planType, pricing, billingPeriod, onSelect, delay }) => {
         </div>
       </div>
     </motion.div>
-  )
-}
-
-// FAQ Item Component
-const FAQItem = ({ question, answer }) => {
-  return (
-    <div className="bg-gray-50 dark:bg-gray-700/40 rounded-2xl p-5 border border-gray-100 dark:border-gray-700">
-      <h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-1.5">{question}</h3>
-      <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{answer}</p>
-    </div>
   )
 }
 

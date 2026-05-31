@@ -25,6 +25,7 @@ const SessionsCalendarPanel = ({
     setDiaryPatient,
     setShowCalendar,
     handleMarkComplete,
+    handleRequestPayment,
     quickActionsSlot,
     totalPatients,
     sessionsOnly = false,
@@ -46,6 +47,7 @@ const SessionsCalendarPanel = ({
             onViewDiary={setDiaryPatient}
             onSchedule={() => setShowCalendar(true)}
             onMarkComplete={handleMarkComplete}
+            onRequestPayment={handleRequestPayment}
             nextTimestamp={nextTimestamp}
             nextCountdown={nextCountdown}
             nextIsImminent={nextIsImminent}

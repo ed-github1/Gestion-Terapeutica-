@@ -400,6 +400,7 @@ const PatientRegisterPage = () => {
                   <input
                     id="dateOfBirth"
                     type="date"
+                    autoComplete="bday"
                     {...register('dateOfBirth', { required: 'La fecha de nacimiento es requerida' })}
                     className={`${inputBase} ${errors.dateOfBirth ? inputErr : inputOk}`}
                     disabled={isSubmitting}
@@ -465,6 +466,7 @@ const PatientRegisterPage = () => {
                 <textarea
                   id="presentingConcern"
                   rows={4}
+                  maxLength={2000}
                   {...register('presentingConcern', { required: 'Este campo es requerido' })}
                   className={`${inputBase} resize-none ${errors.presentingConcern ? inputErr : inputOk}`}
                   placeholder="Comparte, en tus propias palabras, lo que te trae aquí…"
@@ -529,6 +531,7 @@ const PatientRegisterPage = () => {
                   </label>
                   <input
                     type="text"
+                    maxLength={500}
                     {...register('previousSurgeryDetail')}
                     className={`${inputBase} ${inputOk}`}
                     placeholder="Describe brevemente…"
@@ -552,6 +555,7 @@ const PatientRegisterPage = () => {
                   <label className="block text-[13px] font-semibold text-gray-700 mb-1.5">¿Cuál enfermedad?</label>
                   <input
                     type="text"
+                    maxLength={500}
                     {...register('currentIllnessDetail')}
                     className={`${inputBase} ${inputOk}`}
                     placeholder="Describe brevemente…"
@@ -575,6 +579,7 @@ const PatientRegisterPage = () => {
                   <label className="block text-[13px] font-semibold text-gray-700 mb-1.5">¿Cuál medicamento?</label>
                   <input
                     type="text"
+                    maxLength={500}
                     {...register('currentMedicationDetail')}
                     className={`${inputBase} ${inputOk}`}
                     placeholder="Nombre del medicamento…"
@@ -589,6 +594,8 @@ const PatientRegisterPage = () => {
                 </label>
                 <input
                   type="text"
+                  autoComplete="off"
+                  maxLength={100}
                   {...register('healthSystemNumber')}
                   className={`${inputBase} ${inputOk}`}
                   placeholder="Obra social, seguro social, seguro de salud…"

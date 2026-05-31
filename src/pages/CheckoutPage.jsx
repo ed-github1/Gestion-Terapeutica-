@@ -82,13 +82,6 @@ const CheckoutPage = () => {
                 <p className="text-sm text-gray-500 dark:text-gray-400">Plan {plan.name}</p>
               </div>
             </div>
-            {/* Stripe wordmark */}
-            <div className="flex items-center gap-1.5">
-              <svg className="h-4.5 text-[#635BFF]" viewBox="0 0 60 25" fill="currentColor" aria-label="Stripe">
-                <path d="M59.64 14.28h-8.06c.19 1.93 1.6 2.55 3.2 2.55 1.64 0 2.96-.37 4.05-.95v3.32a14.4 14.4 0 01-4.56.88c-4.01 0-6.83-2.5-6.83-7.48 0-4.19 2.39-7.52 6.3-7.52 3.92 0 5.96 3.28 5.96 7.4 0 .4-.04 1.09-.06 1.8zm-5.92-5.84c-1.03 0-2.17.73-2.17 2.58h4.25c0-1.85-1.07-2.58-2.08-2.58zM40.95 20.23c-1.64 0-2.68-.89-2.68-2.25 0-2.55 2.52-2.98 4.92-2.98v.4c0 1.26-.13 3.4-2.24 3.4v1.43zm3.59-11.93c-1.52 0-3.37.55-4.72 1.54l1.28 2.62c.86-.58 1.9-.97 2.94-.97.89 0 1.55.37 1.55 1.15v.22c-3.93 0-7.42 1.22-7.42 4.93 0 2.74 2.07 4.4 4.74 4.4 1.52 0 2.64-.52 3.37-1.35l.28 1.07h3.6v-9.1c0-3.28-2.43-4.51-5.62-4.51zm-10.27 12.54c-.92 0-1.25-.49-1.25-1.73V12h2.85V8.57h-2.85V4.88h-4.34v3.69h-1.71V12h1.71v7.7c0 2.92 1.64 4.47 4.7 4.47 1.03 0 1.94-.19 2.7-.52v-3.25c-.4.12-.89.21-1.81.21v-.07zm-10.16.07V8.57h-4.34v13.34h4.34zm-2.17-15.3c1.43 0 2.58-1.13 2.58-2.52 0-1.4-1.15-2.53-2.58-2.53A2.53 2.53 0 0019.47 5.1c0 1.39 1.13 2.52 2.47 2.52zm-8.2 3.08c0-1.01.85-1.4 1.97-1.4.98 0 2.07.28 2.98.76V4.73a9.57 9.57 0 00-2.98-.46C12.2 4.27 9.56 6.2 9.56 9.01c0 4.5 5.96 3.74 5.96 5.8 0 1.16-.98 1.55-2.17 1.55-1.19 0-2.58-.43-3.62-1.04v3.44c1.04.46 2.13.7 3.59.7C16.6 19.46 20 17.6 20 14.5c0-4.71-6.23-4.01-6.23-5.81z"/>
-              </svg>
-              <span className="text-xs text-gray-400 dark:text-gray-500 font-medium">Pago seguro</span>
-            </div>
           </div>
         </header>
 
@@ -103,7 +96,7 @@ const CheckoutPage = () => {
               transition={{ duration: 0.3 }}
               className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden"
             >
-              <div className="h-1 w-full bg-[#0075C9]" />
+              <div className="h-1 w-full bg-linear-to-r from-[#0075C9] via-[#54C0E8] to-[#AEE058]" />
               <div className="p-7">
                 <div className="flex items-center gap-2 mb-1">
                   <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">{plan.name}</p>
@@ -122,13 +115,13 @@ const CheckoutPage = () => {
                       Plan {plan.name} · {billingPeriod === 'yearly' ? 'Anual' : 'Mensual'}
                     </span>
                     <span className="font-semibold text-gray-900 dark:text-white">
-                      €{billingPeriod === 'yearly' ? plan.price * 12 : plan.price}
+                      ${billingPeriod === 'yearly' ? plan.price * 12 : plan.price}
                     </span>
                   </div>
                   {billingPeriod === 'yearly' && savings > 0 && (
                     <div className="flex justify-between text-sm text-[#0075C9] dark:text-[#54C0E8]">
                       <span>Descuento anual (20%)</span>
-                      <span>-€{savings}</span>
+                      <span>-${savings}</span>
                     </div>
                   )}
                   <div className="border-t border-gray-200 dark:border-gray-600 pt-3 flex justify-between items-end">
@@ -138,10 +131,10 @@ const CheckoutPage = () => {
                     <div className="text-right">
                       {billingPeriod === 'yearly' && (
                         <p className="text-xs text-gray-400 dark:text-gray-500 mb-0.5">
-                          €{monthlyEquiv}/mes
+                          ${monthlyEquiv}/mes
                         </p>
                       )}
-                      <p className="text-2xl font-extrabold text-gray-900 dark:text-white">€{price}</p>
+                      <p className="text-2xl font-extrabold text-gray-900 dark:text-white">${price}</p>
                     </div>
                   </div>
                 </div>
@@ -175,7 +168,7 @@ const CheckoutPage = () => {
             >
               {/* Payment panel */}
               <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
-                <div className="h-1 w-full bg-[#0075C9]" />
+                <div className="h-1 w-full bg-linear-to-r from-[#0075C9] via-[#54C0E8] to-[#AEE058]" />
                 <div className="p-7">
                   <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1">Pago seguro con Stripe</h2>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
@@ -212,7 +205,7 @@ const CheckoutPage = () => {
                         Redirigiendo…
                       </>
                     ) : (
-                      `Ir a pagar · €${price}`
+                      `Ir a pagar · $${price}`
                     )}
                   </motion.button>
 
@@ -222,32 +215,7 @@ const CheckoutPage = () => {
                 </div>
               </div>
 
-              {/* Payment methods strip */}
-              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-4">
-                <div className="flex items-center justify-center gap-2 flex-wrap">
-                  {['Visa', 'Mastercard', 'Apple Pay', 'Google Pay', 'SSL 256-bit', 'PCI DSS'].map((label) => (
-                    <span
-                      key={label}
-                      className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
-                    >
-                      {label}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* 30-day guarantee */}
-              <div className="bg-[#0075C9]/5 dark:bg-[#0075C9]/10 rounded-2xl border border-[#0075C9]/20 dark:border-[#0075C9]/30 p-4 flex items-start gap-3">
-                <div className="w-8 h-8 rounded-xl bg-[#0075C9]/10 dark:bg-[#0075C9]/20 flex items-center justify-center shrink-0">
-                  <span className="text-sm font-black text-[#0075C9] dark:text-[#54C0E8]">30</span>
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">Garantía de devolución de 30 días</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                    Si no estás satisfecho en los primeros 30 días, te devolvemos tu dinero sin preguntas.
-                  </p>
-                </div>
-              </div>
+     
             </motion.div>
 
           </div>

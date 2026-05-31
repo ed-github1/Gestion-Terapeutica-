@@ -46,7 +46,7 @@ const ProfessionalAccount = () => {
     }
 
     return (
-        <div className="h-screen bg-gray-100 dark:bg-gray-950 flex p-3 md:p-4">
+        <div className="h-screen bg-gray-100  dark:bg-gray-950  flex p-3 md:p-4">
             <div className="flex-1 flex flex-col bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden">
 
                 {/* ── Top bar: breadcrumb + tabs ── */}
@@ -54,7 +54,7 @@ const ProfessionalAccount = () => {
 
                     {/* tabs at top-right */}
                     <div className="flex items-center gap-2 ml-auto">
-                        <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
+                        <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-900 rounded-xl p-1">
                             {TABS.map(t => {
                                 const isActive = active === t.id
                                 const Icon = t.icon
@@ -84,7 +84,7 @@ const ProfessionalAccount = () => {
                 </div>
 
                 {/* ── Content ── */}
-                <div className="flex-1 overflow-y-auto">
+                <div className="flex-1 overflow-y-auto bg-white  dark:bg-gray-900">
                     {/* Profile hero */}
                     <div className="px-8 pt-8 pb-6 border-b border-gray-100 dark:border-gray-800">
                         <div className="w-20 h-20 rounded-full bg-linear-to-br from-blue-700 to-sky-400 flex items-center justify-center text-white text-2xl font-bold mb-4">

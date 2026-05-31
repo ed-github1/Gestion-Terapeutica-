@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { motion } from 'motion/react'
-import { X, Check, Wallet } from 'lucide-react'
+import { X, Check, Wallet, TriangleAlert } from 'lucide-react'
 import { showToast } from '@shared/ui/Toast'
 import { useAuth } from '@features/auth'
 import { getCurrencyForCountry } from '@shared/constants/subscriptionPlans'
 import { professionalsService } from '@shared/services/professionalsService'
+import { useDarkModeContext } from '@shared/DarkModeContext'
 
 // Keys match the backend Professional.tarifas schema
 const SESSION_TYPES = [
@@ -58,6 +59,7 @@ function loadSettings() {
 
 export default function RatesPanel({ onClose }) {
   const { user } = useAuth()
+  const { dark } = useDarkModeContext()
   const [saved, setSaved] = useState(false)
 
   const countryInfo = getCurrencyForCountry(user?.country)
@@ -127,6 +129,7 @@ export default function RatesPanel({ onClose }) {
   }
 
   return createPortal(
+    <div className={dark ? 'dark' : ''}>
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -145,9 +148,7 @@ export default function RatesPanel({ onClose }) {
         {/* ── Header ── */}
         <div className="flex items-center justify-between px-5 pt-5 pb-4 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-transparent flex items-center justify-center shrink-0">
-              <Wallet className="w-4.5 h-4.5 text-gray-500 " />
-            </div>
+
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 leading-none">Configuración</p>
               <h2 className="text-base font-bold text-gray-900 dark:text-gray-100 leading-tight mt-0.5">Tarifas por sesión</h2>
@@ -210,6 +211,20 @@ export default function RatesPanel({ onClose }) {
               ))}
             </div>
           </div>
+
+          {/* ── MP fee notice ── */}
+          <div className="flex gap-3 p-3.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+            <TriangleAlert className="w-4 h-4 text-amber-500 dark:text-amber-400 shrink-0 mt-0.5" strokeWidth={2} />
+            <div className="space-y-0.5">
+              <p className="text-[11px] font-semibold text-gray-800 dark:text-gray-100 leading-snug">
+                MercadoPago cobra una comisión por transacción
+              </p>
+              <p className="text-[10px] text-gray-600 dark:text-gray-400 leading-snug">
+                Cada pago procesado lleva una tarifa del intermediario que varía según el país. Te recomendamos consultarla en tu cuenta de MercadoPago y considerarla al definir tus precios para recibir el monto deseado.
+              </p>
+            </div>
+          </div>
+
         </div>
 
         {/* ── Footer ── */}
@@ -218,18 +233,19 @@ export default function RatesPanel({ onClose }) {
             onClick={handleSave}
             className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 ${saved
               ? 'bg-emerald-500 text-white shadow-sm'
-              : 'bg-linear-to-r from-sky-500 to-teal-500 hover:from-sky-500 hover:to-teal-600 text-white shadow-sm hover:shadow-md active:scale-[0.98]'
+              : 'bg-blue-600 hover:from-sky-500 hover:to-teal-600 text-white shadow-sm hover:shadow-md active:scale-[0.98]'
               }`}
           >
             {saved ? (
               <><Check className="w-4 h-4" /> ¡Guardado!</>
             ) : (
-              <><Wallet className="w-4 h-4" /> Guardar tarifas</>
+              <>Guardar tarifas</>
             )}
           </button>
         </div>
       </motion.div>
-    </motion.div>,
+    </motion.div>
+    </div>,
     document.body
   )
 }

@@ -12,6 +12,8 @@ import { videoCallService } from '@shared/services/videoCallService';
 import { appointmentsService } from '@shared/services/appointmentsService';
 import { useAuth } from '../../auth/AuthContext';
 import PatientClinicalFile from './clinicalFile/PatientClinicalFile';
+import logoSymbol from '@/assets/SIMBOLO_LOGO_TOTALMENTE.png';
+import { getAvatarColor } from '@shared/utils/avatarColor';
 
 const ProfessionalVideoCallWebRTC = () => {
   const { appointmentId } = useParams();
@@ -282,6 +284,10 @@ const ProfessionalVideoCallWebRTC = () => {
   };
 
   useEffect(() => {
+    if (appointmentId) loadClinicalPatient();
+  }, [appointmentId]);
+
+  useEffect(() => {
     if (isInRoom) loadClinicalPatient();
   }, [isInRoom]);
 
@@ -342,10 +348,16 @@ const glassIdle = 'rgba(255,255,255,0.1)';
   const labelStyle = { fontSize: 10, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.02em' };
 
   return (
-    <div className="fixed inset-0 flex bg-black overflow-hidden">
+    <div className="fixed inset-0 flex bg-black overflow-hidden dark">
 
       {/* ── Left: Video area ─────────────────────────────────────────── */}
       <div className="relative flex-1 min-w-0 bg-gray-900 overflow-hidden">
+
+        {/* ── Watermark ─── */}
+        <img src={logoSymbol} alt="" aria-hidden="true"
+          className="absolute bottom-4 right-4 z-20 pointer-events-none select-none"
+          style={{ width: 48, opacity: 0.15 }}
+        />
 
         {/* ── Full-screen remote video ─── */}
         {remoteStreams.length > 0 ? (
@@ -380,13 +392,16 @@ const glassIdle = 'rgba(255,255,255,0.1)';
             );
           })
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-900"
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-950"
             style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 130px)' }}>
             <div className="text-center">
-              <div className="w-20 h-20 bg-sky-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-10 h-10 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
+              <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl font-bold ${getAvatarColor(clinicalPatient?._id || clinicalPatient?.id || clinicalPatient?.userId || '')}`}>
+                {(() => {
+                  if (!clinicalPatient) return '?';
+                  const n = clinicalPatient.nombre || clinicalPatient.firstName || '';
+                  const a = clinicalPatient.apellido || clinicalPatient.lastName || '';
+                  return (`${n[0] || ''}${a[0] || ''}`.toUpperCase()) || clinicalPatient.name?.[0]?.toUpperCase() || '?';
+                })()}
               </div>
               <p className="text-white text-base font-medium">Esperando al paciente...</p>
               <p className="text-gray-500 text-sm mt-1">La sesión comenzará cuando se conecte</p>

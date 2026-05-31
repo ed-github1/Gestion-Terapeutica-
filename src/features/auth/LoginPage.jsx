@@ -68,8 +68,10 @@ const LoginPage = () => {
         navigate('/dashboard')
       }
     } catch (err) {
-      const message = err?.message || 'Error al iniciar sesión'
       const status = err?.status
+      const message = (status && status >= 500)
+        ? 'Error al iniciar sesión. Intenta de nuevo.'
+        : err?.message || 'Error al iniciar sesión'
       setLoginError(message)
       if (status === 404) {
         setError('email', { type: 'server', message })

@@ -90,6 +90,7 @@ export const useDashboardSessions = ({
                 duration: apt.duration,
                 isVideoCall: apt.isVideoCall || apt.mode === 'videollamada' || false,
                 mode: apt.mode ?? (apt.isVideoCall ? 'videollamada' : 'consultorio'),
+                paymentStatus: apt.paymentStatus || null,
             }})
             .sort((a, b) => new Date(a.fechaHora) - new Date(b.fechaHora))
             .slice(0, 10)
@@ -148,6 +149,7 @@ export const useDashboardSessions = ({
                 duration: apt.duration,
                 isVideoCall: apt.isVideoCall || apt.mode === 'videollamada' || false,
                 mode: apt.mode ?? (apt.isVideoCall ? 'videollamada' : 'consultorio'),
+                paymentStatus: apt.paymentStatus || null,
             }})
             .sort((a, b) => new Date(a.fechaHora) - new Date(b.fechaHora))
     }, [selectedDate, allDaySlots, todayAppointments, appointments, upcomingSessions])

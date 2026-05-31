@@ -10,6 +10,7 @@ import { invitationsService } from '@shared/services/invitationsService'
 import NewPatientLinkModal from './NewPatientLinkModal'
 import PatientClinicalFile from './PatientClinicalFile'
 import { homeworkService } from '@shared/services/homeworkService'
+import { getAvatarColor } from '@shared/utils/avatarColor'
 import {
     Users, UserPlus, Search, RefreshCw,
     ShieldAlert, X,
@@ -29,59 +30,46 @@ import {
 // Backend uses firstName/lastName/_id; UI uses nombre/apellido/id.
 // Clinical fields (riskLevel, etc.) not yet on backend default to null.
 const normalizePatient = (p) => ({
-    id:                p._id || p.id,
-    userId:            p.userId || null,
-    nombre:            p.firstName  || p.nombre  || '',
-    apellido:          p.lastName   || p.apellido || '',
+    id: p._id || p.id,
+    userId: p.userId || null,
+    nombre: p.firstName || p.nombre || '',
+    apellido: p.lastName || p.apellido || '',
     // Keep original firstName/lastName so clinical file can read them directly
-    firstName:         p.firstName  || p.nombre  || '',
-    lastName:          p.lastName   || p.apellido || '',
-    email:             p.email      || '',
-    phone:             p.phone      || p.telefono || null,
-    telefono:          p.phone      || p.telefono || null,
-    status:            p.status     || 'pending',
-    lastSession:       p.lastSession || null,
-    nextSession:       p.nextSession || null,
-    totalSessions:     p.totalSessions ?? p.completedSessions ?? 0,
-    riskLevel:         p.riskLevel   || 'low',
+    firstName: p.firstName || p.nombre || '',
+    lastName: p.lastName || p.apellido || '',
+    email: p.email || '',
+    phone: p.phone || p.telefono || null,
+    telefono: p.phone || p.telefono || null,
+    status: p.status || 'pending',
+    lastSession: p.lastSession || null,
+    nextSession: p.nextSession || null,
+    totalSessions: p.totalSessions ?? p.completedSessions ?? 0,
+    riskLevel: p.riskLevel || 'low',
     // Keep both aliases so clinical file finds it either way
     presentingConcern: p.presentingConcern || p.treatmentGoal || '',
-    treatmentGoal:     p.presentingConcern || p.treatmentGoal || '',
+    treatmentGoal: p.presentingConcern || p.treatmentGoal || '',
     homeworkCompleted: p.homeworkCompleted ?? null,
-    diagnosis:         p.diagnosis  || (p.status === 'pending' ? 'Pendiente' : '—'),
+    diagnosis: p.diagnosis || (p.status === 'pending' ? 'Pendiente' : '—'),
     insuranceRemaining: p.insuranceRemaining ?? null,
     // Raw fields needed by clinical file — keep them alongside computed age
-    dateOfBirth:       p.dateOfBirth || null,
-    gender:            p.gender      || null,
-    emergencyContact:  p.emergencyContact || null,
-    preferredMode:     p.preferredMode || p.modalidad || null,
-    age:               p.dateOfBirth
+    dateOfBirth: p.dateOfBirth || null,
+    gender: p.gender || null,
+    emergencyContact: p.emergencyContact || null,
+    preferredMode: p.preferredMode || p.modalidad || null,
+    age: p.dateOfBirth
         ? Math.floor((Date.now() - new Date(p.dateOfBirth)) / 3.156e10)
         : null,
-    hasRegistered:     p.hasRegistered ?? (p.userId != null),
+    hasRegistered: p.hasRegistered ?? (p.userId != null),
 })
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const getInitials = (n, a) => `${n?.[0] || ''}${a?.[0] || ''}`.toUpperCase()
-const avatarPalette = [
-    'bg-sky-100 dark:bg-sky-900/50 text-blue-800 dark:text-sky-300',
-    'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300',
-    'bg-sky-100 dark:bg-sky-900/50 text-sky-600 dark:text-sky-300',
-    'bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300',
-    'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300',
-    'bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300',
-]
-const getAvatarColor = (id) => {
-    // id may be a MongoDB ObjectId string — derive a stable numeric index from it
-    const n = typeof id === 'number' ? id : String(id).split('').reduce((acc, c) => acc + c.charCodeAt(0), 0)
-    return avatarPalette[n % avatarPalette.length] || avatarPalette[0]
-}
 
 const statusConfig = {
-    active:   { label: 'Activo',    cls: 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400', dot: 'bg-emerald-500' },
-    pending:  { label: 'Pendiente', cls: 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',         dot: 'bg-amber-400' },
-    inactive: { label: 'Inactivo',  cls: 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400',              dot: 'bg-gray-400 dark:bg-gray-500' },
-    invited:  { label: 'Invitado',  cls: 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',            dot: 'bg-blue-400' },
+    active: { label: 'Activo', cls: 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400', dot: 'bg-emerald-500' },
+    pending: { label: 'Pendiente', cls: 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400', dot: 'bg-amber-400' },
+    inactive: { label: 'Inactivo', cls: 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400', dot: 'bg-gray-400 dark:bg-gray-500' },
+    invited: { label: 'Invitado', cls: 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400', dot: 'bg-blue-400' },
 }
 
 const daysSince = (dateStr) => {
@@ -94,16 +82,16 @@ const daysSince = (dateStr) => {
 
 
 const motivoColors = {
-    'Ansiedad':             'bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400',
-    'Depresión':            'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-    'Estrés':               'bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
-    'Duelo':                'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
-    'Autoestima':           'bg-pink-50 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400',
-    'Problemas de pareja':  'bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
+    'Ansiedad': 'bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400',
+    'Depresión': 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+    'Estrés': 'bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+    'Duelo': 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
+    'Autoestima': 'bg-pink-50 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400',
+    'Problemas de pareja': 'bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
     'Problemas familiares': 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-    'Trauma / TEPT':        'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-    'Adicciones':           'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-    'Trastorno alimentario':'bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
+    'Trauma / TEPT': 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+    'Adicciones': 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+    'Trastorno alimentario': 'bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
 }
 const defaultMotivoCls = 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
 const getMotivoCls = (motivo) => motivoColors[motivo] || defaultMotivoCls
@@ -112,9 +100,9 @@ const getSessionTrend = (patient) => {
     if (!patient.totalSessions) return { label: 'Sin sesiones', cls: 'text-gray-400 dark:text-gray-500', up: null }
     if (!patient.lastSession) return { label: `${patient.totalSessions} ses.`, cls: 'text-gray-500 dark:text-gray-400', up: null }
     const d = Math.floor((Date.now() - new Date(patient.lastSession).getTime()) / 86400000)
-    if (d <= 7)  return { label: 'Al día',    cls: 'text-emerald-600 dark:text-emerald-400', up: true }
-    if (d <= 14) return { label: 'Regular',   cls: 'text-sky-600 dark:text-sky-400',        up: true }
-    if (d <= 30) return { label: 'Espaciado', cls: 'text-amber-600 dark:text-amber-400',    up: false }
+    if (d <= 7) return { label: 'Al día', cls: 'text-emerald-600 dark:text-emerald-400', up: true }
+    if (d <= 14) return { label: 'Regular', cls: 'text-sky-600 dark:text-sky-400', up: true }
+    if (d <= 30) return { label: 'Espaciado', cls: 'text-amber-600 dark:text-amber-400', up: false }
     return { label: 'Inactivo', cls: 'text-rose-500 dark:text-rose-400', up: false }
 }
 
@@ -165,11 +153,10 @@ const PatientRow = ({ patient, onSelect, isSelected, index }) => {
             exit={{ opacity: 0 }}
             transition={{ delay: index * 0.03, duration: 0.22 }}
             onClick={() => onSelect(patient)}
-            className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl cursor-pointer transition-all ${
-                isSelected
+            className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl cursor-pointer transition-all ${isSelected
                     ? 'bg-sky-50 dark:bg-sky-900/20 border border-sky-200/80 dark:border-sky-800/50'
                     : 'hover:bg-gray-50/80 dark:hover:bg-gray-700/30 border border-transparent'
-            }`}
+                }`}
         >
             <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${getAvatarColor(patient.id)}`}>
                 {getInitials(patient.nombre, patient.apellido)}
@@ -204,11 +191,11 @@ const HOMEWORK_SUGGESTIONS = [
 
 // ─── TareasTab ────────────────────────────────────────────────────────────────
 const TareasTab = ({ patient }) => {
-    const [tasks, setTasks]           = useState([])
-    const [loading, setLoading]       = useState(true)
+    const [tasks, setTasks] = useState([])
+    const [loading, setLoading] = useState(true)
     const [submitting, setSubmitting] = useState(false)
-    const [newTitle, setNewTitle]     = useState('')
-    const [showInput, setShowInput]   = useState(false)
+    const [newTitle, setNewTitle] = useState('')
+    const [showInput, setShowInput] = useState(false)
 
     useEffect(() => {
         let cancelled = false
@@ -259,8 +246,8 @@ const TareasTab = ({ patient }) => {
         }
     }, [patient.id])
 
-    const pending   = tasks.filter(t => !t.completed)
-    const completed = tasks.filter(t =>  t.completed)
+    const pending = tasks.filter(t => !t.completed)
+    const completed = tasks.filter(t => t.completed)
 
     // Filter suggestions not yet assigned
     const unusedSuggestions = HOMEWORK_SUGGESTIONS.filter(
@@ -464,11 +451,10 @@ const InlinePatientPanel = ({ patient, onClose, onOpenFull }) => {
                     <button
                         key={key}
                         onClick={() => setTab(key)}
-                        className={`py-2.5 mr-4 text-xs font-semibold transition-all border-b-2 ${
-                            tab === key
+                        className={`py-2.5 mr-4 text-xs font-semibold transition-all border-b-2 ${tab === key
                                 ? 'text-sky-600 dark:text-sky-400 border-sky-500'
                                 : 'text-gray-400 dark:text-gray-500 border-transparent hover:text-gray-600 dark:hover:text-gray-300'
-                        }`}
+                            }`}
                     >
                         {label}
                     </button>
@@ -529,17 +515,17 @@ const InlinePatientPanel = ({ patient, onClose, onOpenFull }) => {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 const ModernPatientsList = () => {
-    const [patients, setPatients]         = useState([])
-    const [loading, setLoading]           = useState(true)
-    const [search, setSearch]             = useState('')
+    const [patients, setPatients] = useState([])
+    const [loading, setLoading] = useState(true)
+    const [search, setSearch] = useState('')
     const [filterStatus, setFilterStatus] = useState('all')
-    const [filterRisk, setFilterRisk]     = useState('all')
-    const [sortBy, setSortBy]             = useState('name')
+    const [filterRisk, setFilterRisk] = useState('all')
+    const [sortBy, setSortBy] = useState('name')
     const [showAddPatient, setShowAddPatient] = useState(false)
     const [selectedPatient, setSelectedPatient] = useState(null)
-    const [showDiary, setShowDiary]       = useState(false)
-    const [panelPatient, setPanelPatient]  = useState(null)
-    const [mobileView, setMobileView]      = useState('list') // 'list' | 'detail'
+    const [showDiary, setShowDiary] = useState(false)
+    const [panelPatient, setPanelPatient] = useState(null)
+    const [mobileView, setMobileView] = useState('list') // 'list' | 'detail'
 
     const loadPatients = useCallback(async () => {
         setLoading(true)
@@ -593,7 +579,7 @@ const ModernPatientsList = () => {
                     const email = (inv.patientEmail || inv.email || '').toLowerCase()
                     // Skip if already in /patients OR if there is no identifiable data at all
                     if (existingEmails.has(email)) return false
-                    const hasName  = !!(inv.firstName || inv.lastName || inv.patientName)
+                    const hasName = !!(inv.firstName || inv.lastName || inv.patientName)
                     const hasEmail = !!email
                     return hasName || hasEmail
                 })
@@ -602,15 +588,15 @@ const ModernPatientsList = () => {
                     // Use email local-part as fallback when no real name exists
                     const fallbackFirst = email ? email.split('@')[0] : ''
                     return normalizePatient({
-                        _id:               inv._id || inv.id || `inv-${email}`,
-                        firstName:         inv.firstName || inv.patientName?.split(' ')[0] || fallbackFirst,
-                        lastName:          inv.lastName  || inv.patientName?.split(' ').slice(1).join(' ') || '',
+                        _id: inv._id || inv.id || `inv-${email}`,
+                        firstName: inv.firstName || inv.patientName?.split(' ')[0] || fallbackFirst,
+                        lastName: inv.lastName || inv.patientName?.split(' ').slice(1).join(' ') || '',
                         email,
-                        phone:             inv.phone || null,
-                        status:            (inv.hasRegistered || inv.status === 'accepted') ? 'pending' : 'invited',
+                        phone: inv.phone || null,
+                        status: (inv.hasRegistered || inv.status === 'accepted') ? 'pending' : 'invited',
                         presentingConcern: inv.presentingConcern || '',
-                        hasRegistered:     inv.hasRegistered ?? (inv.status === 'accepted'),
-                        _fromInvitation:   true,
+                        hasRegistered: inv.hasRegistered ?? (inv.status === 'accepted'),
+                        _fromInvitation: true,
                     })
                 })
 
@@ -652,10 +638,10 @@ const ModernPatientsList = () => {
             list = list.filter(p => `${p.nombre} ${p.apellido}`.toLowerCase().includes(q) || p.email?.toLowerCase().includes(q) || p.diagnosis?.toLowerCase().includes(q) || p.treatmentGoal?.toLowerCase().includes(q))
         }
         if (filterStatus !== 'all') list = list.filter(p => p.status === filterStatus)
-        if (filterRisk !== 'all')   list = list.filter(p => p.riskLevel === filterRisk)
+        if (filterRisk !== 'all') list = list.filter(p => p.riskLevel === filterRisk)
         list.sort((a, b) => {
-            if (sortBy === 'name')        return `${a.nombre} ${a.apellido}`.localeCompare(`${b.nombre} ${b.apellido}`)
-            if (sortBy === 'risk')        { const o = { high: 0, medium: 1, low: 2 }; return (o[a.riskLevel] ?? 3) - (o[b.riskLevel] ?? 3) }
+            if (sortBy === 'name') return `${a.nombre} ${a.apellido}`.localeCompare(`${b.nombre} ${b.apellido}`)
+            if (sortBy === 'risk') { const o = { high: 0, medium: 1, low: 2 }; return (o[a.riskLevel] ?? 3) - (o[b.riskLevel] ?? 3) }
             if (sortBy === 'lastSession') return new Date(b.lastSession || 0) - new Date(a.lastSession || 0)
             return 0
         })
@@ -663,8 +649,8 @@ const ModernPatientsList = () => {
         return list
     }, [patients, search, filterStatus, filterRisk, sortBy])
 
-    const total    = patients.length
-    const active   = patients.filter(p => p.status === 'active').length
+    const total = patients.length
+    const active = patients.filter(p => p.status === 'active').length
     const highRisk = patients.filter(p => p.riskLevel === 'high').length
     const needsFollowUp = patients.filter(p => {
         if (!p.totalSessions) return false
@@ -674,211 +660,208 @@ const ModernPatientsList = () => {
 
     return (
         <>
-        <div className="flex h-full min-h-screen">
+            <div className="flex h-full min-h-screen px-4 gap-3">
 
-            {/* ── LEFT: Patient list panel ── */}
-            <motion.div
-                initial={{ opacity: 0, x: -28 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.38, ease: 'easeOut' }}
-                className={`flex-col shrink-0 bg-white dark:bg-gray-800/60 w-full md:max-w-95 md:min-w-70 ${mobileView === 'detail' ? 'hidden md:flex' : 'flex'}`}
-            >
-
-                {/* List header */}
-                <div className="px-4 pt-5 pb-3 border-b border-gray-100 dark:border-gray-700/50">
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                            <h1 className="text-base font-bold text-gray-900 dark:text-white">Pacientes</h1>
-                            {active > 0 && (
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">
-                                    {active} activos
-                                </span>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                            <button onClick={loadPatients} title="Actualizar" className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 transition-colors">
-                                <RefreshCw className="w-3.5 h-3.5" />
-                            </button>
-                            <button onClick={() => setShowAddPatient(true)} className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#0075C9] text-white rounded-xl text-xs font-semibold hover:bg-[#005fa0] transition-colors">
-                                <UserPlus className="w-3.5 h-3.5" />
-                                <span className="hidden sm:inline">Nuevo</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Search */}
-                    <div className="relative">
-                        <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                        <input
-                            type="text"
-                            placeholder="Buscar paciente…"
-                            value={search}
-                            onChange={e => setSearch(e.target.value)}
-                            className="w-full pl-8 pr-3 py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600/50 rounded-xl text-xs text-gray-900 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-400/30"
-                        />
-                    </div>
-                </div>
-
-                {/* List body */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar px-2 py-2">
-
-                    <AlertBanner patients={patients} />
-
-                    {loading && (
-                        <div className="flex justify-center py-16">
-                            <div className="w-6 h-6 border-2 border-[#0075C9] border-t-transparent rounded-full animate-spin" />
-                        </div>
-                    )}
-
-                    {!loading && filtered.length === 0 && (
-                        <div className="text-center py-12">
-                            <Users className="w-8 h-8 text-gray-200 dark:text-gray-600 mx-auto mb-2" />
-                            <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Sin resultados</p>
-                            {(filterStatus !== 'all' || search) && (
-                                <button onClick={() => { setSearch(''); setFilterStatus('all'); setFilterRisk('all') }} className="mt-2 text-xs text-sky-600 hover:underline">
-                                    Limpiar filtros
+                {/* ── LEFT: Patient list panel ── */}
+                <motion.div
+                    initial={{ opacity: 0, x: -28 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.38, ease: 'easeOut' }}
+                    className={`flex-col shrink-0 bg-white dark:bg-gray-800/60 rounded-2xl overflow-hidden w-full md:max-w-95 md:min-w-70 ${mobileView === 'detail' ? 'hidden md:flex' : 'flex'}`}
+                >
+                    {/* List header */}
+                    <div className="px-4 pt-5 pb-3 border-b border-gray-100 dark:border-gray-700/50">
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                                <h1 className="text-base font-bold text-gray-900 dark:text-white">Pacientes</h1>
+                                {active > 0 && (
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">
+                                        {active} activos
+                                    </span>
+                                )}
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <button onClick={loadPatients} title="Actualizar" className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 transition-colors">
+                                    <RefreshCw className="w-3.5 h-3.5" />
                                 </button>
-                            )}
+                                <button onClick={() => setShowAddPatient(true)} className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#0075C9] text-white rounded-xl text-xs font-semibold hover:bg-[#005fa0] transition-colors">
+                                    <UserPlus className="w-3.5 h-3.5" />
+                                    <span className="hidden sm:inline">Nuevo</span>
+                                </button>
+                            </div>
                         </div>
-                    )}
 
-                    {!loading && filtered.length > 0 && (
-                        <AnimatePresence>
-                            {filtered.map((p, i) => (
-                                <PatientRow
-                                    key={p.id ?? i}
-                                    patient={p}
-                                    index={i}
-                                    isSelected={panelPatient?.id === p.id}
-                                    onSelect={selectPatient}
-                                />
-                            ))}
-                        </AnimatePresence>
-                    )}
-                </div>
-            </motion.div>
-
-            {/* ── RIGHT: Detail panel or suggestions ── */}
-            <motion.div
-                initial={{ opacity: 0, x: 28 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.38, ease: 'easeOut', delay: 0.06 }}
-                className={`min-w-0 flex-col ${mobileView === 'list' ? 'hidden md:flex md:flex-1' : 'flex flex-1'}`}
-            >
-                {/* Mobile back button */}
-                <div className="md:hidden shrink-0 flex items-center gap-2 px-4 py-3 border-b border-gray-100 dark:border-gray-700/50 bg-white dark:bg-gray-800/60">
-                    <button
-                        onClick={closePatientPanel}
-                        className="flex items-center gap-1.5 text-sm font-semibold text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 transition-colors"
-                    >
-                        <ChevronLeft className="w-4 h-4" />
-                        Pacientes
-                    </button>
-                </div>
-                <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
-                <AnimatePresence mode="wait">
-                    {panelPatient ? (
-                        <motion.div
-                            key={panelPatient.id ?? panelPatient._id ?? 'panel'}
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.18 }}
-                            className="h-full"
-                        >
-                            <PatientClinicalFile
-                                patient={panelPatient}
-                                onClose={closePatientPanel}
-                                inline
+                        {/* Search */}
+                        <div className="relative">
+                            <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                            <input
+                                type="text"
+                                placeholder="Buscar paciente…"
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                                className="w-full pl-8 pr-3 py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600/50 rounded-xl text-xs text-gray-900 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-400/30"
                             />
-                        </motion.div>
-                    ) : (
-                        <motion.div
-                            key="suggestions"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.18 }}
-                            className="h-full flex flex-col items-center justify-center px-10 py-16 text-center gap-6"
+                        </div>
+                    </div>
+
+                    {/* List body */}
+                    <div className="flex-1 overflow-y-auto custom-scrollbar px-2 py-2">
+                        <AlertBanner patients={patients} />
+                        {loading && (
+                            <div className="flex justify-center py-16">
+                                <div className="w-6 h-6 border-2 border-[#0075C9] border-t-transparent rounded-full animate-spin" />
+                            </div>
+                        )}
+                      {!loading && filtered.length === 0 && (
+                            <div className="text-center py-12">
+                                <Users className="w-8 h-8 text-gray-200 dark:text-gray-600 mx-auto mb-2" />
+                                <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Sin resultados</p>
+                                {(filterStatus !== 'all' || search) && (
+                                    <button onClick={() => { setSearch(''); setFilterStatus('all'); setFilterRisk('all') }} className="mt-2 text-xs text-sky-600 hover:underline">
+                                        Limpiar filtros
+                                    </button>
+                                )}
+                            </div>
+                        )}
+
+                        {!loading && filtered.length > 0 && (
+                            <AnimatePresence>
+                                {filtered.map((p, i) => (
+                                    <PatientRow
+                                        key={p.id ?? i}
+                                        patient={p}
+                                        index={i}
+                                        isSelected={panelPatient?.id === p.id}
+                                        onSelect={selectPatient}
+                                    />
+                                ))}
+                            </AnimatePresence>
+                        )}
+                    </div>
+                </motion.div>
+
+                {/* ── RIGHT: Detail panel or suggestions ── */}
+                <motion.div
+                    initial={{ opacity: 0, x: 28 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.38, ease: 'easeOut', delay: 0.06 }}
+                    className={`min-w-0 flex-col rounded-2xl overflow-hidden ${mobileView === 'list' ? 'hidden md:flex md:flex-1' : 'flex flex-1'}`}
+                >
+                    {/* Mobile back button */}
+                    <div className="md:hidden shrink-0 flex items-center gap-2 px-4 py-3 border-b border-gray-100 dark:border-gray-700/50 bg-white dark:bg-gray-800/60">
+                        <button
+                            onClick={closePatientPanel}
+                            className="flex items-center gap-1.5 text-sm font-semibold text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 transition-colors"
                         >
-                            {/* Icon */}
-                            <div className="w-16 h-16 rounded-2xl bg-sky-50 dark:bg-sky-900/20 flex items-center justify-center">
-                                <Users className="w-7 h-7 text-sky-400 dark:text-sky-500" />
-                            </div>
+                            <ChevronLeft className="w-4 h-4" />
+                            Pacientes
+                        </button>
+                    </div>
+                   
+                    <div className="flex-1 bg-white dark:bg-gray-900 min-h-0 overflow-y-auto custom-scrollbar">
+                        <AnimatePresence mode="wait">
+                            {panelPatient ? (
+                                <motion.div
+                                    key={panelPatient.id ?? panelPatient._id ?? 'panel'}
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 0.18 }}
+                                    className="h-full"
+                                >
+                                    <PatientClinicalFile
+                                        patient={panelPatient}
+                                        onClose={closePatientPanel}
+                                        inline
+                                    />
+                                </motion.div>
+                            ) : (
+                                <motion.div
+                                    key="suggestions"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 0.18 }}
+                                    className="h-full flex flex-col items-center justify-center px-10 py-16 text-center gap-6"
+                                >
+                                    {/* Icon */}
+                                    <div className="w-16 h-16 rounded-2xl bg-sky-50 dark:bg-sky-900/20 flex items-center justify-center">
+                                        <Users className="w-7 h-7 text-sky-400 dark:text-sky-500" />
+                                    </div>
 
-                            <div>
-                                <h3 className="text-base font-bold text-gray-800 dark:text-gray-200 mb-1">
-                                    Selecciona un paciente
-                                </h3>
-                                <p className="text-xs text-gray-400 dark:text-gray-500 max-w-xs leading-relaxed">
-                                    Haz clic en cualquier paciente de la lista para ver su información rápida aquí.
-                                </p>
-                            </div>
+                                    <div>
+                                        <h3 className="text-base font-bold text-gray-800 dark:text-gray-200 mb-1">
+                                            Selecciona un paciente
+                                        </h3>
+                                        <p className="text-xs text-gray-400 dark:text-gray-500 max-w-xs leading-relaxed">
+                                            Haz clic en cualquier paciente de la lista para ver su información rápida aquí.
+                                        </p>
+                                    </div>
 
-                            {/* Quick stats */}
-                            {!loading && patients.length > 0 && (
-                                <div className="grid grid-cols-3 gap-3 w-full max-w-xs">
-                                    {[
-                                        { label: 'Total', value: patients.length, color: 'text-gray-900 dark:text-white' },
-                                        { label: 'Activos', value: active, color: 'text-emerald-600 dark:text-emerald-400' },
-                                        { label: 'Seguimiento', value: needsFollowUp, color: 'text-amber-600 dark:text-amber-400' },
-                                    ].map(({ label, value, color }) => (
-                                        <div key={label} className="bg-white dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/60 rounded-xl px-4 py-3 text-left">
-                                            <p className={`text-xl font-black leading-none ${color}`}>{value}</p>
-                                            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 uppercase tracking-wide font-semibold">{label}</p>
+                                    {/* Quick stats */}
+                                    {!loading && patients.length > 0 && (
+                                        <div className="grid grid-cols-3 gap-3 w-full max-w-xs">
+                                            {[
+                                                { label: 'Total', value: patients.length, color: 'text-gray-900 dark:text-white' },
+                                                { label: 'Activos', value: active, color: 'text-emerald-600 dark:text-emerald-400' },
+                                                { label: 'Seguimiento', value: needsFollowUp, color: 'text-amber-600 dark:text-amber-400' },
+                                            ].map(({ label, value, color }) => (
+                                                <div key={label} className="bg-white dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/60 rounded-xl px-4 py-3 text-left">
+                                                    <p className={`text-xl font-black leading-none ${color}`}>{value}</p>
+                                                    <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 uppercase tracking-wide font-semibold">{label}</p>
+                                                </div>
+                                            ))}
                                         </div>
-                                    ))}
-                                </div>
+                                    )}
+
+                                    {/* Suggestions list */}
+                                    {!loading && filtered.length > 0 && (
+                                        <div className="w-full max-w-xs space-y-2">
+                                            <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider text-left">Sugeridos</p>
+                                            {filtered.slice(0, 3).map((p) => {
+                                                const sc = statusConfig[p.status] || statusConfig.inactive
+                                                return (
+                                                    <button
+                                                        key={p.id}
+                                                        onClick={() => selectPatient(p)}
+                                                        className="w-full flex items-center gap-3 px-3 py-2.5 bg-white dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/60 rounded-xl hover:border-sky-300 dark:hover:border-sky-700 hover:bg-sky-50/50 dark:hover:bg-sky-900/10 transition-all text-left"
+                                                    >
+                                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${getAvatarColor(p.id)}`}>
+                                                            {getInitials(p.nombre, p.apellido)}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 truncate">{p.nombre} {p.apellido}</p>
+                                                            <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate">{sc.label}{p.age ? ` · ${p.age}a` : ''}</p>
+                                                        </div>
+                                                    </button>
+                                                )
+                                            })}
+                                        </div>
+                                    )}
+
+                                    <button
+                                        onClick={() => setShowAddPatient(true)}
+                                        className="flex items-center gap-2 px-4 py-2 border border-dashed border-gray-300 dark:border-gray-600 rounded-xl text-xs font-semibold text-gray-400 dark:text-gray-500 hover:border-sky-400 hover:text-sky-500 dark:hover:border-sky-600 dark:hover:text-sky-400 transition-colors"
+                                    >
+                                        <UserPlus className="w-3.5 h-3.5" />
+                                        Añadir nuevo paciente
+                                    </button>
+                                </motion.div>
                             )}
+                        </AnimatePresence>
+                    </div>
+                </motion.div>
 
-                            {/* Suggestions list */}
-                            {!loading && filtered.length > 0 && (
-                                <div className="w-full max-w-xs space-y-2">
-                                    <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider text-left">Sugeridos</p>
-                                    {filtered.slice(0, 3).map((p) => {
-                                        const sc = statusConfig[p.status] || statusConfig.inactive
-                                        return (
-                                            <button
-                                                key={p.id}
-                                                onClick={() => selectPatient(p)}
-                                                className="w-full flex items-center gap-3 px-3 py-2.5 bg-white dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/60 rounded-xl hover:border-sky-300 dark:hover:border-sky-700 hover:bg-sky-50/50 dark:hover:bg-sky-900/10 transition-all text-left"
-                                            >
-                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${getAvatarColor(p.id)}`}>
-                                                    {getInitials(p.nombre, p.apellido)}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 truncate">{p.nombre} {p.apellido}</p>
-                                                    <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate">{sc.label}{p.age ? ` · ${p.age}a` : ''}</p>
-                                                </div>
-                                            </button>
-                                        )
-                                    })}
-                                </div>
-                            )}
+            </div>
 
-                            <button
-                                onClick={() => setShowAddPatient(true)}
-                                className="flex items-center gap-2 px-4 py-2 border border-dashed border-gray-300 dark:border-gray-600 rounded-xl text-xs font-semibold text-gray-400 dark:text-gray-500 hover:border-sky-400 hover:text-sky-500 dark:hover:border-sky-600 dark:hover:text-sky-400 transition-colors"
-                            >
-                                <UserPlus className="w-3.5 h-3.5" />
-                                Añadir nuevo paciente
-                            </button>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-                </div>
-            </motion.div>
-
-        </div>
-
-        {/* Add patient modal */}
-        <AnimatePresence>
-            {showAddPatient && (
-                <NewPatientLinkModal
-                    onClose={() => { setShowAddPatient(false); loadPatients() }}
-                />
-            )}
-        </AnimatePresence>
+            {/* Add patient modal */}
+            <AnimatePresence>
+                {showAddPatient && (
+                    <NewPatientLinkModal
+                        onClose={() => { setShowAddPatient(false); loadPatients() }}
+                    />
+                )}
+            </AnimatePresence>
 
         </>
     )

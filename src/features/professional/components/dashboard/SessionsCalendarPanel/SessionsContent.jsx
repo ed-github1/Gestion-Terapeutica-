@@ -10,6 +10,7 @@ const SessionsContent = ({
     onViewDiary,
     onSchedule,
     onMarkComplete,
+    onRequestPayment,
     nextTimestamp,
     nextCountdown,
     nextIsImminent,
@@ -27,6 +28,7 @@ const SessionsContent = ({
             onViewDiary={onViewDiary}
             onMessage={(apt) => console.log('Message patient:', apt?.nombrePaciente)}
             onMarkComplete={onMarkComplete}
+            onRequestPayment={onRequestPayment}
             nextSessionTime={nextTimestamp}
             nextSessionCountdown={nextCountdown}
             nextIsImminent={nextIsImminent || nextIsNow}

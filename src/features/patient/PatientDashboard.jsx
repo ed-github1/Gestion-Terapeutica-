@@ -130,18 +130,16 @@ const PatientDashboard = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search)
     const payment = params.get('payment')
+    const appointmentId = params.get('appointmentId')
     if (!payment) return
-    if (payment === 'success') {
-      showToast('Pago exitoso. Tu cita ha sido confirmada.', 'success')
+    if (payment === 'success' && appointmentId) {
+      showToast('¡Pago realizado con éxito!', 'success')
       refreshAppointments()
     } else if (payment === 'failure') {
-      showToast('El pago no pudo procesarse. Intenta de nuevo.', 'error')
-      refreshAppointments()
+      showToast('El pago fue rechazado, intenta de nuevo', 'error')
     } else if (payment === 'pending') {
-      showToast('Tu pago está siendo procesado. Te notificaremos cuando se confirme.', 'info')
-      refreshAppointments()
+      showToast('Tu pago está siendo procesado', 'warning')
     }
-    // Clean the query string without reloading
     window.history.replaceState({}, '', location.pathname)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 

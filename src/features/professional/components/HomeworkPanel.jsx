@@ -313,6 +313,7 @@ const HomeworkPanel = ({ patientId, patientName }) => {
               onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
               placeholder="Título de la tarea *"
               required
+              maxLength={200}
               className="w-full px-3 py-2 text-sm border border-sky-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
             />
 
@@ -322,6 +323,7 @@ const HomeworkPanel = ({ patientId, patientName }) => {
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
               placeholder="Descripción o instrucciones (opcional)"
               rows={2}
+              maxLength={2000}
               className="w-full px-3 py-2 text-sm border border-sky-200 rounded-xl resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
             />
 

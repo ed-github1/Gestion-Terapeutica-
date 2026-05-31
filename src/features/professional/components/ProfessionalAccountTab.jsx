@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import mpLogo from '@assets/LOGO_MP.png'
 import { motion, AnimatePresence } from 'motion/react'
 import { useLocation } from 'react-router-dom'
 import { useAuth } from '@features/auth'
@@ -11,7 +12,7 @@ import apiClient from '@shared/api/client'
 
 const inputClass = `w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg
   text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-sky-500 focus:border-transparent transition outline-none
-  disabled:opacity-60 disabled:cursor-not-allowed`
+  disabled:opacity-60 disabled:cursor-not-allowed font-semibold`
 
 const Label = ({ children }) => (
     <label className="block text-[11px] text-gray-400 dark:text-gray-500 mb-1.5">{children}</label>
@@ -34,10 +35,10 @@ const SelectField = ({ label, value, onChange, disabled, options }) => (
 )
 
 const GENDER_OPTIONS = [
-    { value: '',                  label: 'Seleccionar...' },
-    { value: 'masculino',         label: 'Masculino' },
-    { value: 'femenino',          label: 'Femenino' },
-    { value: 'no_binario',        label: 'No binario' },
+    { value: '', label: 'Seleccionar...' },
+    { value: 'masculino', label: 'Masculino' },
+    { value: 'femenino', label: 'Femenino' },
+    { value: 'no_binario', label: 'No binario' },
     { value: 'prefiero_no_decir', label: 'Prefiero no decirlo' },
 ]
 
@@ -45,6 +46,19 @@ const COUNTRY_OPTIONS = [
     { value: '', label: 'Seleccionar país...' },
     ...PROFESSIONAL_COUNTRIES.map(c => ({ value: c.code, label: c.name })),
 ]
+
+const FlagImg = ({ code, size = 28 }) => {
+    if (!code || code === 'OTHER') return <span style={{ fontSize: size }} className="leading-none">🌎</span>
+    return (
+        <img
+            src={`https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@2.6.0/flags/${code.toLowerCase()}.svg`}
+            width={size}
+            height={size}
+            alt={code}
+            className="shrink-0"
+        />
+    )
+}
 
 const Toggle = ({ checked, onChange, disabled }) => (
     <button
@@ -85,12 +99,13 @@ const ProfessionalAccountTab = () => {
     const { user, updateProfile } = useAuth()
     const location = useLocation()
     const originalProfessional = useRef({ especialidad: '', cedula: '' })
-    const [saving, setSaving]     = useState(false)
-    const [saved, setSaved]       = useState(false)
+    const [saving, setSaving] = useState(false)
+    const [saved, setSaved] = useState(false)
     const [saveError, setSaveError] = useState(null)
     const [showPasswordForm, setShowPasswordForm] = useState(false)
     const [mpConnected, setMpConnected] = useState(false)
     const [mpConnecting, setMpConnecting] = useState(false)
+    const [mpMenuOpen, setMpMenuOpen] = useState(false)
 
     // Handle OAuth callback: ?mp=connected or ?mp=error
     useEffect(() => {
@@ -107,28 +122,28 @@ const ProfessionalAccountTab = () => {
     }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
     const [profile, setProfile] = useState({
-        nombre:       user?.nombre   || user?.name  || '',
-        apellido:     user?.apellido || '',
-        email:        user?.email    || user?.correo || '',
-        country:      user?.country  || '',
-        genero:       user?.gender   || user?.genero || '',
+        nombre: user?.nombre || user?.name || '',
+        apellido: user?.apellido || '',
+        email: user?.email || user?.correo || '',
+        country: user?.country || '',
+        genero: user?.gender || user?.genero || '',
         especialidad: '',
-        cedula:       '',
+        cedula: '',
     })
 
     // Sync all fields from user (getMe / getProfile returns user + professional data merged)
     useEffect(() => {
         if (!user) return
         const dp = user.datosPersonales ?? {}
-        const especialidad = dp.especialidad      || user.especialidad  || ''
-        const cedula       = dp.cedulaProfesional || user.cedula        || ''
+        const especialidad = dp.especialidad || user.especialidad || ''
+        const cedula = dp.cedulaProfesional || user.cedula || ''
         originalProfessional.current = { especialidad, cedula }
         setProfile({
-            nombre:       user.nombre   || user.name   || '',
-            apellido:     user.apellido || '',
-            email:        user.email    || user.correo  || '',
-            country:      user.country  || '',
-            genero:       (user.gender || user.genero || '').toLowerCase(),
+            nombre: user.nombre || user.name || '',
+            apellido: user.apellido || '',
+            email: user.email || user.correo || '',
+            country: user.country || '',
+            genero: (user.gender || user.genero || '').toLowerCase(),
             especialidad,
             cedula,
         })
@@ -152,12 +167,12 @@ const ProfessionalAccountTab = () => {
         const emailChanged = profile.email !== (user?.email || user?.correo || '')
 
         const profileDiff = {}
-        if (profile.nombre       !== (user?.nombre   || user?.name   || '')) profileDiff.nombre       = profile.nombre
-        if (profile.apellido     !== (user?.apellido || ''))                  profileDiff.apellido     = profile.apellido
-        if (profile.country      !== (user?.country  || ''))                  profileDiff.country      = profile.country.toUpperCase()
-        if (profile.genero       !== (user?.gender   || user?.genero || '').toLowerCase()) profileDiff.gender           = profile.genero
-        if (profile.especialidad !== originalProfessional.current.especialidad)           profileDiff.especialidad     = profile.especialidad
-        if (profile.cedula       !== originalProfessional.current.cedula)                 profileDiff.cedulaProfesional = profile.cedula
+        if (profile.nombre !== (user?.nombre || user?.name || '')) profileDiff.nombre = profile.nombre
+        if (profile.apellido !== (user?.apellido || '')) profileDiff.apellido = profile.apellido
+        if (profile.country !== (user?.country || '')) profileDiff.country = profile.country.toUpperCase()
+        if (profile.genero !== (user?.gender || user?.genero || '').toLowerCase()) profileDiff.gender = profile.genero
+        if (profile.especialidad !== originalProfessional.current.especialidad) profileDiff.especialidad = profile.especialidad
+        if (profile.cedula !== originalProfessional.current.cedula) profileDiff.cedulaProfesional = profile.cedula
 
         localStorage.setItem('professionalSettings', JSON.stringify({ currency: countryInfo?.currency }))
 
@@ -171,7 +186,7 @@ const ProfessionalAccountTab = () => {
         if (emailChanged) tasks.push(updateProfile({ email: profile.email }))
 
         const results = await Promise.allSettled(tasks)
-        const failed  = results.find(r => r.status === 'rejected')
+        const failed = results.find(r => r.status === 'rejected')
 
         setSaving(false)
         if (failed) {
@@ -186,11 +201,21 @@ const ProfessionalAccountTab = () => {
         setMpConnecting(true)
         try {
             const res = await apiClient.get('/auth/mercadopago/connect')
-            const url = res.data?.url
-            window.location.href = url
+            window.location.href = res.data?.url
         } catch {
             showToast('No se pudo iniciar la conexión con MercadoPago.', 'error')
             setMpConnecting(false)
+        }
+    }
+
+    const handleDisconnectMP = async () => {
+        setMpMenuOpen(false)
+        try {
+            await apiClient.post('/auth/mercadopago/disconnect')
+            setMpConnected(false)
+            showToast('Cuenta de MercadoPago desconectada', 'success')
+        } catch {
+            showToast('No se pudo desconectar MercadoPago.', 'error')
         }
     }
 
@@ -201,17 +226,17 @@ const ProfessionalAccountTab = () => {
             <Section title="Información personal" subtitle="Tu nombre, correo y datos de identificación">
                 <div className="px-5 py-4 space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <Field label="Nombre"   value={profile.nombre}   onChange={setP('nombre')}   disabled={saving} />
+                        <Field label="Nombre" value={profile.nombre} onChange={setP('nombre')} disabled={saving} />
                         <Field label="Apellido" value={profile.apellido} onChange={setP('apellido')} disabled={saving} />
                     </div>
                     <Field label="Correo electrónico" type="email" value={profile.email} onChange={setP('email')} disabled={saving} />
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <SelectField label="País"    value={profile.country} onChange={setP('country')} disabled={saving} options={COUNTRY_OPTIONS} />
-                        <SelectField label="Género"  value={profile.genero}  onChange={setP('genero')}  disabled={saving} options={GENDER_OPTIONS} />
+                        <SelectField label="País" value={profile.country} onChange={setP('country')} disabled={saving} options={COUNTRY_OPTIONS} />
+                        <SelectField label="Género" value={profile.genero} onChange={setP('genero')} disabled={saving} options={GENDER_OPTIONS} />
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <Field label="Especialidad"      value={profile.especialidad} onChange={setP('especialidad')} disabled={saving} />
-                        <Field label="Cédula / Licencia" value={profile.cedula}       onChange={setP('cedula')}       disabled={saving} />
+                        <Field label="Especialidad" value={profile.especialidad} onChange={setP('especialidad')} disabled={saving} />
+                        <Field label="Cédula / Licencia" value={profile.cedula} onChange={setP('cedula')} disabled={saving} />
                     </div>
                 </div>
             </Section>
@@ -250,37 +275,68 @@ const ProfessionalAccountTab = () => {
                 </AnimatePresence>
             </Section>
 
-            {/* ── Practice ── */}
-            <Section title="Mi consulta" subtitle="Opciones de tu práctica clínica">
-                <Row label="Moneda">
-                    <span className="text-sm text-gray-700 dark:text-gray-300">
-                        {countryInfo?.symbol} {countryInfo?.currency}
-                    </span>
-                </Row>
-            </Section>
-
             {/* ── Payments ── */}
             <Section title="Cobros" subtitle="Conecta tu cuenta de MercadoPago para recibir pagos de tus pacientes">
-                <Row
-                    label="MercadoPago"
-                    description={mpConnected ? 'Cuenta conectada. Los pagos se depositan directamente.' : 'Conecta tu cuenta para aceptar pagos en línea.'}
-                >
-                    {mpConnected ? (
-                        <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                            <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                            Conectado
+                {/* Currency row */}
+                <div className="flex items-center gap-3 px-5 py-3.5 border-b border-gray-100 dark:border-gray-800">
+                    <FlagImg code={profile.country || user?.country} size={32} />
+                    <div className="flex flex-col leading-tight">
+                        <span className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">Moneda</span>
+                        <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                            {countryInfo?.symbol} {countryInfo?.currency}
+                            <span className="ml-1.5 text-xs font-normal text-gray-400 dark:text-gray-500">{countryInfo?.currencyLabel}</span>
                         </span>
-                    ) : (
-                        <button
-                            type="button"
-                            disabled={mpConnecting}
-                            onClick={handleConnectMP}
-                            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-sky-500 hover:bg-sky-600 text-white transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                        >
-                            {mpConnecting ? 'Redirigiendo...' : 'Conectar cuenta'}
-                        </button>
-                    )}
-                </Row>
+                    </div>
+                </div>
+                <div className="px-5 py-4">
+                    <div className="flex items-center justify-between gap-4 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/60 transition-colors">
+                        {/* Icon */}
+                        <div className="rounded-xl shrink-0 overflow-hidden bg-white  p-2 flex items-center justify-center">
+                            <img src={mpLogo} alt="MercadoPago" className="h-10 w-auto" />
+                        </div>
+                        {/* Action */}
+                        {mpConnected ? (
+                            <div className="flex items-center gap-2 shrink-0">
+                                <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-emerald-400/40 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                    Conectado
+                                </span>
+                                <div className="relative">
+                                    <button
+                                        type="button"
+                                        onClick={() => setMpMenuOpen(o => !o)}
+                                        className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-base leading-none font-bold tracking-widest"
+                                    >
+                                        ···
+                                    </button>
+                                    {mpMenuOpen && (
+                                        <>
+                                            <div className="fixed inset-0 z-10" onClick={() => setMpMenuOpen(false)} />
+                                            <div className="absolute right-0 top-full mt-1 w-40 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-lg z-20 overflow-hidden">
+                                                <button
+                                                    type="button"
+                                                    onClick={handleDisconnectMP}
+                                                    className="w-full px-4 py-2.5 text-left text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                                                >
+                                                    Desconectar
+                                                </button>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        ) : (
+                            <button
+                                type="button"
+                                disabled={mpConnecting}
+                                onClick={handleConnectMP}
+                                className="px-4 py-2 rounded-xl text-sm font-semibold bg-sky-500 hover:bg-sky-600 text-white transition-colors disabled:opacity-60 disabled:cursor-not-allowed shrink-0"
+                            >
+                                {mpConnecting ? 'Redirigiendo...' : 'Conectar'}
+                            </button>
+                        )}
+                    </div>
+                </div>
             </Section>
 
             {/* ── Save ── */}

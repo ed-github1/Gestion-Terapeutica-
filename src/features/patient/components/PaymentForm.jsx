@@ -61,6 +61,7 @@ const PaymentForm = ({
           required
           value={formData.cardName}
           onChange={e => set('cardName', e.target.value)}
+          autoComplete="cc-name"
           className={inputCls}
           placeholder="María González"
         />
@@ -75,6 +76,7 @@ const PaymentForm = ({
           value={formData.cardNumber}
           onChange={e => set('cardNumber', formatCardNumber(e.target.value))}
           maxLength={19}
+          autoComplete="cc-number"
           className={`${inputCls} font-mono`}
           placeholder="1234 5678 9012 3456"
         />
@@ -90,6 +92,7 @@ const PaymentForm = ({
             value={formData.expiryDate}
             onChange={e => set('expiryDate', formatExpiryDate(e.target.value))}
             maxLength={5}
+            autoComplete="cc-exp"
             className={`${inputCls} font-mono`}
             placeholder="MM/YY"
           />
@@ -102,6 +105,7 @@ const PaymentForm = ({
             value={formData.cvv}
             onChange={e => set('cvv', e.target.value.replace(/\D/g, '').slice(0, 4))}
             maxLength={4}
+            autoComplete="cc-csc"
             className={`${inputCls} font-mono`}
             placeholder="•••"
           />

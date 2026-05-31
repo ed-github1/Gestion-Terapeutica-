@@ -9,7 +9,7 @@ const COUNTDOWN = 5
 
 const KycCompletePage = () => {
     const navigate = useNavigate()
-    const { refreshUser } = useAuth()
+    const { refreshUser, user } = useAuth()
     const [seconds, setSeconds] = useState(COUNTDOWN)
 
     useEffect(() => {
@@ -18,12 +18,16 @@ const KycCompletePage = () => {
 
     useEffect(() => {
         if (seconds <= 0) {
-            navigate(ROUTES.PROFESSIONAL_DASHBOARD, { replace: true })
+            // If KYC approved but contract not signed, redirect to contract page instead
+            const destination = user?.kycStatus === 'approved' && !user?.contractSigned
+                ? ROUTES.PROFESSIONAL_CONTRACT
+                : ROUTES.PROFESSIONAL_DASHBOARD
+            navigate(destination, { replace: true })
             return
         }
         const timer = setTimeout(() => setSeconds(s => s - 1), 1000)
         return () => clearTimeout(timer)
-    }, [seconds, navigate])
+    }, [seconds, navigate, user])
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4">
@@ -44,7 +48,12 @@ const KycCompletePage = () => {
                 </p>
 
                 <button
-                    onClick={() => navigate(ROUTES.PROFESSIONAL_DASHBOARD, { replace: true })}
+                    onClick={() => {
+                        const destination = user?.kycStatus === 'approved' && !user?.contractSigned
+                            ? ROUTES.PROFESSIONAL_CONTRACT
+                            : ROUTES.PROFESSIONAL_DASHBOARD
+                        navigate(destination, { replace: true })
+                    }}
                     className="mt-6 w-full bg-[#0075C9] text-white py-3 rounded-xl text-[15px] font-semibold hover:bg-[#005faa] transition-colors"
                 >
                     Volver al panel

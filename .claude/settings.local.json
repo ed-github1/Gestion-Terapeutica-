@@ -9,7 +9,8 @@
       "Read(//c/Users/Eddie/TotalmenteGestionTerapeuticaWebApp/**)",
       "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\Eddie\\\\TotalmenteGestionTerapeuticaWebApp\\\\TotalmenteGestionTerapeutica-Frontend\" -Recurse -Include \"*.jsx\", \"*.js\", \"*.json\")",
       "Bash(Select-Object -First 50)",
-      "Bash(Format-Table FullName)"
+      "Bash(Format-Table FullName)",
+      "Bash(npm audit *)"
     ]
   }
 }

@@ -3,7 +3,7 @@ import { motion } from 'motion/react'
 import { Key, Eye, EyeOff, Check, AlertCircle } from 'lucide-react'
 import { useAuth } from './AuthContext'
 
-const PasswordField = ({ label, value, onChange, disabled }) => {
+const PasswordField = ({ label, value, onChange, disabled, autoComplete }) => {
   const [show, setShow] = useState(false)
   return (
     <div>
@@ -16,6 +16,7 @@ const PasswordField = ({ label, value, onChange, disabled }) => {
           value={value}
           onChange={onChange}
           disabled={disabled}
+          autoComplete={autoComplete}
           className="w-full px-3 py-2 pr-9 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100
                      focus:ring-2 focus:ring-sky-500 focus:border-transparent transition outline-none
                      disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-gray-50 dark:disabled:bg-gray-800/60"
@@ -97,9 +98,9 @@ const ChangePasswordForm = () => {
       <div className="border-t border-gray-200 dark:border-gray-800 mb-5" />
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <PasswordField label="Contraseña actual"          value={form.currentPassword}    onChange={set('currentPassword')}    disabled={loading} />
-        <PasswordField label="Nueva contraseña"           value={form.newPassword}        onChange={set('newPassword')}        disabled={loading} />
-        <PasswordField label="Confirmar nueva contraseña" value={form.confirmNewPassword} onChange={set('confirmNewPassword')} disabled={loading} />
+        <PasswordField label="Contraseña actual"          value={form.currentPassword}    onChange={set('currentPassword')}    disabled={loading} autoComplete="current-password" />
+        <PasswordField label="Nueva contraseña"           value={form.newPassword}        onChange={set('newPassword')}        disabled={loading} autoComplete="new-password" />
+        <PasswordField label="Confirmar nueva contraseña" value={form.confirmNewPassword} onChange={set('confirmNewPassword')} disabled={loading} autoComplete="new-password" />
 
         {success && (
           <div className="flex items-center gap-2 px-3 py-2.5 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-lg">

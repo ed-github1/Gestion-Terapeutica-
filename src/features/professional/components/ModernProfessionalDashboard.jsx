@@ -184,6 +184,11 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
         }
     }, [refreshData])
 
+    const handleRequestPayment = useCallback((appointment) => {
+        const patientName = appointment.nombrePaciente || appointment.patient?.name || 'el paciente'
+        showToast(`Solicitud de pago enviada a ${patientName}`, 'info')
+    }, [])
+
     // Resolve the full patient record when opening clinical file from a session card.
     // Steps: ID match → name match → API fetch → minimal fallback from appointment.
     const handleViewDiaryFromSession = useCallback(async (apt) => {
@@ -252,7 +257,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
         <>
             {/* ── KYC banner ── */}
             {showKycBanner && (
-                <div className="bg-amber-500 px-4 py-2.5 flex items-center gap-3">
+                <div className="fixed top-16 md:top-0 left-0 right-0 z-100 bg-amber-500 px-4 py-2.5 flex items-center gap-3">
                     <TriangleAlert className="w-4 h-4 shrink-0 text-white" strokeWidth={2.5} />
                     <p className="flex-1 text-sm font-medium text-white leading-snug">
                         Tu cuenta está pendiente de verificación. No puedes gestionar citas ni pacientes hasta completarla.
@@ -270,7 +275,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                 </div>
             )}
 
-            <div className="bg-transparent dark:bg-gray-900/50 xl:h-full xl:flex xl:flex-col">
+            <div className="bg-transparent dark:bg-gray-950/50 xl:h-full xl:flex xl:flex-col">
                 <div className="xl:h-full xl:flex xl:flex-col">
 
                     {/* ── MOBILE (< md) ── */}
@@ -371,6 +376,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                             setDiaryPatient={handleViewDiaryFromSession}
                                             setShowCalendar={setShowCalendar}
                                             handleMarkComplete={handleMarkComplete}
+                                            handleRequestPayment={handleRequestPayment}
                                             totalPatients={stats?.totalPatients}
                                         />
                                     }
@@ -436,6 +442,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                         setDiaryPatient={handleViewDiaryFromSession}
                                         setShowCalendar={setShowCalendar}
                                         handleMarkComplete={handleMarkComplete}
+                                        handleRequestPayment={handleRequestPayment}
                                         totalPatients={stats?.totalPatients}
                                     />
                                 </div>

@@ -141,6 +141,7 @@ export const getTodayAppointments = (appointments) => {
                 isVideoCall: apt.isVideoCall || apt.mode === 'videollamada' || false,
                 mode: apt.mode ?? (apt.isVideoCall ? 'videollamada' : 'consultorio'),
                 duration: apt.duration || 60,
+                paymentStatus: apt.paymentStatus || null,
             }
         })
 }

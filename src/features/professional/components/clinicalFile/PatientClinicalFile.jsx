@@ -27,14 +27,14 @@ const PatientClinicalFile = ({ patient, onClose }) => {
   } = data
 
   return (
-    <div className="h-full bg-gray-50 dark:bg-[#0f1623] flex flex-col overflow-hidden">
+    <div className="h-full bg-gray-50 dark:bg-gray-950 flex flex-col overflow-hidden rounded-2xl">
       {/* ── Top header ─────────────────────────────────────────────── */}
-      <div className="shrink-0 bg-white dark:bg-[#1a2234] border-b border-gray-100 dark:border-[#2d3748]">
+      <div className="shrink-0 bg-white dark:bg-gray-950 border-b border-gray-100 dark:border-gray-900">
 
         {/* Identity row */}
         <div className="flex items-center gap-3 px-4 sm:px-6 py-3">
           {/* Avatar */}
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-bold text-sm ${getAvatarColor(patientId || p.id)}`}>
+          <div className={`uppercase w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-bold text-sm ${getAvatarColor(patientId || p.id)}`}>
             {initials || '?'}
           </div>
 
@@ -115,7 +115,7 @@ const PatientClinicalFile = ({ patient, onClose }) => {
       </div>
 
       {/* ── Tab content ────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto dark:bg-[#0f1623] custom-scrollbar">
+      <div className="flex-1 overflow-y-auto dark:bg-gray-950 custom-scrollbar">
         <AnimatePresence mode="popLayout">
           <motion.div
             key={tab}

@@ -142,6 +142,7 @@ const EvaluationPanel = ({ entry, patientId, authorName, onSaved }) => {
                             onChange={e => setComment(e.target.value)}
                             placeholder="Observación clínica (opcional)…"
                             rows={2}
+                            maxLength={1000}
                             className="w-full px-3 py-2 text-xs border border-stone-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none bg-stone-50 resize-none"
                         />
                         {error && <p className="text-xs text-red-500">{error}</p>}
@@ -343,6 +344,7 @@ const PatientDiary = ({ patientId, patientName, onClose }) => {
                             onChange={e => setNewNote(e.target.value)}
                             placeholder={`Añadir nota clínica sobre ${patientName?.split(' ')[0] || 'el paciente'}…`}
                             rows={2}
+                            maxLength={4000}
                             className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50"
                         />
                         <motion.button

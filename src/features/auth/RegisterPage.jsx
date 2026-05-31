@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { motion, AnimatePresence } from 'motion/react'
 import { authService } from '@shared/services/authService'
 import { showToast } from '@shared/ui/Toast'
-import { AlertCircle, Eye, EyeOff, WifiOff, ShieldCheck, HeartPulse, Stethoscope, ChevronDown } from 'lucide-react'
+import { AlertCircle, Eye, EyeOff, WifiOff, ShieldCheck, ChevronDown, Check, Video } from 'lucide-react'
 import { BrandLogo } from '@shared/ui'
 import { PROFESSIONAL_COUNTRIES } from '@shared/constants/subscriptionPlans'
 
@@ -78,8 +78,10 @@ const RegisterPage = () => {
                 navigate('/login')
             }
         } catch (err) {
-            const message = err?.message || 'Error al registrar'
             const status  = err?.status
+            const message = (status && status >= 500)
+                ? 'Error al registrar. Intenta de nuevo.'
+                : err?.message || 'Error al registrar'
             if (status === 409) {
                 setError('email', { type: 'server', message })
             } else if (status === 400) {
@@ -168,7 +170,8 @@ const RegisterPage = () => {
                                         type="text"
                                         {...register('firstName', {
                                             required: 'El nombre es requerido',
-                                            minLength: { value: 2, message: 'Mínimo 2 caracteres' }
+                                            minLength: { value: 2, message: 'Mínimo 2 caracteres' },
+                                            maxLength: { value: 100, message: 'Máximo 100 caracteres' },
                                         })}
                                         className={`${inputBase} ${errors.firstName ? inputErr : inputOk}`}
                                         placeholder="Juan"
@@ -193,7 +196,8 @@ const RegisterPage = () => {
                                         type="text"
                                         {...register('lastName', {
                                             required: 'El apellido es requerido',
-                                            minLength: { value: 2, message: 'Mínimo 2 caracteres' }
+                                            minLength: { value: 2, message: 'Mínimo 2 caracteres' },
+                                            maxLength: { value: 100, message: 'Máximo 100 caracteres' },
                                         })}
                                         className={`${inputBase} ${errors.lastName ? inputErr : inputOk}`}
                                         placeholder="Pérez"
@@ -474,22 +478,12 @@ const RegisterPage = () => {
             </div>
 
             {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-               RIGHT — Branded showcase panel
+               RIGHT — Branded showcase panel (matches landing page)
                ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-            <div className="hidden lg:block lg:flex-1 relative overflow-hidden">
-                {/* Base gradient */}
-                <div className="absolute inset-0 bg-linear-to-br from-[#0075C9] via-[#0068b8] to-[#004080]" />
-
-                {/* Hero pattern overlay */}
-                <div
-                    className="absolute inset-0 opacity-100"
-                    style={{ backgroundImage: topographySvg }}
-                />
-
-                {/* Accent orbs */}
-                <div className="absolute -top-32 -right-32 w-96 h-96 bg-[#54C0E8]/25 rounded-full blur-3xl" />
-                <div className="absolute bottom-0 left-0 w-80 h-80 bg-[#AEE058]/12 rounded-full blur-3xl" />
-                <div className="absolute top-1/3 right-1/3 w-48 h-48 bg-[#54C0E8]/10 rounded-full blur-2xl" />
+            <div className="hidden lg:flex lg:flex-1 relative overflow-hidden bg-[#FAF8F4] border-l border-[#ECE7DE]">
+                {/* Soft brand washes — same language as landing hero */}
+                <div className="pointer-events-none absolute -right-40 -top-32 h-[36rem] w-[36rem] rounded-full bg-[#54C0E8]/10 blur-3xl" />
+                <div className="pointer-events-none absolute -left-32 top-40 h-[28rem] w-[28rem] rounded-full bg-[#AEE058]/10 blur-3xl" />
 
                 {/* Content */}
                 <div className="relative z-10 h-full w-full flex flex-col justify-between p-12 xl:p-16">
@@ -498,62 +492,135 @@ const RegisterPage = () => {
                         initial={{ opacity: 0, y: -12 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6 }}
-                        className="flex items-center gap-2 text-white/70 text-[13px] font-medium tracking-wide"
+                        className="flex items-center gap-3 text-xs font-medium uppercase tracking-[0.18em] text-[#8a9498]"
                     >
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#AEE058]" />
-                        Plataforma clínica · Telemedicina segura
+                        <motion.span
+                            className="h-px bg-[#C9C0B0]"
+                            initial={{ width: 0 }}
+                            animate={{ width: 32 }}
+                            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: 0.25 }}
+                        />
+                        Para profesionales de salud mental
                     </motion.div>
 
-                    {/* Center — feature cards */}
-                    <div className="space-y-5 max-w-md">
-                        {[
-                            {
-                                icon: <Stethoscope className="w-5 h-5 text-[#0075C9]" strokeWidth={2.2} />,
-                                title: 'Expedientes clínicos completos',
-                                desc: 'Historia, notas terapéuticas y evolución en un solo lugar.'
-                            },
-                            {
-                                icon: <HeartPulse className="w-5 h-5 text-[#0075C9]" strokeWidth={2.2} />,
-                                title: 'Teleconsulta integrada',
-                                desc: 'Video llamadas encriptadas con grabación y transcripción opcional.'
-                            },
-                            {
-                                icon: <ShieldCheck className="w-5 h-5 text-[#0075C9]" strokeWidth={2.2} />,
-                                title: 'Cumplimiento regulatorio',
-                                desc: 'Diseñado bajo lineamientos de la LFPDPPP y estándares de privacidad clínica.'
-                            },
-                        ].map((f, i) => (
-                            <motion.div
-                                key={f.title}
-                                initial={{ opacity: 0, x: 24 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: 0.25 + i * 0.12, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-                                className="flex items-start gap-4 p-5 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/15"
-                            >
-                                <div className="w-11 h-11 rounded-xl bg-white flex items-center justify-center shrink-0 shadow-md">
-                                    {f.icon}
+                    {/* Center — headline + honest product card */}
+                    <div className="max-w-md">
+                        <motion.h2
+                            initial={{ opacity: 0, y: 18 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.7, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+                            className="font-display text-4xl xl:text-[3.25rem] font-normal leading-[1.05] tracking-[-0.025em] text-[#2A3338]"
+                        >
+                            Atiende con{' '}
+                            <span className="relative italic text-[#0075C9]">
+                                claridad clínica
+                                <motion.span
+                                    className="absolute -bottom-0.5 left-0 h-[3px] w-full origin-left rounded-full bg-[#AEE058]"
+                                    initial={{ scaleX: 0 }}
+                                    animate={{ scaleX: 1 }}
+                                    transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.9 }}
+                                />
+                            </span>.
+                        </motion.h2>
+
+                        {/* Product snippet — condensed "Agenda del día" from landing */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 24, scale: 0.97 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            transition={{ duration: 0.8, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                            className="mt-8 rounded-2xl border border-[#ECE7DE] bg-white p-5 shadow-[0_24px_60px_-28px_rgba(42,51,56,0.28)]"
+                        >
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-xs font-medium uppercase tracking-wider text-[#9aa5a8]">Hoy</p>
+                                    <p className="font-display text-xl text-[#2A3338]">Agenda del día</p>
+                                </div>
+                                <span className="rounded-full bg-[#AEE058]/20 px-3 py-1 text-xs font-semibold text-[#5b7d12]">4 sesiones</span>
+                            </div>
+
+                            <div className="mt-5 space-y-3">
+                                {[
+                                    { time: '09:00', name: 'Lucía Fernández', tag: 'Videollamada', accent: '#0075C9', live: true },
+                                    { time: '11:30', name: 'Diego Ramírez', tag: 'Presencial', accent: '#54C0E8', live: false },
+                                ].map((s) => (
+                                    <div
+                                        key={s.time}
+                                        className="flex items-center gap-3 rounded-xl border border-[#F0ECE3] bg-[#FCFBF8] p-3"
+                                    >
+                                        <div className="w-12 shrink-0 text-sm font-semibold text-[#2A3338]">{s.time}</div>
+                                        <div
+                                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
+                                            style={{ backgroundColor: s.accent }}
+                                        >
+                                            {s.name.split(' ').map((p) => p[0]).join('')}
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="truncate text-sm font-medium text-[#2A3338]">{s.name}</p>
+                                            <p className="text-xs text-[#8a9498]">{s.tag}</p>
+                                        </div>
+                                        {s.live ? (
+                                            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#0075C9] px-2.5 py-1 text-xs font-semibold text-white">
+                                                <Video className="h-3 w-3" /> Unirse
+                                            </span>
+                                        ) : (
+                                            <span className="h-2 w-2 rounded-full bg-[#D9D2C6]" />
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Encryption proof */}
+                            <div className="mt-4 flex items-center gap-2.5 border-t border-[#F0ECE3] pt-4">
+                                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#AEE058]/20 shrink-0">
+                                    <ShieldCheck className="h-4 w-4 text-[#5b7d12]" />
                                 </div>
                                 <div>
-                                    <p className="text-white font-semibold text-[15px] leading-snug">{f.title}</p>
-                                    <p className="text-white/65 text-[13px] leading-relaxed mt-1">{f.desc}</p>
+                                    <p className="text-sm font-semibold text-[#2A3338] leading-tight">Cifrado activo</p>
+                                    <p className="text-xs text-[#8a9498]">Extremo a extremo</p>
                                 </div>
-                            </motion.div>
-                        ))}
+                            </div>
+                        </motion.div>
                     </div>
 
-                    {/* Bottom hero text */}
+                    {/* Bottom — trust signals carried from landing */}
                     <motion.div
                         initial={{ opacity: 0, y: 24 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.45, duration: 0.6 }}
                     >
-                        <h2 className="text-3xl xl:text-[38px] font-extrabold text-white leading-[1.1] tracking-tight">
-                            Atiende con<br />
-                            <span className="text-[#AEE058]">claridad clínica.</span>
-                        </h2>
-                        <p className="text-white/55 text-sm mt-3 max-w-sm leading-relaxed">
-                            Diseñado con y para profesionales de la salud mental. Simple, seguro y soberano.
-                        </p>
+                        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-[#5C6B70]">
+                            <span className="inline-flex items-center gap-2">
+                                <Check className="h-4 w-4 text-[#0075C9]" /> 14 días gratis
+                            </span>
+                            <span className="inline-flex items-center gap-2">
+                                <Check className="h-4 w-4 text-[#0075C9]" /> Sin tarjeta de crédito
+                            </span>
+                            <span className="inline-flex items-center gap-2">
+                                <Check className="h-4 w-4 text-[#0075C9]" /> Cancela cuando quieras
+                            </span>
+                        </div>
+
+                        <div className="mt-7 flex items-center gap-4 border-t border-[#ECE7DE] pt-7">
+                            <div className="flex -space-x-2.5">
+                                {[
+                                    { i: 'MG', c: '#0075C9' },
+                                    { i: 'CM', c: '#54C0E8' },
+                                    { i: 'AT', c: '#7FB52E' },
+                                    { i: 'JR', c: '#2A3338' },
+                                ].map((a) => (
+                                    <div
+                                        key={a.i}
+                                        className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#FAF8F4] text-[10px] font-bold text-white"
+                                        style={{ backgroundColor: a.c }}
+                                    >
+                                        {a.i}
+                                    </div>
+                                ))}
+                            </div>
+                            <p className="text-sm leading-snug text-[#5C6B70]">
+                                Construido junto a<br /> profesionales de salud mental.
+                            </p>
+                        </div>
                     </motion.div>
                 </div>
             </div>

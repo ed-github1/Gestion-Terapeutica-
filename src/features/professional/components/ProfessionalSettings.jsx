@@ -2,10 +2,13 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useAuth } from '@features/auth'
 import { ChangePasswordForm } from '@features/auth'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { getCurrencyForCountry } from '@shared/constants/subscriptionPlans'
 import { professionalsService } from '@shared/services/professionalsService'
 import { statsService } from '@shared/services/statsService'
+import { showToast } from '@shared/ui/Toast'
+import apiClient from '@shared/api/client'
+import mpLogo from '@assets/LOGO_MP.png'
 
 // ─── Toggle ────────────────────────────────────────────────────────────────────
 const Toggle = ({ checked, onChange, disabled }) => (
@@ -59,13 +62,43 @@ const inputCls = `text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:
 
 const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
 
+const FlagImg = ({ code, size = 28 }) => {
+    if (!code || code === 'OTHER') return <span style={{ fontSize: size }} className="leading-none">🌎</span>
+    return (
+        <img
+            src={`https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@2.6.0/flags/${code.toLowerCase()}.svg`}
+            width={size}
+            height={size}
+            alt={code}
+            className="shrink-0"
+        />
+    )
+}
+
 // ─── Main component ────────────────────────────────────────────────────────────
 const ProfessionalSettings = ({ embedded = false }) => {
     const { user } = useAuth()
     const navigate = useNavigate()
+    const location = useLocation()
     const [saved, setSaved] = useState(false)
     const [showPasswordForm, setShowPasswordForm] = useState(false)
     const [kycStatus, setKycStatus] = useState(null)
+    const [mpConnected, setMpConnected] = useState(false)
+    const [mpConnecting, setMpConnecting] = useState(false)
+    const [mpMenuOpen, setMpMenuOpen] = useState(false)
+
+    useEffect(() => {
+        const params = new URLSearchParams(location.search)
+        const mp = params.get('mp')
+        if (!mp) return
+        if (mp === 'connected') {
+            setMpConnected(true)
+            showToast('Cuenta de MercadoPago conectada', 'success')
+        } else if (mp === 'error') {
+            showToast('Error al conectar MercadoPago, intenta de nuevo', 'error')
+        }
+        window.history.replaceState({}, '', location.pathname)
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
     const countryInfo = getCurrencyForCountry(user?.country)
 
@@ -161,6 +194,32 @@ const ProfessionalSettings = ({ embedded = false }) => {
         })
     }, [])
 
+    useEffect(() => {
+        setMpConnected(user?.mpConnected ?? false)
+    }, [user])
+
+    const handleConnectMP = async () => {
+        setMpConnecting(true)
+        try {
+            const res = await apiClient.get('/auth/mercadopago/connect')
+            window.location.href = res.data?.url
+        } catch {
+            showToast('No se pudo iniciar la conexión con MercadoPago.', 'error')
+            setMpConnecting(false)
+        }
+    }
+
+    const handleDisconnectMP = async () => {
+        setMpMenuOpen(false)
+        try {
+            await apiClient.post('/auth/mercadopago/disconnect')
+            setMpConnected(false)
+            showToast('Cuenta de MercadoPago desconectada', 'success')
+        } catch {
+            showToast('No se pudo desconectar MercadoPago.', 'error')
+        }
+    }
+
     const setN = (key) => (val) => setNotif(prev => ({ ...prev, [key]: val }))
     const setP = (key) => (val) => setPractice(prev => ({ ...prev, [key]: val }))
 
@@ -203,37 +262,6 @@ const ProfessionalSettings = ({ embedded = false }) => {
     return (
         <div className={embedded ? '' : 'min-h-screen bg-gray-50 dark:bg-gray-900 p-3 md:p-6 lg:p-8'}>
             <div className={embedded ? 'space-y-4' : 'max-w-full space-y-4'}>
-
-                {/* ── Header ── */}
-                {!embedded ? (
-                    <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="flex items-center justify-between"
-                    >
-                        <div>
-                            <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100">Configuración</h1>
-                            <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">Personaliza tu experiencia en TotalMente</p>
-                        </div>
-                        <motion.button
-                            onClick={handleSave}
-                            whileTap={{ scale: 0.96 }}
-                            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${saved ? 'bg-emerald-500 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
-                        >
-                            {saved ? 'Guardado' : 'Guardar cambios'}
-                        </motion.button>
-                    </motion.div>
-                ) : (
-                    <div className="flex items-center justify-end">
-                        <motion.button
-                            onClick={handleSave}
-                            whileTap={{ scale: 0.96 }}
-                            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${saved ? 'bg-emerald-500 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
-                        >
-                            {saved ? 'Guardado' : 'Guardar cambios'}
-                        </motion.button>
-                    </div>
-                )}
 
                 {/* ── Profile card ── */}
                 {!embedded && (
@@ -338,8 +366,10 @@ const ProfessionalSettings = ({ embedded = false }) => {
                         />
                     </Row>
                     <Row label="Moneda">
-                        <span className="text-sm text-gray-700 dark:text-gray-300">
-                            {countryInfo.symbol} {countryInfo.currency}
+                        <span className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                            <FlagImg code={user?.country} />
+                            <span>{countryInfo.symbol} {countryInfo.currency}</span>
+                            <span className="text-xs text-gray-400 dark:text-gray-500">{countryInfo.currencyLabel}</span>
                         </span>
                     </Row>
 
@@ -474,6 +504,68 @@ const ProfessionalSettings = ({ embedded = false }) => {
                             className={inputCls}
                         />
                     </Row>
+                </Section>
+
+                {/* ── Payments ── */}
+                <Section title="Cobros" subtitle="Conecta tu cuenta de MercadoPago para recibir pagos de tus pacientes">
+                    <div className="px-6 py-4">
+                        <div className="flex items-center gap-4 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 transition-colors">
+                            {/* Icon */}
+                            <div className="rounded-xl shrink-0 overflow-hidden bg-white border border-gray-200 dark:border-gray-600 p-2 flex items-center justify-center">
+                                <img src={mpLogo} alt="MercadoPago" className="h-10 w-auto" />
+                            </div>
+
+                            {/* Text */}
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Mercado Pago</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                    {mpConnected ? 'Los pagos se depositan directamente en tu cuenta.' : 'Conecta tu cuenta para recibir pagos automáticamente.'}
+                                </p>
+                            </div>
+
+                            {/* Action */}
+                            {mpConnected ? (
+                                <div className="flex items-center gap-2 shrink-0">
+                                    <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-emerald-400/40 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                        Conectado
+                                    </span>
+                                    <div className="relative">
+                                        <button
+                                            type="button"
+                                            onClick={() => setMpMenuOpen(o => !o)}
+                                            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-base leading-none font-bold tracking-widest"
+                                        >
+                                            ···
+                                        </button>
+                                        {mpMenuOpen && (
+                                            <>
+                                                <div className="fixed inset-0 z-10" onClick={() => setMpMenuOpen(false)} />
+                                                <div className="absolute right-0 top-full mt-1 w-40 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-lg z-20 overflow-hidden">
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleDisconnectMP}
+                                                        className="w-full px-4 py-2.5 text-left text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                                                    >
+                                                        Desconectar
+                                                    </button>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : (
+                                <button
+                                    type="button"
+                                    disabled={mpConnecting}
+                                    onClick={handleConnectMP}
+                                    className="px-4 py-2 rounded-xl text-sm font-semibold bg-sky-500 hover:bg-sky-600 text-white transition-colors disabled:opacity-60 disabled:cursor-not-allowed shrink-0"
+                                >
+                                    {mpConnecting ? 'Redirigiendo...' : 'Conectar'}
+                                </button>
+                            )}
+                        </div>
+                    </div>
                 </Section>
 
                 <div className="h-4" />

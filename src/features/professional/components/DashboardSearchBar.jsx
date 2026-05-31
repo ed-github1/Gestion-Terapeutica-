@@ -3,15 +3,7 @@ import { Search, X, User, ArrowRight } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useNavigate } from 'react-router-dom'
 import { patientsService } from '@shared/services/patientsService'
-
-const avatarPalette = [
-    'bg-sky-500', 'bg-violet-500', 'bg-emerald-500',
-    'bg-amber-500', 'bg-rose-500', 'bg-cyan-500',
-]
-const avatarColor = (id) => {
-    const n = String(id ?? '').split('').reduce((a, c) => a + c.charCodeAt(0), 0)
-    return avatarPalette[n % avatarPalette.length]
-}
+import { getAvatarColor } from '@shared/utils/avatarColor'
 
 /**
  * Self-contained patient search bar.
@@ -144,7 +136,7 @@ const DashboardSearchBar = ({ onSelect, className = '' }) => {
                                         onMouseDown={() => handleSelect(p)}
                                         className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700/60 transition-colors group"
                                     >
-                                        <div className={`w-8 h-8 rounded-xl ${avatarColor(p.id)} flex items-center justify-center text-[11px] font-bold text-white shrink-0`}>
+                                        <div className={`w-8 h-8 rounded-xl ${getAvatarColor(p.id)} flex items-center justify-center text-[11px] font-bold shrink-0`}>
                                             {initials}
                                         </div>
                                         <div className="flex-1 min-w-0 text-left">

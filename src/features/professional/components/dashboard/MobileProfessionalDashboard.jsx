@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { useTodos } from '@features/professional/hooks'
 import TodoModal from '../TodoModal'
+import { getAvatarColor } from '@shared/utils/avatarColor'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const DOW_LABELS = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
@@ -30,17 +31,6 @@ const SESSION_TYPE_DOT = {
     Extraordinaria: 'bg-amber-400',
 }
 
-const AVATAR_PALETTES = [
-    ['bg-sky-100 dark:bg-sky-900/60',     'text-sky-600 dark:text-sky-300'],
-    ['bg-emerald-100 dark:bg-emerald-900/60', 'text-emerald-600 dark:text-emerald-300'],
-    ['bg-violet-100 dark:bg-violet-900/60',  'text-violet-600 dark:text-violet-300'],
-    ['bg-amber-100 dark:bg-amber-900/60',   'text-amber-600 dark:text-amber-300'],
-    ['bg-teal-100 dark:bg-teal-900/60',    'text-teal-600 dark:text-teal-300'],
-    ['bg-rose-100 dark:bg-rose-900/60',    'text-rose-600 dark:text-rose-300'],
-    ['bg-blue-100 dark:bg-blue-900/60',    'text-blue-600 dark:text-blue-300'],
-    ['bg-cyan-100 dark:bg-cyan-900/60',    'text-cyan-600 dark:text-cyan-300'],
-]
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const getInitialsFrom = (name) => {
     if (!name) return '?'
@@ -48,11 +38,6 @@ const getInitialsFrom = (name) => {
     return parts.length >= 2
         ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
         : name.substring(0, 2).toUpperCase()
-}
-const avatarBg = (name) => {
-    let h = 0
-    for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h)
-    return AVATAR_PALETTES[Math.abs(h) % AVATAR_PALETTES.length]
 }
 const pad2 = (n) => String(n).padStart(2, '0')
 const fmtTime = (d) => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`
@@ -72,7 +57,7 @@ const HeroSessionCard = ({ apt, onJoinVideo, onViewDiary, onMarkComplete }) => {
     const isInProgress = nowMs >= start.getTime() && nowMs < end.getTime()
     const sessionType = apt.type || apt.appointmentType || 'Primera consulta'
     const typeDot     = SESSION_TYPE_DOT[sessionType] || 'bg-gray-400'
-    const [avatarBgCls, avatarTextCls] = avatarBg(name)
+    const avatarCls   = getAvatarColor(apt.patientId || apt.patient?._id || name)
 
     const minsUntil = Math.round((start.getTime() - nowMs) / 60_000)
     const countdown = isInProgress
@@ -118,7 +103,7 @@ const HeroSessionCard = ({ apt, onJoinVideo, onViewDiary, onMarkComplete }) => {
 
                 {/* Patient row */}
                 <div className="flex items-center gap-3 mb-4">
-                    <div className={`w-11 h-11 rounded-full ${avatarBgCls} ${avatarTextCls} flex items-center justify-center font-bold text-sm shrink-0`}>
+                    <div className={`w-11 h-11 rounded-full ${avatarCls} flex items-center justify-center font-bold text-sm shrink-0`}>
                         {getInitialsFrom(name)}
                     </div>
                     <div className="min-w-0">
@@ -179,7 +164,7 @@ const SessionRow = ({ apt, index, onJoinVideo, onViewDiary, onMarkComplete }) =>
     const isCancelled = rawStatus === 'cancelled' || rawStatus === 'cancelada' || apt.isCancelled === true
     const sessionType = apt.type || apt.appointmentType || 'Primera consulta'
     const typeDot     = SESSION_TYPE_DOT[sessionType] || 'bg-gray-500'
-    const [avatarBgCls, avatarTextCls] = avatarBg(name)
+    const avatarCls   = getAvatarColor(apt.patientId || apt.patient?._id || name)
 
     return (
         <motion.div
@@ -201,7 +186,7 @@ const SessionRow = ({ apt, index, onJoinVideo, onViewDiary, onMarkComplete }) =>
             <div className={`w-9 h-9 rounded-full ${
                 isCancelled ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600' :
                 isCompleted ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500' :
-                `${avatarBgCls} ${avatarTextCls}`
+                avatarCls
             } flex items-center justify-center font-bold text-[11px] shrink-0`}>
                 {getInitialsFrom(name)}
             </div>

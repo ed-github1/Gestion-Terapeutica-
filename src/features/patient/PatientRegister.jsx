@@ -379,6 +379,7 @@ const PatientRegister = () => {
                     <input
                       required
                       type="password"
+                      autoComplete="new-password"
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                       className="w-full px-4 py-3 border border-blue-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-blue-50/30"
@@ -393,6 +394,7 @@ const PatientRegister = () => {
                     <input
                       required
                       type="password"
+                      autoComplete="new-password"
                       value={formData.confirmPassword}
                       onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                       className="w-full px-4 py-3 border border-blue-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-blue-50/30"

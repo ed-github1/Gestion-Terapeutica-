@@ -13,6 +13,7 @@ const NotesTab = ({ pFirstName, clinicalNotes, newNote, setNewNote, isSubmitting
           onChange={e => setNewNote(e.target.value)}
           placeholder={`Añadir nota sobre ${pFirstName || 'el paciente'}…`}
           rows={2}
+          maxLength={4000}
           className="flex-1 px-3 py-2 text-sm border border-gray-200 dark:border-[#2d3748] rounded-xl resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 dark:bg-[#0f1623] dark:text-gray-100 dark:placeholder-gray-500"
         />
         <motion.button

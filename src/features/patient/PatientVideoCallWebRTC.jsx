@@ -10,6 +10,7 @@ import { Mic, MicOff, Video as VideoIcon, VideoOff, MessageSquare, PhoneOff, Log
 import { useVideoCall as useWebRTC } from '@shared/context/VideoCallContext';
 import { videoCallService } from '@shared/services/videoCallService';
 import { useAuth } from '../auth/AuthContext';
+import logoSymbol from '@/assets/SIMBOLO_LOGO_TOTALMENTE.png';
 
 const PatientVideoCallWebRTC = () => {
   const { appointmentId } = useParams();
@@ -385,6 +386,12 @@ const PatientVideoCallWebRTC = () => {
   return (
     <div className="fixed inset-0 bg-black overflow-hidden">
 
+      {/* ── Watermark ─── */}
+      <img src={logoSymbol} alt="" aria-hidden="true"
+        className="absolute bottom-4 right-4 z-20 pointer-events-none select-none"
+        style={{ width: 48, opacity: 0.15 }}
+      />
+
       {/* ── Full-screen remote video ─────────────────────────────────── */}
       {remoteStreams.length > 0 ? (
         remoteStreams.map(({ userId, stream }) => {
@@ -418,13 +425,11 @@ const PatientVideoCallWebRTC = () => {
           );
         })
       ) : (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-950">
           <div className="text-center">
             <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4"
               style={{ background: 'rgba(14,165,233,0.15)', border: '1px solid rgba(14,165,233,0.25)' }}>
-              <svg className="w-10 h-10 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
+              <span className="text-sky-300 text-3xl font-bold">?</span>
             </div>
             <p className="text-white text-base font-medium">Esperando al profesional...</p>
             <p className="text-white/30 text-sm mt-1">La sesión comenzará pronto</p>

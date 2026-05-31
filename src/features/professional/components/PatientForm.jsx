@@ -191,7 +191,7 @@ const PatientForm = ({ onClose }) => {
           </Field>
 
           <Field label="Motivo de consulta (opcional)" icon={MessageSquare}>
-            <textarea {...register('presentingConcern')} rows={2}
+            <textarea {...register('presentingConcern')} rows={2} maxLength={1000}
               className={`${inputCls(false)} resize-none`}
               placeholder="Breve descripción del motivo de derivación o consulta" />
           </Field>

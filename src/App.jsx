@@ -26,6 +26,7 @@ import CookiesPage from '@pages/CookiesPage'
 import KycCompletePage from '@pages/KycCompletePage'
 import ProfessionalContractPage from '@pages/ProfessionalContractPage'
 import { Toast } from '@shared/ui'
+import TopLoadingBar from '@shared/ui/TopLoadingBar'
 import { ROUTES, ROLES } from '@shared/constants/routes'
 import DashboardLayout from '@shared/layouts/DashboardLayout'
 import { usePageTitle } from '@shared/hooks'
@@ -45,13 +46,7 @@ const LoginRoute = () => {
   // Only block on the initial startup token check — NOT during a login attempt.
   // If we blocked on `loading`, LoginPage would unmount while waiting for the
   // API response, losing local error state when the call fails.
-  if (initializing) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700"></div>
-      </div>
-    )
-  }
+  if (initializing) return null
   if (isAuthenticated && user) {
     const role = user.role || user.rol
     
@@ -73,6 +68,7 @@ function App() {
       <DarkModeProvider>
       <AuthProvider>
         <VideoCallProvider>
+        <TopLoadingBar />
         <PageTitleManager />
         <Toast />
         <Routes>

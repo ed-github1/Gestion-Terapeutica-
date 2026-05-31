@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react'
 import { useEffect, useRef } from 'react'
 import { Calendar, Video, FileText, MessageSquare, CheckCircle2, Ban, Coffee } from 'lucide-react'
+import { getAvatarColor } from '@shared/utils/avatarColor'
 
 /* ═══════════════════════════════════════════════════════════════════════════
    1. HELPERS & CONSTANTS
@@ -30,41 +31,26 @@ const SESSION_TYPE_DOT = {
     Extraordinaria: 'bg-amber-500', default: 'bg-gray-400',
 }
 
-const AVATAR_PALETTES = [
-    'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300',
-    'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
-    'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300',
-    'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
-    'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300',
-    'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300',
-    'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
-    'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300',
-    'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300',
-    'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300',
-]
-
-const getAvatarColor = (name) => {
-    let hash = 0
-    for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
-    return AVATAR_PALETTES[Math.abs(hash) % AVATAR_PALETTES.length]
-}
 
 const GHOST_BTN          = 'w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/70 active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-1'
 const GHOST_BTN_ACTIVE   = 'w-8 h-8 flex items-center justify-center rounded-lg text-sky-500 dark:text-sky-400 hover:text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-900/20 active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-1'
 const GHOST_BTN_IMMINENT = 'w-8 h-8 flex items-center justify-center rounded-lg text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-1'
+const GHOST_BTN_DISABLED = 'w-8 h-8 flex items-center justify-center rounded-lg text-gray-300 dark:text-gray-600 cursor-not-allowed'
 
 /** Derive all appointment metadata from raw data */
 const parseAppointment = (appointment) => {
     const patientName = sanitize(appointment.nombrePaciente || appointment.patient?.name) || 'Paciente'
+    const patientId   = appointment.patientId || appointment.patient?._id
     const startTime   = new Date(appointment.fechaHora)
     const endTime     = new Date(startTime.getTime() + (appointment.duration || 60) * 60 * 1000)
     const riskLevel   = appointment.riskLevel || 'low'
     const sessionType = appointment.type || 'Primera consulta'
     const isVideoCall = appointment.isVideoCall || appointment.mode === 'videollamada'
 
-    const rawStatus   = appointment.estado || appointment.status || ''
-    const isCompleted = rawStatus === 'completed' || rawStatus === 'completada'
-    const isCancelled = rawStatus === 'cancelled' || rawStatus === 'cancelada' || appointment.isCancelled === true
+    const rawStatus        = appointment.estado || appointment.status || ''
+    const isCompleted      = rawStatus === 'completed' || rawStatus === 'completada'
+    const isCancelled      = rawStatus === 'cancelled' || rawStatus === 'cancelada' || appointment.isCancelled === true
+    const isPendingPayment = !isCompleted && !isCancelled && appointment.paymentStatus === 'pending'
 
     const isToday     = startTime.toDateString() === new Date().toDateString()
     const dateLabel   = !isToday ? `${startTime.getDate()} ${SHORT_MONTHS[startTime.getMonth()]}` : null
@@ -74,29 +60,27 @@ const parseAppointment = (appointment) => {
     const isDone      = isCompleted || isCancelled
 
     return {
-        patientName, startTime, endTime, riskLevel, sessionType,
-        isVideoCall, isCompleted, isCancelled, isDone, dateLabel,
+        patientName, patientId, startTime, endTime, riskLevel, sessionType,
+        isVideoCall, isCompleted, isCancelled, isDone, isPendingPayment, dateLabel,
         timeRange, isInProgress,
     }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   2. STYLE RESOLVERS — keep all conditional class logic here
+   2. STYLE RESOLVERS 
    ═══════════════════════════════════════════════════════════════════════════ */
 
-const getCardBg = ({ isCancelled, isCompleted, isNext, isInProgress, riskLevel }) => {
-    if (isCancelled)   return 'bg-white dark:bg-gray-800/50 border border-dashed border-gray-300 dark:border-gray-600'
-    if (isCompleted)   return 'bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/60'
-    if (isInProgress)  return 'bg-sky-50/80 dark:bg-sky-950/20 border border-sky-200 dark:border-sky-700/50 border-l-[3px] border-l-sky-500 dark:border-l-sky-400 shadow-sm'
-    if (isNext)        return 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/40 border-l-[3px] border-l-sky-300 dark:border-l-sky-600 shadow-sm'
-    if (riskLevel === 'high') return 'bg-white dark:bg-gray-800/80 border border-rose-200 dark:border-rose-700/30'
-    return 'bg-white dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700/60'
+const getCardBg = ({ isCancelled, isCompleted, isNext, isInProgress, riskLevel, isPendingPayment }) => {
+    if (isCancelled)        return 'bg-white dark:bg-gray-800/50 border border-dashed border-gray-300 dark:border-gray-600'
+    if (isCompleted)        return 'bg-gray-50 dark:bg-gray-950/40 border border-gray-200 dark:border-gray-700/60'
+    if (isInProgress)       return 'bg-sky-50/80 dark:bg-sky-950/20 border border-sky-200 dark:border-sky-700/50 border-l-[3px] border-l-sky-500 dark:border-l-sky-400 shadow-sm'
+if (isNext)             return 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/40 border-l-[3px] border-l-sky-300 dark:border-l-sky-600 shadow-sm'
+    return 'bg-white dark:bg-gray-950/80 border border-gray-200 dark:border-gray-700/60'
 }
 
-const getAvatarClass = ({ isCancelled, isCompleted, patientName }) => {
+const getAvatarClass = ({ isCancelled, patientId, patientName }) => {
     if (isCancelled) return 'bg-gray-100 text-gray-400 dark:bg-gray-700/60 dark:text-gray-500'
-    if (isCompleted) return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
-    return getAvatarColor(patientName)
+    return getAvatarColor(patientId || patientName)
 }
 
 const getNameClass = ({ isCancelled, isCompleted }) => {
@@ -158,20 +142,21 @@ const TimelineRow = ({ index, isFirst, isLast, timeStr, dateLabel, dotClass = DE
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /** Action buttons (video, complete, file) */
-const SessionActions = ({ appointment, data, isActive, isImminent, onJoinVideo, onViewDiary, onMarkComplete }) => {
-    const { isCancelled, isCompleted, isVideoCall } = data
+const SessionActions = ({ appointment, data, isActive, isImminent, onJoinVideo, onViewDiary, onMarkComplete, onRequestPayment }) => {
+    const { isCancelled, isCompleted, isVideoCall, isPendingPayment } = data
     const primaryBtn = isImminent ? GHOST_BTN_IMMINENT : isActive ? GHOST_BTN_ACTIVE : GHOST_BTN
     return (
         <div className="flex items-center gap-0.5 shrink-0">
-            {!isCancelled && !isCompleted && isVideoCall && (
-                <button
-                    type="button"
-                    title={isImminent ? 'Iniciar videollamada' : 'Videollamada'}
-                    onClick={() => onJoinVideo?.(appointment)}
-                    className={primaryBtn}
-                >
-                    <Video className="w-5 h-5" />
-                </button>
+{!isCancelled && !isCompleted && isVideoCall && (
+                isPendingPayment ? (
+                    <button type="button" title="Pago pendiente — no se puede iniciar la sesión" disabled className={GHOST_BTN_DISABLED}>
+                        <Video className="w-5 h-5" />
+                    </button>
+                ) : (
+                    <button type="button" title={isImminent ? 'Iniciar videollamada' : 'Videollamada'} onClick={() => onJoinVideo?.(appointment)} className={primaryBtn}>
+                        <Video className="w-5 h-5" />
+                    </button>
+                )
             )}
             {!isCancelled && !isCompleted && !isVideoCall && (
                 <button type="button" title="Marcar como completada" onClick={() => onMarkComplete?.(appointment)} className={primaryBtn}>
@@ -187,7 +172,7 @@ const SessionActions = ({ appointment, data, isActive, isImminent, onJoinVideo, 
 
 /** Status + type + mode chips */
 const SessionChips = ({ data }) => {
-    const { isCompleted, isCancelled, isDone, riskLevel, sessionType, isVideoCall } = data
+    const { isCompleted, isCancelled, isDone, riskLevel, sessionType, isVideoCall, isPendingPayment } = data
     const typeDot = SESSION_TYPE_DOT[sessionType] || SESSION_TYPE_DOT.default
     const hasStatusChip = isCompleted || isCancelled || riskLevel === 'high'
 
@@ -198,7 +183,7 @@ const SessionChips = ({ data }) => {
 
     return (
         <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
-            {isCompleted && (
+{isCompleted && (
                 <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-700/60">
                     <CheckCircle2 className="w-3 h-3" /> Completada
                 </span>
@@ -236,7 +221,7 @@ const SessionChips = ({ data }) => {
    5. SESSION CARD (composed from sub-components)
    ═══════════════════════════════════════════════════════════════════════════ */
 
-const SessionCard = ({ appointment, index, isFirst, isNext, isLast, countdown, isImminent, onJoinVideo, onViewDiary, onMarkComplete }) => {
+const SessionCard = ({ appointment, index, isFirst, isNext, isLast, countdown, isImminent, onJoinVideo, onViewDiary, onMarkComplete, onRequestPayment }) => {
     const data = parseAppointment(appointment)
     const { patientName, startTime, endTime, isCancelled, isCompleted, isInProgress, dateLabel, timeRange } = data
 
@@ -248,7 +233,7 @@ const SessionCard = ({ appointment, index, isFirst, isNext, isLast, countdown, i
     const isActive = isNext || isInProgress
 
     return (
-        <div className="min-w-0 w-full group">
+        <div className="min-w-0 w-full group ">
             <TimelineRow index={index} isFirst={isFirst} isLast={isLast} timeStr={fmtTime(startTime)} dateLabel={dateLabel} dotClass={dotClass} spineColor={spineColor} dimmed={isCancelled}>
                 <div className={`${bgClass} rounded-2xl px-4 py-3 transition-shadow duration-200 ${!isCancelled ? 'group-hover:shadow-md' : ''}`}>
                     <div className="flex items-start gap-3">
@@ -271,7 +256,7 @@ const SessionCard = ({ appointment, index, isFirst, isNext, isLast, countdown, i
                                         )}
                                     </div>
                                 </div>
-                                <SessionActions appointment={appointment} data={data} isActive={isActive} isImminent={isImminent} onJoinVideo={onJoinVideo} onViewDiary={onViewDiary} onMarkComplete={onMarkComplete} />
+                                <SessionActions appointment={appointment} data={data} isActive={isActive} isImminent={isImminent} onJoinVideo={onJoinVideo} onViewDiary={onViewDiary} onMarkComplete={onMarkComplete} onRequestPayment={onRequestPayment} />
                             </div>
                             <SessionChips data={data} />
                         </div>
@@ -408,6 +393,7 @@ const TodaysSessions = ({
     onViewDiary,
     onMessage,
     onMarkComplete,
+    onRequestPayment,
     nextSessionTime = null,
     nextSessionCountdown = null,
     nextIsImminent = false,
@@ -495,6 +481,7 @@ const TodaysSessions = ({
                                         onViewDiary={onViewDiary}
                                         onMessage={onMessage}
                                         onMarkComplete={onMarkComplete}
+                                        onRequestPayment={onRequestPayment}
                                     />
                                 </div>
                             )

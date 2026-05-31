@@ -32,13 +32,13 @@ const MonthNav = ({ calendarData, setCalendarMonth, compact = false, inlineMode 
 
     if (inlineMode) {
         return (
-            <div className="flex items-center gap-1 md:gap-1.5">
+            <div className="flex items-center gap-1.5 md:gap-2">
                 <button onClick={() => navigate(-1)} className="flex items-center justify-center text-[#0075C9] hover:text-[#54C0E8] transition-colors" aria-label="Mes anterior">
-                    <ChevronLeft size={14} />
+                    <ChevronLeft size={18} strokeWidth={2.5} />
                 </button>
-                <AnimatedTitle className="text-xs md:text-sm font-bold text-gray-900 dark:text-gray-100 leading-none whitespace-nowrap min-w-22.5 md:min-w-0 text-center" />
+                <AnimatedTitle className="text-sm md:text-base font-extrabold text-gray-900 dark:text-gray-100 leading-none whitespace-nowrap min-w-28 md:min-w-0 text-center tracking-tight" />
                 <button onClick={() => navigate(1)} className="flex items-center justify-center text-[#0075C9] hover:text-[#54C0E8] transition-colors" aria-label="Mes siguiente">
-                    <ChevronRight size={14} />
+                    <ChevronRight size={18} strokeWidth={2.5} />
                 </button>
             </div>
         )

@@ -174,9 +174,7 @@ const AvailabilityManager = ({ onClose }) => {
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-3 sm:pt-5 pb-3 sm:pb-4 shrink-0">
           <div className="flex items-center gap-3">
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${dark ? 'bg-slate-800' : 'bg-gray-transparent'}`}>
-              <Clock strokeWidth='3' className={`w-4.5 h-4.5 ${dark ? 'text-slate-400' : 'text-gray-500'}`} />
-            </div>
+
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 leading-none">Configuración</p>
               <h2 className="text-base font-bold text-gray-900 dark:text-gray-100 leading-tight mt-0.5">Disponibilidad</h2>
@@ -184,7 +182,7 @@ const AvailabilityManager = ({ onClose }) => {
           </div>
           <div className="flex items-center gap-2">
             {/* Total hours badge */}
-            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${dark ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
+            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${dark ? 'bg-gray-950 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
               {totalHours}h
             </span>
             <button
@@ -208,19 +206,17 @@ const AvailabilityManager = ({ onClose }) => {
                   key={day.value}
                   type="button"
                   onClick={() => { setActiveDay(day.value); setRangeStart(null) }}
-                  className={`relative flex-1 min-w-0 py-2 sm:py-2 rounded-md text-xs font-medium transition ${
-                    isActive
-                      ? dark ? 'bg-gray-800 text-white' : 'bg-gray-900 text-white'
+                  className={`relative flex-1 min-w-0 py-2 sm:py-2 rounded-md text-xs font-medium transition ${isActive
+                      ? dark ? 'bg-gray-950 text-white' : 'bg-gray-900 text-white'
                       : dark ? 'text-gray-400 hover:bg-gray-800/60' : 'text-gray-600 hover:bg-gray-100'
-                  }`}
+                    }`}
                 >
                   {/* Always short on mobile to save space */}
                   <span className="hidden sm:inline">{day.label.slice(0, 3)}</span>
                   <span className="sm:hidden">{day.short}</span>
                   {count > 0 && (
-                    <span className={`absolute top-1 right-1 w-1.5 h-1.5 rounded-full ${
-                      isActive ? 'bg-white' : 'bg-emerald-500'
-                    }`} />
+                    <span className={`absolute top-1 right-1 w-1.5 h-1.5 rounded-full ${isActive ? 'bg-white' : 'bg-emerald-500'
+                      }`} />
                   )}
                 </button>
               )
@@ -273,7 +269,6 @@ const AvailabilityManager = ({ onClose }) => {
 
         {/* Footer */}
         <div className={`shrink-0 border-t ${border} ${dark ? 'bg-gray-900' : 'bg-white'}`}>
-          {/* mobile: stacked layout */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-4 sm:px-6 py-3 sm:py-3">
             <button
               type="button"
@@ -287,7 +282,7 @@ const AvailabilityManager = ({ onClose }) => {
               <button
                 type="button"
                 onClick={onClose}
-                className={`flex-1 sm:flex-none px-3 py-2 sm:py-1.5 text-xs font-medium rounded-lg sm:rounded-md transition ${dark ? 'text-gray-300 hover:bg-gray-800 border border-gray-700' : 'text-gray-700 hover:bg-gray-100 border border-gray-200'}`}
+                className={`flex-1 sm:flex-none px-3 py-2 sm:py-1.5 text-xs font-medium rounded-lg sm:rounded-md transition ${dark ? 'text-gray-300 hover:bg-gray-800 border border-gray-700' : 'text-gray-600 hover:bg-gray-100 border border-gray-200'}`}
               >
                 Cancelar
               </button>
@@ -295,20 +290,15 @@ const AvailabilityManager = ({ onClose }) => {
                 type="button"
                 onClick={handleSave}
                 disabled={loading}
-                className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 sm:py-1.5 text-xs font-bold rounded-lg sm:rounded-md transition-all duration-200 disabled:opacity-50 ${
-                  saved
-                    ? 'bg-emerald-500 text-white'
-                    : dark
-                      ? 'bg-white text-gray-900 hover:bg-gray-100'
-                      : 'bg-linear-to-r from-sky-500 to-teal-500 hover:to-teal-600 text-white active:scale-[0.98]'
-                }`}
+                className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 sm:py-1.5 text-xs font-bold rounded-lg sm:rounded-md transition-all duration-200 disabled:opacity-50 ${saved ? 'bg-emerald-500 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white active:scale-[0.98]'
+                  }`}
               >
                 {saved ? (
-                  <><Check className="w-3.5 h-3.5" /> ¡Guardado!</>
+                  <><Check className="w-3.5 h-3.5" /> Guardado</>
                 ) : loading ? (
                   'Guardando…'
                 ) : (
-                  <><Wallet className="w-3.5 h-3.5" /> Guardar</>
+                  <>Guardar</>
                 )}
               </button>
             </div>

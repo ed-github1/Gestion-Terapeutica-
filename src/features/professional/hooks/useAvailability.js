@@ -12,9 +12,12 @@ export const useAvailability = () => {
         const loadAvailability = async () => {
             try {
                 const response = await appointmentsService.getAvailability()
-                setAvailability(response?.data || {})
+                const raw = response?.data?.data || response?.data || {}
+                const normalized = {}
+                Object.entries(raw).forEach(([k, v]) => { normalized[Number(k)] = v })
+                setAvailability(normalized)
             } catch {
-                const local = localStorage.getItem('professionalAvailability')
+                const local = sessionStorage.getItem('professionalAvailability')
                 if (local) {
                     try { setAvailability(JSON.parse(local)) } catch { /* ignore */ }
                 }

@@ -60,8 +60,8 @@ const SessionEntry = ({ appt, index, navigate }) => {
     : ''
   const duration = appt.callDuration
     ? (appt.callDuration >= 60
-        ? `${Math.floor(appt.callDuration / 60)}h ${Math.round(appt.callDuration % 60)}min`
-        : `${Math.round(appt.callDuration)} min`)
+      ? `${Math.floor(appt.callDuration / 60)}h ${Math.round(appt.callDuration % 60)}min`
+      : `${Math.round(appt.callDuration)} min`)
     : appt.duration ? `${appt.duration} min` : null
   const isVideoCall = appt.isVideoCall || appt.mode === 'videollamada'
   const hasNotes = !!(appt.sessionNotes || appt.notes)
@@ -77,14 +77,13 @@ const SessionEntry = ({ appt, index, navigate }) => {
     >
       {/* Left accent */}
       <div className="flex flex-col items-center shrink-0 pt-1">
-        <div className={`w-7 h-7 rounded-xl flex items-center justify-center ${
-          isVideoCall ? 'bg-sky-50 dark:bg-sky-900/20' : 'bg-amber-50 dark:bg-amber-900/20'
-        }`}>
+        <div className={`w-7 h-7 rounded-full flex items-center justify-center ${isVideoCall ? 'bg-sky-600 dark:bg-sky-800' : 'bg-sky-600 dark:bg-sky-800'
+          }`}>
           {isVideoCall
-            ? <Video className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
-            : <UserIcon className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />}
+            ? <Video className="w-3.5 h-3.5  text-gray-100 dark:text-gray-950" />
+            : <UserIcon className="w-3.5 h-3.5 text-gray-600 dark:text-gray-500" />}
         </div>
-        <div className="w-px flex-1 bg-gray-100 dark:bg-gray-700/50 mt-2" />
+        <div className="flex-1 border-l-2 border-dashed border-gray-400 dark:border-gray-700/50 mt-2" />
       </div>
 
       {/* Content */}
@@ -107,11 +106,10 @@ const SessionEntry = ({ appt, index, navigate }) => {
                     <Clock className="w-3 h-3" /> {duration}
                   </span>
                 )}
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                  isVideoCall
-                    ? 'bg-sky-50 dark:bg-sky-900/20 text-sky-600 dark:text-sky-400'
-                    : 'bg-gray-100 dark:bg-[#0f1623] text-gray-500 dark:text-gray-400'
-                }`}>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${isVideoCall
+                  ? 'bg-sky-50 dark:bg-sky-900/20 text-sky-600 dark:text-sky-400'
+                  : 'bg-gray-100 dark:bg-[#0f1623] text-gray-500 dark:text-gray-400'
+                  }`}>
                   {isVideoCall ? 'Videollamada' : 'Presencial'}
                 </span>
               </div>
