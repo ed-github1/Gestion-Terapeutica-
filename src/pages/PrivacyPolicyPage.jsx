@@ -1,41 +1,8 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'motion/react'
-import { ArrowLeft, Download, Shield, FileText, Lock, AlertTriangle, ClipboardList, BarChart2, Users } from 'lucide-react'
+import { ArrowLeft, Shield } from 'lucide-react'
 import BrandLogo from '@/shared/ui/BrandLogo'
-
-const Section = ({ id, icon: Icon, title, children }) => (
-  <motion.section
-    id={id}
-    className="mb-14 scroll-mt-24"
-    initial={{ opacity: 0, y: 16 }}
-    whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true }}
-    transition={{ duration: 0.4 }}
-  >
-    <div className="flex items-center gap-3 mb-5">
-      {Icon && (
-        <span className="flex items-center justify-center w-9 h-9 rounded-xl bg-blue-100">
-          <Icon className="w-5 h-5 text-blue-600" />
-        </span>
-      )}
-      <h2 className="text-xl font-bold text-slate-900">{title}</h2>
-    </div>
-    <div className="text-slate-700 leading-relaxed space-y-3 text-sm">
-      {children}
-    </div>
-  </motion.section>
-)
-
-const toc = [
-  { id: 'aviso-integral', label: '1. Aviso de Privacidad Integral' },
-  { id: 'aviso-simplificado', label: '2. Aviso de Privacidad Simplificado' },
-  { id: 'consentimiento-sensibles', label: '3. Consentimiento Expreso para Datos Sensibles' },
-  { id: 'brecha-seguridad', label: '4. Procedimiento ante Brecha de Seguridad' },
-  { id: 'registro-interno', label: '5. Registro Interno de Tratamiento' },
-  { id: 'matriz-clasificacion', label: '6. Matriz de Clasificación de Datos' },
-  { id: 'gobernanza', label: '7. Gobernanza y Responsabilidad Directiva' },
-]
 
 const PrivacyPolicyPage = () => {
   useEffect(() => {
@@ -46,135 +13,66 @@ const PrivacyPolicyPage = () => {
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-xl border-b border-slate-200/60">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link to="/">
             <BrandLogo fullLogo size="h-9 w-auto" />
           </Link>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => window.print()}
-              className="flex items-center gap-2 text-sm text-slate-600 hover:text-blue-600 transition-colors cursor-pointer print:hidden"
-            >
-              <Download className="w-4 h-4" />
-              Descargar PDF
-            </button>
-            <Link
-              to="/"
-              className="flex items-center gap-2 text-sm text-slate-600 hover:text-blue-600 transition-colors print:hidden"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Volver al inicio
-            </Link>
-          </div>
+          <Link
+            to="/"
+            className="flex items-center gap-2 text-sm text-slate-600 hover:text-blue-600 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Volver al inicio
+          </Link>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-6 py-12 lg:grid lg:grid-cols-[260px_1fr] lg:gap-16">
-        {/* Sidebar TOC */}
-        <aside className="hidden lg:block">
-          <div className="sticky top-28">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-4">Contenido</p>
-            <nav className="space-y-1">
-              {toc.map((item) => (
-                <a
-                  key={item.id}
-                  href={`#${item.id}`}
-                  className="block text-sm text-slate-600 hover:text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors"
-                >
-                  {item.label}
-                </a>
-              ))}
-            </nav>
-            <div className="mt-8 p-4 bg-blue-50 rounded-xl border border-blue-100">
-              <p className="text-xs text-blue-700 font-semibold mb-1">Última actualización</p>
-              <p className="text-xs text-blue-600">2 de marzo de 2026</p>
-              <p className="text-xs text-blue-600 mt-2">
-                Conforme a la <strong>LFPDPPP</strong> y su Reglamento.
-              </p>
+      <div className="max-w-4xl mx-auto px-6 py-12">
+        {/* Hero */}
+        <motion.div
+          className="mb-12"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="flex items-center gap-3 mb-4">
+            <span className="flex items-center justify-center w-12 h-12 rounded-2xl bg-blue-600">
+              <Shield className="w-6 h-6 text-white" />
+            </span>
+            <div>
+              <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider">TotalMente</p>
+              <h1 className="text-3xl font-extrabold text-slate-900 leading-tight">
+                Política de Privacidad
+              </h1>
             </div>
           </div>
-        </aside>
+        </motion.div>
 
-        {/* Main content */}
-        <main>
-          {/* Hero */}
-          <motion.div
-            className="mb-12"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <span className="flex items-center justify-center w-12 h-12 rounded-2xl bg-blue-600">
-                <Shield className="w-6 h-6 text-white" />
-              </span>
-              <div>
-                <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider">TotalMente</p>
-                <h1 className="text-3xl font-extrabold text-slate-900 leading-tight">
-                  Expediente Legal Integral
-                </h1>
-              </div>
-            </div>
-            <p className="text-slate-600 font-medium mt-1">
-              Paquete de Cumplimiento en Protección de Datos Personales en Posesión de Particulares
+        {/* Content */}
+        <motion.div
+          className="prose prose-sm max-w-none"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+        >
+          <div className="space-y-6 text-slate-700">
+            <p className="text-base leading-relaxed">
+              TotalMente respeta tu privacidad y está comprometida con la protección de tus datos personales.
+              De conformidad con la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP),
+              tratamos tu información de forma responsable. Los datos que recopilamos, incluyendo información de salud mental,
+              se utilizan únicamente para proporcionar nuestros servicios de conexión entre pacientes y profesionales terapéuticos,
+              gestionar tu cuenta y cumplir con obligaciones legales. Implementamos medidas de seguridad técnicas, administrativas
+              y físicas para proteger tu información contra acceso no autorizado.
             </p>
-            <p className="text-slate-500 text-sm mt-1">Plataforma Digital "TotalMente"</p>
-          </motion.div>
-
-          {/* 1 */}
-          <Section id="aviso-integral" icon={Shield} title="1. Aviso de Privacidad Integral">
-            <p>
-              Emitido conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares
-              (LFPDPPP), su Reglamento y Lineamientos aplicables.
-            </p>
-            <p>
-              El responsable de la plataforma declara que tratará datos personales y datos personales sensibles relativos
-              al estado de salud mental conforme a los principios de licitud, consentimiento, información, calidad,
-              finalidad, lealtad, proporcionalidad y responsabilidad.
-            </p>
-            <p>Se implementan medidas de seguridad administrativas, técnicas y físicas conforme al artículo 19 de la LFPDPPP.</p>
-            <p>El titular podrá ejercer derechos ARCO conforme a los artículos 22 al 27 de la LFPDPPP.</p>
-          </Section>
-
-          {/* 2 */}
-          <Section id="aviso-simplificado" icon={FileText} title="2. Aviso de Privacidad Simplificado">
-            <p>La plataforma es responsable del tratamiento de sus datos personales y datos sensibles.</p>
-            <p>Las finalidades principales incluyen la gestión de cuenta, conexión con profesionales y cumplimiento legal.</p>
-            <p>Consulte el Aviso de Privacidad Integral para información completa.</p>
-          </Section>
-
-          {/* 3
-          <Section id="consentimiento-sensibles" icon={Lock} title="3. Consentimiento Expreso para el Tratamiento de Datos Personales Sensibles">
-            <p>
-              <strong>Fundamento Legal:</strong> Artículo 9 de la LFPDPPP y artículos 15, 16 y correlativos de su Reglamento.
-            </p>
-            <p>
-              <strong>Naturaleza del Consentimiento:</strong> Tratándose de datos personales sensibles relativos al estado
-              de salud mental, diagnósticos, antecedentes clínicos y cualquier información derivada de la interacción
-              terapéutica, el consentimiento deberá ser expreso, específico, informado y verificable.
-            </p>
-            <p><strong>Procedimiento de Obtención del Consentimiento:</strong></p>
-            <ol className="list-decimal pl-5 space-y-2">
-              <li>Presentación previa del Aviso de Privacidad Integral en formato accesible y descargable.</li>
-              <li>Visualización obligatoria de cláusula destacada sobre tratamiento de datos sensibles.</li>
-              <li>Aceptación mediante mecanismo electrónico verificable (checkbox no pre-marcado + botón de confirmación).</li>
-              <li>Registro automático en logs del sistema con fecha, hora, IP, dispositivo y versión del documento aceptado.</li>
-              <li>Generación de evidencia digital almacenada de forma cifrada.</li>
-              <li>Posibilidad de revocación del consentimiento mediante mecanismo digital accesible.</li>
-              <li>Conservación de evidencia del consentimiento durante la vigencia de la relación jurídica y periodo legal aplicable.</li>
-            </ol>
-          </Section> */}
-
-
-
-          {/* Footer note */}
-          <div className="border-t border-slate-200 pt-6 mt-4">
-            <p className="text-xs text-slate-400">
-              Expediente Legal Integral — Paquete de Cumplimiento en Protección de Datos Personales en Posesión de
-              Particulares. Plataforma Digital "TotalMente". Confidencial – Uso exclusivo del Cliente. Fecha: 2 de marzo de 2026.
+            <p className="text-base leading-relaxed">
+              Tienes derecho a acceder, rectificar, cancelar u oponerme al tratamiento de tus datos personales (derechos ARCO)
+              en cualquier momento. Si tienes preguntas sobre cómo tratamos tu información o deseas ejercer estos derechos,
+              puedes contactarnos a través de los canales indicados en la plataforma. No compartimos tus datos con terceros
+              sin tu consentimiento, excepto cuando es requerido por ley o para proporcionar los servicios solicitados.
+              Esta política se revisa regularmente para asegurar cumplimiento con la normativa aplicable.
             </p>
           </div>
-        </main>
+        </motion.div>
       </div>
 
       {/* Footer */}

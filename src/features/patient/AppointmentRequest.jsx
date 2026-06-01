@@ -242,11 +242,6 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
       return
     }
 
-    if (!formData.reason) {
-      showToast('Por favor indica el motivo de tu consulta', 'warning')
-      return
-    }
-
     setLoading(true)
     try {
       const selectedType = appointmentTypes.find(t => t.value === formData.type)
@@ -498,36 +493,25 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
                   )}
                 </div>
 
-                {/* Reason — appears after slot selection */}
+                {/* Summary pill */}
                 <AnimatePresence>
                   {selectedSlot && (
                     <motion.div
-                      key="reason"
+                      key="summary"
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="space-y-3 overflow-hidden"
+                      className="overflow-hidden"
                     >
-                      <div>
-                        <label className={labelCls}>Motivo de la consulta *</label>
-                        <textarea
-                          value={formData.reason}
-                          onChange={e => setFormData(p => ({ ...p, reason: e.target.value }))}
-                          rows={2}
-                          className={`${inputCls} resize-none`}
-                          placeholder="Describe brevemente el motivo..."
-                        />
-                      </div>
-                      {/* Summary pill */}
-                      <div className="flex items-center justify-between bg-blue-50 rounded-xl px-3 py-2.5 border border-blue-100">
+                      <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 rounded-xl px-3 py-2.5 border border-blue-100 dark:border-blue-800/50">
                         <div>
-                          <p className="text-[12px] font-semibold text-gray-800">
+                          <p className="text-[12px] font-semibold text-gray-800 dark:text-gray-100">
                             {new Date(`${selectedDate}T00:00:00`).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
                             {' · '}{selectedSlot.time}
                           </p>
-                          <p className="text-[11px] text-gray-500">{selectedType?.label} · {selectedType?.duration} min</p>
+                          <p className="text-[11px] text-gray-500 dark:text-gray-400">{selectedType?.label} · {selectedType?.duration} min</p>
                         </div>
-                        <p className="text-[15px] font-bold text-blue-600">{selectedType?.price != null ? `${currencySymbol}${selectedType.price}` : 'Pendiente'}</p>
+                        <p className="text-[15px] font-bold text-blue-600 dark:text-blue-400">{selectedType?.price != null ? `${currencySymbol}${selectedType.price}` : 'Pendiente'}</p>
                       </div>
                     </motion.div>
                   )}
@@ -538,7 +522,7 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
                   <button
                     type="button"
                     onClick={onClose}
-                    className="flex-1 px-4 py-2.5 text-[13px] font-semibold text-gray-600 bg-white hover:bg-gray-50 rounded-xl transition border border-gray-200"
+                    className="flex-1 px-4 py-2.5 text-[13px] font-semibold text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl transition border border-gray-200 dark:border-gray-700"
                   >
                     Cancelar
                   </button>
@@ -547,7 +531,7 @@ const AppointmentRequest = ({ onClose, onSuccess, onPatientCreated, professional
                     whileTap={{ scale: 0.985 }}
                     type="button"
                     onClick={handleReserveSlot}
-                    disabled={loading || !selectedSlot || !formData.reason}
+                    disabled={loading || !selectedSlot}
                     className="flex-2 px-4 py-2.5 text-[13px] font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition shadow-sm disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {loading ? (

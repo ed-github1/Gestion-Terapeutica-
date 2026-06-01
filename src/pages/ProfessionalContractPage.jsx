@@ -64,83 +64,111 @@ const ProfessionalContractPage = () => {
         }
     }
 
-    return (
-        <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 py-12">
-            <div className="mb-8">
-                <BrandLogo symbolOnly size="h-10 w-10" />
-            </div>
+    const { user } = useAuth()
+    const fullName = user ? `${user.nombre || ''} ${user.apellido || ''}`.trim() : ''
 
-            <div className="w-full max-w-xl bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                {/* Header */}
-                <div className="px-8 py-6 border-b border-gray-100">
-                    <h1 className="text-xl font-bold text-gray-900">Contrato de uso de la plataforma</h1>
-                    <p className="text-sm text-gray-400 mt-1">Lee y firma para activar tu cuenta</p>
+    return (
+        <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 py-8">
+            <div className="w-full max-w-2xl">
+                {/* Logo and Title */}
+                <div className="flex items-center justify-between mb-8">
+                    <div className="flex items-center gap-3">
+                        <BrandLogo symbolOnly size="h-8 w-8" />
+                        <h1 className="text-lg font-bold text-gray-900">TotalMente</h1>
+                    </div>
                 </div>
 
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    {/* Contract Header */}
+                    <div className="px-8 py-8 border-b border-gray-200">
+                        <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                            CONTRATO DE USO — PROFESIONAL DE SALUD
+                        </h2>
+                        <div className="grid grid-cols-3 gap-4 text-sm text-gray-600">
+                            <div>
+                                <p className="text-xs text-gray-500 font-semibold uppercase">Versión</p>
+                                <p>v 1.0</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-gray-500 font-semibold uppercase">Firmado el</p>
+                                <p>{new Date().toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' })}</p>
+                            </div>
+                            {fullName && (
+                                <div>
+                                    <p className="text-xs text-gray-500 font-semibold uppercase">Profesional</p>
+                                    <p>{fullName}</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
                 {/* Contract text */}
-                <div className="px-8 py-6 space-y-5 max-h-80 overflow-y-auto border-b border-gray-100">
+                <div className="px-8 py-8 space-y-6 max-h-96 overflow-y-auto border-b border-gray-200">
                     {CONTRACT_SECTIONS.map((s) => (
                         <div key={s.title}>
-                            <p className="text-xs font-bold text-gray-700 mb-1">{s.title}</p>
-                            <p className="text-xs text-gray-500 leading-relaxed">{s.body}</p>
+                            <p className="text-sm font-semibold text-gray-900 mb-2">{s.title}</p>
+                            <p className="text-sm text-gray-700 leading-relaxed">{s.body}</p>
                         </div>
                     ))}
                 </div>
 
                 {/* Signature */}
-                <div className="px-8 py-6 border-b border-gray-100">
-                    <div className="flex items-center justify-between mb-3">
-                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Tu firma</p>
+                <div className="px-8 py-8 border-b border-gray-200">
+                    <div className="flex items-center justify-between mb-4">
+                        <p className="text-sm font-semibold text-gray-900 uppercase">Firma</p>
                         <button
                             type="button"
                             onClick={handleClear}
-                            className="flex items-center gap-1 text-xs text-gray-400 hover:text-rose-500 transition-colors"
+                            className="flex items-center gap-1 text-xs text-gray-500 hover:text-rose-500 transition-colors"
                         >
                             <Trash2 className="w-3.5 h-3.5" />
                             Limpiar
                         </button>
                     </div>
-                    <div className="border-2 border-dashed border-gray-200 rounded-xl overflow-hidden bg-gray-50">
+                    <div className="border border-gray-300 rounded-lg overflow-hidden bg-gray-50">
                         <SignatureCanvas
                             ref={sigCanvasRef}
-                            penColor="#1d4ed8"
+                            penColor="#000000"
                             canvasProps={{
-                                width: 560,
-                                height: 130,
+                                width: 640,
+                                height: 120,
                                 style: { width: '100%', display: 'block' },
                                 className: 'touch-none',
                             }}
                             onEnd={() => setCanvasEmpty(sigCanvasRef.current?.isEmpty() ?? true)}
                         />
                     </div>
-                    <p className="mt-2 text-[10px] text-gray-400 text-center">
+                    <p className="mt-2 text-xs text-gray-500 text-center">
                         Dibuja tu firma con el ratón o el dedo
                     </p>
+                    {fullName && (
+                        <p className="mt-4 text-sm font-semibold text-gray-900">{fullName}</p>
+                    )}
                 </div>
 
                 {/* Agreement checkbox + action */}
-                <div className="px-8 py-6 space-y-4">
+                <div className="px-8 py-8 space-y-5">
                     <label className="flex items-start gap-3 cursor-pointer">
                         <input
                             type="checkbox"
                             checked={agreed}
                             onChange={(e) => setAgreed(e.target.checked)}
-                            className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                         />
-                        <span className="text-sm text-gray-600 leading-snug">
+                        <span className="text-sm text-gray-700 leading-relaxed">
                             He leído y acepto los términos del contrato de uso de TotalMente Gestión Terapéutica
                         </span>
                     </label>
 
                     {error && (
-                        <p className="text-xs text-red-500">{error}</p>
+                        <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>
                     )}
 
                     <button
                         type="button"
                         onClick={handleSign}
                         disabled={!canSubmit}
-                        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#0075C9] text-white text-[15px] font-semibold hover:bg-[#005faa] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="w-full flex items-center justify-center gap-2 py-3 rounded-lg bg-[#0075C9] text-white text-base font-semibold hover:bg-[#005faa] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {signing ? (
                             <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
@@ -151,7 +179,7 @@ const ProfessionalContractPage = () => {
                     </button>
 
                     {(!agreed || canvasEmpty) && (
-                        <p className="text-[11px] text-gray-400 text-center">
+                        <p className="text-xs text-gray-500 text-center">
                             {!agreed && canvasEmpty
                                 ? 'Acepta los términos y dibuja tu firma para continuar'
                                 : !agreed
@@ -159,6 +187,7 @@ const ProfessionalContractPage = () => {
                                 : 'Dibuja tu firma para continuar'}
                         </p>
                     )}
+                </div>
                 </div>
             </div>
         </div>

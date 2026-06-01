@@ -10,7 +10,19 @@
       "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\Eddie\\\\TotalmenteGestionTerapeuticaWebApp\\\\TotalmenteGestionTerapeutica-Frontend\" -Recurse -Include \"*.jsx\", \"*.js\", \"*.json\")",
       "Bash(Select-Object -First 50)",
       "Bash(Format-Table FullName)",
-      "Bash(npm audit *)"
+      "Bash(npm audit *)",
+      "Bash(npm run *)",
+      "Bash(Start-Sleep -Seconds 3)",
+      "Bash(Get-Content \"C:\\\\Users\\\\Eddie\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-Eddie-TotalmenteGestionTerapeuticaWebApp-TotalmenteGestionTerapeutica-Frontend\\\\4e2c5aba-47e4-4475-8c67-bc46e082548b\\\\tasks\\\\b2zjcqn0p.output\" -Tail 20)",
+      "Bash(curl -s http://localhost:5173/professional/sign-contract)",
+      "Bash(Get-ChildItem -Path .\\\\.claude\\\\skills -ErrorAction SilentlyContinue)",
+      "Bash(Get-ChildItem -Filter \"SKILL.md\" -ErrorAction SilentlyContinue)",
+      "Bash(cd c:\\\\\\\\Users\\\\\\\\Eddie\\\\\\\\TotalmenteGestionTerapeuticaWebApp\\\\\\\\TotalmenteGestionTerapeutica-Frontend)",
+      "Bash(Get-Content 'C:\\\\Users\\\\Eddie\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-Eddie-TotalmenteGestionTerapeuticaWebApp-TotalmenteGestionTerapeutica-Frontend\\\\ed5bcc9a-81bf-49bc-a48a-9bef5e8d65ec\\\\tasks\\\\bzgpvu45e.output' -Wait)",
+      "Bash(Select-String -Pattern 'Local:|http|VITE|ready' -Wait)",
+      "Bash(chromium-cli http://localhost:5175 --screenshot=/tmp/app-screenshot.png --wait-selector='.dark' --timeout=10000)",
+      "Read(//home/**)",
+      "Bash(curl -s http://localhost:5175)"
     ]
   }
 }
