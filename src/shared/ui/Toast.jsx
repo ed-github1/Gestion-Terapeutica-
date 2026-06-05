@@ -10,8 +10,7 @@ let _toastHandler = null
 const DURATION = 4000
 
 export const showToast = (message, type = 'success') => {
-  const handler = _toastHandler ?? window.__toastHandler
-  handler?.(message, type)
+  _toastHandler?.(message, type)
 }
 
 const CONFIG = {
@@ -118,8 +117,7 @@ const Toast = () => {
       setToasts((prev) => [...prev, { id, message, type }])
       setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), DURATION + 400)
     }
-    window.__toastHandler = _toastHandler
-    return () => { _toastHandler = null; window.__toastHandler = null }
+    return () => { _toastHandler = null }
   }, [])
 
   const remove = (id) => setToasts((prev) => prev.filter((t) => t.id !== id))

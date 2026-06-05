@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import SignatureCanvas from 'react-signature-canvas'
 import { Trash2, FileCheck2 } from 'lucide-react'
@@ -6,25 +6,7 @@ import { BrandLogo } from '@shared/ui'
 import { ROUTES } from '@shared/constants/routes'
 import { professionalsService } from '@shared/services/professionalsService'
 import { useAuth } from '@features/auth'
-
-const CONTRACT_SECTIONS = [
-    {
-        title: '1. Uso de la plataforma',
-        body: 'TotalMente Gestión Terapéutica es una plataforma digital para profesionales de salud mental habilitados. Al aceptar este contrato, confirmas que cuentas con cédula profesional vigente y que ejercerás tu práctica cumpliendo con la normativa sanitaria aplicable en tu país.',
-    },
-    {
-        title: '2. Responsabilidad clínica',
-        body: 'Eres el único responsable del diagnóstico, tratamiento y seguimiento de tus pacientes. TotalMente proporciona herramientas de gestión; en ningún caso sustituye el juicio clínico profesional ni asume responsabilidad por las decisiones terapéuticas que tomes.',
-    },
-    {
-        title: '3. Protección de datos',
-        body: 'Te comprometes a manejar la información de tus pacientes con estricta confidencialidad, de acuerdo con la Ley General de Salud y la normativa vigente en materia de protección de datos personales. TotalMente implementa medidas de seguridad técnicas y organizativas para salvaguardar dicha información.',
-    },
-    {
-        title: '4. Condiciones del servicio',
-        body: 'El acceso a la plataforma está condicionado al cumplimiento de estos términos y al pago de la suscripción correspondiente según el plan elegido. TotalMente se reserva el derecho de suspender el acceso ante el incumplimiento de cualquiera de estas condiciones.',
-    },
-]
+import apiClient from '@shared/api/client'
 
 const ProfessionalContractPage = () => {
     const navigate = useNavigate()
@@ -35,8 +17,43 @@ const ProfessionalContractPage = () => {
     const [canvasEmpty, setCanvasEmpty] = useState(true)
     const [signing, setSigning] = useState(false)
     const [error, setError] = useState(null)
+    const [pdfBlobUrl, setPdfBlobUrl] = useState(null)
+    const [pdfFailed, setPdfFailed] = useState(false)
+
+    useEffect(() => {
+        let url = null
+        apiClient.get('/professional/contract/template', { responseType: 'blob' })
+            .then(async res => {
+                const blob = res.data
+                const header = await blob.slice(0, 4).text()
+                if (!header.startsWith('%PDF')) { setPdfFailed(true); return }
+                url = URL.createObjectURL(blob)
+                setPdfBlobUrl(url)
+            })
+            .catch(() => setPdfFailed(true))
+        return () => { if (url) URL.revokeObjectURL(url) }
+    }, [])
 
     const canSubmit = agreed && !canvasEmpty && !signing
+
+    // Keep canvas pixel width in sync with its CSS display width so pointer
+    // coordinates map 1-to-1 and strokes appear exactly where drawn.
+    useEffect(() => {
+        const canvas = sigCanvasRef.current?.getCanvas()
+        if (!canvas) return
+        const sync = () => {
+            const w = canvas.offsetWidth
+            if (w && w !== canvas.width) {
+                canvas.width = w
+                sigCanvasRef.current?.clear()
+                setCanvasEmpty(true)
+            }
+        }
+        requestAnimationFrame(sync)
+        const ro = new ResizeObserver(sync)
+        ro.observe(canvas)
+        return () => ro.disconnect()
+    }, [])
 
     const handleClear = () => {
         sigCanvasRef.current?.clear()
@@ -49,12 +66,21 @@ const ProfessionalContractPage = () => {
         setError(null)
         try {
             const canvas = sigCanvasRef.current?.getCanvas()
-            if (!canvas) {
-                throw new Error('Firma no disponible')
-            }
+            if (!canvas) throw new Error('Firma no disponible')
 
             const signatureDataUrl = canvas.toDataURL('image/png')
-            await professionalsService.signContract(signatureDataUrl)
+            const res = await professionalsService.signContract(signatureDataUrl)
+
+            const contentType = res.headers['content-type'] || ''
+            if (contentType.includes('application/pdf')) {
+                const url = URL.createObjectURL(res.data)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = 'contrato_firmado.pdf'
+                a.click()
+                URL.revokeObjectURL(url)
+            }
+
             await refreshUser()
             navigate(ROUTES.PROFESSIONAL_DASHBOARD, { replace: true })
         } catch (err) {
@@ -102,14 +128,25 @@ const ProfessionalContractPage = () => {
                         </div>
                     </div>
 
-                {/* Contract text */}
-                <div className="px-8 py-8 space-y-6 max-h-96 overflow-y-auto border-b border-gray-200">
-                    {CONTRACT_SECTIONS.map((s) => (
-                        <div key={s.title}>
-                            <p className="text-sm font-semibold text-gray-900 mb-2">{s.title}</p>
-                            <p className="text-sm text-gray-700 leading-relaxed">{s.body}</p>
+                {/* Contract content */}
+                <div className="px-8 py-8 border-b border-gray-200">
+                    {pdfBlobUrl ? (
+                        <iframe
+                            src={pdfBlobUrl}
+                            title="Contrato de uso"
+                            width="100%"
+                            height="500px"
+                            style={{ border: '1px solid #e2e8f0', borderRadius: '8px' }}
+                        />
+                    ) : pdfFailed ? (
+                        <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">
+                            No se pudo cargar el contrato. Por favor recarga la página o contacta soporte.
+                        </p>
+                    ) : (
+                        <div className="h-32 flex items-center justify-center">
+                            <span className="w-5 h-5 rounded-full border-2 border-gray-300 border-t-gray-600 animate-spin" />
                         </div>
-                    ))}
+                    )}
                 </div>
 
                 {/* Signature */}
@@ -129,8 +166,10 @@ const ProfessionalContractPage = () => {
                         <SignatureCanvas
                             ref={sigCanvasRef}
                             penColor="#000000"
+                            minWidth={1}
+                            maxWidth={3}
+                            velocityFilterWeight={0.5}
                             canvasProps={{
-                                width: 640,
                                 height: 120,
                                 style: { width: '100%', display: 'block' },
                                 className: 'touch-none',

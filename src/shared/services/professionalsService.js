@@ -29,7 +29,11 @@ export const professionalsService = {
   getKycUrl: () =>
     apiClient.get('/professional/kyc-url'),
 
-  /** POST /api/professional/contract/sign — send signature data URL as JSON */
+  /** POST /api/professional/contract/sign — returns PDF blob or { success: true } if already signed */
   signContract: (signatureDataUrl) =>
-    apiClient.post('/professional/contract/sign', { signatureDataUrl }),
+    apiClient.post('/professional/contract/sign', { signatureDataUrl }, { responseType: 'blob' }),
+
+  /** POST /api/professional/consent/sign — returns signed consent PDF blob */
+  signConsent: (signatureDataUrl, patientName, cedula) =>
+    apiClient.post('/professional/consent/sign', { signatureDataUrl, patientName, cedula }, { responseType: 'blob' }),
 }

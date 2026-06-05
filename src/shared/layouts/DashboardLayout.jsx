@@ -32,6 +32,7 @@ const ROUTE_TITLES = {
   '/dashboard/admin': 'Administración',
   '/dashboard/admin/users': 'Gestión de Usuarios',
   '/dashboard/admin/professionals': 'Profesionales',
+  '/dashboard/admin/contracts': 'Contratos',
   '/dashboard/admin/subscriptions': 'Suscripciones',
 }
 
@@ -42,7 +43,9 @@ const DashboardLayoutInner = ({ children, userRole }) => {
   const location = useLocation()
   const { dark, toggleDark } = useDarkModeContext()
 
-  const pageTitle = ROUTE_TITLES[location.pathname] ?? ''
+  const pageTitle = ROUTE_TITLES[location.pathname]
+    ?? (location.pathname.startsWith('/dashboard/admin/professionals/') ? 'Detalle Profesional' : '')
+
 
   useEffect(() => {
     document.title = pageTitle ? `${pageTitle} · TotalMente` : 'TotalMente'

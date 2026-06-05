@@ -215,11 +215,20 @@ export const AuthProvider = ({ children }) => {
     setLocked(false)
     setAuthToken(null)
 
-    // Purge all cached sensitive data
+    // Purge session-scoped professional caches
     sessionStorage.removeItem('professionalAppointments')
     sessionStorage.removeItem('professionalSettings')
     sessionStorage.removeItem('professionalAvailability')
 
+    // Purge all PHI and sensitive data from localStorage
+    localStorage.removeItem('patientAppointments')
+    localStorage.removeItem('_linkedProUserId')
+    localStorage.removeItem('dismissed_apt_ids')
+    localStorage.removeItem('patientMoodHistory')
+    localStorage.removeItem('professionalSettings')
+    Object.keys(localStorage)
+      .filter(k => k.startsWith('tm_sig_'))
+      .forEach(k => localStorage.removeItem(k))
   }, [user])
 
   // ── Session lock (replaces full logout on idle) ───────────────────────────

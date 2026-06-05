@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { motion, AnimatePresence } from 'motion/react'
 import { authService } from '@shared/services/authService'
 import { showToast } from '@shared/ui/Toast'
+import { safeRedirect } from '@shared/api/client'
 import { AlertCircle, Eye, EyeOff, WifiOff, ShieldCheck, ChevronDown, Check, Video } from 'lucide-react'
 import { BrandLogo } from '@shared/ui'
 import { PROFESSIONAL_COUNTRIES } from '@shared/constants/subscriptionPlans'
@@ -72,7 +73,7 @@ const RegisterPage = () => {
                 response?.data?.kycSessionUrl ??
                 null
             if (kycSessionUrl) {
-                window.location.href = kycSessionUrl
+                safeRedirect(kycSessionUrl)
             } else {
                 showToast('Cuenta creada exitosamente', 'success')
                 navigate('/login')

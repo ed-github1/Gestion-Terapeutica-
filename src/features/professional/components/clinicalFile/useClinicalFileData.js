@@ -121,11 +121,11 @@ export const useClinicalFileData = (patient) => {
       if (profileResult?.status === 'fulfilled') {
         const raw = profileResult.value?.data
         const found = raw?.data ?? raw ?? null
-        console.log('[ClinicalFile] profile found object:', found)
+        if (import.meta.env.DEV) console.log('[ClinicalFile] profile found object:', found)
         if (found && typeof found === 'object' && !Array.isArray(found)) {
           // Extract the real userId — appointments are indexed by this, not patient._id
           const rawUserId = found.userId || found.user
-          console.log('[ClinicalFile] found.userId:', found.userId, '| found.user:', found.user, '| resolvedUserId will be:', rawUserId)
+          if (import.meta.env.DEV) console.log('[ClinicalFile] found.userId:', found.userId, '| resolved:', rawUserId)
           if (rawUserId) {
             resolvedUserId = typeof rawUserId === 'object' ? (rawUserId._id || rawUserId.id || rawUserId) : rawUserId
           }

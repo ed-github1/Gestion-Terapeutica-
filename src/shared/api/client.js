@@ -1,13 +1,16 @@
- /**
+/**
  * shared/api/client.js
  * Single Axios instance used across all service modules.
- * Auth token stored in a SameSite cookie instead of localStorage (XSS-safer).
+ * Auth token stored in a SameSite Lax cookie.
+ *
+ * NOTE (F-02): To make the auth cookie HttpOnly (unreadable by JS), the backend
+ * must set it via a Set-Cookie response header with the HttpOnly flag.
+ * That change is required on the server side — it cannot be done client-side.
  */
-
- 
 import axios from 'axios'
+import { showToast } from '@shared/ui/Toast'
 
-const BASE_URL =
+export const BASE_URL =
   import.meta.env.VITE_API_URL ||
   (typeof window !== 'undefined' &&
   window.location.hostname !== 'localhost' &&
@@ -68,6 +71,24 @@ export function setAuthToken(token) {
   }
 }
 
+// ── Safe external redirect ────────────────────────────────────────────────────
+// Only allow redirects to known third-party origins to prevent open-redirect
+// attacks when a backend response URL is used as the redirect destination.
+const TRUSTED_REDIRECT_HOSTS = /^([a-z][a-z0-9-]*\.didit\.me|(www\.)?mercadopago\.com(\.[a-z]{2})?|sandbox\.mercadopago\.com(\.[a-z]{2})?|auth\.mercadopago\.com|(www\.)?mercadolibre\.com|auth\.mercadolibre\.com)$/
+
+export function safeRedirect(url) {
+  try {
+    const { hostname, protocol } = new URL(url)
+    if (protocol !== 'https:' || !TRUSTED_REDIRECT_HOSTS.test(hostname)) {
+      console.error('[safeRedirect] blocked untrusted URL:', hostname)
+      return
+    }
+    window.location.href = url
+  } catch {
+    console.error('[safeRedirect] invalid URL')
+  }
+}
+
 // ── Request interceptor ───────────────────────────────────────────────────────
 apiClient.interceptors.request.use(
   (config) => {
@@ -98,8 +119,8 @@ apiClient.interceptors.response.use(
       }
       // 403 KYC required: redirect to the Didit verification URL
       if (status === 403 && data?.code === 'KYC_REQUIRED' && data?.kycSessionUrl) {
-        window.__toastHandler?.('Debes completar tu verificación de identidad para continuar.', 'warning')
-        setTimeout(() => { window.location.href = data.kycSessionUrl }, 800)
+        showToast('Debes completar tu verificación de identidad para continuar.', 'warning')
+        setTimeout(() => safeRedirect(data.kycSessionUrl), 800)
         return Promise.reject(new Error('KYC_REQUIRED'))
       }
       // 403 role mismatch: JWT was likely issued with a different role value.

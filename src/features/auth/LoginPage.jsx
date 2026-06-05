@@ -54,7 +54,7 @@ const LoginPage = () => {
 
       if (result?.requires2FA === true) {
         navigate('/verify-2fa', {
-          state: { tempToken: result.tempToken, email: data.email, password: data.password },
+          state: { tempToken: result.tempToken, email: data.email },
         })
         return
       }

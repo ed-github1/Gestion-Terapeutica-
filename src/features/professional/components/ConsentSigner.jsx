@@ -1,19 +1,14 @@
 import { useState, useRef, useEffect } from 'react'
 import SignatureCanvas from 'react-signature-canvas'
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
 import { motion } from 'motion/react'
 import {
   PenLine, Save, FileDown, Trash2, CheckCircle2,
   User, Hash, UserCheck, AlertCircle,
 } from 'lucide-react'
 import { useAuth } from '@features/auth'
-import { uploadSignedConsent } from '@shared/services/consentService'
+import { professionalsService } from '@shared/services/professionalsService'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-
-// Key is scoped to the authenticated user so signatures never bleed across
-// accounts on a shared device.
-const sigKey = (userId) => `tm_sig_${userId}`
 
 const CONSENT_SECTIONS = [
   {
@@ -49,27 +44,6 @@ const CONSENT_SECTIONS = [
       'con la normativa aplicable.',
   },
 ]
-
-// ─── PDF helper: draw wrapped text (mutates currentY via reference object) ────
-
-function drawWrapped(page, text, { x, maxWidth, font, fontSize, color, lineHeight, yRef }) {
-  const words = text.split(' ')
-  let line = ''
-  for (const word of words) {
-    const test = line ? `${line} ${word}` : word
-    if (font.widthOfTextAtSize(test, fontSize) > maxWidth && line) {
-      page.drawText(line, { x, y: yRef.y, size: fontSize, font, color })
-      yRef.y -= lineHeight
-      line = word
-    } else {
-      line = test
-    }
-  }
-  if (line) {
-    page.drawText(line, { x, y: yRef.y, size: fontSize, font, color })
-    yRef.y -= lineHeight
-  }
-}
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -108,9 +82,7 @@ export default function ConsentSigner() {
   )
   const [patientName, setPatientName] = useState('')
 
-  const [savedSignature, setSavedSignature] = useState(
-    () => localStorage.getItem(sigKey(userId)) || null,
-  )
+  const [savedSignature, setSavedSignature] = useState(null)
   const [canvasEmpty, setCanvasEmpty] = useState(true)
   const [isGenerating, setIsGenerating] = useState(false)
   const [uploadError, setUploadError]   = useState(null)
@@ -125,6 +97,23 @@ export default function ConsentSigner() {
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    const canvas = sigCanvasRef.current?.getCanvas()
+    if (!canvas) return
+    const sync = () => {
+      const w = canvas.offsetWidth
+      if (w && w !== canvas.width) {
+        canvas.width = w
+        sigCanvasRef.current?.clear()
+        setCanvasEmpty(true)
+      }
+    }
+    requestAnimationFrame(sync)
+    const ro = new ResizeObserver(sync)
+    ro.observe(canvas)
+    return () => ro.disconnect()
+  }, [])
+
   const handleCanvasEnd = () => {
     setCanvasEmpty(sigCanvasRef.current?.isEmpty() ?? true)
   }
@@ -137,7 +126,6 @@ export default function ConsentSigner() {
   const handleSaveSignature = () => {
     if (sigCanvasRef.current && !sigCanvasRef.current.isEmpty()) {
       const dataUrl = sigCanvasRef.current.getCanvas().toDataURL('image/png')
-      localStorage.setItem(sigKey(userId), dataUrl)
       setSavedSignature(dataUrl)
     }
   }
@@ -150,126 +138,21 @@ export default function ConsentSigner() {
     setUploadError(null)
 
     try {
-      // ── Grab signature data ──────────────────────────────────────────────
       const sigDataUrl = sigCanvasRef.current.getCanvas().toDataURL('image/png')
-      const base64 = sigDataUrl.split(',')[1]
-      const sigBytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))
 
-      // ── Create PDF (A4 = 595 × 842 pt) ──────────────────────────────────
-      const pdfDoc = await PDFDocument.create()
-      const page = pdfDoc.addPage([595, 842])
+      const res = await professionalsService.signConsent(sigDataUrl, patientName.trim(), cedula.trim())
 
-      const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
-      const normalFont = await pdfDoc.embedFont(StandardFonts.Helvetica)
-
-      const tealColor = rgb(0.16, 0.60, 0.60)
-      const darkTealColor = rgb(0.07, 0.40, 0.45)
-      const blackColor = rgb(0.10, 0.10, 0.10)
-      const grayColor = rgb(0.45, 0.45, 0.45)
-      const whiteColor = rgb(1, 1, 1)
-      const lightGrayBg = rgb(0.95, 0.95, 0.95)
-      const dividerColor = rgb(0.82, 0.82, 0.82)
-
-      const now = new Date()
-      const dateStr = now.toLocaleDateString('es-ES', {
-        day: '2-digit', month: 'long', year: 'numeric',
-      })
-
-      // ── Header bar ───────────────────────────────────────────────────────
-      page.drawRectangle({ x: 0, y: 762, width: 595, height: 80, color: tealColor })
-      page.drawText('TotalMente Gestión Terapéutica', {
-        x: 30, y: 808, size: 18, font: boldFont, color: whiteColor,
-      })
-      page.drawText('Plataforma de Salud Mental Digital', {
-        x: 30, y: 786, size: 10, font: normalFont, color: rgb(0.82, 0.96, 0.96),
-      })
-
-      // ── Document title ───────────────────────────────────────────────────
-      const titleText = 'CONSENTIMIENTO INFORMADO'
-      const titleWidth = boldFont.widthOfTextAtSize(titleText, 16)
-      page.drawText(titleText, {
-        x: (595 - titleWidth) / 2, y: 730, size: 16, font: boldFont, color: darkTealColor,
-      })
-      page.drawRectangle({ x: 30, y: 722, width: 535, height: 1.5, color: tealColor })
-
-      // ── Patient info band ────────────────────────────────────────────────
-      page.drawRectangle({ x: 30, y: 690, width: 535, height: 26, color: lightGrayBg })
-      page.drawText(`Paciente: ${patientName}`, {
-        x: 38, y: 700, size: 10, font: boldFont, color: blackColor,
-      })
-      page.drawText(`Fecha: ${dateStr}`, {
-        x: 360, y: 700, size: 9, font: normalFont, color: grayColor,
-      })
-
-      // ── Consent sections ─────────────────────────────────────────────────
-      const yRef = { y: 676 }
-
-      for (const section of CONSENT_SECTIONS) {
-        yRef.y -= 8
-        page.drawText(section.title, {
-          x: 30, y: yRef.y, size: 10, font: boldFont, color: darkTealColor,
-        })
-        yRef.y -= 14
-        drawWrapped(page, section.body, {
-          x: 30, maxWidth: 535, font: normalFont, fontSize: 9,
-          color: blackColor, lineHeight: 13, yRef,
-        })
-        yRef.y -= 4
-      }
-
-      // ── Signature section ────────────────────────────────────────────────
-      yRef.y -= 16
-      page.drawRectangle({ x: 30, y: yRef.y, width: 535, height: 1, color: dividerColor })
-      yRef.y -= 14
-
-      const sigImage = await pdfDoc.embedPng(sigBytes)
-      const sigDims = sigImage.scaleToFit(200, 72)
-      page.drawImage(sigImage, {
-        x: 30, y: yRef.y - sigDims.height,
-        width: sigDims.width, height: sigDims.height,
-      })
-      yRef.y -= sigDims.height + 8
-
-      page.drawText(`Dr./Dra. ${doctorName}`, {
-        x: 30, y: yRef.y, size: 10, font: boldFont, color: blackColor,
-      })
-      yRef.y -= 13
-      page.drawText(`Cédula Profesional: ${cedula}`, {
-        x: 30, y: yRef.y, size: 9, font: normalFont, color: grayColor,
-      })
-      yRef.y -= 13
-      page.drawText(`Firmado el: ${dateStr}`, {
-        x: 30, y: yRef.y, size: 9, font: normalFont, color: grayColor,
-      })
-
-      // ── Footer bar ───────────────────────────────────────────────────────
-      page.drawRectangle({ x: 0, y: 0, width: 595, height: 26, color: rgb(0.95, 0.95, 0.95) })
-      page.drawText(
-        `Firmado digitalmente el ${dateStr}  ·  TotalMente Gestión Terapéutica`,
-        { x: 30, y: 9, size: 8, font: normalFont, color: grayColor },
-      )
-
-      // ── Download (local copy for the professional) ─────────────────────
-      const pdfBytes = await pdfDoc.save()
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' })
-      const url = URL.createObjectURL(blob)
-      const anchor = document.createElement('a')
-      anchor.href = url
-      anchor.download = `consentimiento_${patientName.replace(/\s+/g, '_')}_firmado.pdf`
-      anchor.click()
+      const url = URL.createObjectURL(res.data)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `consentimiento_${patientName.replace(/\s+/g, '_')}_firmado.pdf`
+      a.click()
       URL.revokeObjectURL(url)
-
-      // ── Upload to backend for platform records ───────────────────────────
-      try {
-        await uploadSignedConsent(blob, { doctorName, cedula })
-      } catch {
-        // Non-blocking: local download already succeeded.
-        // Surface a warning so the professional knows to retry.
-        setUploadError('Documento descargado, pero no se pudo enviar al servidor. Por favor inténtalo de nuevo.')
-      }
 
       setSignedSigData(sigDataUrl)
       setIsSigned(true)
+    } catch {
+      setUploadError('No se pudo generar el consentimiento. Por favor inténtalo de nuevo.')
     } finally {
       setIsGenerating(false)
     }
@@ -450,8 +333,10 @@ export default function ConsentSigner() {
                 <SignatureCanvas
                   ref={sigCanvasRef}
                   penColor="#0d9488"
+                  minWidth={1}
+                  maxWidth={3}
+                  velocityFilterWeight={0.5}
                   canvasProps={{
-                    width: 480,
                     height: 150,
                     style: { width: '100%', display: 'block' },
                     className: 'touch-none',

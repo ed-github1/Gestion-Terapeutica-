@@ -2,6 +2,7 @@
   "name": "gestionterapeutica",
   "private": true,
   "version": "0.0.0",
+  "license": "UNLICENSED",
   "type": "module",
   "engines": {
     "node": ">=22.12.0"
@@ -30,7 +31,6 @@
     "date-fns": "^4.1.0",
     "lucide-react": "^0.563.0",
     "motion": "^12.23.26",
-    "pdf-lib": "^1.17.1",
     "postcss": "^8.5.6",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

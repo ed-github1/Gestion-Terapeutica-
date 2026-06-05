@@ -5,41 +5,31 @@
 import apiClient from '@shared/api/client'
 
 export const adminService = {
-  // ── Overview ──────────────────────────────────────────────────────────────
-  /** GET /admin/stats — platform-wide counters & KPIs */
+  // Stats
   getStats: () => apiClient.get('/admin/stats'),
 
-  // ── Users ─────────────────────────────────────────────────────────────────
-  /**
-   * GET /admin/users
-   * @param {{ page?, limit?, search?, role?, status? }} params
-   */
+  // Users
   getUsers: (params = {}) => apiClient.get('/admin/users', { params }),
-
-  /** GET /admin/users/:id */
   getUserById: (id) => apiClient.get(`/admin/users/${id}`),
-
-  /**
-   * PATCH /admin/users/:id/status
-   * @param {string} id
-   * @param {'active'|'inactive'} status
-   */
   setUserStatus: (id, status) =>
     apiClient.patch(`/admin/users/${id}/status`, { status }),
-
-  /**
-   * PATCH /admin/users/:id/role
-   * @param {string} id
-   * @param {string} role
-   */
   setUserRole: (id, role) =>
     apiClient.patch(`/admin/users/${id}/role`, { role }),
-
-  /** DELETE /admin/users/:id — soft-delete */
   deleteUser: (id) => apiClient.delete(`/admin/users/${id}`),
 
-  // ── Subscriptions ─────────────────────────────────────────────────────────
-  /** GET /admin/subscriptions */
+  // Subscriptions
   getSubscriptions: (params = {}) =>
     apiClient.get('/admin/subscriptions', { params }),
+
+  // Professionals
+  getProfessionals: (params = {}) =>
+    apiClient.get('/admin/professionals', { params }),
+  getProfessionalById: (id) => apiClient.get(`/admin/professionals/${id}`),
+  setKycStatus: (id, status) =>
+    apiClient.patch(`/admin/professionals/${id}/kyc`, { status }),
+  setProfessionalSuspend: (id, activo) =>
+    apiClient.patch(`/admin/professionals/${id}/suspend`, { activo }),
+
+  // Contracts
+  getContracts: (params = {}) => apiClient.get('/admin/contracts', { params }),
 }

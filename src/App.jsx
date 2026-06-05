@@ -1,5 +1,26 @@
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { error: null } }
+  static getDerivedStateFromError(error) { return { error } }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center p-8 max-w-md">
+            <h1 className="text-xl font-semibold text-gray-800 mb-2">Algo salió mal</h1>
+            <p className="text-sm text-gray-500 mb-4">Recargá la página o volvé al inicio.</p>
+            <button onClick={() => window.location.href = '/'} className="px-4 py-2 bg-blue-700 text-white rounded-lg text-sm font-medium hover:bg-blue-800 transition">
+              Volver al inicio
+            </button>
+          </div>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 import { AuthProvider, useAuth, ProtectedRoute, LoginPage, RegisterPage, Verify2FAPage } from '@features/auth'
 import { ProfessionalDashboard, AppointmentsCalendar } from '@features/professional'
 import PatientsList from '@features/professional/components/ModernPatientsList'
@@ -16,7 +37,7 @@ import PatientVideoCallWebRTC from '@features/patient/PatientVideoCallWebRTC'
 import PatientRegisterPage from '@features/patient/PatientRegisterPage'
 import PatientRegister from '@features/patient/PatientRegister'
 import PatientOnboardingPage from '@features/patient/PatientOnboardingPage'
-import { AdminDashboard, AdminUsers, AdminSubscriptions } from '@features/admin'
+import { AdminDashboard, AdminUsers, AdminSubscriptions, AdminProfessionals, AdminProfessionalDetail, AdminContracts } from '@features/admin'
 import LandingPage from '@pages/LandingPage'
 import PricingPlans from '@pages/PricingPlans'
 import CheckoutPage from '@pages/CheckoutPage'
@@ -99,9 +120,11 @@ function App() {
             path={ROUTES.PROFESSIONAL_DASHBOARD}
             element={
               <ProtectedRoute allowedRoles={[ROLES.HEALTH_PROFESSIONAL, ROLES.PROFESSIONAL]}>
-                <DashboardLayout userRole="professional">
-                  <ProfessionalDashboard />
-                </DashboardLayout>
+                <ErrorBoundary>
+                  <DashboardLayout userRole="professional">
+                    <ProfessionalDashboard />
+                  </DashboardLayout>
+                </ErrorBoundary>
               </ProtectedRoute>
             }
           />
@@ -188,11 +211,13 @@ function App() {
             path={ROUTES.PATIENT_DASHBOARD}
             element={
               <ProtectedRoute allowedRoles={[ROLES.PATIENT, ROLES.PACIENT]}>
-                <AppointmentsProvider>
-                  <DashboardLayout userRole="patient">
-                    <PatientDashboard />
-                  </DashboardLayout>
-                </AppointmentsProvider>
+                <ErrorBoundary>
+                  <AppointmentsProvider>
+                    <DashboardLayout userRole="patient">
+                      <PatientDashboard />
+                    </DashboardLayout>
+                  </AppointmentsProvider>
+                </ErrorBoundary>
               </ProtectedRoute>
             }
           />
@@ -236,23 +261,16 @@ function App() {
               </ProtectedRoute>
             } 
           />
-          <Route 
-            path="/demo/patient" 
-            element={
-              <DashboardLayout userRole="patient">
-                <PatientDashboard />
-              </DashboardLayout>
-            } 
-          />
-
           {/* Admin Routes */}
           <Route
             path={ROUTES.ADMIN_DASHBOARD}
             element={
               <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
-                <DashboardLayout userRole="admin">
-                  <AdminDashboard />
-                </DashboardLayout>
+                <ErrorBoundary>
+                  <DashboardLayout userRole="admin">
+                    <AdminDashboard />
+                  </DashboardLayout>
+                </ErrorBoundary>
               </ProtectedRoute>
             }
           />
@@ -271,7 +289,27 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
                 <DashboardLayout userRole="admin">
-                  <AdminUsers initialRoleFilter="health_professional" />
+                  <AdminProfessionals />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={ROUTES.ADMIN_PROFESSIONALS_DETAIL}
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+                <DashboardLayout userRole="admin">
+                  <AdminProfessionalDetail />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={ROUTES.ADMIN_CONTRACTS}
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+                <DashboardLayout userRole="admin">
+                  <AdminContracts />
                 </DashboardLayout>
               </ProtectedRoute>
             }

@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react'
 import { useEffect, useRef } from 'react'
-import { Calendar, Video, FileText, MessageSquare, CheckCircle2, Ban, Coffee } from 'lucide-react'
+import { Calendar, CalendarCheck, Video, FileText, MessageSquare, CheckCircle2, Ban, Coffee } from 'lucide-react'
 import { getAvatarColor } from '@shared/utils/avatarColor'
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -298,9 +298,8 @@ const AvailableSlotCard = ({ slot, index, isFirst = false, isLast = false }) => 
 
     return (
         <TimelineRow index={index} isFirst={isFirst} isLast={isLast} timeStr={timeStr}>
-            <div className="relative overflow-hidden bg-gray-200 dark:bg-gray-600 border border-gray-400 dark:border-gray-500 rounded-xl px-4 py-2.5 flex items-center justify-center">
-                <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(0,0,0,0.08) 4px,rgba(0,0,0,0.08) 7px)' }} />
-                <span className="relative text-gray-700 dark:text-gray-200 font-semibold text-xs">No Disponible</span>
+            <div className="flex items-center justify-center py-1">
+                <Ban className="w-4 h-4 text-gray-300 dark:text-gray-600" />
             </div>
         </TimelineRow>
     )
@@ -309,13 +308,17 @@ const AvailableSlotCard = ({ slot, index, isFirst = false, isLast = false }) => 
 /* ─────────────────────────────────────────────────────────────────────────────
    EmptyState
 ───────────────────────────────────────────────────────────────────────────── */
-const EmptyState = () => (
+const EmptyState = ({ label = 'No hay sesiones hoy', sub = 'Tu agenda está libre', icon: Icon = Calendar, iconClass = 'text-gray-400 dark:text-gray-500', bare = false }) => (
     <div className="flex-1 flex flex-col items-center justify-center text-center py-12">
-        <div className="w-14 h-14 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-3">
-            <Calendar className="w-7 h-7 text-gray-400 dark:text-gray-500" />
-        </div>
-        <p className="text-gray-500 dark:text-gray-400 font-medium mb-1 text-sm">No hay sesiones hoy</p>
-        <p className="text-xs text-gray-400 dark:text-gray-500">Tu agenda está libre</p>
+        {bare ? (
+            <Icon className={`w-10 h-10 mb-3 mx-auto ${iconClass}`} />
+        ) : (
+            <div className="w-14 h-14 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Icon className={`w-7 h-7 ${iconClass}`} />
+            </div>
+        )}
+        <p className="text-gray-500 dark:text-gray-400 font-medium mb-1 text-sm">{label}</p>
+        {sub && <p className="text-xs text-gray-400 dark:text-gray-500">{sub}</p>}
     </div>
 )
 
@@ -445,6 +448,8 @@ const TodaysSessions = ({
                 <SessionsSkeleton />
             ) : sessions.length === 0 ? (
                 <EmptyState />
+            ) : sessions.every(s => s.isUnavailable || s.isBreak) ? (
+                <EmptyState icon={CalendarCheck} label="Sin sesiones este día" sub={null} bare iconClass="text-blue-200 dark:text-blue-700" />
             ) : (
                 <div ref={scrollRef} className="space-y-0 xl:flex-1 xl:min-h-0 overflow-y-auto overflow-x-hidden pr-1 custom-scrollbar">
                     <AnimatePresence mode="popLayout">

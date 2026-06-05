@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import {
-  Search, Filter, MoreVertical, UserX, UserCheck,
+  Search, MoreVertical, UserX, UserCheck,
   ChevronLeft, ChevronRight, X, AlertTriangle, Loader2,
-  Edit2, Trash2, ShieldCheck,
+  Trash2, ShieldCheck,
 } from 'lucide-react'
 import { adminService } from '@shared/services/adminService'
 import { useDarkModeContext } from '@shared/DarkModeContext'
@@ -15,10 +15,10 @@ const ROLE_OPTIONS = [
   { value: 'patient', label: 'Paciente' },
 ]
 
-const STATUS_OPTIONS = [
+const ACTIVO_OPTIONS = [
   { value: '', label: 'Todos los estados' },
-  { value: 'active', label: 'Activo' },
-  { value: 'inactive', label: 'Inactivo' },
+  { value: 'true', label: 'Activo' },
+  { value: 'false', label: 'Suspendido' },
 ]
 
 const ROLE_BADGE = {
@@ -53,6 +53,7 @@ const UserRow = ({ user, onToggleStatus, onDelete, onChangeRole, actionLoading }
     ? new Date(user.createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
     : '—'
 
+  const plan = user.subscriptionPlan || user.plan || '—'
   const id = user._id || user.id
 
   return (
@@ -80,9 +81,10 @@ const UserRow = ({ user, onToggleStatus, onDelete, onChangeRole, actionLoading }
             : 'bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-300'
         }`}>
           <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-          {isActive ? 'Activo' : 'Inactivo'}
+          {isActive ? 'Activo' : 'Suspendido'}
         </span>
       </td>
+      <td className="py-3 px-4 text-sm text-gray-500 dark:text-gray-400">{plan}</td>
       <td className="py-3 px-4 text-sm text-gray-500 dark:text-gray-400">{createdAt}</td>
       <td className="py-3 px-4 text-right">
         <div className="relative inline-block">
@@ -106,7 +108,7 @@ const UserRow = ({ user, onToggleStatus, onDelete, onChangeRole, actionLoading }
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: -4 }}
                   transition={{ duration: 0.12 }}
-                  className="absolute right-0 top-9 z-20 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-xl min-w-[180px] py-1.5 overflow-hidden"
+                  className="absolute right-0 top-9 z-20 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-xl min-w-45 py-1.5 overflow-hidden"
                 >
                   <button
                     onClick={() => { setMenuOpen(false); onToggleStatus(id, isActive ? 'inactive' : 'active') }}
@@ -220,7 +222,7 @@ const ConfirmDeleteModal = ({ userName, onConfirm, onClose }) => (
         <h3 className="font-bold text-gray-800 dark:text-gray-100">Eliminar usuario</h3>
       </div>
       <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-        ¿Confirmas que quieres eliminar a <strong>{userName}</strong>? Esta acción no se puede deshacer.
+        ¿Confirmás que querés eliminar a <strong>{userName}</strong>? Esta acción no se puede deshacer.
       </p>
       <div className="flex gap-3">
         <button
@@ -246,17 +248,17 @@ export default function AdminUsers({ initialRoleFilter = '' }) {
   const [users, setUsers] = useState([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
-  const [limit] = useState(15)
+  const [limit] = useState(20)
   const [search, setSearch] = useState('')
   const [searchInput, setSearchInput] = useState('')
   const [roleFilter, setRoleFilter] = useState(initialRoleFilter)
-  const [statusFilter, setStatusFilter] = useState('')
+  const [activoFilter, setActivoFilter] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [actionLoading, setActionLoading] = useState(null)
   const [toast, setToast] = useState(null)
-  const [roleModal, setRoleModal] = useState(null) // { id, currentRole }
-  const [deleteModal, setDeleteModal] = useState(null) // { id, name }
+  const [roleModal, setRoleModal] = useState(null)
+  const [deleteModal, setDeleteModal] = useState(null)
 
   const totalPages = Math.max(1, Math.ceil(total / limit))
 
@@ -274,7 +276,7 @@ export default function AdminUsers({ initialRoleFilter = '' }) {
         limit,
         search: search || undefined,
         role: roleFilter || undefined,
-        status: statusFilter || undefined,
+        activo: activoFilter !== '' ? activoFilter : undefined,
       })
       const d = res.data?.data || res.data
       setUsers(Array.isArray(d?.users) ? d.users : Array.isArray(d) ? d : [])
@@ -284,7 +286,7 @@ export default function AdminUsers({ initialRoleFilter = '' }) {
     } finally {
       setLoading(false)
     }
-  }, [page, limit, search, roleFilter, statusFilter])
+  }, [page, limit, search, roleFilter, activoFilter])
 
   useEffect(() => { fetchUsers() }, [fetchUsers])
 
@@ -388,17 +390,17 @@ export default function AdminUsers({ initialRoleFilter = '' }) {
               ))}
             </select>
             <select
-              value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value); setPage(1) }}
+              value={activoFilter}
+              onChange={(e) => { setActivoFilter(e.target.value); setPage(1) }}
               className="px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              {STATUS_OPTIONS.map((o) => (
+              {ACTIVO_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </select>
-            {(search || roleFilter || statusFilter) && (
+            {(search || roleFilter || activoFilter) && (
               <button
-                onClick={() => { setSearch(''); setSearchInput(''); setRoleFilter(''); setStatusFilter(''); setPage(1) }}
+                onClick={() => { setSearch(''); setSearchInput(''); setRoleFilter(''); setActivoFilter(''); setPage(1) }}
                 className="px-3 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-sm flex items-center gap-1.5 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
               >
                 <X size={13} /> Limpiar
@@ -415,8 +417,10 @@ export default function AdminUsers({ initialRoleFilter = '' }) {
               <p className="text-sm text-rose-700 dark:text-rose-300">{error}</p>
             </div>
           ) : loading ? (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 size={28} className="animate-spin text-gray-400" />
+            <div className="p-6 space-y-3">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-8 bg-gray-100 dark:bg-gray-700 rounded-xl animate-pulse" style={{ opacity: 1 - i * 0.15 }} />
+              ))}
             </div>
           ) : users.length === 0 ? (
             <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-12">No se encontraron usuarios.</p>
@@ -427,7 +431,8 @@ export default function AdminUsers({ initialRoleFilter = '' }) {
                   <tr className="bg-gray-50 dark:bg-gray-700/50">
                     <th className="py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Usuario</th>
                     <th className="py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Rol</th>
-                    <th className="py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Estado</th>
+                    <th className="py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Activo</th>
+                    <th className="py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Plan</th>
                     <th className="py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Registrado</th>
                     <th className="py-3 px-4" />
                   </tr>

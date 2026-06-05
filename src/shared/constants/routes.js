@@ -37,6 +37,8 @@ export const ROUTES = {
   ADMIN_DASHBOARD: '/dashboard/admin',
   ADMIN_USERS: '/dashboard/admin/users',
   ADMIN_PROFESSIONALS: '/dashboard/admin/professionals',
+  ADMIN_PROFESSIONALS_DETAIL: '/dashboard/admin/professionals/:id',
+  ADMIN_CONTRACTS: '/dashboard/admin/contracts',
   ADMIN_SUBSCRIPTIONS: '/dashboard/admin/subscriptions',
 }
 

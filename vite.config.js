@@ -5,6 +5,14 @@ import path from 'path'
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => ({
   plugins: [react()],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+    },
+  },
   test: {
     environment: 'jsdom',
     globals: true,

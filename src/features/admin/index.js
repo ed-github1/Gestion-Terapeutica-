@@ -1,3 +1,6 @@
 export { default as AdminDashboard } from './AdminDashboard'
 export { default as AdminUsers } from './AdminUsers'
 export { default as AdminSubscriptions } from './AdminSubscriptions'
+export { default as AdminProfessionals } from './AdminProfessionals'
+export { default as AdminProfessionalDetail } from './AdminProfessionalDetail'
+export { default as AdminContracts } from './AdminContracts'

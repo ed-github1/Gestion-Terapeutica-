@@ -28,4 +28,13 @@ dist-ssr
 .env.*
 !.env.example
 
+# Secrets and credentials
+*.pem
+*.key
+*.p12
+*.pfx
+secrets.json
+secrets.*.json
+
 CLAUDE.md
+verify-contract.js

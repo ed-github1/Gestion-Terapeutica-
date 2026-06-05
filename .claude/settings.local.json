@@ -22,7 +22,14 @@
       "Bash(Select-String -Pattern 'Local:|http|VITE|ready' -Wait)",
       "Bash(chromium-cli http://localhost:5175 --screenshot=/tmp/app-screenshot.png --wait-selector='.dark' --timeout=10000)",
       "Read(//home/**)",
-      "Bash(curl -s http://localhost:5175)"
+      "Bash(curl -s http://localhost:5175)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(k,':',v\\) for k,v in d.get\\('scripts',{}\\).items\\(\\)]\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173/)",
+      "Bash(node -e \"require\\('playwright'\\)\")",
+      "Bash(node -e \"require\\('@playwright/test'\\)\")",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\" http://localhost:5174/demo/patient)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\" http://localhost:5174/login)",
+      "Bash(curl -s http://localhost:5174/src/shared/api/client.js)"
     ]
   }
 }

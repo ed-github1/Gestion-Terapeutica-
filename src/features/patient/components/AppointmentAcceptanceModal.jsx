@@ -18,6 +18,7 @@ import { professionalsService } from '@shared/services/professionalsService'
 import { patientsService } from '@shared/services/patientsService'
 import { showToast } from '@shared/ui/Toast'
 import { toLocalDateObj } from '@shared/utils/appointments'
+import { safeRedirect } from '@shared/api/client'
 import { useAuth } from '@features/auth/AuthContext'
 import { socketNotificationService } from '@shared/services/socketNotificationService'
 
@@ -144,7 +145,7 @@ const AppointmentAcceptanceModal = ({ appointment, onClose, onAccepted, onReject
       professionalUserIdProp ||
       localStorage.getItem('_linkedProUserId') ||
       null
-    console.log('[AcceptanceModal] resolveProUserId =>', uid, '| appointment.professionalId =>', appointment?.professionalId, '| prop =>', professionalUserIdProp, '| localStorage =>', localStorage.getItem('_linkedProUserId'))
+    if (import.meta.env.DEV) console.log('[AcceptanceModal] resolveProUserId =>', uid)
     return uid
   }
 
@@ -174,7 +175,7 @@ const AppointmentAcceptanceModal = ({ appointment, onClose, onAccepted, onReject
         const { initPoint, sandboxInitPoint } = prefRes.data?.data ?? prefRes.data ?? {}
         const url = import.meta.env.DEV ? (sandboxInitPoint || initPoint) : initPoint
         if (url) {
-          window.location.href = url
+          safeRedirect(url)
           return
         }
       }

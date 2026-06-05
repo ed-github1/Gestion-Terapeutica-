@@ -7,7 +7,7 @@ import { getCurrencyForCountry } from '@shared/constants/subscriptionPlans'
 import { professionalsService } from '@shared/services/professionalsService'
 import { statsService } from '@shared/services/statsService'
 import { showToast } from '@shared/ui/Toast'
-import apiClient from '@shared/api/client'
+import apiClient, { safeRedirect } from '@shared/api/client'
 import mpLogo from '@assets/LOGO_MP.png'
 
 // ─── Toggle ────────────────────────────────────────────────────────────────────
@@ -202,7 +202,7 @@ const ProfessionalSettings = ({ embedded = false }) => {
         setMpConnecting(true)
         try {
             const res = await apiClient.get('/auth/mercadopago/connect')
-            window.location.href = res.data?.url
+            safeRedirect(res.data?.url)
         } catch {
             showToast('No se pudo iniciar la conexión con MercadoPago.', 'error')
             setMpConnecting(false)

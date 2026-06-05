@@ -7,7 +7,8 @@ import {
   ShieldCheck,
   CreditCard,
   PenLine,
-  UserCircle
+  UserCircle,
+  FileText,
 } from 'lucide-react'
 
 /**
@@ -109,6 +110,13 @@ export const adminMenuItems = [
     label: 'Profesionales',
     description: 'Terapeutas y clínicos',
     ariaLabel: 'Gestión de profesionales'
+  },
+  {
+    icon: FileText,
+    path: '/dashboard/admin/contracts',
+    label: 'Contratos',
+    description: 'Contratos firmados',
+    ariaLabel: 'Contratos firmados por profesionales'
   },
   {
     icon: CreditCard,
