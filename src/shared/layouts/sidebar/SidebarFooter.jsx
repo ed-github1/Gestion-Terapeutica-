@@ -22,7 +22,6 @@ const SidebarFooter = ({ prefersReducedMotion, onSettings, onLogout }) => {
     return (
         <div className="pb-4 pt-2 flex flex-col items-center gap-1 border-t border-gray-100 dark:border-gray-700/60">
             {onSettings && iconBtn('Configuración', Settings, onSettings, 'hover:bg-gray-100 dark:hover:bg-gray-700/70 hover:text-gray-900 dark:hover:text-white')}
-            {iconBtn('Cerrar sesión', LogOut, onLogout, 'hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400')}
         </div>
     )
 }

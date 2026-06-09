@@ -3,112 +3,144 @@ import { motion, AnimatePresence } from 'motion/react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import {
     User as UserIcon,
-    BarChart2,
     LogOut,
-    Crown,
-    ArrowLeft,
+    Briefcase,
+    Settings,
+    ChevronDown,
 } from 'lucide-react'
 import { useAuth } from '@features/auth'
-import ProfessionalStats from '../ProfessionalStats'
 import ProfessionalAccountTab from './ProfessionalAccountTab'
+import RatesPanel from './RatesPanel'
+import AvailabilityManager from './AvailabilityManager'
+import ProfessionalSettings from './ProfessionalSettings'
 
-const TABS = [
-    { id: 'stats', label: 'Estadísticas', icon: BarChart2 },
-    { id: 'cuenta', label: 'Cuenta', icon: UserIcon },
+const PracticaContent = () => (
+    <div className="space-y-8">
+        <AvailabilityManager embedded />
+        <div className="border-t border-gray-100 dark:border-gray-800" />
+        <RatesPanel embedded />
+    </div>
+)
+
+const NAV = [
+    { id: 'cuenta', label: 'Mi Perfil', short: 'Perfil', icon: UserIcon },
+    { id: 'practica', label: 'Mi Práctica', short: 'Práctica', icon: Briefcase },
+    { id: 'config', label: 'Configuración', short: 'Config', icon: Settings },
 ]
 
-const tabFromPath = (pathname) => {
-    if (pathname.includes('/stats')) return 'stats'
-    return 'cuenta'
+const CONTENT = {
+    cuenta: <ProfessionalAccountTab />,
+    practica: <PracticaContent />,
+    config: <ProfessionalSettings embedded />,
 }
 
 const ProfessionalAccount = () => {
     const { user, logout } = useAuth()
     const navigate = useNavigate()
     const location = useLocation()
-    const [active, setActive] = useState(() => tabFromPath(location.pathname))
+    const [active, setActive] = useState(() =>
+        new URLSearchParams(location.search).get('mp') ? 'config' : 'cuenta'
+    )
+    // Mobile accordion: which section is open (null = all closed)
+    const [mobileOpen, setMobileOpen] = useState(() =>
+        new URLSearchParams(location.search).get('mp') ? 'config' : null
+    )
 
-    const fullName = user?.name || user?.nombre || 'Profesional'
-    const initials = fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-    const specialty = user?.specialty || user?.especialidad || 'Profesional de Salud'
-    const planRaw = (user?.subscriptionPlan || user?.plan || user?.planType || 'GRATUITO').toUpperCase()
-    const isPro = planRaw === 'PRO' || planRaw === 'EMPRESA'
-    const planLabel = planRaw === 'EMPRESA' ? 'Empresa' : planRaw === 'PRO' ? 'Pro' : 'Gratuito'
-
-    const handleTab = (id) => {
-        if (id === active) return
-        setActive(id)
-    }
-
-    const handleLogout = async () => {
-        await logout()
-        navigate('/login')
-    }
+    const handleLogout = async () => { await logout(); navigate('/login') }
+    const toggleMobile = (id) => setMobileOpen(prev => prev === id ? null : id)
 
     return (
-        <div className="h-screen bg-gray-100  dark:bg-gray-950  flex p-3 md:p-4">
-            <div className="flex-1 flex flex-col bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden">
-
-                {/* ── Top bar: breadcrumb + tabs ── */}
-                <div className="flex items-center gap-2 px-6 py-3 border-b border-gray-100 dark:border-gray-800 shrink-0">
-
-                    {/* tabs at top-right */}
-                    <div className="flex items-center gap-2 ml-auto">
-                        <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-900 rounded-xl p-1">
-                            {TABS.map(t => {
-                                const isActive = active === t.id
-                                const Icon = t.icon
-                                return (
-                                    <button
-                                        key={t.id}
-                                        onClick={() => handleTab(t.id)}
-                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${isActive
-                                            ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white'
-                                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
-                                            }`}
+        <div className="h-dvh bg-gray-100 dark:bg-gray-950 flex p-3 md:p-4">
+            <div className="flex-1 min-h-0 flex flex-col md:flex-row bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden">
+                {/* ── Mobile accordion ── */}
+                <div className="md:hidden flex-1 min-h-0 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800">
+                    {NAV.map(({ id, label, icon: Icon }) => {
+                        const isOpen = mobileOpen === id
+                        return (
+                            <div key={id}>
+                                <button
+                                    onClick={() => toggleMobile(id)}
+                                    className="w-full flex items-center justify-between px-5 py-4 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/40"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <Icon
+                                            className={`w-4.5 h-4.5 shrink-0 transition-colors ${isOpen ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}
+                                            strokeWidth={isOpen ? 2.5 : 1.8}
+                                        />
+                                        <span className={`text-sm font-semibold transition-colors ${isOpen ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'}`}>
+                                            {label}
+                                        </span>
+                                    </div>
+                                    <motion.div
+                                        animate={{ rotate: isOpen ? 180 : 0 }}
+                                        transition={{ duration: 0.2 }}
                                     >
-                                        <Icon className="w-3.5 h-3.5" strokeWidth={2.2} />
-                                        <span className="hidden sm:inline">{t.label}</span>
-                                    </button>
-                                )
-                            })}
-                        </div>
+                                        <ChevronDown className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                                    </motion.div>
+                                </button>
+                                <AnimatePresence initial={false}>
+                                    {isOpen && (
+                                        <motion.div
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: 'auto', opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+                                            className="overflow-hidden"
+                                        >
+                                            <div className="px-5 pb-6 pt-1 border-t border-gray-100 dark:border-gray-800">
+                                                {CONTENT[id]}
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+                        )
+                    })}
+
+                    {/* Logout row */}
+                    <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-3 px-5 py-4 text-left text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                    >
+                        <LogOut className="w-4.5 h-4.5 shrink-0" strokeWidth={1.8} />
+                        <span className="text-sm font-semibold">Cerrar sesión</span>
+                    </button>
+                </div>
+
+                {/* ── Desktop sidebar ── */}
+                <div className="hidden md:flex w-56 shrink-0 flex-col border-r border-gray-100 dark:border-gray-800">
+
+                    {/* Nav items */}
+                    <nav className="flex-1 min-h-0 overflow-y-auto py-3 px-2 space-y-0.5">
+                        {NAV.map(({ id, label, icon: Icon }) => (
+                            <button
+                                key={id}
+                                onClick={() => setActive(id)}
+                                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-semibold transition-colors text-left ${active === id
+                                        ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
+                                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/40'
+                                    }`}
+                            >
+                                <Icon className="w-4 h-4 shrink-0" strokeWidth={2} />
+                                {label}
+                            </button>
+                        ))}
+                    </nav>
+
+                    {/* Logout */}
+                    <div className="shrink-0 px-2 pb-4 pt-3 border-t border-gray-100 dark:border-gray-800">
                         <button
                             onClick={handleLogout}
-                            aria-label="Cerrar sesión"
-                            className="w-8 h-8 flex items-center justify-center rounded-xl text-red-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/60 transition-all"
+                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-semibold text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
                         >
-                            <LogOut className="w-4 h-4" />
+                            <LogOut className="w-4 h-4 shrink-0" />
+                            Cerrar sesión
                         </button>
                     </div>
                 </div>
 
-                {/* ── Content ── */}
-                <div className="flex-1 overflow-y-auto bg-white  dark:bg-gray-900">
-                    {/* Profile hero */}
-                    <div className="px-8 pt-8 pb-6 border-b border-gray-100 dark:border-gray-800">
-                        <div className="w-20 h-20 rounded-full bg-linear-to-br from-blue-700 to-sky-400 flex items-center justify-center text-white text-2xl font-bold mb-4">
-                            {initials}
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{fullName}</h1>
-                            <svg className="w-5 h-5 text-blue-500 shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
-                            </svg>
-                            {isPro ? (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-blue-600 text-white uppercase tracking-wide">
-                                    <Crown className="w-3 h-3" /> {planLabel}
-                                </span>
-                            ) : (
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60 uppercase tracking-wide">
-                                    {planLabel}
-                                </span>
-                            )}
-                        </div>
-                        <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{specialty}</p>
-                    </div>
-
-                    {/* Tab content */}
+                {/* ── Desktop content area ── */}
+                <div className="hidden md:flex flex-1 min-h-0 min-w-0 overflow-y-auto bg-white dark:bg-gray-900">
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={active}
@@ -116,13 +148,13 @@ const ProfessionalAccount = () => {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -4 }}
                             transition={{ duration: 0.15 }}
-                            className="p-5 md:p-8"
+                            className="w-full p-8"
                         >
-                            {active === 'stats' && <ProfessionalStats embedded />}
-                            {active === 'cuenta' && <ProfessionalAccountTab />}
+                            {CONTENT[active]}
                         </motion.div>
                     </AnimatePresence>
                 </div>
+
             </div>
         </div>
     )

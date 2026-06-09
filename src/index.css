@@ -167,6 +167,23 @@ html, body, #root {
   scrollbar-color: #2d3748 transparent;
 }
 
+/* ─── Skeleton shimmer ───────────────────────────────────────────────────── */
+@keyframes skeleton-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #e5e7eb 25%, #f9fafb 50%, #e5e7eb 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+}
+
+.dark .skeleton {
+  background: linear-gradient(90deg, #1A2332 25%, #2A3F5F 50%, #1A2332 75%);
+  background-size: 200% 100%;
+}
+
 /* ─── Print styles ───────────────────────────────────────────────────────── */
 @media print {
   html, body, #root {

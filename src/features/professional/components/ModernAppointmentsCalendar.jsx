@@ -160,7 +160,7 @@ const FC_STYLES = `
 .fc-event .fc-event-main        { background: transparent !important; }
 `
 
-export default function ModernAppointmentsCalendar({ onSelectEvent, onDateClick, onEventDrop, onAddEvent, onToggleAvailability, onToggleRates, density = 'spacious' }) {
+export default function ModernAppointmentsCalendar({ onSelectEvent, onDateClick, onEventDrop, onAddEvent, density = 'spacious' }) {
     const calRef = useRef(null)
     const { dark } = useDarkModeContext()
     const [currentDate, setCurrentDate] = useState(new Date())
@@ -274,8 +274,6 @@ export default function ModernAppointmentsCalendar({ onSelectEvent, onDateClick,
                     onNext={handleNext}
                     onToday={handleToday}
                     onAddEvent={() => onAddEvent?.()}
-                    onToggleAvailability={() => onToggleAvailability?.()}
-                    onToggleRates={() => onToggleRates?.()}
                 />
 
                 {/* FullCalendar grid */}

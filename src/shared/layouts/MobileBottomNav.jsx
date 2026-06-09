@@ -13,16 +13,21 @@ const NavBtn = ({ path, exact, label, Icon, badge }) => {
     <motion.button
       whileTap={{ scale: 0.88 }}
       onClick={() => navigate(path)}
-      className="relative flex-1 flex items-center justify-center py-4 group"
+      className="relative flex-1 flex flex-col items-center justify-center py-2 gap-0.5 group"
     >
       <Icon
         className={active
           ? 'text-[#0075C9] dark:text-white'
           : 'text-gray-400 dark:text-gray-600 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors duration-150'}
-        style={{ width: 26, height: 26 }}
+        style={{ width: 24, height: 24 }}
         strokeWidth={active ? 2.5 : 1.6}
       />
-      {badge && <span className="absolute top-3 right-[calc(50%-16px)] w-1.5 h-1.5 bg-red-500 rounded-full" />}
+      <span className={`text-[10px] font-medium leading-none transition-colors duration-150 ${
+        active ? 'text-[#0075C9] dark:text-white' : 'text-gray-400 dark:text-gray-600 group-hover:text-gray-600 dark:group-hover:text-gray-300'
+      }`}>
+        {label}
+      </span>
+      {badge && <span className="absolute top-2 right-[calc(50%-14px)] w-1.5 h-1.5 bg-red-500 rounded-full" />}
     </motion.button>
   )
 }
@@ -39,17 +44,17 @@ const MobileBottomNav = ({ userRole }) => {
       <div className="flex items-center">
         {userRole === 'professional' ? (
           <>
-            <NavBtn path={`/dashboard/${userRole}`} exact label="INICIO" Icon={LayoutGrid} />
-            <NavBtn path={`/dashboard/${userRole}/patients`} label="PACIENTES" Icon={Users} />
-            <NavBtn path={`/dashboard/${userRole}/appointments`} label="AGENDA" Icon={Calendar} />
-            <NavBtn path={`/dashboard/${userRole}/profile`} label="PERFIL" Icon={UserCircle} />
+            <NavBtn path={`/dashboard/${userRole}`} exact label="Inicio" Icon={LayoutGrid} />
+            <NavBtn path={`/dashboard/${userRole}/patients`} label="Pacientes" Icon={Users} />
+            <NavBtn path={`/dashboard/${userRole}/appointments`} label="Agenda" Icon={Calendar} />
+            <NavBtn path={`/dashboard/${userRole}/profile`} label="Perfil" Icon={UserCircle} />
           </>
         ) : (
           <>
-            <NavBtn path={`/dashboard/${userRole}`} exact label="INICIO" Icon={Home} />
-            <NavBtn path={`/dashboard/${userRole}/appointments`} label="CITAS" Icon={Calendar} />
-            <NavBtn path={`/dashboard/${userRole}/diary`} label="DIARIO" Icon={BookOpen} />
-            <NavBtn path={`/dashboard/${userRole}/profile`} label="PERFIL" Icon={UserCircle} />
+            <NavBtn path={`/dashboard/${userRole}`} exact label="Inicio" Icon={Home} />
+            <NavBtn path={`/dashboard/${userRole}/appointments`} label="Citas" Icon={Calendar} />
+            <NavBtn path={`/dashboard/${userRole}/diary`} label="Diario" Icon={BookOpen} />
+            <NavBtn path={`/dashboard/${userRole}/profile`} label="Perfil" Icon={UserCircle} />
           </>
         )}
       </div>

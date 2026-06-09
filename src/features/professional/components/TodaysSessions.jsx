@@ -336,42 +336,29 @@ const SKELETON_WIDTHS = [
 
 const SessionCardSkeleton = ({ index }) => {
     const w = SKELETON_WIDTHS[index % SKELETON_WIDTHS.length]
-    const isFirst = index === 0
     return (
-        <div
-            className="flex items-start gap-2 animate-pulse"
-            style={{ animationDelay: `${index * 80}ms` }}
-        >
+        <div className="flex items-start gap-2">
             {/* Time stamp column */}
             <div className="w-9 shrink-0 text-right pt-2.5 space-y-1">
-                <div className="w-8 h-3 bg-gray-200 dark:bg-gray-600 rounded ml-auto" />
-                <div className="w-5 h-2 bg-gray-100 dark:bg-gray-700 rounded ml-auto" />
+                <div className="skeleton w-8 h-3 rounded ml-auto" />
+                <div className="skeleton w-5 h-2 rounded ml-auto" />
             </div>
 
             {/* Timeline track */}
             <div className="flex flex-col items-center pt-3 shrink-0">
-                <div className={`w-2 h-2 rounded-full shrink-0 ${isFirst ? 'bg-sky-200 dark:bg-sky-700' : 'bg-gray-200 dark:bg-gray-600'}`} />
-                <div className="w-px flex-1 bg-gray-100 dark:bg-gray-700 mt-1 min-h-10" />
+                <div className="skeleton w-2 h-2 rounded-full shrink-0" />
+                <div className="skeleton w-px flex-1 mt-1 min-h-10" />
             </div>
 
             {/* Card body */}
-            <div
-                className={`flex-1 rounded-2xl px-3 py-3 mb-1.5 ${
-                    isFirst ? 'bg-sky-50/60 dark:bg-sky-900/20 border border-sky-100/80 dark:border-sky-800/40' : 'bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600'
-                }`}
-            >
+            <div className="flex-1 rounded-2xl px-3 py-3 mb-1.5 bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700/50">
                 <div className="flex items-center gap-3">
-                    {/* Avatar */}
-                    <div className={`w-9 h-9 rounded-full shrink-0 ${isFirst ? 'bg-sky-200 dark:bg-sky-700' : 'bg-gray-200 dark:bg-gray-600'}`} />
-
-                    {/* Text lines */}
+                    <div className="skeleton w-9 h-9 rounded-full shrink-0" />
                     <div className="flex-1 space-y-2">
-                        <div className={`h-3 ${w.name} bg-gray-200 dark:bg-gray-600 rounded`} />
-                        <div className={`h-2 ${w.detail} bg-gray-100 dark:bg-gray-700 rounded`} />
+                        <div className={`skeleton h-3 ${w.name} rounded`} />
+                        <div className={`skeleton h-2 ${w.detail} rounded`} />
                     </div>
-
-                    {/* Action pill */}
-                    <div className={`h-6 ${w.badge} bg-gray-200 dark:bg-gray-600 rounded-full shrink-0`} />
+                    <div className={`skeleton h-6 ${w.badge} rounded-full shrink-0`} />
                 </div>
             </div>
         </div>

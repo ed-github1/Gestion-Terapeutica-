@@ -1,17 +1,13 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { Calendar, Clock, CheckCircle2, CalendarCheck, Plus } from 'lucide-react'
-import AvailabilityManager from './AvailabilityManager'
 import ModernAppointmentsCalendar from './ModernAppointmentsCalendar'
 import AddEventPanel from './calendar/AddEventPanel'
 import AppointmentDetailPanel from './calendar/AppointmentDetailPanel'
-import RatesPanel from './calendar/RatesPanel'
 import { useCalendarAppointments } from '../hooks'
 import { KpiChip, KpiChipSkeleton } from './dashboard'
 
 const AppointmentsCalendar = () => {
-  const [showAvailabilityManager, setShowAvailabilityManager] = useState(false)
-  const [showRatesPanel, setShowRatesPanel] = useState(false)
   const [density, setDensity] = useState('spacious')
 
   const {
@@ -53,7 +49,7 @@ const AppointmentsCalendar = () => {
 
         {/* ── Calendar (includes custom toolbar) ── */}
         {loading ? (
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-12 flex items-center justify-center">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-700 p-12 flex items-center justify-center">
             <div className="text-center">
               <div className="inline-block animate-spin rounded-full h-10 w-10 border-[3px] border-gray-900 dark:border-gray-100 border-t-transparent mb-4" />
               <p className="text-gray-700 dark:text-gray-300 font-semibold">Cargando agenda…</p>
@@ -65,8 +61,6 @@ const AppointmentsCalendar = () => {
             onDateClick={handleSelectSlot}
             onEventDrop={handleEventDrop}
             onAddEvent={() => handleSelectSlot(new Date())}
-            onToggleAvailability={() => setShowAvailabilityManager(true)}
-            onToggleRates={() => setShowRatesPanel(true)}
             density={density}
           />
         )}
@@ -87,16 +81,6 @@ const AppointmentsCalendar = () => {
               onClose={closeModal}
               onSave={handleSaveAppointment}
               onDelete={handleDeleteAppointment}
-            />
-          )}
-          {showAvailabilityManager && (
-            <AvailabilityManager
-              onClose={() => setShowAvailabilityManager(false)}
-            />
-          )}
-          {showRatesPanel && (
-            <RatesPanel
-              onClose={() => setShowRatesPanel(false)}
             />
           )}
         </AnimatePresence>

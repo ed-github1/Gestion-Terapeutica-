@@ -90,10 +90,10 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
     // Session presence map for mobile week strip dots (accurate across month boundaries)
     const weekSessionMap = useMemo(() => {
         const s = new Set()
-        ;(appointments || []).forEach(apt => {
-            const d = new Date(apt.fechaHora)
-            s.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`)
-        })
+            ; (appointments || []).forEach(apt => {
+                const d = new Date(apt.fechaHora)
+                s.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`)
+            })
         return s
     }, [appointments])
 
@@ -124,9 +124,9 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                 const fullApt = res.data?.data ?? res.data?.appointment ?? res.data ?? res
                 const rawPid =
                     fullApt.patientUserId || fullApt.patientUser ||
-                    fullApt.patientId     || fullApt.patient     ||
-                    fullApt.userId        || fullApt.user        ||
-                    fullApt.paciente      || fullApt.pacienteId  || null
+                    fullApt.patientId || fullApt.patient ||
+                    fullApt.userId || fullApt.user ||
+                    fullApt.paciente || fullApt.pacienteId || null
                 if (typeof rawPid === 'object' && rawPid !== null) {
                     targetUserId = rawPid.userId || rawPid.user || rawPid._id || rawPid.id || null
                 } else {
@@ -275,9 +275,8 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                 </div>
             )}
 
-            <div className="bg-transparent dark:bg-gray-950/50 xl:h-full xl:flex xl:flex-col">
+            <div className="bg-transparent dark:bg-gray-950 xl:h-full xl:flex xl:flex-col">
                 <div className="xl:h-full xl:flex xl:flex-col">
-
                     {/* ── MOBILE (< md) ── */}
                     <MobileProfessionalDashboard
                         userName={userName}
@@ -317,18 +316,17 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                     />
 
                     {/* ═══════════════════════════════════════════════════════════════════
-                        md + DESKTOP — Existing calendar-based layout
+                        md + DESKTOP
                     ═══════════════════════════════════════════════════════════════════ */}
                     <div className="hidden md:block p-2 md:p-3 lg:p-4 xl:overflow-hidden xl:flex xl:flex-col xl:flex-1 xl:min-h-0 xl:h-screen">
                         {/* ── Layout: [Calendar card] | [Sessions col] ── */}
                         <div className="flex flex-col md:flex-row gap-2 md:gap-3 xl:gap-4 xl:flex-1 xl:min-h-0">
-
                             {/* LEFT — Calendar card (pure calendar, no embedded sessions on xl) */}
                             <motion.div
                                 initial={{ opacity: 0, x: -32 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ duration: 0.4, ease: 'easeOut' }}
-                                className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm w-full min-w-0 xl:w-105 xl:shrink-0 xl:flex-1 xl:min-h-0 overflow-hidden flex flex-col gap-2"
+                                className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm w-full min-w-0 xl:w-105 xl:shrink-0 xl:flex-1 xl:min-h-0 overflow-hidden flex flex-col gap-2"
                             >
                                 <MiniCalendarWidget
                                     calendarData={calendarData}
@@ -391,35 +389,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                 className="hidden xl:flex flex-col gap-2 flex-1 min-w-0 xl:min-h-0"
                             >
 
-                                {/* Stats */}
-                                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 px-2 py-2 shadow-sm shrink-0 grid grid-cols-4 gap-2 overflow-hidden">
-                                    {loading ? (
-                                        Array.from({ length: 4 }).map((_, i) => (
-                                            <div key={i} className="min-w-0 bg-gray-50 dark:bg-gray-700/50 rounded-2xl px-3 pt-2.5 pb-3 animate-pulse flex flex-col gap-1.5">
-                                                <div className="h-2.5 w-full max-w-16 bg-gray-200 dark:bg-gray-600 rounded-full" />
-                                                <div className="h-6 w-12 bg-gray-200 dark:bg-gray-600 rounded" />
-                                            </div>
-                                        ))
-                                    ) : (
-                                        kpisDesktop.map(({ value, label, trend, trendPos, Icon, iconColor }) => (
-                                            <div key={label} className="min-w-0 bg-gray-50 dark:bg-gray-700/50 rounded-2xl px-3 pt-2.5 pb-3 flex flex-col gap-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors overflow-hidden">
-                                                <div className="flex items-center justify-between gap-1 min-w-0">
-                                                    <div className="flex items-center gap-1 min-w-0 overflow-hidden">
-                                                        <Icon size={12} className={`shrink-0 ${iconColor}`} strokeWidth={2.5} />
-                                                        <span className="text-[10px] font-semibold text-gray-400 tracking-wide uppercase truncate">{label}</span>
-                                                    </div>
-                                                    {trend != null && (
-                                                        <span className={`shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${trendPos ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'
-                                                            }`}>
-                                                            {trendPos ? '↑' : '↓'}{Math.abs(trend)}%
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <span className="text-[22px] font-black text-gray-900 dark:text-white leading-none tabular-nums tracking-tight truncate">{value}</span>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
+
 
                                 {/* Today's sessions */}
                                 <div className="flex flex-col flex-1 min-h-0">

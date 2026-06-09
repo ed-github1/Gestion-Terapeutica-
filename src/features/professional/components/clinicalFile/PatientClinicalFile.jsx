@@ -125,20 +125,74 @@ const PatientClinicalFile = ({ patient, onClose }) => {
             transition={{ duration: 0.1 }}
             className="p-4 sm:p-5 md:p-6"
           >
-            {/* Loading skeleton */}
+            {/* Loading skeleton — mirrors CaratulaTab layout */}
             {isLoading && (
-              <div className="space-y-3 p-5">
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="bg-white dark:bg-[#1a2234] rounded-2xl border border-gray-100 dark:border-[#2d3748] p-5 animate-pulse">
-                    <div className="flex gap-3">
-                      <div className="w-8 h-8 rounded-xl bg-gray-200 dark:bg-[#2d3748]" />
-                      <div className="flex-1 space-y-2">
-                        <div className="h-4 bg-gray-200 dark:bg-[#2d3748] rounded w-1/3" />
-                        <div className="h-3 bg-gray-100 dark:bg-[#0f1623] rounded w-2/3" />
+              <div className="space-y-4">
+
+                {/* Card: Información personal */}
+                <div className="bg-white dark:bg-[#1a2234] rounded-2xl border border-gray-100 dark:border-[#2d3748] p-5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="skeleton w-4 h-4 rounded" />
+                    <div className="skeleton h-2.5 w-32 rounded" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+                    <div className="col-span-2 space-y-1.5">
+                      <div className="skeleton h-2 w-20 rounded" />
+                      <div className="skeleton h-3.5 w-44 rounded" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <div className="skeleton h-2 w-10 rounded" />
+                      <div className="skeleton h-3.5 w-16 rounded" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <div className="skeleton h-2 w-14 rounded" />
+                      <div className="skeleton h-3.5 w-20 rounded" />
+                    </div>
+                    <div className="col-span-2 space-y-1.5">
+                      <div className="skeleton h-2 w-28 rounded" />
+                      <div className="skeleton h-3.5 w-36 rounded" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card: Contacto */}
+                <div className="bg-white dark:bg-[#1a2234] rounded-2xl border border-gray-100 dark:border-[#2d3748] p-5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="skeleton w-4 h-4 rounded" />
+                    <div className="skeleton h-2.5 w-16 rounded" />
+                  </div>
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <div className="skeleton h-2 w-24 rounded" />
+                      <div className="skeleton h-3.5 w-48 rounded" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <div className="skeleton h-2 w-16 rounded" />
+                        <div className="skeleton h-3.5 w-24 rounded" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <div className="skeleton h-2 w-28 rounded" />
+                        <div className="skeleton h-3.5 w-20 rounded" />
                       </div>
                     </div>
                   </div>
-                ))}
+                </div>
+
+                {/* Card: Historial médico — rows with label + badge */}
+                <div className="bg-white dark:bg-[#1a2234] rounded-2xl border border-gray-100 dark:border-[#2d3748] p-5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="skeleton w-4 h-4 rounded" />
+                    <div className="skeleton h-2.5 w-28 rounded" />
+                  </div>
+                  {['w-2/5', 'w-1/2', 'w-1/3', 'w-5/12', 'w-2/5'].map((w, i) => (
+                    <div key={i} className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-[#2d3748] last:border-0">
+                      <div className={`skeleton h-3 ${w} rounded`} />
+                      <div className="skeleton h-5 w-8 rounded-full shrink-0" />
+                    </div>
+                  ))}
+                </div>
+
               </div>
             )}
 

@@ -36,4 +36,12 @@ export const professionalsService = {
   /** POST /api/professional/consent/sign — returns signed consent PDF blob */
   signConsent: (signatureDataUrl, patientName, cedula) =>
     apiClient.post('/professional/consent/sign', { signatureDataUrl, patientName, cedula }, { responseType: 'blob' }),
+
+  /** GET /api/professional/me/mp-fee-rate — effective MP processing fee rate for this professional */
+  getMyMpFeeRate: () =>
+    apiClient.get('/professional/me/mp-fee-rate'),
+
+  /** POST /api/professional/me/dismiss-rates-banner — mark the MP fee banner as dismissed */
+  dismissRatesBanner: () =>
+    apiClient.post('/professional/me/dismiss-rates-banner'),
 }

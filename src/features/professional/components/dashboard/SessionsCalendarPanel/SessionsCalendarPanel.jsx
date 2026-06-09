@@ -79,7 +79,7 @@ const SessionsCalendarPanel = ({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.24 }}
-                className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 flex flex-col flex-1 min-h-0 overflow-hidden shadow-sm"
+                className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 flex flex-col flex-1 min-h-0 overflow-hidden shadow-sm"
             >
                 <div className="p-6 flex flex-col h-full overflow-hidden">
                     {header}
@@ -94,7 +94,7 @@ const SessionsCalendarPanel = ({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.24 }}
-            className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 mb-6 xl:mb-0 xl:flex-1 xl:min-h-0 overflow-hidden xl:flex xl:flex-col shadow-sm"
+            className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 mb-6 xl:mb-0 xl:flex-1 xl:min-h-0 overflow-hidden xl:flex xl:flex-col shadow-sm"
         >
             {/* xl: two-column layout */}
             <div className="hidden xl:grid xl:grid-cols-[1fr_400px] xl:h-full">
@@ -108,7 +108,7 @@ const SessionsCalendarPanel = ({
                     {sessionsContent}
                 </div>
 
-                <div className="flex flex-col bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 overflow-y-auto calendar-scrollbar">
+                <div className="flex flex-col bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 overflow-y-auto calendar-scrollbar">
                     {quickActionsSlot && (
                         <div className="px-4 pt-4 pb-3 border-b border-sky-100 dark:border-gray-700">
                             {quickActionsSlot}

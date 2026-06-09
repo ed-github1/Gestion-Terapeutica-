@@ -1,6 +1,6 @@
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Plus, Clock, DollarSign } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 
 const VIEW_OPTIONS = [
   { key: 'timeGridDay',  label: 'Día',    shortLabel: 'Día'  },
@@ -17,8 +17,6 @@ export default function CalendarToolbar({
   onNext,
   onToday,
   onAddEvent,
-  onToggleAvailability,
-  onToggleRates,
 }) {
   const title = format(currentDate, "MMMM yyyy", { locale: es })
 
@@ -63,39 +61,6 @@ export default function CalendarToolbar({
         ))}
       </div>
 
-      {/* Secondary actions — icon-only on mobile */}
-      <div className="flex items-center gap-1.5 shrink-0">
-        {/* <button
-          onClick={onToday}
-          className="hidden sm:block px-2.5 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-        >
-          Hoy
-        </button> */}
-        <button
-          onClick={onToggleAvailability}
-          className="w-8 h-8 flex items-center justify-center text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 sm:gap-1.5"
-          title="Disponibilidad"
-        >
-          <Clock className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline text-xs font-semibold">Disponibilidad</span>
-        </button>
-        <button
-          onClick={onToggleRates}
-          className="w-8 h-8 flex items-center justify-center text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-700/60 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 sm:gap-1.5"
-          title="Tarifas"
-        >
-          <DollarSign className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline text-xs font-semibold">Tarifas</span>
-        </button>
-        {/* Nueva Sesión — visible on sm+; on mobile it's the FAB */}
-        {/* <button
-          onClick={onAddEvent}
-          className="hidden sm:flex items-center gap-1.5 px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition-colors shadow-sm"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          Nueva Sesión
-        </button> */}
-      </div>
     </div>
   )
 }

@@ -1,7 +1,7 @@
 export const KpiChipSkeleton = () => (
-    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-2xl px-3 pt-2.5 pb-3 animate-pulse w-full flex flex-col gap-1.5">
-        <div className="h-2.5 w-16 bg-gray-200 dark:bg-gray-600 rounded-full" />
-        <div className="h-6 w-12 bg-gray-200 dark:bg-gray-600 rounded" />
+    <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl px-3 pt-2.5 pb-3 w-full flex flex-col gap-1.5">
+        <div className="skeleton h-2.5 w-16 rounded-full" />
+        <div className="skeleton h-6 w-12 rounded" />
     </div>
 )
 

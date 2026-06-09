@@ -111,6 +111,29 @@ const nextSessionLabel = (dateStr) => {
     return new Date(dateStr).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
 }
 
+// ─── Patient list skeleton ────────────────────────────────────────────────────
+const PATIENT_WIDTHS = [
+    { name: 'w-32', sub: 'w-24', badge: 'w-12' },
+    { name: 'w-40', sub: 'w-32', badge: 'w-14' },
+    { name: 'w-28', sub: 'w-20', badge: 'w-12' },
+    { name: 'w-36', sub: 'w-28', badge: 'w-16' },
+    { name: 'w-44', sub: 'w-24', badge: 'w-12' },
+]
+
+const PatientRowSkeleton = ({ index }) => {
+    const w = PATIENT_WIDTHS[index % PATIENT_WIDTHS.length]
+    return (
+        <div className="flex items-center gap-3 px-4 py-3.5 rounded-2xl">
+            <div className="skeleton w-10 h-10 rounded-full shrink-0" />
+            <div className="flex-1 min-w-0 space-y-2">
+                <div className={`skeleton h-3 ${w.name} rounded`} />
+                <div className={`skeleton h-2 ${w.sub} rounded`} />
+            </div>
+            <div className={`skeleton h-5 ${w.badge} rounded-full shrink-0`} />
+        </div>
+    )
+}
+
 // ─── Alert Banner ─────────────────────────────────────────────────────────────
 const AlertBanner = ({ patients }) => {
     const urgent = patients.filter(p => p.riskLevel === 'high')
@@ -708,8 +731,10 @@ const ModernPatientsList = () => {
                     <div className="flex-1 overflow-y-auto custom-scrollbar px-2 py-2">
                         <AlertBanner patients={patients} />
                         {loading && (
-                            <div className="flex justify-center py-16">
-                                <div className="w-6 h-6 border-2 border-[#0075C9] border-t-transparent rounded-full animate-spin" />
+                            <div className="py-2">
+                                {Array.from({ length: 7 }).map((_, i) => (
+                                    <PatientRowSkeleton key={i} index={i} />
+                                ))}
                             </div>
                         )}
                       {!loading && filtered.length === 0 && (
