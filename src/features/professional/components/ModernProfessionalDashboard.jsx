@@ -48,7 +48,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
     // Extracted hooks
     const availability = useAvailability()
     const { calendarMonth, setCalendarMonth, calendarMonthApts } = useCalendarMonth()
-    const { todayAppointments, allDaySlots } = useTodaySessions(appointments, availability, loading)
+    const { todayAppointments, allDaySlots, pendingPaymentToday } = useTodaySessions(appointments, availability, loading)
 
     // Local UI state
     const [showPatientForm, setShowPatientForm] = useState(false)
@@ -359,6 +359,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                             bare
                                             selectedDateLabel={selectedDateLabel}
                                             selectedDateSessions={selectedDateSessions}
+                                            pendingPayments={pendingPaymentToday}
                                             isViewingToday={isViewingToday}
                                             nextUpcomingSession={nextUpcomingSession}
                                             calendarData={calendarData}
@@ -397,6 +398,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                         sessionsOnly
                                         selectedDateLabel={selectedDateLabel}
                                         selectedDateSessions={selectedDateSessions}
+                                        pendingPayments={pendingPaymentToday}
                                         isViewingToday={isViewingToday}
                                         nextUpcomingSession={nextUpcomingSession}
                                         calendarData={calendarData}

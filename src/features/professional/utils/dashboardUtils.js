@@ -68,82 +68,95 @@ export const getGreeting = (currentTime) => {
     return 'Buenas noches'
 }
 
+const todayDateParts = () => {
+    const now = new Date()
+    return { y: now.getFullYear(), m: now.getMonth(), d: now.getDate() }
+}
+
+const matchesToday = (apt) => {
+    const dateField = apt.date || apt.fechaHora
+    if (!dateField) return false
+    try {
+        const dateOnly = String(dateField).slice(0, 10)
+        const [year, month, day] = dateOnly.split('-').map(Number)
+        const { y, m, d } = todayDateParts()
+        return year === y && month === m + 1 && day === d
+    } catch { return false }
+}
+
+const mapToSession = (apt) => {
+    let fechaHora = apt.fechaHora || apt.date
+    if (apt.time && apt.date) {
+        const dateOnly = String(apt.date).slice(0, 10)
+        const [yr, mo, dy] = dateOnly.split('-').map(Number)
+        const [hours, minutes] = apt.time.split(':').map(Number)
+        fechaHora = new Date(yr, mo - 1, dy, hours, minutes, 0, 0).toISOString()
+    }
+    const rawPid = apt.patientId || apt.patient
+    const patientDocId = (typeof rawPid === 'object' && rawPid !== null)
+        ? (rawPid._id || rawPid.id || null)
+        : (rawPid || null)
+    const patientUserId = apt.patientUserId
+        || (typeof rawPid === 'object' && rawPid !== null ? (rawPid.userId || rawPid.user) : null)
+        || null
+    return {
+        id: apt._id || apt.id,
+        patientId: patientDocId,
+        patientUserId,
+        nombrePaciente: resolvePatientName(apt),
+        fechaHora,
+        estado: apt.estado || apt.status,
+        type: apt.type || 'Consulta',
+        riskLevel: apt.riskLevel || 'low',
+        lastSessionNote: apt.lastSessionNote || '',
+        treatmentGoal: apt.treatmentGoal || '',
+        homeworkCompleted: apt.homeworkCompleted || false,
+        ultimaVisita: apt.ultimaVisita || null,
+        isVideoCall: apt.isVideoCall || apt.mode === 'videollamada' || false,
+        mode: apt.mode ?? (apt.isVideoCall ? 'videollamada' : 'consultorio'),
+        duration: apt.duration || 60,
+        paymentStatus: apt.paymentStatus || null,
+    }
+}
+
 /**
- * Filter appointments for today
- * @param {Array} appointments - All appointments
- * @returns {Array} Today's appointments
+ * Today's appointments that are confirmed/paid — safe to show in the active sessions list.
  */
 export const getTodayAppointments = (appointments) => {
-    if (!Array.isArray(appointments) || appointments.length === 0) {
-        return []
-    }
-
-    const now = new Date()
-    const todayYear  = now.getFullYear()
-    const todayMonth = now.getMonth()
-    const todayDate  = now.getDate()
-
+    if (!Array.isArray(appointments) || appointments.length === 0) return []
     return appointments
         .filter(apt => {
-            // Prefer the raw date-only field to avoid UTC-vs-local day shifts on
-            // combined ISO datetimes. Fall back to fechaHora if date is absent.
-            const dateField = apt.date || apt.fechaHora
-            if (!dateField) return false
-
-            try {
-                const dateOnly = String(dateField).slice(0, 10) // "2026-03-02"
-                const [year, month, day] = dateOnly.split('-').map(Number)
-
-                return (
-                    year  === todayYear &&
-                    month === todayMonth + 1 &&
-                    day   === todayDate
-                )
-            } catch {
-                return false
-            }
+            if (!matchesToday(apt)) return false
+            const status = apt.status || apt.estado || ''
+            if (status === 'cancelled' || status === 'no-show') return false
+            if (status === 'reserved') return false
+            if (status === 'accepted' && apt.paymentStatus !== 'completed') return false
+            if (status === 'confirmed' && apt.paymentStatus === 'pending') return false
+            return true
         })
-        .map(apt => {
-            // Combine date and time fields if they exist separately
-            let fechaHora = apt.fechaHora || apt.date
-            if (apt.time && apt.date) {
-                // Parse the YYYY-MM-DD portion directly to avoid UTC→local day shift.
-                // e.g. "2026-02-20T00:00:00.000Z" slice(0,10) → "2026-02-20"
-                // Using new Date(isoString) in UTC-6 gives Feb 19, not Feb 20.
-                const dateOnly = String(apt.date).slice(0, 10)
-                const [yr, mo, dy] = dateOnly.split('-').map(Number)
-                const [hours, minutes] = apt.time.split(':').map(Number)
-                fechaHora = new Date(yr, mo - 1, dy, hours, minutes, 0, 0).toISOString()
-            }
-            
-            // Resolve patientId: could be a populated object, a string ID, or nested under `patient`
-            const rawPid = apt.patientId || apt.patient
-            const patientDocId = (typeof rawPid === 'object' && rawPid !== null)
-                ? (rawPid._id || rawPid.id || null)
-                : (rawPid || null)
-            const patientUserId = apt.patientUserId
-                || (typeof rawPid === 'object' && rawPid !== null ? (rawPid.userId || rawPid.user) : null)
-                || null
+        .map(mapToSession)
+}
 
-            return {
-                id: apt._id || apt.id,
-                patientId: patientDocId,
-                patientUserId,
-                nombrePaciente: resolvePatientName(apt),
-                fechaHora: fechaHora,
-                estado: apt.estado || apt.status,
-                type: apt.type || 'Consulta',
-                riskLevel: apt.riskLevel || 'low',
-                lastSessionNote: apt.lastSessionNote || '',
-                treatmentGoal: apt.treatmentGoal || '',
-                homeworkCompleted: apt.homeworkCompleted || false,
-                ultimaVisita: apt.ultimaVisita || null,
-                isVideoCall: apt.isVideoCall || apt.mode === 'videollamada' || false,
-                mode: apt.mode ?? (apt.isVideoCall ? 'videollamada' : 'consultorio'),
-                duration: apt.duration || 60,
-                paymentStatus: apt.paymentStatus || null,
-            }
+/**
+ * Today's appointments hidden from the active session list that the professional
+ * should still have visibility of: pending payment/acceptance and cancelled/rejected.
+ */
+export const getPendingPaymentAppointments = (appointments) => {
+    if (!Array.isArray(appointments) || appointments.length === 0) return []
+    return appointments
+        .filter(apt => {
+            if (!matchesToday(apt)) return false
+            const status = apt.status || apt.estado || ''
+            return (
+                status === 'cancelled' ||
+                status === 'no-show' ||
+                status === 'reserved' ||
+                (status === 'accepted' && apt.paymentStatus !== 'completed') ||
+                (status === 'confirmed' && apt.paymentStatus === 'pending')
+            )
         })
+        .map(mapToSession)
+        .sort((a, b) => new Date(a.fechaHora) - new Date(b.fechaHora))
 }
 
 /**

@@ -13,22 +13,12 @@ import { PROFESSIONAL_COUNTRIES } from '@shared/constants/subscriptionPlans'
 import { statsService } from '@shared/services/statsService'
 import { professionalsService } from '@shared/services/professionalsService'
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
-const MOCK = {
-    2026: {
-        totalPatients: 38, activePatients: 27, inactivePatients: 11,
-        totalRevenue: 142500, therapyHours: 312, avgSessionMin: 52,
-        monthlyRevenue: [9200, 10800, 11500, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        monthlyHours: [28, 33, 35, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        monthlyPatients: [24, 26, 27, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    },
-    2025: {
-        totalPatients: 52, activePatients: 38, inactivePatients: 14,
-        totalRevenue: 198000, therapyHours: 524, avgSessionMin: 50,
-        monthlyRevenue: [14200, 15600, 17800, 16400, 18100, 17200, 16800, 17500, 16900, 17200, 15800, 14500],
-        monthlyHours: [42, 44, 48, 45, 50, 47, 46, 48, 46, 47, 43, 37],
-        monthlyPatients: [32, 34, 36, 35, 38, 37, 36, 38, 37, 38, 35, 30],
-    },
+const EMPTY_STATS = {
+    totalPatients: 0, activePatients: 0, inactivePatients: 0,
+    totalRevenue: 0, therapyHours: 0, avgSessionMin: 0,
+    monthlyRevenue: Array(12).fill(0),
+    monthlyHours: Array(12).fill(0),
+    monthlyPatients: Array(12).fill(0),
 }
 const MONTHS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 const fmt$ = v => v >= 1000 ? `$${(v / 1000).toFixed(v >= 10000 ? 0 : 1)}k` : `$${v}`
@@ -268,7 +258,6 @@ const ProfessionalAccountTab = () => {
     })
     const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'))
 
-    const availableYears = Object.keys(MOCK).map(Number).sort((a, b) => b - a)
     const [year] = useState(new Date().getFullYear())
     const [apiData, setApiData] = useState({})
 
@@ -297,21 +286,17 @@ const ProfessionalAccountTab = () => {
     }, [user])
 
     useEffect(() => {
-        if (apiData[year] !== undefined) return
-        statsService.getProfessionalStats(year)
-            .then(res => setApiData(prev => ({ ...prev, [year]: res.data?.data ?? res.data })))
-            .catch(() => setApiData(prev => ({ ...prev, [year]: null })))
+        [year, year - 1].forEach(y => {
+            if (apiData[y] !== undefined) return
+            statsService.getProfessionalStats(y)
+                .then(res => setApiData(prev => ({ ...prev, [y]: res.data?.data ?? res.data })))
+                .catch(() => setApiData(prev => ({ ...prev, [y]: null })))
+        })
     }, [year])
 
-    const data = useMemo(() => {
-        const live = apiData[year]
-        return live || MOCK[year] || MOCK[availableYears[0]]
-    }, [year, apiData, availableYears])
+    const data = useMemo(() => apiData[year] ?? EMPTY_STATS, [year, apiData])
 
-    const prevData = useMemo(() => {
-        const live = apiData[year - 1]
-        return live !== undefined ? live : MOCK[year - 1]
-    }, [year, apiData])
+    const prevData = useMemo(() => apiData[year - 1] ?? null, [year, apiData])
 
     const handleChangeProfile = (key, val) => {
         setProfile(prev => ({ ...prev, [key]: val }))
@@ -408,6 +393,7 @@ const ProfessionalAccountTab = () => {
 
     const retention = data.totalPatients > 0 ? Math.round((data.activePatients / data.totalPatients) * 100) : 0
     const revPerPatient = data.totalPatients > 0 ? Math.round(data.totalRevenue / data.totalPatients) : 0
+    const currentMonthRevenue = data.monthlyRevenue[new Date().getMonth()] ?? 0
     const dRevenue = prevData ? calcDelta(data.totalRevenue, prevData.totalRevenue) : null
     const dPatients = prevData ? calcDelta(data.activePatients, prevData.activePatients) : null
     const dRetention = prevData && prevData.totalPatients > 0
@@ -472,7 +458,7 @@ const ProfessionalAccountTab = () => {
                     <div className="bg-gray-100 dark:bg-[#1A2332] rounded-2xl border border-gray-200 dark:border-[#2A3F5F] px-2 py-2 grid grid-cols-2 lg:grid-cols-4 gap-2 overflow-hidden">
                         <MetricCard icon={Users} iconColor="text-cyan-500 dark:text-[#00D4FF]" label="Pacientes activos" value={data.activePatients} d={dPatients} />
                         <MetricCard icon={Clock} iconColor="text-gray-400 dark:text-[#8B96B1]" label="Duración promedio" value={`${data.avgSessionMin}m`} d={null} />
-                        <MetricCard icon={DollarSign} iconColor="text-blue-600 dark:text-[#0066FF]" label="Ingresos mensuales" value={fmt$(Math.round(data.totalRevenue / 12))} d={dRevenue} />
+                        <MetricCard icon={DollarSign} iconColor="text-blue-600 dark:text-[#0066FF]" label="Ingresos mensuales" value={fmt$(currentMonthRevenue)} d={dRevenue} />
                         <MetricCard icon={TrendingUp} iconColor="text-emerald-500 dark:text-[#10B981]" label="Retención" value={`${retention}%`} d={dRetention} />
                     </div>
 

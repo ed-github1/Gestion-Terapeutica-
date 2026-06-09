@@ -171,9 +171,9 @@ const AppointmentAcceptanceModal = ({ appointment, onClose, onAccepted, onReject
       if (res.data?.requiresPayment) {
         showToast('Redirigiendo al pago...', 'info')
         onAccepted?.(appointment)
-        const prefRes = await appointmentsService.createMercadoPagoPreference(id)
-        const { initPoint, sandboxInitPoint } = prefRes.data?.data ?? prefRes.data ?? {}
-        const url = import.meta.env.DEV ? (sandboxInitPoint || initPoint) : initPoint
+        // The accept endpoint already creates the preference and returns the URLs.
+        const { checkoutUrl, sandboxUrl } = res.data
+        const url = import.meta.env.DEV ? (sandboxUrl || checkoutUrl) : checkoutUrl
         if (url) {
           safeRedirect(url)
           return

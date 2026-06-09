@@ -4,6 +4,7 @@ import { showToast } from '@shared/ui/Toast'
 
 const loadAppointmentsFromSources = async () => {
   let allAppointments = []
+  sessionStorage.removeItem('professionalAppointments')
 
   // Backend
   try {
@@ -53,22 +54,6 @@ const loadAppointmentsFromSources = async () => {
     console.warn('⚠️ Could not load from backend, using localStorage')
   }
 
-  // sessionStorage (offline bookings — cleared on browser close)
-  const savedAppointments = sessionStorage.getItem('professionalAppointments')
-  if (savedAppointments) {
-    try {
-      const parsed = JSON.parse(savedAppointments)
-      const converted = parsed.map(apt => ({
-        ...apt,
-        start: new Date(apt.start),
-        end: new Date(apt.end),
-      }))
-      allAppointments = [...allAppointments, ...converted]
-    } catch {
-      console.warn('Failed to parse saved appointments')
-    }
-  }
-
   return allAppointments
 }
 
@@ -91,10 +76,6 @@ const computeStats = (appointments) => {
   }
 }
 
-const persistToLocalStorage = (appointments) => {
-  const toSave = appointments.filter(apt => !apt.id.toString().startsWith('demo_'))
-  sessionStorage.setItem('professionalAppointments', JSON.stringify(toSave))
-}
 
 /**
  * Manages calendar appointment state: loading from backend + localStorage,
@@ -153,7 +134,6 @@ export const useCalendarAppointments = () => {
       showToast('Cita creada exitosamente', 'success')
     }
     setAppointments(updatedAppointments)
-    persistToLocalStorage(updatedAppointments)
     setIsModalOpen(false)
     setSelectedAppointment(null)
     setSelectedSlot(null)
@@ -162,7 +142,6 @@ export const useCalendarAppointments = () => {
   const handleDeleteAppointment = useCallback((id) => {
     const updatedAppointments = appointments.filter(apt => apt.id !== id)
     setAppointments(updatedAppointments)
-    persistToLocalStorage(updatedAppointments)
     showToast('Cita eliminada exitosamente', 'info')
     setIsModalOpen(false)
     setSelectedAppointment(null)

@@ -10,6 +10,7 @@ import MiniCalendarCompact from './MiniCalendarCompact'
 const SessionsCalendarPanel = ({
     selectedDateLabel,
     selectedDateSessions,
+    pendingPayments = [],
     isViewingToday,
     nextUpcomingSession,
     calendarData,
@@ -42,6 +43,7 @@ const SessionsCalendarPanel = ({
             isViewingToday={isViewingToday}
             visibleSessions={visibleSessions}
             selectedDateSessions={selectedDateSessions}
+            pendingPayments={pendingPayments}
             loading={loading}
             onJoinVideo={handleJoinVideo}
             onViewDiary={setDiaryPatient}

@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { getTodayAppointments, resolvePatientName } from '../utils/dashboardUtils'
+import { getTodayAppointments, getPendingPaymentAppointments } from '../utils/dashboardUtils'
 
 /**
  * Derives today's appointments (merged from API + localStorage),
@@ -11,53 +11,9 @@ import { getTodayAppointments, resolvePatientName } from '../utils/dashboardUtil
  */
 export const useTodaySessions = (appointments, availability, loading) => {
     return useMemo(() => {
-        // Real appointments from backend
-        const realTodayAppointments = getTodayAppointments(appointments)
+        localStorage.removeItem('professionalAppointments')
 
-        // Appointments saved via patient booking flow (localStorage)
-        let localStorageAppointments = []
-        try {
-            const saved = localStorage.getItem('professionalAppointments')
-            if (saved) {
-                const parsed = JSON.parse(saved)
-                const today = new Date()
-                localStorageAppointments = parsed
-                    .filter(apt => {
-                        const d = new Date(apt.start || apt.fechaHora)
-                        return (
-                            d.getFullYear() === today.getFullYear() &&
-                            d.getMonth() === today.getMonth() &&
-                            d.getDate() === today.getDate()
-                        )
-                    })
-                    .map(apt => ({
-                        id: apt.id,
-                        patientId: apt.patientId || null,
-                        nombrePaciente: resolvePatientName(apt),
-                        fechaHora: apt.start || apt.fechaHora,
-                        estado: apt.status || 'reserved',
-                        type: apt.type || 'Primera consulta',
-                        riskLevel: apt.riskLevel || 'low',
-                        lastSessionNote: apt.notes || '',
-                        treatmentGoal: '',
-                        homeworkCompleted: false,
-                        ultimaVisita: null,
-                        isVideoCall: apt.isVideoCall || apt.mode === 'videollamada' || false,
-                        mode: apt.mode ?? (apt.isVideoCall ? 'videollamada' : 'consultorio'),
-                    }))
-            }
-        } catch (e) {
-            console.warn('Could not read localStorage appointments', e)
-        }
-
-        // Merge: real backend + localStorage (deduplicate by id)
-        const seenIds = new Set(realTodayAppointments.map(a => String(a.id)))
-        const merged = [...realTodayAppointments]
-        localStorageAppointments.forEach(apt => {
-            if (!seenIds.has(String(apt.id))) merged.push(apt)
-        })
-
-        let todayAppointments = merged
+        let todayAppointments = getTodayAppointments(appointments)
             .sort((a, b) => new Date(a.fechaHora) - new Date(b.fechaHora))
 
         // Add availability info to each appointment
@@ -100,7 +56,8 @@ export const useTodaySessions = (appointments, availability, loading) => {
             .sort((a, b) => new Date(a.fechaHora).getTime() - new Date(b.fechaHora).getTime())
 
         const upcomingPatient = todayAppointments[0]
+        const pendingPaymentToday = getPendingPaymentAppointments(appointments)
 
-        return { todayAppointments, allDaySlots, upcomingPatient }
+        return { todayAppointments, allDaySlots, upcomingPatient, pendingPaymentToday }
     }, [appointments, availability, loading])
 }

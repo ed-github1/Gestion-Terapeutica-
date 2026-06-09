@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react'
-import { useEffect, useRef } from 'react'
-import { Calendar, CalendarCheck, Video, FileText, MessageSquare, CheckCircle2, Ban, Coffee } from 'lucide-react'
+import { useEffect, useRef, useMemo } from 'react'
+import { Calendar, CalendarCheck, Video, FileText, MessageSquare, CheckCircle2, Ban, Coffee, Clock } from 'lucide-react'
 import { getAvatarColor } from '@shared/utils/avatarColor'
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -50,18 +50,21 @@ const parseAppointment = (appointment) => {
     const rawStatus        = appointment.estado || appointment.status || ''
     const isCompleted      = rawStatus === 'completed' || rawStatus === 'completada'
     const isCancelled      = rawStatus === 'cancelled' || rawStatus === 'cancelada' || appointment.isCancelled === true
-    const isPendingPayment = !isCompleted && !isCancelled && appointment.paymentStatus === 'pending'
+    const isPendingPayment = appointment._isPending === true
+    const pendingLabel     = isPendingPayment
+        ? (rawStatus === 'reserved' ? 'Sin confirmar' : 'Pago pendiente')
+        : null
 
     const isToday     = startTime.toDateString() === new Date().toDateString()
     const dateLabel   = !isToday ? `${startTime.getDate()} ${SHORT_MONTHS[startTime.getMonth()]}` : null
     const timeRange   = `${fmtTime(startTime)} – ${fmtTime(endTime)}`
     const nowMs       = Date.now()
-    const isInProgress = !isCompleted && !isCancelled && nowMs >= startTime.getTime() && nowMs < endTime.getTime()
-    const isDone      = isCompleted || isCancelled
+    const isInProgress = !isCompleted && !isCancelled && !isPendingPayment && nowMs >= startTime.getTime() && nowMs < endTime.getTime()
+    const isDone      = isCompleted || isCancelled || isPendingPayment
 
     return {
         patientName, patientId, startTime, endTime, riskLevel, sessionType,
-        isVideoCall, isCompleted, isCancelled, isDone, isPendingPayment, dateLabel,
+        isVideoCall, isCompleted, isCancelled, isDone, isPendingPayment, pendingLabel, dateLabel,
         timeRange, isInProgress,
     }
 }
@@ -145,18 +148,13 @@ const TimelineRow = ({ index, isFirst, isLast, timeStr, dateLabel, dotClass = DE
 const SessionActions = ({ appointment, data, isActive, isImminent, onJoinVideo, onViewDiary, onMarkComplete, onRequestPayment }) => {
     const { isCancelled, isCompleted, isVideoCall, isPendingPayment } = data
     const primaryBtn = isImminent ? GHOST_BTN_IMMINENT : isActive ? GHOST_BTN_ACTIVE : GHOST_BTN
+    if (isPendingPayment) return null
     return (
         <div className="flex items-center gap-0.5 shrink-0">
-{!isCancelled && !isCompleted && isVideoCall && (
-                isPendingPayment ? (
-                    <button type="button" title="Pago pendiente — no se puede iniciar la sesión" disabled className={GHOST_BTN_DISABLED}>
-                        <Video className="w-5 h-5" />
-                    </button>
-                ) : (
-                    <button type="button" title={isImminent ? 'Iniciar videollamada' : 'Videollamada'} onClick={() => onJoinVideo?.(appointment)} className={primaryBtn}>
-                        <Video className="w-5 h-5" />
-                    </button>
-                )
+            {!isCancelled && !isCompleted && isVideoCall && (
+                <button type="button" title={isImminent ? 'Iniciar videollamada' : 'Videollamada'} onClick={() => onJoinVideo?.(appointment)} className={primaryBtn}>
+                    <Video className="w-5 h-5" />
+                </button>
             )}
             {!isCancelled && !isCompleted && !isVideoCall && (
                 <button type="button" title="Marcar como completada" onClick={() => onMarkComplete?.(appointment)} className={primaryBtn}>
@@ -172,9 +170,9 @@ const SessionActions = ({ appointment, data, isActive, isImminent, onJoinVideo, 
 
 /** Status + type + mode chips */
 const SessionChips = ({ data }) => {
-    const { isCompleted, isCancelled, isDone, riskLevel, sessionType, isVideoCall, isPendingPayment } = data
+    const { isCompleted, isCancelled, isDone, riskLevel, sessionType, isVideoCall, isPendingPayment, pendingLabel } = data
     const typeDot = SESSION_TYPE_DOT[sessionType] || SESSION_TYPE_DOT.default
-    const hasStatusChip = isCompleted || isCancelled || riskLevel === 'high'
+    const hasStatusChip = isCompleted || isCancelled || isPendingPayment || riskLevel === 'high'
 
     const modeLabel = isVideoCall ? 'Videollamada' : 'Presencial'
     const modeColor = isDone ? CHIP_FADED
@@ -183,7 +181,7 @@ const SessionChips = ({ data }) => {
 
     return (
         <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
-{isCompleted && (
+            {isCompleted && (
                 <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-700/60">
                     <CheckCircle2 className="w-3 h-3" /> Completada
                 </span>
@@ -191,6 +189,11 @@ const SessionChips = ({ data }) => {
             {isCancelled && (
                 <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-700/60">
                     <Ban className="w-3 h-3" /> Cancelada
+                </span>
+            )}
+            {isPendingPayment && pendingLabel && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700">
+                    <Clock className="w-3 h-3" /> {pendingLabel}
                 </span>
             )}
             {!isDone && riskLevel === 'high' && (
@@ -374,10 +377,15 @@ const SessionsSkeleton = () => (
 )
 
 /* ─────────────────────────────────────────────────────────────────────────────
+   7. PENDING PAYMENTS — merged into timeline (no separate banner)
+───────────────────────────────────────────────────────────────────────────── */
+
+/* ─────────────────────────────────────────────────────────────────────────────
    TodaysSessions — main export
 ───────────────────────────────────────────────────────────────────────────── */
 const TodaysSessions = ({
     sessions = [],
+    pendingPayments = [],
     loading,
     onJoinVideo,
     onViewDiary,
@@ -391,6 +399,18 @@ const TodaysSessions = ({
 }) => {
     const scrollRef = useRef(null)
     const currentRef = useRef(null)
+
+    // Merge hidden appointments back into the timeline, sorted by time.
+    // Cancelled/rejected render via their own isCancelled styling.
+    // Reserved/payment-pending get _isPending: true for the grey chip.
+    const allSessions = useMemo(() => {
+        const CANCELLED_STATUSES = new Set(['cancelled', 'no-show'])
+        const extras = pendingPayments.map(apt => {
+            const status = apt.estado || apt.status || ''
+            return CANCELLED_STATUSES.has(status) ? apt : { ...apt, _isPending: true }
+        })
+        return [...sessions, ...extras].sort((a, b) => new Date(a.fechaHora) - new Date(b.fechaHora))
+    }, [sessions, pendingPayments])
 
     // Auto-scroll to the current/next session when viewing today
     useEffect(() => {
@@ -412,14 +432,13 @@ const TodaysSessions = ({
     // Find the index of the first item at or after 30 min ago (scroll anchor)
     const now = Date.now()
     const anchorIndex = (() => {
-        const idx = sessions.findIndex(item => {
+        const idx = allSessions.findIndex(item => {
             if (!item.fechaHora) return false
             return new Date(item.fechaHora).getTime() >= now - 30 * 60 * 1000
         })
-        // If everything is in the past, anchor to the last real session
         if (idx === -1) {
-            const lastReal = [...sessions].reverse().findIndex(item => !item.isUnavailable)
-            return lastReal === -1 ? sessions.length - 1 : sessions.length - 1 - lastReal
+            const lastReal = [...allSessions].reverse().findIndex(item => !item.isUnavailable)
+            return lastReal === -1 ? allSessions.length - 1 : allSessions.length - 1 - lastReal
         }
         return idx
     })()
@@ -433,18 +452,18 @@ const TodaysSessions = ({
         >
             {loading ? (
                 <SessionsSkeleton />
-            ) : sessions.length === 0 ? (
+            ) : allSessions.length === 0 ? (
                 <EmptyState />
-            ) : sessions.every(s => s.isUnavailable || s.isBreak) ? (
+            ) : allSessions.every(s => s.isUnavailable || s.isBreak) ? (
                 <EmptyState icon={CalendarCheck} label="Sin sesiones este día" sub={null} bare iconClass="text-blue-200 dark:text-blue-700" />
             ) : (
                 <div ref={scrollRef} className="space-y-0 xl:flex-1 xl:min-h-0 overflow-y-auto overflow-x-hidden pr-1 custom-scrollbar">
                     <AnimatePresence mode="popLayout">
-                        {sessions.map((item, index) => {
+                        {allSessions.map((item, index) => {
                             const itemTs = item.fechaHora ? new Date(item.fechaHora).getTime() : null
-                            const isNext = nextSessionTime !== null && itemTs !== null && itemTs === nextSessionTime
+                            const isNext = !item._isPending && nextSessionTime !== null && itemTs !== null && itemTs === nextSessionTime
                             const isAnchor = index === anchorIndex
-                            const isLast = index === sessions.length - 1
+                            const isLast = index === allSessions.length - 1
 
                             const isFirst = index === 0
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { motion } from 'motion/react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { X, Check, Wallet, TriangleAlert, ExternalLink, Info, TrendingUp } from 'lucide-react'
 import { showToast } from '@shared/ui/Toast'
 import { useAuth } from '@features/auth'
@@ -77,6 +77,7 @@ export default function RatesPanel({ onClose, embedded = false }) {
   const { user } = useAuth()
   const { dark } = useDarkModeContext()
   const location = useLocation()
+  const navigate = useNavigate()
   const [saved, setSaved] = useState(false)
   const [mpConnected, setMpConnected] = useState(false)
   const [mpConnecting, setMpConnecting] = useState(false)
@@ -125,7 +126,7 @@ export default function RatesPanel({ onClose, embedded = false }) {
     } else if (mp === 'error') {
       showToast('Error al conectar MercadoPago, intenta de nuevo', 'error')
     }
-    window.history.replaceState({}, '', location.pathname)
+    navigate(location.pathname, { replace: true })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleConnectMP = async () => {

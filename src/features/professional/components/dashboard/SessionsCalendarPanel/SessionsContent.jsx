@@ -5,6 +5,7 @@ const SessionsContent = ({
     isViewingToday,
     visibleSessions,
     selectedDateSessions,
+    pendingPayments,
     loading,
     onJoinVideo,
     onViewDiary,
@@ -23,6 +24,7 @@ const SessionsContent = ({
     return (
         <TodaysSessions
             sessions={selectedDateSessions}
+            pendingPayments={isViewingToday ? pendingPayments : []}
             loading={loading}
             onJoinVideo={onJoinVideo}
             onViewDiary={onViewDiary}

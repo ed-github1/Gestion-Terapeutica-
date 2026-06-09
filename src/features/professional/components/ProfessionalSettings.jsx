@@ -2,38 +2,8 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useAuth } from '@features/auth'
 import { ChangePasswordForm } from '@features/auth'
-import { useNavigate, useLocation } from 'react-router-dom'
-import { getCurrencyForCountry } from '@shared/constants/subscriptionPlans'
+import { useNavigate } from 'react-router-dom'
 import { professionalsService } from '@shared/services/professionalsService'
-import { statsService } from '@shared/services/statsService'
-import { showToast } from '@shared/ui/Toast'
-import apiClient, { safeRedirect } from '@shared/api/client'
-import mpLogo from '@assets/LOGO_MP.svg'
-
-// ─── Toggle ────────────────────────────────────────────────────────────────────
-const Toggle = ({ checked, onChange, disabled }) => (
-    <button
-        type="button"
-        role="switch"
-        aria-checked={checked}
-        disabled={disabled}
-        onClick={() => onChange(!checked)}
-        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 ${checked ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'} ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
-    >
-        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${checked ? 'translate-x-6' : 'translate-x-1'}`} />
-    </button>
-)
-
-// ─── Select ────────────────────────────────────────────────────────────────────
-const Select = ({ value, onChange, options }) => (
-    <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-transparent outline-none transition"
-    >
-        {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-    </select>
-)
 
 // ─── Section ───────────────────────────────────────────────────────────────────
 const Section = ({ title, subtitle, children }) => (
@@ -57,203 +27,18 @@ const Row = ({ label, description, children }) => (
     </div>
 )
 
-const inputCls = `text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5
-  text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-transparent outline-none transition`
-
-const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
-
-const FlagImg = ({ code, size = 28 }) => {
-    if (!code || code === 'OTHER') return <span style={{ fontSize: size }} className="leading-none">🌎</span>
-    return (
-        <img
-            src={`https://cdn.jsdelivr.net/gh/HatScripts/circle-flags@2.6.0/flags/${code.toLowerCase()}.svg`}
-            width={size}
-            height={size}
-            alt={code}
-            className="shrink-0"
-        />
-    )
-}
-
 // ─── Main component ────────────────────────────────────────────────────────────
 const ProfessionalSettings = ({ embedded = false }) => {
     const { user } = useAuth()
     const navigate = useNavigate()
-    const location = useLocation()
-    const [saved, setSaved] = useState(false)
     const [showPasswordForm, setShowPasswordForm] = useState(false)
     const [kycStatus, setKycStatus] = useState(null)
-    const [mpConnected, setMpConnected] = useState(false)
-    const [mpConnecting, setMpConnecting] = useState(false)
-    const [mpMenuOpen, setMpMenuOpen] = useState(false)
 
     useEffect(() => {
-        const params = new URLSearchParams(location.search)
-        const mp = params.get('mp')
-        if (!mp) return
-        if (mp === 'connected') {
-            setMpConnected(true)
-            showToast('Cuenta de MercadoPago conectada', 'success')
-        } else if (mp === 'error') {
-            showToast('Error al conectar MercadoPago, intenta de nuevo', 'error')
-        }
-        window.history.replaceState({}, '', location.pathname)
-    }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-    const countryInfo = getCurrencyForCountry(user?.country)
-
-    const [notif, setNotif] = useState({
-        emailAppointments: true,
-        emailReminders: true,
-        push: true,
-    })
-
-    const [practice, setPractice] = useState(() => {
-        try {
-            const saved = sessionStorage.getItem('professionalSettings')
-            if (saved) {
-                const parsed = JSON.parse(saved)
-                return {
-                    ...{
-                        videoCallEnabled: true,
-                        autoConfirm: false,
-                        reminderHours: '24',
-                        sessionDuration: '60',
-                        currency: 'MXN',
-                        sessionTypePrices: { primeraSesion: 50, seguimiento: 40, extraordinaria: 70 },
-                    }, ...parsed
-                }
-            }
-        } catch { /* ignore */ }
-        const defaultCurrency = getCurrencyForCountry(user?.country).currency
-        return {
-            videoCallEnabled: true,
-            autoConfirm: false,
-            reminderHours: '24',
-            sessionDuration: '60',
-            currency: defaultCurrency,
-            sessionTypePrices: { primeraSesion: 50, seguimiento: 40, extraordinaria: 70 },
-        }
-    })
-
-    const [contacto, setContacto] = useState({
-        telefono: '', calle: '', ciudad: '', estado: '', codigoPostal: '',
-    })
-
-    const [horario, setHorario] = useState({
-        dias: [], horaInicio: '09:00', horaFin: '18:00',
-    })
-
-    useEffect(() => {
-        Promise.allSettled([
-            professionalsService.getMyTarifas(),
-            statsService.getProfessionalSettings(),
-            professionalsService.getMyProfile(),
-        ]).then(([tarifasResult, settingsResult, profileResult]) => {
-            if (tarifasResult.status === 'fulfilled' && tarifasResult.value?.data) {
-                const t = tarifasResult.value.data
-                setPractice(prev => ({
-                    ...prev,
-                    sessionTypePrices: {
-                        primeraSesion:  t.primeraSesion  ?? prev.sessionTypePrices.primeraSesion,
-                        seguimiento:    t.seguimiento    ?? prev.sessionTypePrices.seguimiento,
-                        extraordinaria: t.extraordinaria ?? prev.sessionTypePrices.extraordinaria,
-                    },
-                }))
-            }
-            if (settingsResult.status === 'fulfilled' && settingsResult.value?.data) {
-                const s = settingsResult.value.data
-                if (s.notifications) setNotif(s.notifications)
-                setPractice(prev => ({
-                    ...prev,
-                    videoCallEnabled: s.videoCallEnabled ?? prev.videoCallEnabled,
-                    autoConfirm:      s.autoConfirm      ?? prev.autoConfirm,
-                    reminderHours:    s.reminderHours    ?? prev.reminderHours,
-                    sessionDuration:  s.sessionDuration  ?? prev.sessionDuration,
-                }))
-            }
-            if (profileResult.status === 'fulfilled' && profileResult.value?.data) {
-                const p = profileResult.value.data
-                const dp = p.datosPersonales || {}
-                const dir = dp.direccionConsultorio || {}
-                const ha = p.horarioAtencion || {}
-                setKycStatus(p.kycStatus ?? null)
-                setContacto({
-                    telefono:     dp.telefono      || '',
-                    calle:        dir.calle        || '',
-                    ciudad:       dir.ciudad       || '',
-                    estado:       dir.estado       || '',
-                    codigoPostal: dir.codigoPostal || '',
-                })
-                setHorario({
-                    dias:       ha.dias       || [],
-                    horaInicio: ha.horaInicio || '09:00',
-                    horaFin:    ha.horaFin    || '18:00',
-                })
-            }
-        })
+        professionalsService.getMyProfile()
+            .then(res => { if (res?.data) setKycStatus(res.data.kycStatus ?? null) })
+            .catch(() => {})
     }, [])
-
-    useEffect(() => {
-        setMpConnected(user?.mpConnected ?? false)
-    }, [user])
-
-    const handleConnectMP = async () => {
-        setMpConnecting(true)
-        try {
-            const res = await apiClient.get('/auth/mercadopago/connect')
-            safeRedirect(res.data?.url)
-        } catch {
-            showToast('No se pudo iniciar la conexión con MercadoPago.', 'error')
-            setMpConnecting(false)
-        }
-    }
-
-    const handleDisconnectMP = async () => {
-        setMpMenuOpen(false)
-        try {
-            await apiClient.post('/auth/mercadopago/disconnect')
-            setMpConnected(false)
-            showToast('Cuenta de MercadoPago desconectada', 'success')
-        } catch {
-            showToast('No se pudo desconectar MercadoPago.', 'error')
-        }
-    }
-
-    const setN = (key) => (val) => setNotif(prev => ({ ...prev, [key]: val }))
-    const setP = (key) => (val) => setPractice(prev => ({ ...prev, [key]: val }))
-
-    const handleSave = async () => {
-        sessionStorage.setItem('professionalSettings', JSON.stringify(practice))
-        localStorage.setItem('professionalSettings', JSON.stringify({
-            currency: practice.currency,
-            sessionTypePrices: practice.sessionTypePrices,
-        }))
-        await Promise.allSettled([
-            professionalsService.updateMyTarifas(practice.sessionTypePrices),
-            statsService.updateProfessionalSettings({
-                notifications: notif,
-                videoCallEnabled: practice.videoCallEnabled,
-                autoConfirm: practice.autoConfirm,
-                reminderHours: practice.reminderHours,
-                sessionDuration: practice.sessionDuration,
-            }),
-            professionalsService.updateProfile({
-                datosPersonales: {
-                    telefono: contacto.telefono,
-                    direccionConsultorio: {
-                        calle:        contacto.calle,
-                        ciudad:       contacto.ciudad,
-                        estado:       contacto.estado,
-                        codigoPostal: contacto.codigoPostal,
-                    },
-                },
-                horarioAtencion: horario,
-            }),
-        ])
-        setSaved(true)
-        setTimeout(() => setSaved(false), 2500)
-    }
 
     const fullName = user?.name || user?.nombre || 'Profesional'
     const initials = fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
@@ -294,7 +79,6 @@ const ProfessionalSettings = ({ embedded = false }) => {
                     </motion.div>
                 )}
 
-        
                 {/* ── Security ── */}
                 <Section title="Seguridad" subtitle="Controla el acceso y privacidad de tu cuenta">
                     <Row label="Contraseña" description="Actualiza tu contraseña regularmente">
@@ -320,9 +104,6 @@ const ProfessionalSettings = ({ embedded = false }) => {
                         )}
                     </AnimatePresence>
                 </Section>
-
-               
-          
 
                 <div className="h-4" />
             </div>

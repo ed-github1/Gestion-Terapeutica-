@@ -41,6 +41,9 @@ const ProfessionalAccount = () => {
     const [active, setActive] = useState(() =>
         new URLSearchParams(location.search).get('mp') ? 'config' : 'cuenta'
     )
+
+
+
     // Mobile accordion: which section is open (null = all closed)
     const [mobileOpen, setMobileOpen] = useState(() =>
         new URLSearchParams(location.search).get('mp') ? 'config' : null
@@ -106,7 +109,7 @@ const ProfessionalAccount = () => {
                         <span className="text-sm font-semibold">Cerrar sesión</span>
                     </button>
                 </div>
-
+                
                 {/* ── Desktop sidebar ── */}
                 <div className="hidden md:flex w-56 shrink-0 flex-col border-r border-gray-100 dark:border-gray-800">
 
