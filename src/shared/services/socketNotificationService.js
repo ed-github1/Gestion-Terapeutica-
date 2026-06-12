@@ -82,6 +82,10 @@ class SocketNotificationService {
       this._emit('appointment-rejected', data)
     })
 
+    this.socket.on('transcript-empty', (data) => {
+      this._emit('transcript-empty', data)
+    })
+
     this.socket.on('disconnect', () => {
       console.debug('[SocketNotificationService] disconnected')
       this._emit('disconnect', {})

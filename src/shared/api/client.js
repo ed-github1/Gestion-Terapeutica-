@@ -111,6 +111,19 @@ apiClient.interceptors.response.use(
   (error) => {
     if (error.response) {
       const { status, data } = error.response
+      // Session is locked server-side: surface the lock overlay instead of
+      // logging out. Dispatching the event lets AuthContext show the overlay
+      // even when the lock was triggered from another tab or before the
+      // frontend called POST /auth/lock.
+      if (status === 401 && data?.code === 'SESSION_LOCKED') {
+        window.dispatchEvent(new CustomEvent('session:locked'))
+        const err = new Error(data?.message || 'Sesión bloqueada.')
+        err.status = 401
+        err.code = 'SESSION_LOCKED'
+        err.data = data
+        return Promise.reject(err)
+      }
+
       const onAuthPage = ['/login', '/register', '/verify-2fa'].some(p => window.location.pathname.startsWith(p))
       const isVerifyPassword = error.config?.url?.includes('/auth/verify-password')
       if (status === 401 && !onAuthPage && !isVerifyPassword) {

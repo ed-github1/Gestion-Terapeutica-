@@ -201,6 +201,15 @@ export const useSocketNotifications = () => {
         return unsubscribe
     }, [])
 
+    // transcript-empty
+    useEffect(() => {
+        if (!isProfessional) return
+        const unsubscribe = socketNotificationService.on('transcript-empty', () => {
+            showToast('La grabación de la sesión no contiene audio detectable. No se generará transcripción.', 'warning')
+        })
+        return unsubscribe
+    }, [isProfessional])
+
     // appointment-rescheduled (patient rescheduled)
     useEffect(() => {
         if (!isProfessional) return

@@ -161,8 +161,19 @@ export const VideoCallNotificationManager = () => {
 
     socketNotificationService.connect(userId)
 
+    const pollOnce = async () => {
+      try {
+        const { data } = await videoCallService.getActiveInvitations()
+        if (data?.invitations?.length > 0) data.invitations.forEach(showInvitation)
+      } catch { /* ignore */ }
+    }
+
     const unsubInvite = socketNotificationService.on('call-invitation', showInvitation)
-    const unsubConnect = socketNotificationService.on('connect', () => setSocketOk(true))
+    const unsubConnect = socketNotificationService.on('connect', () => {
+      setSocketOk(true)
+      // One-shot catch-up: fetch any invitation that arrived during the connection handshake
+      pollOnce()
+    })
     const unsubDisconnect = socketNotificationService.on('disconnect', () => setSocketOk(false))
 
     return () => {
@@ -172,9 +183,11 @@ export const VideoCallNotificationManager = () => {
     }
   }, [user?._id, user?.id])
 
-  // ── Channel 2: REST polling /video/active-invitations — fallback only ──
+  // ── Channel 2: REST polling /video/active-invitations ──
+  // Runs at 6s when socket is down; stays at 30s as a safety net when socket is up,
+  // so any event missed by the socket (timing race, server-side room not ready) is
+  // recovered without a page refresh.
   useEffect(() => {
-    if (socketOk) return
     const poll = async () => {
       try {
         const { data } = await videoCallService.getActiveInvitations()
@@ -182,7 +195,7 @@ export const VideoCallNotificationManager = () => {
       } catch { /* endpoint may not exist */ }
     }
     poll()
-    const interval = setInterval(poll, 6_000)
+    const interval = setInterval(poll, socketOk ? 30_000 : 6_000)
     return () => clearInterval(interval)
   }, [socketOk])
 

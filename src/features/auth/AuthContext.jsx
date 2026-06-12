@@ -234,11 +234,27 @@ export const AuthProvider = ({ children }) => {
   // ── Session lock (replaces full logout on idle) ───────────────────────────
   // HIPAA §164.312(a)(2)(iii) — "automatic logoff" is satisfied by locking the
   // screen so no data is visible. A full logout is NOT required.
-  const lockSession = useCallback(() => {
+  const lockSession = useCallback(async () => {
     auditLog('SESSION_LOCKED', { userId: user?.id || user?._id, reason: 'idle_timeout' })
     sessionStorage.setItem('sessionLocked', '1')
     setLocked(true)
+    // Enforce the lock server-side so authenticated endpoints return 401
+    // SESSION_LOCKED while the overlay is displayed. Fire-and-forget: if the
+    // network call fails the overlay is already visible, which is safe.
+    try { await authService.lock() } catch { /* ignore */ }
   }, [user])
+
+  // If a data request returns SESSION_LOCKED before the frontend has set the
+  // local lock state (e.g., another tab locked the session), show the overlay
+  // without calling POST /auth/lock again — the backend is already locked.
+  useEffect(() => {
+    const onServerLock = () => {
+      sessionStorage.setItem('sessionLocked', '1')
+      setLocked(true)
+    }
+    window.addEventListener('session:locked', onServerLock)
+    return () => window.removeEventListener('session:locked', onServerLock)
+  }, [])
 
   /**
    * Unlock the session by verifying the user's password.

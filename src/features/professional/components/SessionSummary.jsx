@@ -10,6 +10,7 @@ import { appointmentsService } from '@shared/services/appointmentsService'
 import { ROUTES } from '@shared/constants/routes'
 import { resolvePatientName } from '../utils/dashboardUtils'
 import { getAvatarColor } from '@shared/utils/avatarColor'
+import { socketNotificationService } from '@shared/services/socketNotificationService'
 
 /* ═══════════════════════════════════════════════════════════════
    1. HELPERS
@@ -181,21 +182,21 @@ const TranscriptReady = ({ text, onChange, edited }) => {
 
 const TranscriptError = ({ variant = 'failed' }) => (
   <div className="flex flex-col items-center gap-2 py-10 text-center max-w-sm mx-auto">
-    <div className="w-12 h-12 rounded-full bg-rose-50 dark:bg-rose-900/20 flex items-center justify-center mb-1">
-      <AlertCircle className="w-5 h-5 text-rose-500 dark:text-rose-400" />
-    </div>
     {variant === 'empty' ? (
       <>
-        <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">Transcripción vacía</p>
+        <div className="w-12 h-12 rounded-full bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center mb-1">
+          <AlertCircle className="w-5 h-5 text-amber-500 dark:text-amber-400" />
+        </div>
+        <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">No se detectó voz en la grabación</p>
         <p className="text-xs text-gray-500 dark:text-gray-500 leading-relaxed">
-          El servicio marcó la transcripción como lista pero no devolvió texto.
-          Es posible que el audio no contenga voz reconocible o que falle el
-          guardado en el servidor. Revisa los logs del backend del trabajo
-          indicado en <code className="px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-[10px]">transcriptJobId</code>.
+          El análisis completó pero no encontró audio hablado. Es posible que el micrófono no captara la sesión correctamente.
         </p>
       </>
     ) : (
       <>
+        <div className="w-12 h-12 rounded-full bg-rose-50 dark:bg-rose-900/20 flex items-center justify-center mb-1">
+          <AlertCircle className="w-5 h-5 text-rose-500 dark:text-rose-400" />
+        </div>
         <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">No se pudo procesar el audio</p>
         <p className="text-xs text-gray-500 dark:text-gray-500">Intenta de nuevo desde una próxima sesión grabada.</p>
       </>
@@ -268,10 +269,8 @@ const SessionSummary = () => {
     } else if (status === 'failed' || status === 'error') {
       setErrorVariant('failed')
       setTranscriptState('error')
-    } else if (status === 'completed' || status === 'done' || status === 'ready') {
-      // Backend finished but the transcript text is missing/empty.
-      // Surface as a distinct error so the user isn't stuck on "processing".
-      console.warn('[SessionSummary] Transcription marked', status, 'but transcript text is empty. Response keys:', data ? Object.keys(data) : [])
+    } else if (status === 'empty' || status === 'completed' || status === 'done' || status === 'ready') {
+      // 'empty' → AssemblyAI found no speech; 'completed/done/ready' with no text → unexpected gap.
       setErrorVariant('empty')
       setTranscriptState('error')
     } else {
@@ -315,6 +314,15 @@ const SessionSummary = () => {
     }, 6000)
     return () => clearInterval(pollRef.current)
   }, [transcriptState, appointmentId])
+
+  // Update local state immediately when the backend emits transcript-empty for this appointment
+  useEffect(() => {
+    return socketNotificationService.on('transcript-empty', (data) => {
+      if (data?.appointmentId !== appointmentId) return
+      setErrorVariant('empty')
+      setTranscriptState('error')
+    })
+  }, [appointmentId])
 
   // Grace-period poll when idle — handles race where we arrive before backend
   // sets transcriptStatus to 'processing'. Poll for up to 90s after page load.

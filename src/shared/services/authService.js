@@ -19,6 +19,9 @@ export const authService = {
   register: (userData) =>
     apiClient.post('/auth/register', userData),
 
+  lock: () =>
+    apiClient.post('/auth/lock'),
+
   logout: () =>
     apiClient.post('/auth/logout').finally(() => {
       // HttpOnly auth cookie is cleared by the backend's Set-Cookie response.
