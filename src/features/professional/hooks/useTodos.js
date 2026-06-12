@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { todoService } from '@shared/services'
 
+const normalizeTodo = (todo) => ({
+    ...todo,
+    id: todo.id || todo._id,
+})
+
 export function useTodos() {
     const [todos, setTodos] = useState([])
     const [loading, setLoading] = useState(true)
@@ -8,7 +13,10 @@ export function useTodos() {
 
     useEffect(() => {
         todoService.getAll()
-            .then(res => setTodos(res.data ?? []))
+            .then(res => {
+                const todos = (res.data ?? []).map(normalizeTodo)
+                setTodos(todos)
+            })
             .catch(() => setError('No se pudieron cargar las tareas'))
             .finally(() => setLoading(false))
     }, [])
@@ -18,7 +26,7 @@ export function useTodos() {
         setTodos(prev => [temp, ...prev])
         try {
             const res = await todoService.create({ title })
-            const created = res.data
+            const created = normalizeTodo(res.data)
             setTodos(prev => prev.map(t => t.id === temp.id ? created : t))
         } catch {
             setTodos(prev => prev.filter(t => t.id !== temp.id))
@@ -26,6 +34,7 @@ export function useTodos() {
     }, [])
 
     const toggleDone = useCallback(async (id, currentCompleted) => {
+        if (typeof id === 'string' && id.startsWith('temp-')) return
         setTodos(prev => prev.map(t => t.id === id ? { ...t, completed: !currentCompleted } : t))
         try {
             await todoService.update(id, { completed: !currentCompleted })
@@ -40,6 +49,7 @@ export function useTodos() {
             removed = prev.find(t => t.id === id)
             return prev.filter(t => t.id !== id)
         })
+        if (typeof id === 'string' && id.startsWith('temp-')) return
         try {
             await todoService.remove(id)
         } catch {

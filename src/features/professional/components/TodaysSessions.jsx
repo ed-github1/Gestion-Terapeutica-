@@ -459,7 +459,7 @@ const TodaysSessions = ({
             ) : (
                 <div ref={scrollRef} className="space-y-0 xl:flex-1 xl:min-h-0 overflow-y-auto overflow-x-hidden pr-1 custom-scrollbar">
                     <AnimatePresence mode="popLayout">
-                        {allSessions.map((item, index) => {
+                        {allSessions.filter(item => !item.isUnavailable).map((item, index) => {
                             const itemTs = item.fechaHora ? new Date(item.fechaHora).getTime() : null
                             const isNext = !item._isPending && nextSessionTime !== null && itemTs !== null && itemTs === nextSessionTime
                             const isAnchor = index === anchorIndex
@@ -469,13 +469,6 @@ const TodaysSessions = ({
 
                             if (item.isBreak) {
                                 return <BreakCard key={`break-${index}`} time={item.time} index={index} isFirst={isFirst} isLast={isLast} />
-                            }
-                            if (item.isUnavailable) {
-                                return (
-                                    <div key={item._id || item.id || `unavailable-${itemTs}-${index}`} ref={isAnchor ? currentRef : null}>
-                                        <AvailableSlotCard slot={item} index={index} isFirst={isFirst} isLast={isLast} />
-                                    </div>
-                                )
                             }
                             return (
                                 <div key={item._id || item.id || `session-${itemTs}-${index}`} ref={isAnchor ? currentRef : null}>

@@ -340,6 +340,7 @@ const ModernProfessionalDashboard = ({ setShowCalendar, setDiaryPatient }) => {
                                         initials,
                                         name: userName,
                                         greeting,
+                                        pictureUrl: user?.pictureUrl,
                                         onNavigate: () => navigate(ROUTES.PROFESSIONAL_PROFILE),
                                         isPro: ['PRO', 'EMPRESA'].includes((user?.subscriptionPlan || user?.plan || user?.planType || '').toUpperCase()),
                                     }}

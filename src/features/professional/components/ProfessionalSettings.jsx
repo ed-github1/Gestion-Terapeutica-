@@ -49,35 +49,41 @@ const ProfessionalSettings = ({ embedded = false }) => {
             <div className={embedded ? 'space-y-4' : 'max-w-full space-y-4'}>
 
                 {/* ── Profile card ── */}
-                {!embedded && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.04 }}
-                        className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 flex items-center gap-4 px-6 py-5"
-                    >
-                        <div className="w-12 h-12 rounded-full bg-linear-to-br from-blue-700 to-sky-400 flex items-center justify-center text-white text-lg font-bold shrink-0">
+                <div
+                    className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 flex items-center gap-4 px-6 py-5"
+                >
+                    {user?.pictureUrl ? (
+                        <img
+                            src={user.pictureUrl}
+                            alt={fullName}
+                            className="w-12 h-12 rounded-full object-cover ring-2 ring-blue-400/20 shrink-0"
+                            onError={(e) => e.target.style.display = 'none'}
+                        />
+                    ) : (
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-sky-500 text-white flex items-center justify-center font-bold shrink-0 ring-2 ring-blue-400/20">
                             {initials}
                         </div>
-                        <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{fullName}</p>
-                                {isVerified && (
-                                    <svg className="w-4 h-4 shrink-0 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
-                                    </svg>
-                                )}
-                            </div>
-                            <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5 truncate">{user?.email || user?.correo || ''}</p>
+                    )}
+                    <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{fullName}</p>
+                            {isVerified && (
+                                <svg className="w-4 h-4 shrink-0 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+                                </svg>
+                            )}
                         </div>
+                        <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5 truncate">{user?.email || user?.correo || ''}</p>
+                    </div>
+                    {!embedded && (
                         <button
                             onClick={() => navigate('/dashboard/professional/profile')}
                             className="flex items-center gap-1 text-[11px] text-blue-600 dark:text-blue-400 font-medium hover:text-blue-700 dark:hover:text-blue-300 shrink-0"
                         >
                             Editar perfil
                         </button>
-                    </motion.div>
-                )}
+                    )}
+                </div>
 
                 {/* ── Security ── */}
                 <Section title="Seguridad" subtitle="Controla el acceso y privacidad de tu cuenta">

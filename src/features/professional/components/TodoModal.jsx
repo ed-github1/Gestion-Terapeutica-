@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Circle, CheckCircle, Trash2, Plus, X, ChevronDown, Loader2 } from 'lucide-react'
+import Tooltip from '@shared/components/Tooltip'
 
 export default function TodoModal({ open, onClose, todos, loading, error, addTodo, toggleDone, deleteTodo, clearDone }) {
     const [input, setInput]       = useState('')
@@ -155,6 +156,8 @@ export default function TodoModal({ open, onClose, todos, loading, error, addTod
 }
 
 function TodoItem({ todo, onToggle, onDelete }) {
+    const isTemp = typeof todo.id === 'string' && todo.id.startsWith('temp-')
+
     return (
         <motion.div
             layout
@@ -162,28 +165,34 @@ function TodoItem({ todo, onToggle, onDelete }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, height: 0, marginBottom: 0 }}
             transition={{ duration: 0.15 }}
-            className="flex items-center gap-3 px-2 py-2 rounded-lg group hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors"
+            className={`flex items-center gap-3 px-2.5 py-2.5 rounded-lg group hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${isTemp ? 'opacity-60' : ''}`}
         >
-            <button
-                onClick={() => onToggle(todo.id, todo.completed)}
-                className={`shrink-0 transition-colors ${todo.completed ? 'text-blue-500' : 'text-gray-300 dark:text-gray-600 hover:text-blue-400'}`}
-            >
-                {todo.completed
-                    ? <CheckCircle className="w-4.5 h-4.5" strokeWidth={2} />
-                    : <Circle className="w-4.5 h-4.5" strokeWidth={1.5} />
-                }
-            </button>
+            <Tooltip text={isTemp ? 'Guardando...' : todo.completed ? 'Marcar como pendiente' : 'Marcar como hecho'} side="top">
+                <button
+                    onClick={() => onToggle(todo.id, todo.completed)}
+                    disabled={isTemp}
+                    className={`shrink-0 p-1 -ml-1 rounded transition-all ${isTemp ? 'text-gray-300 dark:text-gray-700 cursor-not-allowed' : todo.completed ? 'text-blue-500' : 'text-gray-400 dark:text-gray-500 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10'}`}
+                >
+                    {todo.completed
+                        ? <CheckCircle className="w-5 h-5" strokeWidth={2.5} />
+                        : <Circle className="w-5 h-5" strokeWidth={1.5} />
+                    }
+                </button>
+            </Tooltip>
 
-            <span className={`flex-1 text-sm leading-snug wrap-break-word ${todo.completed ? 'line-through text-gray-400 dark:text-gray-600' : 'text-gray-700 dark:text-gray-300'}`}>
+            <span className={`flex-1 text-sm leading-snug wrap-break-word transition-colors ${todo.completed ? 'line-through text-gray-400 dark:text-gray-600' : 'text-gray-800 dark:text-gray-200'}`}>
                 {todo.title}
             </span>
 
-            <button
-                onClick={() => onDelete(todo.id)}
-                className="shrink-0 p-1 rounded-md text-transparent group-hover:text-gray-300 dark:group-hover:text-gray-600 hover:text-rose-500! transition-colors"
-            >
-                <Trash2 className="w-3.5 h-3.5" />
-            </button>
+            <Tooltip text={isTemp ? 'Guardando...' : 'Eliminar tarea'} side="top">
+                <button
+                    onClick={() => onDelete(todo.id)}
+                    disabled={isTemp}
+                    className={`shrink-0 p-1.5 rounded-md transition-all ${isTemp ? 'opacity-0 cursor-not-allowed' : 'text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10'}`}
+                >
+                    <Trash2 className="w-4 h-4" />
+                </button>
+            </Tooltip>
         </motion.div>
     )
 }

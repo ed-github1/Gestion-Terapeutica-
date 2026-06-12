@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { motion } from 'motion/react'
 import { useAuth } from './AuthContext'
 import { PROFESSIONAL_COUNTRIES } from '@shared/constants/subscriptionPlans'
+import ProfilePictureUpload from '@shared/components/ProfilePictureUpload'
+import ProfessionalAvatar from '@shared/components/ProfessionalAvatar'
 
 const GENDER_OPTIONS = [
   { value: '',           label: 'Seleccionar...' },
@@ -54,6 +56,7 @@ const EditProfileForm = () => {
     especialidad: user?.specialty  || user?.especialidad  || '',
     cedula:      user?.licenseNumber || user?.numeroLicencia || '',
   })
+  const [pictureUrl, setPictureUrl] = useState(user?.pictureUrl || null)
   const [loading, setLoading]   = useState(false)
   const [success, setSuccess]   = useState(false)
   const [error, setError]       = useState(null)
@@ -114,6 +117,18 @@ const EditProfileForm = () => {
       <div className="border-t border-gray-200 dark:border-gray-800 mb-5" />
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Profile Picture */}
+        <div>
+          <Label>Foto de perfil</Label>
+          <div className="mt-3">
+            <ProfilePictureUpload
+              onUploadSuccess={setPictureUrl}
+              currentImage={pictureUrl}
+              altText={user?.nombre || user?.name || 'Tu foto'}
+            />
+          </div>
+        </div>
+
         {/* Name row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Nombre"   value={form.nombre}   onChange={set('nombre')}   disabled={loading} />

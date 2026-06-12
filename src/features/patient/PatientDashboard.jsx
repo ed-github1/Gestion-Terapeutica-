@@ -96,7 +96,7 @@ const PatientDashboard = () => {
     }
   }
 
-  const dismissedAptIds   = useRef(_loadDismissedIds())
+  const dismissedAptIds = useRef(_loadDismissedIds())
   // Tracks IDs surfaced in THIS page session — resets on every page load.
   // Prevents the same appointment from triggering the modal more than once
   // per session via socket reconnects or concurrent hook + socket events.
@@ -179,9 +179,9 @@ const PatientDashboard = () => {
       const uid = apt?.professionalUserId || apt?.data?.professionalUserId
       if (uid) _setProUserId(uid)
     },
-    dismissedIdsRef:      dismissedAptIds,
+    dismissedIdsRef: dismissedAptIds,
     isAcceptModalOpenRef: appointmentToAcceptRef,
-    isPayModalOpenRef:    appointmentToPayRef,
+    isPayModalOpenRef: appointmentToPayRef,
   })
 
   // Real-time socket: professional initiates an appointment
@@ -207,9 +207,9 @@ const PatientDashboard = () => {
   const loadDashboardData = async () => {
     try {
       const { professionalId: pid, professionalUserId: puid } = await resolveLinkedProfessional(user)
-      if (pid)  setProfessionalId(pid)
+      if (pid) setProfessionalId(pid)
       if (puid) _setProUserId(puid)
-    } catch {}
+    } catch { }
     refreshAppointments()
   }
 
@@ -270,12 +270,15 @@ const PatientDashboard = () => {
 
           {/* Left column: tasks */}
           <div className="order-2 md:order-1 md:col-span-3 flex flex-col gap-4">
-            <HomeworkGoalsWidget />
+            <DiaryWidget />
+
           </div>
 
           {/* Right column: therapist card + diary */}
           <div className="order-1 md:order-2 md:col-span-2 flex flex-col gap-4">
-            <DiaryWidget />
+            <HomeworkGoalsWidget />
+            <TherapistCard onRequestNew={() => setShowAppointmentRequest(true)} />
+
           </div>
         </div>
       </div>

@@ -3,13 +3,32 @@ import { motion, AnimatePresence } from 'motion/react'
 import { useAuth } from '@features/auth/AuthContext'
 import { homeworkService } from '@shared/services/homeworkService'
 import { patientsService } from '@shared/services/patientsService'
-import { CheckCircle2, Circle, Calendar, AlertCircle, ClipboardList } from 'lucide-react'
+import { CheckCircle2, Circle, Calendar, AlertCircle, ClipboardList, ChevronDown, ChevronUp, Dumbbell, BookOpen, Pencil, Star } from 'lucide-react'
+
+const HOMEWORK_TYPES = {
+  exercise: { label: 'Ejercicio', icon: Dumbbell, bg: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' },
+  reading: { label: 'Lectura', icon: BookOpen, bg: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' },
+  journaling: { label: 'Diario', icon: Pencil, bg: 'bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400' },
+  reflection: { label: 'Reflexión', icon: Star, bg: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-600' },
+  other: { label: 'Otro', icon: ClipboardList, bg: 'bg-gray-100 dark:bg-gray-700/30 text-gray-700 dark:text-gray-400' },
+}
+
+const TypeBadge = ({ type }) => {
+  const t = HOMEWORK_TYPES[type] || HOMEWORK_TYPES.other
+  const Icon = t.icon
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${t.bg}`}>
+      <Icon className="w-2.5 h-2.5" /> {t.label}
+    </span>
+  )
+}
 
 const HomeworkGoalsWidget = () => {
   const { user } = useAuth()
   const [patientId, setPatientId] = useState(user?.patientId || user?.patient_id || null)
   const [items, setItems]         = useState([])
   const [loading, setLoading]     = useState(true)
+  const [expandedId, setExpandedId] = useState(null)
 
   useEffect(() => {
     if (patientId) return
@@ -127,13 +146,47 @@ const HomeworkGoalsWidget = () => {
                         }
                       </button>
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-semibold leading-snug ${
-                          task.completed ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'
-                        }`}>
-                          {task.title}
-                        </p>
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <p className={`text-sm font-semibold leading-snug ${
+                            task.completed ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'
+                          }`}>
+                            {task.title}
+                          </p>
+                          {task.type && (
+                            <TypeBadge type={task.type} />
+                          )}
+                        </div>
+                        {task.description && (
+                          <div className="mt-1">
+                            <button
+                              onClick={() => setExpandedId(expandedId === task._id ? null : task._id)}
+                              className="flex items-center gap-0.5 text-xs text-sky-500 hover:text-sky-600 dark:hover:text-sky-400 transition"
+                            >
+                              {expandedId === task._id ? (
+                                <ChevronUp className="w-3 h-3" />
+                              ) : (
+                                <ChevronDown className="w-3 h-3" />
+                              )}
+                              {expandedId === task._id ? 'Ocultar' : 'Ver descripción'}
+                            </button>
+                            <AnimatePresence>
+                              {expandedId === task._id && (
+                                <motion.p
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: 'auto', opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  className={`text-xs leading-relaxed mt-1 overflow-hidden ${
+                                    task.completed ? 'text-gray-400 dark:text-gray-500' : 'text-gray-600 dark:text-gray-400'
+                                  }`}
+                                >
+                                  {task.description}
+                                </motion.p>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        )}
                         {task.dueDate && (
-                          <div className="flex items-center gap-1.5 mt-1">
+                          <div className="flex items-center gap-1.5 mt-2">
                             {overdue && !task.completed
                               ? <AlertCircle className="w-3 h-3 text-red-500" />
                               : <Calendar className="w-3 h-3 text-gray-400" />

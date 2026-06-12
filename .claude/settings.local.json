@@ -35,7 +35,8 @@
       "Bash(find src *)",
       "Read(//tmp/**)",
       "Bash(cd \"c:\\\\Users\\\\Eddie\\\\TotalmenteGestionTerapeuticaWebApp\\\\TotalmenteGestionTerapeutica-Frontend\" && find src -type f \\\\\\( -name \"*.jsx\" -o -name \"*.js\" \\\\\\) ! -path \"*/features/professional/*\" > /tmp/filelist.txt && wc -l /tmp/filelist.txt)",
-      "Bash(python /tmp/analyze.py)"
+      "Bash(python /tmp/analyze.py)",
+      "Bash(curl -s http://localhost:5173/)"
     ],
     "additionalDirectories": [
       "C:\\Users\\Eddie\\TotalmenteGestionTerapeuticaWebApp\\TotalmentGestionTerapeutica-Backend\\src\\models",

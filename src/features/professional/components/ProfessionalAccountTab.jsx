@@ -10,6 +10,7 @@ import {
 import { useAuth } from '@features/auth'
 import { ChangePasswordForm } from '@features/auth'
 import { PROFESSIONAL_COUNTRIES } from '@shared/constants/subscriptionPlans'
+import ProfilePictureUpload from '@shared/components/ProfilePictureUpload'
 import { statsService } from '@shared/services/statsService'
 import { professionalsService } from '@shared/services/professionalsService'
 
@@ -172,11 +173,29 @@ const ProfileModal = ({ open, onClose, profile, onChangeProfile, saving, saved, 
                             {/* Content */}
                             <div className="flex-1 overflow-y-auto p-6">
                                 {tab === 'credentials' && (
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <FField label="Nombre" value={profile.nombre} onChange={e => onChangeProfile('nombre', e.target.value)} disabled={saving} />
-                                        <FField label="Apellido" value={profile.apellido} onChange={e => onChangeProfile('apellido', e.target.value)} disabled={saving} />
-                                        <FField label="Especialidad" value={profile.especialidad} onChange={e => onChangeProfile('especialidad', e.target.value)} disabled={saving} />
-                                        <FField label="Cédula / Licencia" value={profile.cedula} onChange={e => onChangeProfile('cedula', e.target.value)} disabled={saving} />
+                                    <div className="space-y-6">
+                                        <div>
+                                            <FL>Foto de perfil</FL>
+                                            <div className="mt-3">
+                                                <ProfilePictureUpload
+                                                  onUploadSuccess={(pictureUrl) => {
+                                                    if (pictureUrl) {
+                                                      onChangeProfile('pictureUrl', pictureUrl)
+                                                    }
+                                                  }}
+                                                  currentImage={profile.pictureUrl}
+                                                  altText={profile.nombre || 'Tu foto'}
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="border-t border-gray-100 dark:border-[#2A3F5F] pt-6">
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <FField label="Nombre" value={profile.nombre} onChange={e => onChangeProfile('nombre', e.target.value)} disabled={saving} />
+                                                <FField label="Apellido" value={profile.apellido} onChange={e => onChangeProfile('apellido', e.target.value)} disabled={saving} />
+                                                <FField label="Especialidad" value={profile.especialidad} onChange={e => onChangeProfile('especialidad', e.target.value)} disabled={saving} />
+                                                <FField label="Cédula / Licencia" value={profile.cedula} onChange={e => onChangeProfile('cedula', e.target.value)} disabled={saving} />
+                                            </div>
+                                        </div>
                                     </div>
                                 )}
                                 {tab === 'contact' && (
@@ -240,7 +259,7 @@ const ProfileModal = ({ open, onClose, profile, onChangeProfile, saving, saved, 
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 const ProfessionalAccountTab = () => {
-    const { user, updateProfile } = useAuth()
+    const { user, updateProfile, refreshUser } = useAuth()
     const originalRef = useRef({ especialidad: '', cedula: '' })
 
     const [ready, setReady] = useState(false)
@@ -254,7 +273,7 @@ const ProfessionalAccountTab = () => {
     const [showPw, setShowPw] = useState(false)
     const [notif, setNotif] = useState({ emailReminders: true })
     const [profile, setProfile] = useState({
-        nombre: '', apellido: '', email: '', country: '', genero: '', especialidad: '', cedula: '',
+        nombre: '', apellido: '', email: '', country: '', genero: '', especialidad: '', cedula: '', pictureUrl: null,
     })
     const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'))
 
@@ -280,6 +299,7 @@ const ProfessionalAccountTab = () => {
             country: user.country || '',
             genero: (user.gender || user.genero || '').toLowerCase(),
             especialidad: esp, cedula: ced,
+            pictureUrl: user.pictureUrl || null,
         })
         const t = setTimeout(() => setReady(true), 400)
         return () => clearTimeout(t)
@@ -313,6 +333,7 @@ const ProfessionalAccountTab = () => {
             genero: (user?.gender || user?.genero || '').toLowerCase(),
             especialidad: dp.especialidad || user?.especialidad || '',
             cedula: dp.cedulaProfesional || user?.cedula || '',
+            pictureUrl: user?.pictureUrl || null,
         })
         setIsDirty(false)
         setSaveError(null)
@@ -340,7 +361,11 @@ const ProfessionalAccountTab = () => {
         } else {
             setSaved(true)
             setIsDirty(false)
-            setTimeout(() => { setSaved(false); setModalOpen(false) }, 1500)
+            refreshUser()
+            setTimeout(() => {
+                setSaved(false)
+                setModalOpen(false)
+            }, 1500)
         }
     }
 
@@ -420,7 +445,18 @@ const ProfessionalAccountTab = () => {
                 <div className="flex items-center justify-between px-10 py-6 border-b border-gray-100 dark:border-[#2A3F5F]">
                     <div className="flex flex-col gap-3">
                         {/* Avatar */}
-                        <div className="size-28 rounded-full shrink-0 bg-gray-100 dark:bg-[#1A2332] border-2 border-gray-200 dark:border-[#2A3F5F] flex items-center justify-center text-4xl font-bold text-gray-700 dark:text-[#F5F7FA]">
+                        {user?.pictureUrl ? (
+                            <img
+                                src={user.pictureUrl}
+                                alt={heroName}
+                                className="size-28 rounded-full shrink-0 border-2 border-gray-200 dark:border-[#2A3F5F] object-cover"
+                                onError={(e) => {
+                                    e.target.style.display = 'none'
+                                    e.target.nextElementSibling?.style.removeProperty('display')
+                                }}
+                            />
+                        ) : null}
+                        <div className="size-28 rounded-full shrink-0 bg-gray-100 dark:bg-[#1A2332] border-2 border-gray-200 dark:border-[#2A3F5F] flex items-center justify-center text-4xl font-bold text-gray-700 dark:text-[#F5F7FA]" style={user?.pictureUrl ? { display: 'none' } : {}}>
                             {heroInitials}
                         </div>
                         {/* Identity */}

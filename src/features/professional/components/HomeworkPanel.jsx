@@ -221,14 +221,30 @@ const HomeworkPanel = ({ patientId, patientName }) => {
 
   /* Delete task */
   const handleDelete = async (task) => {
+    if (!window.confirm(`¿Eliminar la tarea "${task.title}"?`)) return
+
     const id = task._id || task.id
+    if (!id) {
+      setError('Error: No se pudo identificar la tarea.')
+      return
+    }
+
+    if (!patientId) {
+      setError('Error: No se pudo identificar al paciente.')
+      return
+    }
+
     setDeletingId(id)
+    setError(null)
     try {
-      await homeworkService.remove(patientId, id)
+      const res = await homeworkService.remove(patientId, String(id))
+      if (res.data?.success === false) {
+        throw new Error(res.data?.message || 'No se pudo eliminar la tarea.')
+      }
       setTasks(prev => prev.filter(t => (t._id || t.id) !== id))
     } catch (err) {
       console.error('Homework delete error:', err)
-      setError('No se pudo eliminar la tarea.')
+      setError(err.message || 'No se pudo eliminar la tarea. Intenta de nuevo.')
     } finally {
       setDeletingId(null)
     }

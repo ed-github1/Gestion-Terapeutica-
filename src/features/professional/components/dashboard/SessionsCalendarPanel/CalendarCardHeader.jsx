@@ -17,10 +17,14 @@ const CalendarCardHeader = ({
             <div className="flex items-center gap-2">
                 <button
                     onClick={profile.onNavigate}
-                    className="w-8 h-8 rounded-full bg-[#0075C9] flex items-center justify-center text-white font-bold text-[10px] shrink-0 hover:bg-gray-700 transition-colors"
+                    className="w-8 h-8 rounded-full bg-[#0075C9] flex items-center justify-center text-white font-bold text-[10px] shrink-0 hover:bg-gray-700 transition-colors overflow-hidden"
                     title="Ver Perfil"
                 >
-                    {profile.initials}
+                    {profile.pictureUrl ? (
+                        <img src={profile.pictureUrl} alt={profile.name} className="w-full h-full object-cover" />
+                    ) : (
+                        profile.initials
+                    )}
                 </button>
                 <div className="flex items-center gap-1.5">
                     <p className="text-[13px] font-bold text-gray-900 dark:text-gray-100 leading-none">{profile.name}</p>
@@ -51,10 +55,14 @@ const CalendarCardHeader = ({
             <div className="flex items-center gap-2.5 shrink-0">
                 <button
                     onClick={profile.onNavigate}
-                    className="w-10 h-10 rounded-full bg-[#0075C9] flex items-center justify-center text-white font-bold text-xs shrink-0 hover:bg-gray-700 transition-colors"
+                    className="w-10 h-10 rounded-full bg-[#0075C9] flex items-center justify-center text-white font-bold text-xs shrink-0 hover:bg-gray-700 transition-colors overflow-hidden"
                     title="Ver Perfil"
                 >
-                    {profile.initials}
+                    {profile.pictureUrl ? (
+                        <img src={profile.pictureUrl} alt={profile.name} className="w-full h-full object-cover" />
+                    ) : (
+                        profile.initials
+                    )}
                 </button>
                 <div>
                     <p className="text-[10px] text-gray-400 leading-none">{profile.greeting}</p>
@@ -95,10 +103,14 @@ const CalendarCardHeader = ({
             <div className="flex items-center gap-2.5">
                 <button
                     onClick={profile.onNavigate}
-                    className="w-10 h-10 rounded-full bg-[#0075C9] flex items-center justify-center text-white font-bold text-xs shrink-0 hover:bg-gray-700 transition-colors"
+                    className="w-10 h-10 rounded-full bg-[#0075C9] flex items-center justify-center text-white font-bold text-xs shrink-0 hover:bg-gray-700 transition-colors overflow-hidden"
                     title="Ver Perfil"
                 >
-                    {profile.initials}
+                    {profile.pictureUrl ? (
+                        <img src={profile.pictureUrl} alt={profile.name} className="w-full h-full object-cover" />
+                    ) : (
+                        profile.initials
+                    )}
                 </button>
                 <div>
                     <p className="text-[10px] text-gray-400 leading-none">{profile.greeting}</p>
