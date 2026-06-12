@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import MonthNav from './MonthNav'
 import KpiChip, { KpiChipSkeleton } from './KpiChip'
 
@@ -9,23 +10,39 @@ const CalendarCardHeader = ({
     kpisLoading = false,
     quickActionsSlot,
     onToday,
-}) => (
+}) => {
+    const [imageError, setImageError] = useState(false)
+
+    const AvatarButton = ({ size = 'md' }) => {
+        const sizeClass = size === 'sm' ? 'w-8 h-8 text-[10px]' : 'w-10 h-10 text-xs'
+
+        return (
+            <button
+                onClick={profile.onNavigate}
+                className={`${sizeClass} rounded-full bg-[#0075C9] flex items-center justify-center text-white font-bold shrink-0 hover:bg-gray-700 transition-colors overflow-hidden`}
+                title="Ver Perfil"
+            >
+                {profile.pictureUrl && !imageError ? (
+                    <img
+                        src={profile.pictureUrl}
+                        alt={profile.name}
+                        className="w-full h-full object-cover"
+                        onError={() => setImageError(true)}
+                    />
+                ) : (
+                    profile.initials
+                )}
+            </button>
+        )
+    }
+
+    return (
     <div className="border-b border-gray-200 dark:border-gray-700 shrink-0">
 
         {/* Mobile: avatar + name + month nav in one row */}
         <div className="flex md:hidden items-center justify-between px-3 pt-2 pb-1.5">
             <div className="flex items-center gap-2">
-                <button
-                    onClick={profile.onNavigate}
-                    className="w-8 h-8 rounded-full bg-[#0075C9] flex items-center justify-center text-white font-bold text-[10px] shrink-0 hover:bg-gray-700 transition-colors overflow-hidden"
-                    title="Ver Perfil"
-                >
-                    {profile.pictureUrl ? (
-                        <img src={profile.pictureUrl} alt={profile.name} className="w-full h-full object-cover" />
-                    ) : (
-                        profile.initials
-                    )}
-                </button>
+                <AvatarButton size="sm" />
                 <div className="flex items-center gap-1.5">
                     <p className="text-[13px] font-bold text-gray-900 dark:text-gray-100 leading-none">{profile.name}</p>
                     {profile.isPro && (
@@ -53,17 +70,7 @@ const CalendarCardHeader = ({
         {/* md–lg: single row — avatar/name · KPIs · MonthNav */}
         <div className="hidden md:flex xl:hidden items-center gap-3 px-4 lg:px-5 pt-3 pb-3">
             <div className="flex items-center gap-2.5 shrink-0">
-                <button
-                    onClick={profile.onNavigate}
-                    className="w-10 h-10 rounded-full bg-[#0075C9] flex items-center justify-center text-white font-bold text-xs shrink-0 hover:bg-gray-700 transition-colors overflow-hidden"
-                    title="Ver Perfil"
-                >
-                    {profile.pictureUrl ? (
-                        <img src={profile.pictureUrl} alt={profile.name} className="w-full h-full object-cover" />
-                    ) : (
-                        profile.initials
-                    )}
-                </button>
+                <AvatarButton size="md" />
                 <div>
                     <p className="text-[10px] text-gray-400 leading-none">{profile.greeting}</p>
                     <div className="flex items-center gap-1.5 mt-0.5">
@@ -101,17 +108,7 @@ const CalendarCardHeader = ({
         {/* xl: profile + month nav only (KPIs live in right-col stats bar) */}
         <div className="hidden xl:flex items-center justify-between px-5 pt-4 pb-3">
             <div className="flex items-center gap-2.5">
-                <button
-                    onClick={profile.onNavigate}
-                    className="w-10 h-10 rounded-full bg-[#0075C9] flex items-center justify-center text-white font-bold text-xs shrink-0 hover:bg-gray-700 transition-colors overflow-hidden"
-                    title="Ver Perfil"
-                >
-                    {profile.pictureUrl ? (
-                        <img src={profile.pictureUrl} alt={profile.name} className="w-full h-full object-cover" />
-                    ) : (
-                        profile.initials
-                    )}
-                </button>
+                <AvatarButton size="md" />
                 <div>
                     <p className="text-[10px] text-gray-400 leading-none">{profile.greeting}</p>
                     <div className="flex items-center gap-1.5 mt-0.5">
@@ -134,6 +131,7 @@ const CalendarCardHeader = ({
             </div>
         )}
     </div>
-)
+    )
+}
 
 export default CalendarCardHeader

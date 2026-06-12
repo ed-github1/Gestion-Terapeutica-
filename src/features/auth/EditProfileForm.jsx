@@ -67,6 +67,18 @@ const EditProfileForm = () => {
     setForm(prev => ({ ...prev, [key]: e.target.value }))
   }
 
+  const handlePictureUploadSuccess = async (newPictureUrl) => {
+    setPictureUrl(newPictureUrl)
+    if (newPictureUrl) {
+      try {
+        await updateProfile({ pictureUrl: newPictureUrl })
+        setSuccess(true)
+      } catch (err) {
+        console.error('Error updating profile with picture URL:', err)
+      }
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError(null)
@@ -122,7 +134,7 @@ const EditProfileForm = () => {
           <Label>Foto de perfil</Label>
           <div className="mt-3">
             <ProfilePictureUpload
-              onUploadSuccess={setPictureUrl}
+              onUploadSuccess={handlePictureUploadSuccess}
               currentImage={pictureUrl}
               altText={user?.nombre || user?.name || 'Tu foto'}
             />
