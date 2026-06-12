@@ -38,11 +38,8 @@ const ProfilePictureUpload = ({ onUploadSuccess, currentImage = null, altText = 
 
     setLoading(true)
     try {
-      console.log('Uploading file:', file.name, file.type, file.size)
       const res = await professionalsService.uploadPicture(file)
-      console.log('Upload response:', res.data)
       const pictureUrl = res.data?.data?.pictureUrl
-      console.log('Picture URL:', pictureUrl)
       showToast('Foto de perfil actualizada correctamente.', 'success')
       onUploadSuccess?.(pictureUrl)
     } catch (err) {

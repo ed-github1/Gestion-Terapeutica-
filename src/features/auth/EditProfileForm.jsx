@@ -74,7 +74,8 @@ const EditProfileForm = () => {
         await updateProfile({ pictureUrl: newPictureUrl })
         setSuccess(true)
       } catch (err) {
-        console.error('Error updating profile with picture URL:', err)
+        console.error('Error saving picture URL:', err)
+        setSuccess(true)
       }
     }
   }

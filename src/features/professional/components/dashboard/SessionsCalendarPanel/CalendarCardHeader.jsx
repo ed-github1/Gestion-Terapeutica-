@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import MonthNav from './MonthNav'
 import KpiChip, { KpiChipSkeleton } from './KpiChip'
 
@@ -13,6 +13,13 @@ const CalendarCardHeader = ({
 }) => {
     const [imageError, setImageError] = useState(false)
 
+    const pictureUrl = useMemo(() => {
+        if (!profile.pictureUrl) return null
+        if (profile.pictureUrl.startsWith('http')) return profile.pictureUrl
+        if (profile.pictureUrl.startsWith('/')) return window.location.origin + profile.pictureUrl
+        return profile.pictureUrl
+    }, [profile.pictureUrl])
+
     const AvatarButton = ({ size = 'md' }) => {
         const sizeClass = size === 'sm' ? 'w-8 h-8 text-[10px]' : 'w-10 h-10 text-xs'
 
@@ -22,9 +29,9 @@ const CalendarCardHeader = ({
                 className={`${sizeClass} rounded-full bg-[#0075C9] flex items-center justify-center text-white font-bold shrink-0 hover:bg-gray-700 transition-colors overflow-hidden`}
                 title="Ver Perfil"
             >
-                {profile.pictureUrl && !imageError ? (
+                {pictureUrl && !imageError ? (
                     <img
-                        src={profile.pictureUrl}
+                        src={pictureUrl}
                         alt={profile.name}
                         className="w-full h-full object-cover"
                         onError={() => setImageError(true)}
