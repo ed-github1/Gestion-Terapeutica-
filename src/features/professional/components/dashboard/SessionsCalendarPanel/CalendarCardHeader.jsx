@@ -34,7 +34,11 @@ const CalendarCardHeader = ({
                         src={pictureUrl}
                         alt={profile.name}
                         className="w-full h-full object-cover"
-                        onError={() => setImageError(true)}
+                        onLoad={() => console.log('✅ Picture loaded:', pictureUrl)}
+                        onError={(e) => {
+                            console.error('❌ Picture failed to load:', pictureUrl, e)
+                            setImageError(true)
+                        }}
                     />
                 ) : (
                     profile.initials

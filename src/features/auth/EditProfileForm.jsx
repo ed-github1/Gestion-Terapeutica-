@@ -45,7 +45,7 @@ const ERROR_MESSAGES = {
 }
 
 const EditProfileForm = () => {
-  const { user, updateProfile } = useAuth()
+  const { user, updateProfile, refreshUser } = useAuth()
 
   const [form, setForm] = useState({
     nombre:      user?.nombre      || user?.name          || '',
@@ -69,14 +69,11 @@ const EditProfileForm = () => {
 
   const handlePictureUploadSuccess = async (newPictureUrl) => {
     setPictureUrl(newPictureUrl)
-    if (newPictureUrl) {
-      try {
-        await updateProfile({ pictureUrl: newPictureUrl })
-        setSuccess(true)
-      } catch (err) {
-        console.error('Error saving picture URL:', err)
-        setSuccess(true)
-      }
+    setSuccess(true)
+    try {
+      await refreshUser()
+    } catch (err) {
+      console.error('Error refreshing user after picture upload:', err)
     }
   }
 
