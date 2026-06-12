@@ -326,20 +326,6 @@ export const AuthProvider = ({ children }) => {
     }
   }, [scheduleTokenRefresh])
 
-  /** Refresh user data from server (e.g., after picture upload). */
-  const refreshUser = useCallback(async () => {
-    try {
-      const res = await authService.getMe()
-      let userData = res.data?.data?.user || res.data?.data || res.data?.user || res.data
-      if (userData) {
-        userData.role = userData.role || userData.rol || userData.userRole || userData.user_role || userData.tipo || userData.type || undefined
-        setUser(userData)
-      }
-    } catch (err) {
-      console.error('Failed to refresh user:', err)
-    }
-  }, [])
-
   /** Change the current user's password. Does not alter auth state on success. */
   const changePassword = useCallback(async (currentPassword, newPassword) => {
     await authService.changePassword(currentPassword, newPassword)

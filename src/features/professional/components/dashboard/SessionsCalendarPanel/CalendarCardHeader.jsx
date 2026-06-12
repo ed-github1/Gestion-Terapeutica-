@@ -22,9 +22,9 @@ const CalendarCardHeader = ({
                 className={`${sizeClass} rounded-full bg-[#0075C9] flex items-center justify-center text-white font-bold shrink-0 hover:bg-gray-700 transition-colors overflow-hidden`}
                 title="Ver Perfil"
             >
-                {!imageError ? (
+                {profile.pictureUrl && !imageError ? (
                     <img
-                        src="/api/professional/me/picture"
+                        src={profile.pictureUrl}
                         alt={profile.name}
                         className="w-full h-full object-cover"
                         onError={() => setImageError(true)}

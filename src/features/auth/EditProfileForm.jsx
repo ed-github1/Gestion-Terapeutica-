@@ -2,8 +2,6 @@ import { useState } from 'react'
 import { motion } from 'motion/react'
 import { useAuth } from './AuthContext'
 import { PROFESSIONAL_COUNTRIES } from '@shared/constants/subscriptionPlans'
-import ProfilePictureUpload from '@shared/components/ProfilePictureUpload'
-import ProfessionalAvatar from '@shared/components/ProfessionalAvatar'
 
 const GENDER_OPTIONS = [
   { value: '',           label: 'Seleccionar...' },
@@ -45,7 +43,7 @@ const ERROR_MESSAGES = {
 }
 
 const EditProfileForm = () => {
-  const { user, updateProfile, refreshUser } = useAuth()
+  const { user, updateProfile } = useAuth()
 
   const [form, setForm] = useState({
     nombre:      user?.nombre      || user?.name          || '',
@@ -56,7 +54,6 @@ const EditProfileForm = () => {
     especialidad: user?.specialty  || user?.especialidad  || '',
     cedula:      user?.licenseNumber || user?.numeroLicencia || '',
   })
-  const [pictureUrl, setPictureUrl] = useState(user?.pictureUrl || null)
   const [loading, setLoading]   = useState(false)
   const [success, setSuccess]   = useState(false)
   const [error, setError]       = useState(null)
@@ -65,16 +62,6 @@ const EditProfileForm = () => {
     setSuccess(false)
     setError(null)
     setForm(prev => ({ ...prev, [key]: e.target.value }))
-  }
-
-  const handlePictureUploadSuccess = async (newPictureUrl) => {
-    setPictureUrl(newPictureUrl)
-    setSuccess(true)
-    try {
-      await refreshUser()
-    } catch (err) {
-      console.error('Error refreshing user after picture upload:', err)
-    }
   }
 
   const handleSubmit = async (e) => {
@@ -127,17 +114,6 @@ const EditProfileForm = () => {
       <div className="border-t border-gray-200 dark:border-gray-800 mb-5" />
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Profile Picture */}
-        <div>
-          <Label>Foto de perfil</Label>
-          <div className="mt-3">
-            <ProfilePictureUpload
-              onUploadSuccess={handlePictureUploadSuccess}
-              currentImage={pictureUrl}
-              altText={user?.nombre || user?.name || 'Tu foto'}
-            />
-          </div>
-        </div>
 
         {/* Name row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
